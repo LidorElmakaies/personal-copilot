@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "../../dist/.tsbuildinfo-kafka-contracts",
+    "outDir": "../../dist/libs/kafka-contracts"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["**/*spec.ts"]
+}

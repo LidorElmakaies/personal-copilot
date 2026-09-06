@@ -1,0 +1,36 @@
+{
+  "name": "shabbat-notifier-frontend",
+  "version": "1.0.0",
+  "main": "expo-router/entry",
+  "dependencies": {
+    "@expo/vector-icons": "^15.0.2",
+    "@react-native-async-storage/async-storage": "^2.2.0",
+    "@reduxjs/toolkit": "^2.12.0",
+    "expo": "~57.0.0",
+    "expo-linear-gradient": "~57.0.0",
+    "expo-linking": "~57.0.1",
+    "expo-router": "^57.0.2",
+    "react": "19.2.3",
+    "react-dom": "^19.2.3",
+    "react-native": "0.86.0",
+    "react-native-safe-area-context": "^5.8.0",
+    "react-native-screens": "^4.25.2",
+    "react-native-web": "^0.21.2",
+    "react-redux": "^9.3.0",
+    "redux-persist": "^6.0.0",
+    "socket.io-client": "^4.8.3"
+  },
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "build:web": "expo export --platform web --output-dir dist",
+    "format": "prettier --write \"app/**/*.js\" \"src/**/*.js\" \"*.js\"",
+    "format:check": "prettier --check \"app/**/*.js\" \"src/**/*.js\" \"*.js\""
+  },
+  "private": true,
+  "devDependencies": {
+    "prettier": "^3.9.6"
+  }
+}

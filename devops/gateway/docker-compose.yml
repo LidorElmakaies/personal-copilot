@@ -1,0 +1,25 @@
+services:
+  gateway:
+    extends:
+      file: ../common.yml
+      service: _defaults
+    build:
+      context: ../../backend
+      dockerfile: apps/gateway/Dockerfile
+    env_file:
+      - ../docker.env
+    environment:
+      - OTEL_SERVICE_NAME=gateway
+      - JWT_SECRET=${JWT_SECRET}
+      - AUTH_SERVICE_URL=http://auth:8001
+    # The only service published to the host — reachable from your phone over Tailscale at
+    # <this-pc's-tailscale-address>:8000. Every other service stays on the internal network only
+    # (see .claude/memory/feedback_gateway_only_service_access.md).
+    ports:
+      - "8000:8000"
+    depends_on:
+      auth:
+        condition: service_started
+    networks:
+      - shabbat-notifier
+      - observability

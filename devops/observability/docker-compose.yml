@@ -1,0 +1,109 @@
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.159.0
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./otel-collector/config.yaml:/etc/otelcol/config.yaml:ro
+    ports:
+      - "4317:4317"    # OTLP gRPC receiver (apps send here)
+      - "4318:4318"    # OTLP HTTP receiver (apps send here)
+      - "8889:8889"    # Prometheus scrape endpoint
+      - "13133:13133"  # Health check
+    depends_on:
+      - loki
+      - tempo
+    restart: unless-stopped
+    networks:
+      - observability
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+  loki:
+    image: grafana/loki:3.7.6
+    command: ["-config.file=/etc/loki/config.yaml"]
+    volumes:
+      - ./loki/config.yaml:/etc/loki/config.yaml:ro
+      - ./data/loki:/loki
+    ports:
+      - "3100:3100"
+    restart: unless-stopped
+    networks:
+      - observability
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+  prometheus:
+    image: prom/prometheus:v3.14.0
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+      # Tempo's metrics_generator (service-graphs/span-metrics, see tempo/config.yaml) remote-writes
+      # here — without this flag it 404s continuously once real traces arrive.
+      - "--web.enable-remote-write-receiver"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./data/prometheus:/prometheus
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
+    networks:
+      - observability
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+  tempo:
+    # Pinned to the 2.x line on purpose — 3.x restructured the config schema (Kafka-backed
+    # live_store/block_builder/backend_scheduler replacing the simple monolithic
+    # ingester/compactor shape tempo/config.yaml here is written for). Don't bump to :latest or a
+    # 3.x tag without rewriting that file first.
+    image: grafana/tempo:2.10.8
+    command: ["-config.file=/etc/tempo/config.yaml"]
+    volumes:
+      - ./tempo/config.yaml:/etc/tempo/config.yaml:ro
+      - ./data/tempo:/var/tempo
+    ports:
+      - "3200:3200"
+    restart: unless-stopped
+    networks:
+      - observability
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+  grafana:
+    image: grafana/grafana:13.2.0
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./data/grafana:/var/lib/grafana
+    # Published directly, unlike askmycrawl's JWT-gated admin proxy — this stack sits behind
+    # Tailscale (only your own tailnet devices can reach it at all), which is already a stronger
+    # boundary than a single-user personal project needs on top of that. Revisit if this ever
+    # moves off Tailscale onto the open internet, or gets a second real user.
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      - loki
+      - prometheus
+      - tempo
+    restart: unless-stopped
+    networks:
+      - observability
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+networks:
+  observability:
+    driver: bridge
+    # Pinned name (compose would otherwise prefix it with the project name). This stack OWNS the
+    # network; devops/docker-compose.yml attaches to it as `external: true, name: observability`
+    # so app services can reach otel-collector:4317. Renaming this breaks that join.
+    name: observability

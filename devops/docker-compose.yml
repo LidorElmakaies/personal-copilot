@@ -1,0 +1,33 @@
+# App stack (as opposed to devops/observability/docker-compose.yml, the telemetry stack). Split
+# into one file per logical unit under devops/<unit>/docker-compose.yml, pulled together here via
+# the `include:` top-level key — this file only lists what to include, plus the shared networks.
+# `docker compose up -d --build` from `devops/` works exactly as documented in CLAUDE.md.
+#
+# `gateway`, `auth`, `frontend`, `postgres`, `kafka` exist today. Add a new service the same way:
+# its own Dockerfile under backend/apps/<service>/, its own devops/<service>/docker-compose.yml,
+# its own `include:` line below — see .claude/agents/devops.md for the full target shape, including
+# its "reuse existing shared infrastructure" rule (a new service points at the existing
+# Postgres/Kafka, it doesn't get its own).
+
+include:
+  - path: gateway/docker-compose.yml
+  - path: auth/docker-compose.yml
+  - path: frontend/docker-compose.yml
+  - path: postgres/docker-compose.yml
+  - path: kafka/docker-compose.yml
+
+networks:
+  shabbat-notifier:      # internal service-to-service traffic
+    driver: bridge
+
+  # Owned by devops/observability/docker-compose.yml — referenced here, not created here, so
+  # gateway/auth can reach `otel-collector:4317` by service name.
+  #
+  # ORDERING GOTCHA: an external network must already exist. If devops/observability has never
+  # been started, `docker compose up` here fails with "network observability not found". Bring the
+  # telemetry stack up first, every time — see the `devops` agent:
+  #     cd observability && docker compose up -d
+  #     cd .. && docker compose up -d --build
+  observability:
+    external: true
+    name: observability

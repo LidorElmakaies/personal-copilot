@@ -1,0 +1,53 @@
+services:
+  kafka:
+    extends:
+      file: ../common.yml
+      service: _defaults
+    # Official apache/kafka image, KRaft mode (no Zookeeper), pinned (never :latest — an
+    # unpinned image drifting onto an incompatible config schema is a real failure mode, not just
+    # hygiene; see .claude/agents/devops.md). Single node, combined broker+controller roles.
+    # PLAINTEXT (19092) for other containers on the `shabbat-notifier` network; PLAINTEXT_HOST
+    # (9092) published to the host for local debugging (kcat, etc.). CLUSTER_ID is pinned (any
+    # fixed UUID works — generated once via `kafka-storage.sh random-uuid`) because storage is
+    # persisted on a volume; an unpinned/regenerated ID on restart would mismatch already-formatted
+    # storage and fail to start.
+    #
+    # No service produces or consumes yet — libs/kafka-contracts is an empty shell. Kept running as
+    # generic plumbing for the next feature; add a `kafka-init` service back (creating whatever
+    # devops/kafka's future topic list needs, matching backend/libs/kafka-contracts/src/topics.ts
+    # exactly) alongside that feature's first producer/consumer.
+    image: apache/kafka:4.3.1
+    hostname: kafka
+    environment:
+      - KAFKA_NODE_ID=1
+      - KAFKA_PROCESS_ROLES=broker,controller
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      - KAFKA_LISTENERS=CONTROLLER://:29093,PLAINTEXT://:19092,PLAINTEXT_HOST://:9092
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:19092,PLAINTEXT_HOST://localhost:9092
+      - KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka:29093
+      - KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+      - CLUSTER_ID=X6c1QY0hRAaVteqbTsjSNw
+      # Single-broker dev setup — every replication factor must be 1.
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1
+      - KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1
+      - KAFKA_SHARE_COORDINATOR_STATE_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_SHARE_COORDINATOR_STATE_TOPIC_MIN_ISR=1
+      - KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS=0
+      # No topics exist yet, so auto-creation has nothing to silently paper over — left disabled
+      # anyway, so the first real topic is always the one explicitly declared in kafka-init.
+      - KAFKA_AUTO_CREATE_TOPICS_ENABLE=false
+      - KAFKA_LOG_DIRS=/var/lib/kafka/data
+    ports:
+      - "9092:9092"
+    volumes:
+      - ../data/kafka:/var/lib/kafka/data
+    networks:
+      - shabbat-notifier
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 30s

@@ -1,0 +1,21 @@
+{
+  "name": "shabbat-notifier",
+  "version": "1.0.0",
+  "private": true,
+  "description": "NestJS + Expo scaffold — Gateway, Postgres-backed Auth Service, OTel observability, and a frontend with working login — kept as the base for whatever feature comes next.",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "prepare": "husky"
+  },
+  "author": "",
+  "license": "UNLICENSED",
+  "lint-staged": {
+    "backend/{apps,libs}/**/*.ts": "npx --prefix backend prettier --write"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^17.4.1"
+  }
+}

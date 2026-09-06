@@ -1,0 +1,22 @@
+services:
+  auth:
+    extends:
+      file: ../common.yml
+      service: _defaults
+    build:
+      context: ../../backend
+      dockerfile: apps/auth/Dockerfile
+    env_file:
+      - ../docker.env
+    environment:
+      - OTEL_SERVICE_NAME=auth
+    # No ports: — internal-only, never published to the host. Only Gateway calls this (see
+    # .claude/memory/feedback_gateway_only_service_access.md) — unlike ask-my-crawl's Auth
+    # Service, which still publishes 8001 as documented debt; this project starts without that
+    # exception.
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - shabbat-notifier
+      - observability

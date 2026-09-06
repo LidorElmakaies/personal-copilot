@@ -1,0 +1,5 @@
+# Runtime data volumes — never checked in.
+data/
+
+# Personal overrides (GATEWAY_PUBLIC_URL, JWT_SECRET, PASSWORD_PEPPER) — see .env.example.
+.env
