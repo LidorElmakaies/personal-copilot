@@ -3,19 +3,13 @@ services:
     extends:
       file: ../common.yml
       service: _defaults
-    # Web preview/production target: static Expo web export served by Caddy — see
-    # frontend/Dockerfile. Always-on, unlike `npx expo start` which needs to be manually running.
-    # Android/iOS still run via `npx expo start` locally for that kind of testing, not
-    # containerized.
+    # See frontend/Dockerfile.
     build:
       context: ../../frontend
       args:
-        # Expo bakes EXPO_PUBLIC_* vars into the client bundle at build time (frontend/Dockerfile
-        # re-exposes this ARG as EXPO_PUBLIC_GATEWAY_ORIGIN before `npm run build:web` runs), so
-        # this has to be a build arg, not a runtime container env var. Must be the same
-        # Tailscale-reachable origin as devops/.env's GATEWAY_PUBLIC_URL below.
+        # Build arg, not a runtime env var — see docs/specs/architecture.md#compose--build-layout.
         - GATEWAY_PUBLIC_URL=${GATEWAY_PUBLIC_URL:-http://localhost:8000}
     ports:
       - "8081:80"
     networks:
-      - shabbat-notifier
+      - personal-copilot

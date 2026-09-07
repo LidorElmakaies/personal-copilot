@@ -1,6 +1,6 @@
 ---
 name: feedback_gateway_only_service_access
-description: "Hard rule for shabbat-notifier, carried over from askmycrawl: nothing external ever reaches auth (or any future internal service) directly — only Gateway (frontend excepted, it's a static web export, not a backend service). Internal service-to-service calls (Kafka, and Gateway->Auth HTTP) are unaffected."
+description: "Hard rule for personal-copilot, carried over from askmycrawl: nothing external ever reaches auth (or any future internal service) directly — only Gateway (frontend excepted, it's a static web export, not a backend service). Internal service-to-service calls (Kafka, and Gateway->Auth HTTP) are unaffected."
 metadata:
   node_type: memory
   type: feedback

@@ -1,5 +1,5 @@
 # Build context is backend/ (the Nest monorepo root), same as every other app here.
-#   docker build -f apps/gateway/Dockerfile -t shabbat-notifier-gateway .
+#   docker build -f apps/gateway/Dockerfile -t personal-copilot-gateway .
 # devops/gateway/docker-compose.yml sets context/dockerfile for you.
 
 FROM node:22-alpine AS builder

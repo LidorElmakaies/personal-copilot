@@ -1,16 +1,12 @@
-# Static web export, served by Caddy — always-on, unlike `npx expo start`. Android/iOS still run
-# via `npx expo start` locally — no useful way to containerize a device/simulator target.
-#
-#   docker build -t shabbat-notifier-frontend .
+# Web export only — see docs/specs/architecture.md#compose--build-layout for why.
+#   docker build -t personal-copilot-frontend .
 
 FROM node:22-alpine AS builder
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm install
 COPY . .
-# Single source of truth for the deployment's public origin — see devops/.env.example. Passed in
-# as a build arg (devops/frontend/docker-compose.yml), re-exposed with the EXPO_PUBLIC_ prefix
-# Expo requires to inline a var into the client bundle at build time — src/config/urls.js reads it.
+# Must be a build ARG, not a runtime env var — see docs/specs/architecture.md#compose--build-layout.
 ARG GATEWAY_PUBLIC_URL=http://localhost:8000
 ENV EXPO_PUBLIC_GATEWAY_ORIGIN=$GATEWAY_PUBLIC_URL
 RUN npm run build:web

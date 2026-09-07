@@ -10,13 +10,11 @@ services:
       - ../docker.env
     environment:
       - OTEL_SERVICE_NAME=auth
-    # No ports: — internal-only, never published to the host. Only Gateway calls this (see
-    # .claude/memory/feedback_gateway_only_service_access.md) — unlike ask-my-crawl's Auth
-    # Service, which still publishes 8001 as documented debt; this project starts without that
-    # exception.
+    # No ports: — internal-only, never published to the host (see
+    # .claude/memory/feedback_gateway_only_service_access.md).
     depends_on:
       postgres:
         condition: service_healthy
     networks:
-      - shabbat-notifier
+      - personal-copilot
       - observability

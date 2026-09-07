@@ -1,4 +1,4 @@
-# shabbat-notifier
+# personal-copilot
 
 A NestJS + Expo scaffold: Gateway, Auth Service (Postgres-backed login/JWT), full OTel
 observability, and a frontend with working login/register — the shared infrastructure this project

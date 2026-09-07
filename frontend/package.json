@@ -1,5 +1,5 @@
 {
-  "name": "shabbat-notifier-frontend",
+  "name": "personal-copilot-frontend",
   "version": "1.0.0",
   "main": "expo-router/entry",
   "dependencies": {

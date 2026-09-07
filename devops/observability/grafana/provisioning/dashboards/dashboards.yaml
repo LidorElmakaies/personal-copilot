@@ -1,9 +1,9 @@
 apiVersion: 1
 
 providers:
-  - name: shabbat-notifier
+  - name: personal-copilot
     orgId: 1
-    folder: shabbat-notifier
+    folder: personal-copilot
     type: file
     disableDeletion: false
     updateIntervalSeconds: 30

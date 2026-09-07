@@ -4,7 +4,7 @@ This file provides guidance to Claude Code when working with code in this reposi
 
 ## What this project is
 
-**shabbat-notifier**: right now, a clean-slate NestJS + Expo scaffold — Gateway, a Postgres-backed
+**personal-copilot**: right now, a clean-slate NestJS + Expo scaffold — Gateway, a Postgres-backed
 Auth Service, full OTel observability, and a frontend with working login/register. No product
 feature is built on top of this yet; a previous Shabbat-notification feature (WhatsApp + location
 sharing) was deliberately stripped back out to start fresh. Treat "what's implemented" below as the

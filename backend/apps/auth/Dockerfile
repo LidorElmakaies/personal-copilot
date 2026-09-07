@@ -1,5 +1,5 @@
 # Build context is backend/ (the Nest monorepo root), same as every other app here.
-#   docker build -f apps/auth/Dockerfile -t shabbat-notifier-auth .
+#   docker build -f apps/auth/Dockerfile -t personal-copilot-auth .
 # devops/auth/docker-compose.yml sets context/dockerfile for you.
 
 FROM node:22-alpine AS builder

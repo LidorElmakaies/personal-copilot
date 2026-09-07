@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "Shabbat Notifier",
-    "slug": "shabbat-notifier",
-    "scheme": "shabbatnotifier",
+    "name": "Personal Copilot",
+    "slug": "personal-copilot",
+    "scheme": "personalcopilot",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",

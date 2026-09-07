@@ -1,16 +1,6 @@
-# Shared service defaults — restart policy + logging driver, borrowed via `extends:` (YAML anchors
-# only resolve within a single YAML document, which breaks once config is split across the
-# per-service files under devops/<unit>/). `_defaults` is never listed in the root
-# docker-compose.yml's `include:`, so it never runs as a container of its own.
-#
-# `networks:` is deliberately NOT here — gateway needs [shabbat-notifier, observability], every
-# other app service needs just [shabbat-notifier] — so that stays per-service.
-#
-# `env_file` IS here — every real service needs backend/.env's local-dev defaults as a base layer,
-# loaded once via `extends:` instead of repeating the line in every devops/<unit>/docker-
-# compose.yml. Relative paths here resolve against common.yml's own location (devops/), hence
-# `../backend/.env`, not `../../backend/.env`. Each per-service file layers `env_file: -
-# ../docker.env` (container-network overrides) on top — later env_file entries win.
+# Shared service defaults, applied per-service via `extends:` — see
+# docs/specs/architecture.md#compose--build-layout for why (and why `networks:` isn't here).
+# Never listed in the root docker-compose.yml's `include:`, so it never runs as its own container.
 services:
   _defaults:
     restart: unless-stopped

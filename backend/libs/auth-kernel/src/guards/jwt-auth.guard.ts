@@ -9,7 +9,6 @@ import type { Request } from 'express';
 import { AUTH_TOKEN_SERVICE } from '../tokens';
 import type { AuthTokenPayload, IAuthTokenService } from '../interfaces/auth-token.interface';
 
-// Used by Gateway's guarded HTTP routes (e.g. POST /shabbat/location).
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
   constructor(

@@ -1,16 +1,18 @@
 ---
-name: shabbat-notifier-project
-description: "shabbat-notifier — a NestJS/Expo scaffold (Gateway, Postgres-backed Auth Service, OTel observability, a frontend with login) kept as the base for a not-yet-decided feature, after the original Shabbat/WhatsApp feature was deliberately stripped back out. Stack, architecture, where things live."
+name: personal-copilot-project
+description: "personal-copilot (renamed from shabbat-notifier) — a NestJS/Expo scaffold (Gateway, Postgres-backed Auth Service, OTel observability, a frontend with login) kept as the base for a not-yet-decided feature, after the original Shabbat/WhatsApp feature was deliberately stripped back out. Stack, architecture, where things live."
 metadata:
   node_type: memory
   type: project
 ---
 
-**shabbat-notifier** (this repo, folder name unchanged) is currently a clean-slate scaffold: NestJS
-Gateway + Postgres-backed Auth Service + full OTel observability + an Expo frontend with working
-login/register. No product feature is built on top of it right now — see **Third revision note**
-below for why. Treat the sections below describing what actually exists as current; the original
-Shabbat/WhatsApp feature they describe having *replaced* is gone from the code entirely.
+**personal-copilot** — renamed from **shabbat-notifier** on 2026-09-07 at the user's request (name
+picked from a shortlist); GitHub repo: https://github.com/LidorElmakaies/personal-copilot. Is
+currently a clean-slate scaffold: NestJS Gateway + Postgres-backed Auth Service + full OTel
+observability + an Expo frontend with working login/register. No product feature is built on top of
+it right now — see **Third revision note** below for why. Treat the sections below describing what
+actually exists as current; the original Shabbat/WhatsApp feature they describe having *replaced* is
+gone from the code entirely.
 
 **Revision note**: the original build (2026-09-06) served a token-linked, login-free HTML page
 directly from Gateway and used Redis for short-lived token correlation. Replaced same day, at the
@@ -105,4 +107,6 @@ address (MagicDNS name or Tailscale IP), not `localhost`, or the phone can't rea
 
 See [[feedback_commits_need_explicit_approval]] — commits on this repo need explicit sign-off, not
 automatic after finishing a chunk of work (this is a global rule, not specific to this project, but
-applies here too).
+applies here too). See [[feedback_docs_current_state_only]] — the same "current state only" rule
+applies beyond just `docs/specs/`: don't turn a conversational wishlist into a persistent
+vision/roadmap doc or bake it into agent personas.
