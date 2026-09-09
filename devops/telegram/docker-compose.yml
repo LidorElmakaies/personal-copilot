@@ -1,0 +1,23 @@
+services:
+  telegram:
+    extends:
+      file: ../common.yml
+      service: _defaults
+    build:
+      context: ../../backend
+      dockerfile: apps/telegram/Dockerfile
+    env_file:
+      - ../docker.env
+    environment:
+      - OTEL_SERVICE_NAME=telegram
+    # No ports: — no HTTP surface at all, not even for Gateway (the link-code round trip and all
+    # message send/receive go through Kafka). The bot itself talks to Telegram via outbound
+    # long-polling, no inbound webhook either.
+    depends_on:
+      kafka:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - personal-copilot
+      - observability

@@ -37,3 +37,25 @@ services:
       timeout: 10s
       retries: 12
       start_period: 30s
+
+  # Creates every topic in backend/libs/kafka-contracts/src/topics.ts, then exits — required since
+  # KAFKA_AUTO_CREATE_TOPICS_ENABLE=false above. Keep this list in lockstep with topics.ts exactly.
+  kafka-init:
+    extends:
+      file: ../common.yml
+      service: _defaults
+    image: apache/kafka:4.3.1
+    restart: "no"
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - personal-copilot
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        set -e
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:19092 --create --if-not-exists --topic telegram.link.requested --partitions 1 --replication-factor 1
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:19092 --create --if-not-exists --topic telegram.link.created --partitions 1 --replication-factor 1
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:19092 --create --if-not-exists --topic telegram.message.send --partitions 1 --replication-factor 1
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:19092 --create --if-not-exists --topic telegram.message.received --partitions 1 --replication-factor 1

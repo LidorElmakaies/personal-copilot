@@ -26,6 +26,12 @@ backend/
                         # src/realtime/: Socket.IO at /ws, generic connection plumbing — no
                         # feature pushes anything over it yet, see services.md#gateway for the
                         # IRealtimeConnectionService.pushToUser entry point a future one uses.
+                        # src/telegram-proxy/: POST /telegram/link-code, JwtAuthGuard (the first
+                        # route in the app to use it). Doesn't call apps/telegram directly —
+                        # publishes TELEGRAM_LINK_REQUESTED, returns 202, and a separate consumer
+                        # (TelegramLinkCreatedConsumer) pushes the eventual TELEGRAM_LINK_CREATED
+                        # reply to the caller's own WS connection. This app's first Kafka producer
+                        # and consumer.
                         # Thin pass-through everywhere — never business logic. A new feature's
                         # HTTP surface gets its own self-contained module here, same shape.
     auth/                # HTTP, internal-only (never published to the host — only Gateway calls
@@ -33,17 +39,30 @@ backend/
                         # tokens (the access token itself carries { sub, role, email }). Postgres
                         # via TypeORM, salt+pepper+SHA-256 hashing. UserRole has exactly one value
                         # ('user') — no admin/role system in this project.
+    telegram/            # Internal-only, no HTTP surface at all — a long-polling bot (grammy,
+                        # outbound-only). Every interaction with the rest of the system, including
+                        # the link-code round trip, goes through Kafka; nothing calls it and it
+                        # calls nothing over HTTP. Any chat can message the bot, but an unlinked
+                        # chat can only redeem a one-time code (TelegramInboundService) — nothing
+                        # reaches the message topics or application logic otherwise, since the
+                        # bot's username is publicly discoverable. Linked chats (telegram_links
+                        # table, Postgres) are decoupled from every other service via Kafka:
+                        # TELEGRAM_MESSAGE_SEND in (targets a userId), TELEGRAM_MESSAGE_RECEIVED
+                        # out (tagged with the sender's userId) — see
+                        # docs/specs/services.md#telegram. No feature consumes either topic yet.
   libs/
     auth-kernel/          # generic JWT sign/verify (the only class allowed to import
                         # `jsonwebtoken`), JwtAuthGuard, CurrentUser decorator — shared by auth
-                        # (signs) and gateway (verifies).
+                        # (signs) and gateway (verifies; telegram-proxy's link-code route is the
+                        # first to use JwtAuthGuard itself, not just AUTH_TOKEN_SERVICE directly).
     otel/                # generic OTel bootstrap — ported near-verbatim from ask-my-crawl, no
                         # project-specific content in here, treat changes to it with that in mind.
-    kafka-client/         # generic Kafka producer wrapper (IEventPublisher/KafkajsEventPublisher).
-    kafka-contracts/      # THIS project's topics + typed message shapes — currently empty (no
-                        # feature uses Kafka yet). topics.ts must stay in lockstep with
-                        # devops/kafka/docker-compose.yml's kafka-init topic list once either has
-                        # an entry.
+    kafka-client/         # generic producer + consumer wrappers (IEventPublisher/IEventConsumer,
+                        # kafkajs-backed) — neither aware of any topic name.
+    kafka-contracts/      # THIS project's topics + typed message shapes (four today, shared
+                        # between apps/gateway and apps/telegram). topics.ts must stay in
+                        # lockstep with devops/kafka/docker-compose.yml's kafka-init topic list,
+                        # always.
 ```
 
 A new Kafka-only or HTTP microservice follows the same `api/ → application/ → infrastructure/ +
@@ -93,6 +112,19 @@ doesn't (e.g. wrapping the generic `IEventPublisher` in a topic-specific publish
   whether the field could just go in the JWT payload instead — this only holds because the project
   has no profile-editing feature; revisit if one's ever added (a stale field in an
   already-issued token becomes a real tradeoff at that point, not a non-issue).
+- **`apps/telegram` never treats an unlinked chat as trusted input.** A Telegram bot's username is
+  publicly discoverable, so any chat can message it — the *only* thing an unlinked chat's message
+  can do is attempt to redeem a one-time linking code (`TelegramInboundService`), minted only in
+  response to a `TELEGRAM_LINK_REQUESTED` event that Gateway publishes after its own `JwtAuthGuard`
+  verifies a real access token. Nothing reaches the message topics, and no feature is invoked,
+  until a chat is linked to a real app user this way. A feature built on top of
+  `TELEGRAM_MESSAGE_RECEIVED` never needs to re-verify the sender — its `userId` is already
+  guaranteed to be a real, linked app user.
+- **The link-code round trip is async end to end (HTTP → Kafka → Kafka → WS), never
+  request/response.** `POST /telegram/link-code` returns 202 immediately; don't "simplify" this
+  back into a synchronous call to `apps/telegram` — that was a deliberate choice to exercise the
+  existing Kafka + WS-push plumbing instead of adding a one-off internal HTTP endpoint, and it's
+  also why `apps/telegram` needs no HTTP surface at all.
 - **Comments stay terse.** One line, not a paragraph; a comment earns more than one line only for a
   genuine footgun (e.g. OTel's import-order requirement), never for general architecture
   explanation — that belongs in `docs/specs/`, referenced with a short pointer if needed. Don't
@@ -105,12 +137,17 @@ Hand off to the `docs` agent before considering a backend change finished: it sy
 a changed flow affects, and does a pass trimming any comment you left that's grown past one line.
 Don't rely on your own judgment for comment density or doc accuracy — that's its job, not yours.
 
+If the change added a new backend service, also flag it for the `devops` agent to give it a Grafana
+dashboard — but that agent must ask the user what they want to see and propose options first, never
+build a default panel set unasked. See its own file's "Grafana dashboards" section; this rule holds
+for every service, not just the first one.
+
 ## Commands
 
 ```bash
 cd backend
 npm install
-npx nest start gateway --watch     # or: auth
+npx nest start gateway --watch     # or: auth, telegram
 npm test
 npm run lint
 ```

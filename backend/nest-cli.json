@@ -24,6 +24,13 @@
       "sourceRoot": "apps/auth/src",
       "compilerOptions": { "tsConfigPath": "apps/auth/tsconfig.app.json" }
     },
+    "telegram": {
+      "type": "application",
+      "root": "apps/telegram",
+      "entryFile": "main",
+      "sourceRoot": "apps/telegram/src",
+      "compilerOptions": { "tsConfigPath": "apps/telegram/tsconfig.app.json" }
+    },
     "auth-kernel": {
       "type": "library",
       "root": "libs/auth-kernel",

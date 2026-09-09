@@ -19,6 +19,10 @@ services:
     depends_on:
       auth:
         condition: service_started
+      # Telegram linking goes through Kafka (see event-schemas.md), not a direct call to
+      # apps/telegram, so gateway only needs the broker up, not that service itself.
+      kafka:
+        condition: service_healthy
     networks:
       - personal-copilot
       - observability

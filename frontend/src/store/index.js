@@ -11,6 +11,7 @@ import {
   REHYDRATE,
 } from 'redux-persist';
 import authReducer from './slices/authSlice';
+import telegramReducer from './slices/telegramSlice';
 import themeReducer from './slices/themeSlice';
 import wsReducer from './slices/wsSlice';
 
@@ -30,6 +31,7 @@ export const store = configureStore({
     theme: persistReducer(themePersistConfig, themeReducer),
     auth: persistReducer(authPersistConfig, authReducer),
     ws: wsReducer, // ephemeral — connection status shouldn't survive a reload
+    telegram: telegramReducer, // ephemeral — a link code is short-lived, shouldn't survive a reload
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

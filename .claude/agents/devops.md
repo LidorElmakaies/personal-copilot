@@ -13,9 +13,12 @@ covered below.
 
 Two independent Compose projects, joined by a shared `observability` Docker network:
 - `devops/` — the app stack: `gateway` (the only *backend* service published to the host, port
-  8000), `auth` (internal-only, no published port), `frontend` (published, port 8081 — a static
-  web export, not a backend service, see the `frontend` compose service's own comment), `postgres`,
-  `kafka` (idle — no service produces or consumes yet).
+  8000; also produces/consumes Kafka now, for Telegram linking), `auth` (internal-only, no
+  published port), `telegram` (internal-only, **no HTTP surface at all** — not even for Gateway;
+  everything it does is outbound: long-polling Telegram, producing/consuming Kafka, reading/
+  writing its own Postgres tables), `frontend` (published, port 8081 — a static web export, not a
+  backend service, see the `frontend` compose service's own comment), `postgres` (shared by `auth`
+  and `telegram`), `kafka` (both `gateway` and `telegram` produce/consume).
 - `devops/observability/` — `otel-collector`, `loki`, `prometheus`, `tempo`, `grafana`.
 
 ### Startup order
@@ -74,15 +77,34 @@ this project intentionally started with zero dashboards rather than copying `ask
 (which describe a different system entirely). Build one **per service** as each earns it, following
 these hard-won rules from that project instead of re-learning them:
 
+- **Before building any service's dashboard — the first one and every one after — ask the user what
+  they want to see. Never assume a default panel set and build it silently.** Propose concrete,
+  service-specific options and say why each earns a panel, e.g.:
+  - *HTTP services (Gateway, Auth)* — request rate / latency (p50/p95/p99) / error rate per route
+    (spot regressions and hot endpoints); in-flight request count (spot saturation/backpressure).
+  - *Auth specifically* — login success vs. failure rate (brute-force / outage signal); token
+    refresh rate (session health); DB query duration for the `users`/`refresh_tokens` tables
+    (isolate DB-side slowness from app-side).
+  - *Kafka producers/consumers, once any exist* — consumer lag per topic/partition (falling behind
+    upstream); publish/consume throughput; consumer error/retry rate.
+  - *Gateway's realtime layer* — active WS connection count (capacity/usage over time);
+    connect/disconnect rate (churn, reconnect storms).
+  - *Any service* — container CPU/memory (resource pressure), OTel span error rate and a
+    slowest-traces table (ties straight into the existing Tempo panel pattern below).
+  Ask which of these (plus anything else the user wants) matter for *this* service, then build only
+  what they confirm — don't pad the dashboard with panels nobody asked for.
+
 - **Query real metric/label names against the live stack before writing a panel** — never guess
   from a metric name alone. `curl http://localhost:9090/api/v1/query?query=<name>` (or Loki/Tempo's
   equivalent) first, panel JSON second. Reference `datasources.yaml`'s pinned `uid`s
   (`prometheus`/`loki`/`tempo`) in every panel's `datasource` field.
 - **One dashboard file per service** (`service-gateway.json`, `service-auth.json`, ...), not one
   templated dashboard with a service dropdown — each shows up as its own named tile, and every
-  query is scoped by a literal `job="<name>"`. Drop the panels that don't apply (Kafka-only
-  services get no HTTP row; only Gateway and Auth have one; only Auth has a DB row). `frontend`
-  sends no telemetry (a static web export, not a Nest service) — no dashboard for it.
+  query is scoped by a literal `job="<name>"`. Drop the panels that don't apply to a given service
+  (`telegram` has no HTTP surface at all — no HTTP row for it, ever; a DB row only for a service
+  with its own tables — `auth` and `telegram` both qualify, `gateway` doesn't; a Kafka row for
+  both `gateway` and `telegram` now that both produce/consume). `frontend` sends no telemetry (a
+  static web export, not a Nest service) — no dashboard for it.
 - **A multi-select variable's "All" option defaults to `.*`, and Loki 3.x rejects that outright**
   (`parse error: queries require at least one regexp or equality matcher that does not have an
   empty-compatible value` — every panel breaks at once). Set `"allValue": ".+"` explicitly on any

@@ -1,13 +1,19 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import ConnectionStatus from '../../src/components/ConnectionStatus';
 import GlowCard from '../../src/components/GlowCard';
+import GradientButton from '../../src/components/GradientButton';
 import SpaceBackground from '../../src/components/SpaceBackground';
 import { useAppTheme } from '../../src/hooks/useAppTheme';
+import * as socketService from '../../src/services/ws/socketService';
 import { clearAuth, selectUser } from '../../src/store/slices/authSlice';
+import {
+  generateTelegramLinkCode,
+  telegramLinkCodeReceived,
+} from '../../src/store/slices/telegramSlice';
 import { setThemeMode } from '../../src/store/slices/themeSlice';
 
 export default function SettingsScreen() {
@@ -15,8 +21,22 @@ export default function SettingsScreen() {
   const { mode } = useSelector((state) => state.theme);
   const wsStatus = useSelector((state) => state.ws.status);
   const user = useSelector(selectUser);
+  const telegram = useSelector((state) => state.telegram);
   const { isDark, colors, colorMode } = useAppTheme();
   const [confirmingLogout, setConfirmingLogout] = useState(false);
+
+  // The code itself arrives as a push over the shared WS connection, not in the HTTP response —
+  // see telegramSlice.js. Same "attach your own listener via getSocket()" convention as any other
+  // feature (docs/specs/services.md#frontend).
+  useEffect(() => {
+    const socket = socketService.getSocket();
+    const onLinkCode = (payload) => dispatch(telegramLinkCodeReceived(payload));
+    socket?.on('telegram:link-code', onLinkCode);
+    return () => socket?.off('telegram:link-code', onLinkCode);
+  }, [dispatch, wsStatus]);
+
+  const getLinkCode = () => dispatch(generateTelegramLinkCode());
+  const openTelegram = () => telegram.url && Linking.openURL(telegram.url);
 
   const toggle = () => dispatch(setThemeMode(isDark ? 'light' : 'dark'));
   // Clearing authSlice is the whole action — AuthGate (app/_layout.js) reacts to accessToken
@@ -71,6 +91,30 @@ export default function SettingsScreen() {
         <GlowCard>
           <Text style={[styles.accountLabel, { color: colors.textMuted }]}>Logged in as</Text>
           <Text style={[styles.accountValue, { color: colors.text }]}>{user?.email ?? '—'}</Text>
+        </GlowCard>
+
+        <Text style={[styles.section, styles.sectionSpaced, { color: colors.textMuted }]}>
+          Telegram
+        </Text>
+        <GlowCard>
+          {telegram.code ? (
+            <View style={styles.confirmRow}>
+              <Text style={[styles.accountLabel, { color: colors.textMuted }]}>
+                Send this code to the bot — expires in 5 minutes
+              </Text>
+              <Text style={[styles.telegramCode, { color: colors.text }]}>{telegram.code}</Text>
+              <GradientButton label="Open Telegram" onPress={openTelegram} />
+            </View>
+          ) : (
+            <GradientButton
+              label={telegram.status === 'waiting' ? 'Waiting for code…' : 'Get linking code'}
+              loading={telegram.status === 'requesting' || telegram.status === 'waiting'}
+              onPress={getLinkCode}
+            />
+          )}
+          {telegram.status === 'failed' && (
+            <Text style={[styles.note, { color: colors.error }]}>{telegram.error}</Text>
+          )}
         </GlowCard>
 
         <Text style={[styles.section, styles.sectionSpaced, { color: colors.textMuted }]}>
@@ -130,6 +174,7 @@ const styles = StyleSheet.create({
   note: { fontSize: 13, textAlign: 'center', marginTop: 16 },
   accountLabel: { fontSize: 12, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
   accountValue: { fontSize: 16, fontWeight: '600', marginTop: 4 },
+  telegramCode: { fontSize: 28, fontWeight: '800', letterSpacing: 4, textAlign: 'center' },
   logoutRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
   logoutText: { fontSize: 15, fontWeight: '700' },
   confirmRow: { gap: 12 },
