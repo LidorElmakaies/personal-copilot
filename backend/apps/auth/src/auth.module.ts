@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthKernelModule } from '@app/auth-kernel';
 import { AuthController } from './api/controllers/auth.controller';
+import { AdminSeedService } from './application/admin-seed.service';
 import { AuthService } from './application/auth.service';
 import { SaltPepperSha256Hasher } from './infrastructure/hashing/salt-pepper-sha256.hasher';
 import { RefreshTokenEntity } from './infrastructure/postgres/entities/refresh-token.entity';
@@ -36,6 +37,7 @@ import {
   ],
   controllers: [AuthController],
   providers: [
+    AdminSeedService,
     { provide: AUTH_SERVICE, useClass: AuthService },
     { provide: USER_REPOSITORY, useClass: TypeOrmUserRepository },
     {

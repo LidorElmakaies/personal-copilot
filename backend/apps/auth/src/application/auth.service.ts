@@ -5,7 +5,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { createHash, randomBytes } from 'crypto';
-import { JWT_SERVICE, type IJwtService } from '@app/auth-kernel';
+import { JWT_SERVICE, type IJwtService, type UserRole } from '@app/auth-kernel';
 import {
   PASSWORD_HASHER,
   REFRESH_TOKEN_REPOSITORY,
@@ -49,7 +49,7 @@ export class AuthService implements IAuthService {
       role: 'user',
     });
 
-    return this.issueTokens(user.id, user.email);
+    return this.issueTokens(user.id, user.email, user.role);
   }
 
   async login(input: LoginInput): Promise<AuthTokens> {
@@ -62,7 +62,7 @@ export class AuthService implements IAuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
-    return this.issueTokens(user.id, user.email);
+    return this.issueTokens(user.id, user.email, user.role);
   }
 
   async refresh(refreshToken: string): Promise<AuthTokens> {
@@ -82,7 +82,7 @@ export class AuthService implements IAuthService {
     // Rotate: the used token is revoked no matter what happens next, so a stolen-and-replayed
     // refresh token only ever works once.
     await this.refreshTokens.revoke(stored.id);
-    return this.issueTokens(user.id, user.email);
+    return this.issueTokens(user.id, user.email, user.role);
   }
 
   async logout(refreshToken: string): Promise<void> {
@@ -97,9 +97,10 @@ export class AuthService implements IAuthService {
   private async issueTokens(
     userId: string,
     email: string,
+    role: UserRole,
   ): Promise<AuthTokens> {
     const accessToken = this.jwt.sign(
-      { sub: userId, role: 'user', email },
+      { sub: userId, role, email },
       ACCESS_TOKEN_TTL,
     );
 

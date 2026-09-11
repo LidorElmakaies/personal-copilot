@@ -11,7 +11,7 @@
     "expo-linking": "~57.0.1",
     "expo-router": "^57.0.2",
     "react": "19.2.3",
-    "react-dom": "^19.2.3",
+    "react-dom": "19.2.3",
     "react-native": "0.86.0",
     "react-native-safe-area-context": "^5.8.0",
     "react-native-screens": "^4.25.2",
