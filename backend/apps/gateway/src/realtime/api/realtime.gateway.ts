@@ -1,5 +1,9 @@
 import { Inject } from '@nestjs/common';
-import { OnGatewayConnection, OnGatewayDisconnect, WebSocketGateway } from '@nestjs/websockets';
+import {
+  OnGatewayConnection,
+  OnGatewayDisconnect,
+  WebSocketGateway,
+} from '@nestjs/websockets';
 import type { Socket } from 'socket.io';
 import { AUTH_TOKEN_SERVICE } from '@app/auth-kernel';
 import type { IAuthTokenService } from '@app/auth-kernel';
@@ -10,9 +14,12 @@ import type { IRealtimeConnectionService } from '../application/interfaces/realt
 // HTTP guard. Owns only the connection lifecycle; a feature that wants to push to a user injects
 // IRealtimeConnectionService and calls pushToUser — this class never knows what it's pushing.
 @WebSocketGateway({ path: '/ws', cors: { origin: true } })
-export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class RealtimeGateway
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
   constructor(
-    @Inject(AUTH_TOKEN_SERVICE) private readonly authTokenService: IAuthTokenService,
+    @Inject(AUTH_TOKEN_SERVICE)
+    private readonly authTokenService: IAuthTokenService,
     @Inject(REALTIME_CONNECTION_SERVICE)
     private readonly realtimeConnectionService: IRealtimeConnectionService,
   ) {}

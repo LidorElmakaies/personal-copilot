@@ -1,7 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { JWT_SERVICE } from './tokens';
 import type { IJwtService } from './interfaces/jwt-service.interface';
-import type { AuthTokenPayload, IAuthTokenService } from './interfaces/auth-token.interface';
+import type {
+  AuthTokenPayload,
+  IAuthTokenService,
+} from './interfaces/auth-token.interface';
 
 @Injectable()
 export class AuthTokenService implements IAuthTokenService {

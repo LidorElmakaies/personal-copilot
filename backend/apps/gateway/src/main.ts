@@ -27,6 +27,8 @@ async function bootstrap() {
   const port = process.env.PORT ?? 8000;
   await app.listen(port);
 
-  console.log(`Gateway listening on http://localhost:${port} (Socket.IO path: /ws)`);
+  console.log(
+    `Gateway listening on http://localhost:${port} (Socket.IO path: /ws)`,
+  );
 }
 void bootstrap();

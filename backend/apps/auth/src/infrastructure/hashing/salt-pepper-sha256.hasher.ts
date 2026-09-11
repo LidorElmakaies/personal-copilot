@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createHash, randomBytes } from 'crypto';
-import type { HashResult, IPasswordHasher } from '../interfaces/password-hasher.interface';
+import type {
+  HashResult,
+  IPasswordHasher,
+} from '../interfaces/password-hasher.interface';
 
 // Concatenation order must stay fixed between hash() and verify() — see docs/specs/services.md#auth.
 @Injectable()

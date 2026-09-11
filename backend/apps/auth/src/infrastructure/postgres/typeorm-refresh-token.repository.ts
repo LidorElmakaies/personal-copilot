@@ -23,8 +23,17 @@ export class TypeOrmRefreshTokenRepository implements IRefreshTokenRepository {
     private readonly repo: Repository<RefreshTokenEntity>,
   ) {}
 
-  async create(userId: string, tokenHash: string, expiresAt: Date): Promise<RefreshToken> {
-    const entity = this.repo.create({ userId, tokenHash, expiresAt, revokedAt: null });
+  async create(
+    userId: string,
+    tokenHash: string,
+    expiresAt: Date,
+  ): Promise<RefreshToken> {
+    const entity = this.repo.create({
+      userId,
+      tokenHash,
+      expiresAt,
+      revokedAt: null,
+    });
     return toDomain(await this.repo.save(entity));
   }
 

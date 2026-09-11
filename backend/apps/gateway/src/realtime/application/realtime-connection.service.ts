@@ -7,7 +7,8 @@ import type { IRealtimeConnectionService } from './interfaces/realtime-connectio
 @Injectable()
 export class RealtimeConnectionService implements IRealtimeConnectionService {
   constructor(
-    @Inject(CONNECTION_STORE) private readonly connectionStore: IConnectionStore,
+    @Inject(CONNECTION_STORE)
+    private readonly connectionStore: IConnectionStore,
   ) {}
 
   register(userId: string, socket: Socket): void {
@@ -18,7 +19,11 @@ export class RealtimeConnectionService implements IRealtimeConnectionService {
     this.connectionStore.remove(socket);
   }
 
-  pushToUser<T extends object>(userId: string, event: string, payload: T): boolean {
+  pushToUser<T extends object>(
+    userId: string,
+    event: string,
+    payload: T,
+  ): boolean {
     const socket = this.connectionStore.get(userId);
     if (!socket) return false;
     socket.emit(event, payload);

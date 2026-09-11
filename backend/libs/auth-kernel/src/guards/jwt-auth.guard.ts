@@ -7,7 +7,10 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { AUTH_TOKEN_SERVICE } from '../tokens';
-import type { AuthTokenPayload, IAuthTokenService } from '../interfaces/auth-token.interface';
+import type {
+  AuthTokenPayload,
+  IAuthTokenService,
+} from '../interfaces/auth-token.interface';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {

@@ -38,7 +38,10 @@ import {
   providers: [
     { provide: AUTH_SERVICE, useClass: AuthService },
     { provide: USER_REPOSITORY, useClass: TypeOrmUserRepository },
-    { provide: REFRESH_TOKEN_REPOSITORY, useClass: TypeOrmRefreshTokenRepository },
+    {
+      provide: REFRESH_TOKEN_REPOSITORY,
+      useClass: TypeOrmRefreshTokenRepository,
+    },
     { provide: PASSWORD_HASHER, useClass: SaltPepperSha256Hasher },
   ],
 })

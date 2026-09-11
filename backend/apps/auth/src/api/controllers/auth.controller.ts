@@ -18,7 +18,10 @@ export class AuthController {
       email: dto.email,
       password: dto.password,
     });
-    return { access_token: tokens.accessToken, refresh_token: tokens.refreshToken };
+    return {
+      access_token: tokens.accessToken,
+      refresh_token: tokens.refreshToken,
+    };
   }
 
   @Post('login')
@@ -28,14 +31,20 @@ export class AuthController {
       email: dto.email,
       password: dto.password,
     });
-    return { access_token: tokens.accessToken, refresh_token: tokens.refreshToken };
+    return {
+      access_token: tokens.accessToken,
+      refresh_token: tokens.refreshToken,
+    };
   }
 
   @Post('refresh')
   @HttpCode(200)
   async refresh(@Body() dto: RefreshTokenDto) {
     const tokens = await this.authService.refresh(dto.refresh_token);
-    return { access_token: tokens.accessToken, refresh_token: tokens.refreshToken };
+    return {
+      access_token: tokens.accessToken,
+      refresh_token: tokens.refreshToken,
+    };
   }
 
   @Post('logout')

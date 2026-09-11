@@ -94,7 +94,10 @@ export class AuthService implements IAuthService {
     }
   }
 
-  private async issueTokens(userId: string, email: string): Promise<AuthTokens> {
+  private async issueTokens(
+    userId: string,
+    email: string,
+  ): Promise<AuthTokens> {
     const accessToken = this.jwt.sign(
       { sub: userId, role: 'user', email },
       ACCESS_TOKEN_TTL,

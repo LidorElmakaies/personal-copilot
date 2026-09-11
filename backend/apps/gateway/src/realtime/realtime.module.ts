@@ -11,7 +11,10 @@ import { CONNECTION_STORE, REALTIME_CONNECTION_SERVICE } from '../tokens';
   imports: [AuthKernelModule],
   providers: [
     RealtimeGateway,
-    { provide: REALTIME_CONNECTION_SERVICE, useClass: RealtimeConnectionService },
+    {
+      provide: REALTIME_CONNECTION_SERVICE,
+      useClass: RealtimeConnectionService,
+    },
     { provide: CONNECTION_STORE, useClass: InMemoryConnectionStore },
   ],
   exports: [REALTIME_CONNECTION_SERVICE],

@@ -5,6 +5,10 @@ import { RealtimeModule } from './realtime/realtime.module';
 
 // Composes the self-contained modules below; owns no providers of its own.
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true }), AuthProxyModule, RealtimeModule],
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
+    AuthProxyModule,
+    RealtimeModule,
+  ],
 })
 export class GatewayModule {}

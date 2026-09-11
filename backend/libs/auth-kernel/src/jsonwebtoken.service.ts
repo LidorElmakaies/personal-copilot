@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import jwt from 'jsonwebtoken';
-import type { IJwtService, JwtPayload } from './interfaces/jwt-service.interface';
+import type {
+  IJwtService,
+  JwtPayload,
+} from './interfaces/jwt-service.interface';
 
 // The only class allowed to import `jsonwebtoken` — see backend.md's non-negotiables.
 @Injectable()
