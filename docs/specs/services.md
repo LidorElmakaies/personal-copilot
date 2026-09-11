@@ -5,13 +5,20 @@ Two NestJS apps in `backend/apps/`, one shared event-bus lib pair, one frontend.
 
 ## gateway
 
-The only backend service reachable from outside the Docker network (published to the host,
-reachable from your phone over Tailscale). HTTP + WebSocket.
+The only backend service reachable from outside the Docker network — directly over Tailscale, or
+(in the cloud/Hetzner deployment — see `architecture.md`'s "System topology") indirectly via an SSH
+tunnel from a Caddy instance on the public internet. HTTP + WebSocket.
 
 - `POST /auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout` — pure pass-through to
   Auth Service, no guard (that's how you get a token in the first place). No `GET /me` — there's
   nothing left for it to return that the client can't already decode from its own access token
   (see `apps/auth`'s note below).
+- Global rate limiting (`@nestjs/throttler`, `THROTTLE_TTL_MS`/`THROTTLE_LIMIT`, default
+  60s/100req) plus a tighter limit on the four `/auth/*` routes above
+  (`AUTH_THROTTLE_TTL_MS`/`AUTH_THROTTLE_LIMIT`, default 60s/5req) — those are the brute-force
+  targets now that Gateway can be reached from the open internet via the cloud path. Keyed on
+  client IP; `main.ts` sets `app.set('trust proxy', 'loopback')` so that IP is correct behind the
+  SSH tunnel without letting a directly-reached connection spoof it — see `architecture.md`.
 - `src/realtime/` — Socket.IO at path `/ws` (token in the handshake's `auth.token`, verified the
   same way as the HTTP guard). Generic plumbing: no feature pushes anything over it yet.
   `IRealtimeConnectionService.pushToUser(userId, event, payload)` is the entry point a future
@@ -19,9 +26,10 @@ reachable from your phone over Tailscale). HTTP + WebSocket.
   returns `false`, not an error, if they have none open. In-memory connection store, single
   Gateway replica only (this project's actual scale) — a Redis-backed store (Socket.IO's official
   Redis adapter) is the upgrade path if that ever changes.
-- CORS is permissive (`origin: true`, reflects any origin) on both HTTP and the WS handshake — the
-  frontend's web build runs on a different origin than Gateway during dev, and Tailscale is this
-  project's actual access boundary. Revisit before Gateway is ever reachable outside the Tailnet.
+- CORS is permissive (`origin: true`, reflects any origin) on both HTTP and the WS handshake —
+  both the local frontend build (different origin than Gateway during dev) and the cloud path
+  (same-origin via Caddy's reverse proxy, so this doesn't come into play there) work either way.
+  Revisit if Gateway is ever reachable directly (not proxied) from the open internet.
 
 ## auth
 

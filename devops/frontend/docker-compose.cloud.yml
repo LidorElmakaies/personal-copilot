@@ -1,0 +1,31 @@
+# Standalone cloud/Hetzner deployment — Caddy as the sole public entry point, reverse-proxying
+# to home-hosted Gateway over an SSH reverse tunnel. Deployed and run independently of this repo's
+# devops/docker-compose.yml (not included by it, doesn't share its network or env layering).
+services:
+  frontend:
+    build:
+      context: ../../frontend
+      args:
+        # Same-origin as the site itself — Caddy now proxies /auth and /ws, see frontend/Caddyfile.
+        - GATEWAY_PUBLIC_URL=https://${DOMAIN}
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    environment:
+      - SITE_ADDRESS=${DOMAIN}
+      # 127.0.0.1, not the tunnel host's own hostname — GatewayPorts no (sshd default) binds the
+      # forwarded port to loopback only, reachable just from processes on this VPS.
+      - GATEWAY_UPSTREAM=127.0.0.1:${GATEWAY_TUNNEL_PORT}
+    # Caddy needs to reach 127.0.0.1:${GATEWAY_TUNNEL_PORT}, where the SSH reverse tunnel lands on
+    # this VPS's own loopback — only visible from the host network namespace, not a bridge network.
+    # No `ports:` needed/allowed alongside it: host networking already exposes whatever Caddy binds
+    # directly on the VPS — 443 only (frontend/Caddyfile disables port 80 entirely).
+    network_mode: host
+    volumes:
+      - caddy-data:/data
+
+volumes:
+  caddy-data:

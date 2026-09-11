@@ -32,6 +32,11 @@ someone who has only ever seen the current code. Two consequences:
 - **Root `CLAUDE.md`** — kept dense but accurate; this is what a Claude session reads first.
 - **`README.md`** at the repo root, `backend/`, and `frontend/` — shorter, entry-point-level, must
   not contradict `CLAUDE.md`; update these in the same pass, they drift otherwise.
+- **`backend/apps/<service>/README.md`** (where one exists — not yet every service) — the "why"
+  behind that service's own non-obvious decisions: gotchas, deployment coupling, things a comment
+  is too small for and `docs/specs/services.md`'s cross-service contract view isn't the place for.
+  Keep the split strict: `services.md` says *what* a service does, this file says *why* a specific
+  decision in it is shaped the way it is. Don't duplicate one into the other — cross-reference.
 - **`.claude/agents/{backend,devops,frontend,testing}.md`** — these must reflect the actual current
   file layout, tokens, topics, env vars, and (for `frontend.md`) component/theme conventions. An
   agent operating from a stale `backend.md` will confidently build against a service shape that no

@@ -12,7 +12,11 @@ actual current scope, not a placeholder for the old feature.
 
 Hosted on the user's personal PC, reachable from their phone via **Tailscale** — `gateway` is the
 only backend service published to the host (`frontend` also has its own published port — it's a
-static web export, not a backend service, see "Key constraints" below).
+static web export, not a backend service, see "Key constraints" below). A second, optional
+deployment path also exists in code (not yet live infra): `frontend` built and run standalone on a
+Hetzner VPS behind Caddy, reaching `gateway` back on the home machine over an SSH reverse tunnel —
+see `docs/specs/architecture.md`'s "System topology" and "SSH reverse-tunnel hardening" sections.
+Tailscale remains the primary access path either way.
 
 **Deliberately bootstrapped to match a sibling project's conventions** — `C:\Users\lidor\Desktop\
 ask-my-crawl` — same NestJS Nest-CLI monorepo shape, same clean/hexagonal layering, same
@@ -47,7 +51,10 @@ docs/specs/               services.md, event-schemas.md, architecture.md (Mermai
 ## What's implemented
 
 - **gateway** (`backend/apps/gateway`) — HTTP + WS, the only backend service reachable from outside
-  the Docker network. Two modules:
+  the Docker network. Rate-limited globally (`@nestjs/throttler`, `THROTTLE_TTL_MS`/
+  `THROTTLE_LIMIT`, default 60s/100req) plus a tighter per-route limit on `/auth/register`,
+  `/auth/login`, `/auth/refresh` (`AUTH_THROTTLE_TTL_MS`/`AUTH_THROTTLE_LIMIT`, default 60s/5req).
+  Two modules:
   - `src/auth-proxy/` — thin pass-through to Auth Service: `/auth/*` only (no guard — that's how
     you get a token). No `/me` — the access token itself carries `{ sub, role, email }`, so
     there's nothing left for a "who am I" endpoint to return that the client can't already decode.
@@ -149,3 +156,8 @@ the rules to follow when adding one per service.
 - `OTEL_EXPORTER_OTLP_ENDPOINT` defaults to the Docker network address (`http://otel-
   collector:4317`) — override to `localhost:4317` for a local (non-Docker) run, or telemetry export
   fails silently.
+- Gateway's `main.ts` sets `app.set('trust proxy', 'loopback')` so its rate limiter keys on the
+  real client IP rather than a proxy's — trust `X-Forwarded-For` only from a loopback peer, never
+  broadly (`trust proxy: true`). This is what the cloud deployment's SSH-tunnel hop relies on
+  (Caddy → tunnel → Gateway looks like loopback) without letting a directly-reached connection
+  (e.g. over Tailscale) spoof its own IP. See `docs/specs/architecture.md`'s "System topology".

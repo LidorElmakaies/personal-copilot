@@ -10,16 +10,21 @@ startOtel('gateway');
 
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import { GatewayModule } from './gateway.module';
 
 async function bootstrap() {
   const logger = new OtelLogger();
-  const app = await NestFactory.create(GatewayModule, { logger });
+  const app = await NestFactory.create<NestExpressApplication>(GatewayModule, {
+    logger,
+  });
   app.use(createRequestLoggingMiddleware(logger));
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   // Permissive CORS — see docs/specs/services.md#gateway.
   app.enableCors({ origin: true });
+  // Why loopback specifically: docs/specs/architecture.md#system-topology. Don't broaden this.
+  app.set('trust proxy', 'loopback');
   app.useWebSocketAdapter(new IoAdapter(app));
 
   installGracefulShutdown(app);
