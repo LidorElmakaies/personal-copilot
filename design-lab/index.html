@@ -1,0 +1,787 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bridge Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Audiowide&family=Chakra+Petch:wght@400;500;600;700&family=Exo+2:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@500;600;700;900&family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0c0f;
+    --panel:#12151a;
+    --panel-2:#171b21;
+    --panel-3:#1e232b;
+    --border:#2a3038;
+    --border-soft:#1c212a;
+    --text:#e8ecf0;
+    --text-dim:#8b939e;
+    --text-faint:#525a63;
+    --tool-accent:#4fd8c9;
+    --danger:#ff6b5b;
+    --mono:'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+    --sans:'Inter', system-ui, sans-serif;
+    --ui:'Rajdhani', 'Inter', system-ui, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{ background:var(--bg); }
+  body{ color:var(--text); margin:0; font-family:var(--sans); -webkit-font-smoothing:antialiased; }
+  .shell{ max-width:1180px; margin-inline:auto; padding-inline:16px; padding-block:32px 72px; }
+
+  .top{ margin-bottom:28px; max-width:74ch; }
+  .eyebrow{ font-family:var(--mono); font-size:11px; letter-spacing:.12em; color:var(--tool-accent); text-transform:uppercase; }
+  .top h1{ font-family:var(--ui); font-weight:700; font-size:clamp(28px,5vw,40px); letter-spacing:.01em; margin:6px 0 10px; text-wrap:balance; }
+  .top .lede{ color:var(--text-dim); font-size:14.5px; line-height:1.6; margin:0 0 6px; }
+  .top .note{ color:var(--text-faint); font-size:12.5px; font-family:var(--mono); line-height:1.6; margin:0; }
+
+  .layout{ display:grid; grid-template-columns:190px 1fr; gap:24px; align-items:start; }
+  @media (max-width:760px){ .layout{ grid-template-columns:1fr; } }
+
+  .tabs{ display:flex; flex-direction:column; gap:4px; position:sticky; top:16px; }
+  @media (max-width:760px){ .tabs{ flex-direction:row; overflow-x:auto; position:static; padding-bottom:6px; gap:6px; } }
+  .tab-btn{ text-align:left; cursor:pointer; padding:10px 12px; border-radius:6px; background:transparent; border:1px solid transparent; color:var(--text-dim); font-family:var(--ui); font-weight:600; font-size:14.5px; letter-spacing:.02em; white-space:nowrap; transition:background .15s ease, color .15s ease, box-shadow .15s ease; }
+  .tab-btn:hover{ color:var(--text); background:var(--panel-2); }
+  .tab-btn.is-active{ color:var(--text); background:var(--panel-2); border-color:var(--border-soft); box-shadow:inset 2px 0 0 var(--tool-accent); }
+  .tab-btn:focus-visible{ outline:2px solid var(--tool-accent); outline-offset:1px; }
+
+  .content{ min-width:0; }
+  .tab-panel[hidden]{ display:none; }
+  .section-head{ margin-bottom:16px; }
+  .section-head h2{ font-family:var(--ui); font-size:20px; margin:0 0 4px; letter-spacing:.02em; }
+  .section-head p{ color:var(--text-dim); font-size:13.5px; margin:0; max-width:62ch; line-height:1.55; }
+
+  /* ---------- buttons ---------- */
+  .btn-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:16px; }
+  .btn-card{ background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:28px 20px 20px; display:flex; flex-direction:column; align-items:center; gap:16px; text-align:center; }
+  .btn-card .btn-name{ font-family:var(--mono); font-size:11px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.06em; }
+  .btn-card.is-favorite{ border-color:rgba(79,216,201,.4); box-shadow:0 0 0 1px rgba(79,216,201,.15) inset; }
+  .btn-card .fave-tag{ font-family:var(--mono); font-size:9.5px; letter-spacing:.08em; color:var(--tool-accent); }
+
+  .btn{ appearance:none; cursor:pointer; font-family:var(--ui); font-weight:700; font-size:13px; letter-spacing:.08em; text-transform:uppercase; padding:12px 22px; border-radius:6px; border:1px solid transparent; background:transparent; color:var(--text); transition:box-shadow .2s ease, background .2s ease, transform .12s ease, border-color .2s ease, color .2s ease; }
+  .btn:active{ transform:translateY(1px); }
+  .btn:focus-visible{ outline:2px solid var(--tool-accent); outline-offset:2px; }
+
+  .btn--hud{ position:relative; border:1px solid rgba(255,255,255,.14); color:var(--accent,var(--tool-accent)); background:rgba(255,255,255,.02); border-radius:2px; }
+  .btn--hud::before,.btn--hud::after{ content:''; position:absolute; width:9px; height:9px; border-color:var(--accent,var(--tool-accent)); transition:width .2s ease,height .2s ease; }
+  .btn--hud::before{ top:-1px; left:-1px; border-top:2px solid; border-left:2px solid; }
+  .btn--hud::after{ bottom:-1px; right:-1px; border-bottom:2px solid; border-right:2px solid; }
+  .btn--hud:hover{ background:rgba(255,255,255,.05); box-shadow:0 0 18px -6px var(--accent,var(--tool-accent)); }
+  .btn--hud:hover::before,.btn--hud:hover::after{ width:15px; height:15px; }
+
+  .btn--toggle{ display:inline-flex; align-items:center; gap:10px; background:var(--panel-3); border:1px solid var(--border); border-radius:20px; padding:10px 20px 10px 14px; color:var(--text-dim); }
+  .btn--toggle .led{ width:9px; height:9px; border-radius:50%; background:var(--text-faint); flex:none; transition:background .2s ease, box-shadow .2s ease; }
+  .btn--toggle:hover{ color:var(--text); border-color:var(--accent,var(--tool-accent)); }
+  .btn--toggle:hover .led{ background:var(--accent,var(--tool-accent)); box-shadow:0 0 8px var(--accent,var(--tool-accent)); }
+
+  .btn--glass{ position:relative; overflow:hidden; background:linear-gradient(160deg, rgba(255,255,255,.09), rgba(255,255,255,.02)); border:1px solid rgba(255,255,255,.16); backdrop-filter:blur(4px); border-radius:9px; }
+  .btn--glass::after{ content:''; position:absolute; top:0; left:-60%; width:35%; height:100%; background:linear-gradient(120deg, transparent, rgba(255,255,255,.4), transparent); transform:skewX(-18deg); transition:left .5s ease; }
+  .btn--glass:hover{ border-color:var(--accent,var(--tool-accent)); box-shadow:0 0 22px -8px var(--accent,var(--tool-accent)); }
+  .btn--glass:hover::after{ left:130%; }
+
+  .btn--alert{ border:1px solid rgba(255,107,91,.5); border-left:4px solid var(--danger); background:var(--panel-2); color:#ff9d8f; animation:alertGlow 2.4s ease-in-out infinite; border-radius:3px; }
+  .btn--alert:hover{ background:#221513; }
+  @keyframes alertGlow{ 0%,100%{ box-shadow:0 0 0 rgba(255,107,91,0);} 50%{ box-shadow:0 0 14px -2px rgba(255,107,91,.4);} }
+
+  /* ---------- nodes ---------- */
+  .node-family{ margin-bottom:28px; }
+  .node-family:last-child{ margin-bottom:0; }
+  .family-head{ display:flex; align-items:baseline; gap:10px; margin-bottom:12px; flex-wrap:wrap; }
+  .family-head h3{ font-family:var(--ui); font-size:16px; margin:0; }
+  .family-head p{ color:var(--text-faint); font-size:12.5px; margin:0; }
+  .family-row{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; }
+
+  .node{ position:relative; overflow:hidden; background:var(--panel-2); border:1px solid var(--border); border-radius:10px; padding:16px; text-align:center; }
+  .node-label{ font-family:var(--ui); font-size:12.5px; letter-spacing:.04em; color:var(--text); }
+  .node-status{ font-family:var(--mono); font-size:10px; letter-spacing:.06em; color:var(--accent,var(--tool-accent)); margin-top:8px; }
+
+  .node--console{ padding:0; text-align:left; }
+  .node-bar{ display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:var(--panel-3); border-bottom:1px solid var(--border-soft); font-family:var(--mono); font-size:11px; letter-spacing:.04em; }
+  .node-dot{ width:7px; height:7px; border-radius:50%; background:var(--accent,var(--tool-accent)); box-shadow:0 0 6px var(--accent,var(--tool-accent)); flex:none; }
+  .node-read{ position:relative; padding:12px; font-family:var(--mono); font-size:11px; color:var(--text-dim); font-variant-numeric:tabular-nums; }
+  .node-read::after{ content:''; position:absolute; inset:0; pointer-events:none; background:repeating-linear-gradient(180deg, rgba(255,255,255,.045) 0 1px, transparent 1px 3px); }
+  .node--console .node-status{ padding:0 12px 12px; margin-top:0; }
+
+  .gauge{ position:relative; width:64px; height:64px; margin:2px auto 8px; }
+  .gauge-ring{ position:absolute; inset:0; border-radius:50%; background:conic-gradient(var(--accent,var(--tool-accent)) calc(var(--pct)*1%), rgba(255,255,255,.08) 0); }
+  .gauge-inner{ position:absolute; inset:7px; border-radius:50%; background:var(--panel-2); display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-size:11px; }
+
+  .node--glass{ background:linear-gradient(160deg, rgba(255,255,255,.07), rgba(255,255,255,.015)); backdrop-filter:blur(6px); border-color:rgba(255,255,255,.16); box-shadow:0 0 26px -10px var(--accent,var(--tool-accent)); }
+  .node--glass .node-icon{ font-size:24px; color:var(--accent,var(--tool-accent)); line-height:1; margin-bottom:8px; }
+
+  .radial-ring{ position:relative; width:58px; height:58px; margin:2px auto 8px; border-radius:50%; padding:3px; background:conic-gradient(from 0deg, var(--accent,var(--tool-accent)), transparent 42%, transparent 58%, var(--accent,var(--tool-accent))); animation:spin 4.5s linear infinite; }
+  .radial-ring::before{ content:''; position:absolute; inset:3px; border-radius:50%; background:var(--panel-2); }
+  .radial-core{ position:absolute; inset:0; margin:auto; width:8px; height:8px; border-radius:50%; background:var(--accent,var(--tool-accent)); box-shadow:0 0 8px var(--accent,var(--tool-accent)); }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+
+  .node.is-locked{ filter:grayscale(.65); opacity:.5; }
+  .node.is-locked .node-status{ color:var(--text-faint); }
+  .node.is-locked .node-dot{ background:var(--text-faint); box-shadow:none; }
+  .node.is-locked::before{ content:''; position:absolute; inset:0; pointer-events:none; background:repeating-linear-gradient(45deg, rgba(255,255,255,.05) 0 6px, transparent 6px 13px); }
+  .node.is-alert{ --accent:var(--danger); animation:alertPulse 1.7s ease-in-out infinite; }
+  @keyframes alertPulse{ 0%,100%{ box-shadow:0 0 0 rgba(255,107,91,0); } 50%{ box-shadow:0 0 20px rgba(255,107,91,.4); } }
+
+  /* ---------- typography ---------- */
+  .type-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:16px; }
+  .type-card{ background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:22px; display:flex; flex-direction:column; gap:10px; }
+  .type-card .eyebrow-row{ display:flex; justify-content:space-between; align-items:center; }
+  .type-eyebrow{ font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--accent,var(--tool-accent)); }
+  .replay-btn{ appearance:none; cursor:pointer; background:transparent; border:1px solid var(--border); color:var(--text-dim); font-family:var(--mono); font-size:10.5px; padding:3px 9px; border-radius:20px; }
+  .replay-btn:hover{ color:var(--text); border-color:var(--accent,var(--tool-accent)); }
+  .type-card h3{ font-family:var(--f-head); font-weight:700; font-size:clamp(22px,4vw,27px); letter-spacing:.03em; margin:0; text-wrap:balance; }
+  .type-card .sub{ font-family:var(--f-body); font-weight:600; color:var(--text-dim); font-size:12.5px; text-transform:uppercase; letter-spacing:.05em; }
+  .type-card p.body{ font-family:var(--f-body); color:var(--text); font-size:14.5px; line-height:1.62; margin:0; max-width:56ch; }
+  .type-card .readout{ font-family:var(--mono); font-variant-numeric:tabular-nums; font-size:11.5px; color:var(--accent,var(--tool-accent)); }
+  .type-card .terminal{ font-family:var(--f-head); font-size:13px; letter-spacing:.06em; color:var(--accent,var(--tool-accent)); min-height:1.4em; }
+  .type-card .terminal::after{ content:'▌'; opacity:.8; margin-left:2px; }
+  .type-card .pair-name{ font-family:var(--mono); font-size:11px; color:var(--text-faint); }
+
+  .accent-green{ --accent:#3ddc84; }
+  .accent-blue{ --accent:#4fb2ff; }
+  .accent-amber{ --accent:#ffb84f; }
+  .accent-cyan{ --accent:#4fe3ff; }
+  .font-pair-a{ --f-head:'Orbitron', sans-serif; --f-body:'Exo 2', sans-serif; }
+  .font-pair-b{ --f-head:'Chakra Petch', sans-serif; --f-body:'Inter', sans-serif; }
+  .font-pair-c{ --f-head:'Share Tech Mono', monospace; --f-body:'IBM Plex Sans', sans-serif; }
+  .font-pair-d{ --f-head:'Audiowide', sans-serif; --f-body:'Rajdhani', sans-serif; }
+
+  /* ---------- nav: app shells, theme-capable ---------- */
+  .flow-layout{ display:flex; flex-direction:column; align-items:center; gap:14px; }
+  .flow-hint{ font-family:var(--mono); font-size:11.5px; color:var(--text-faint); text-align:center; max-width:46ch; line-height:1.6; }
+  .flow-hint b{ color:var(--text-dim); }
+  .variant-name{ font-family:var(--mono); font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--text-dim); text-align:center; }
+
+  .disclosure-btn{ appearance:none; cursor:pointer; background:transparent; border:1px dashed var(--border); color:var(--text-faint); font-family:var(--mono); font-size:11px; letter-spacing:.05em; padding:10px 14px; border-radius:8px; margin-top:36px; }
+  .disclosure-btn:hover{ color:var(--text-dim); border-color:var(--text-faint); }
+  .hidden-variant{ margin-top:20px; }
+  .hidden-variant[hidden]{ display:none; }
+
+  .app-frame{
+    --app-bg:#0a0c0f; --app-panel:#12151a; --app-text:#e8ecf0; --app-text-dim:#8b939e; --app-text-faint:#525a63;
+    --app-border:rgba(255,255,255,.12); --app-border-soft:rgba(255,255,255,.08); --app-accent:#4fe3ff;
+    position:relative; aspect-ratio:9/16; max-width:320px; width:100%; border-radius:24px; overflow:hidden;
+    border:1px solid var(--border); background:var(--app-bg); box-shadow:0 24px 54px -24px rgba(0,0,0,.8);
+    display:flex; flex-direction:column; color:var(--app-text); transition:background .3s ease, color .3s ease;
+  }
+  .app-frame.is-light{
+    --app-bg:#eef1f4; --app-panel:#ffffff; --app-text:#1b1f24; --app-text-dim:#5b6570; --app-text-faint:#93a0aa;
+    --app-border:rgba(20,30,40,.12); --app-border-soft:rgba(20,30,40,.08); --app-accent:#0e8fa6;
+  }
+
+  /* buttons placed inside an app-frame follow that frame's live theme, not the lab's own dark chrome */
+  .app-frame .btn{ color:var(--app-text); }
+  .app-frame .btn--glass{
+    background:linear-gradient(160deg, rgba(255,255,255,.09), rgba(255,255,255,.02));
+    border-color:var(--app-border);
+  }
+  .app-frame .btn--glass:hover{ border-color:var(--app-accent); box-shadow:0 0 22px -8px var(--app-accent); }
+  .app-frame.is-light .btn--glass{
+    background:linear-gradient(160deg, rgba(20,30,40,.07), rgba(20,30,40,.02));
+    border-color:rgba(20,30,40,.2);
+  }
+  .app-frame.is-light .btn--glass::after{ background:linear-gradient(120deg, transparent, rgba(20,30,40,.16), transparent); }
+  .app-frame .btn--glass-danger{ color:#ff9d8f; border-color:rgba(255,107,91,.5); }
+  .app-frame .btn--glass-danger:hover{ border-color:var(--danger); box-shadow:0 0 22px -8px var(--danger); }
+  .app-frame.is-light .btn--glass-danger{
+    color:#a4271e; border-color:rgba(164,39,30,.4);
+    background:linear-gradient(160deg, rgba(164,39,30,.08), rgba(164,39,30,.02));
+  }
+  .app-frame.is-light .btn--glass-danger:hover{ box-shadow:0 0 22px -8px rgba(164,39,30,.45); }
+
+  /* ambient background blobs — this is what the glass cards are actually blurring */
+  .bg-blob{ position:absolute; border-radius:50%; filter:blur(48px) brightness(1); opacity:.55; pointer-events:none; z-index:0; will-change:transform, filter; }
+  .bg-blob-a{ width:190px; height:190px; top:-50px; left:-55px; background:radial-gradient(circle at 32% 28%, rgba(255,255,255,.6), transparent 24%), radial-gradient(circle, #4fe3ff, transparent 70%); animation:blobDriftA 22s ease-in-out infinite; }
+  .bg-blob-b{ width:170px; height:170px; bottom:70px; right:-60px; background:radial-gradient(circle at 65% 30%, rgba(255,255,255,.55), transparent 24%), radial-gradient(circle, #8a4dff, transparent 70%); animation:blobDriftB 27s ease-in-out infinite; }
+  .bg-blob-c{ width:150px; height:150px; top:42%; left:52%; background:radial-gradient(circle at 40% 35%, rgba(255,255,255,.5), transparent 24%), radial-gradient(circle, #3ddc84, transparent 70%); opacity:.32; animation:blobDriftC 31s ease-in-out infinite; }
+  .app-frame.is-light .bg-blob{ opacity:.35; }
+  .app-frame.is-light .bg-blob-c{ opacity:.22; }
+  @keyframes blobDriftA{ 0%,100%{ transform:translate(0,0) scale(1); filter:blur(48px) brightness(1); } 50%{ transform:translate(28px,36px) scale(1.15); filter:blur(46px) brightness(1.3); } }
+  @keyframes blobDriftB{ 0%,100%{ transform:translate(0,0) scale(1); filter:blur(48px) brightness(1); } 50%{ transform:translate(-24px,-32px) scale(1.1); filter:blur(46px) brightness(1.25); } }
+  @keyframes blobDriftC{ 0%,100%{ transform:translate(-50%,-50%) scale(1); filter:blur(48px) brightness(1); } 50%{ transform:translate(-56%,-44%) scale(1.2); filter:blur(46px) brightness(1.35); } }
+
+  /* sparse drifting glints — spawned and removed by JS at random positions/timings, see initSparkles() */
+  .sparkle{ position:absolute; width:3px; height:3px; border-radius:50%; background:#fff; box-shadow:0 0 6px 1px rgba(255,255,255,.85); opacity:0; pointer-events:none; z-index:0; animation-name:sparkleDrift; animation-timing-function:ease-in-out; animation-fill-mode:both; }
+  .app-frame.is-light .sparkle{ background:var(--app-accent); box-shadow:0 0 6px 1px rgba(14,143,166,.55); }
+  @keyframes sparkleDrift{
+    0%{ opacity:0; transform:translate(0,0) scale(.6); }
+    50%{ opacity:.85; transform:translate(var(--dx), var(--dy)) scale(1); }
+    100%{ opacity:0; transform:translate(calc(var(--dx) * 2), calc(var(--dy) * 2)) scale(.6); }
+  }
+
+  .app-topbar, .app-content, .app-navbar{ position:relative; z-index:1; }
+
+  .app-topbar{ flex:none; padding:16px 16px 12px; border-bottom:1px solid var(--app-border-soft); background:linear-gradient(180deg, rgba(255,255,255,.05), transparent); }
+  .app-frame.is-light .app-topbar{ background:linear-gradient(180deg, rgba(255,255,255,.7), transparent); }
+  .app-topbar .app-title{ font-family:var(--ui); font-weight:700; font-size:17px; letter-spacing:.03em; color:var(--app-text); }
+  .app-topbar .app-sub{ display:flex; align-items:center; gap:6px; margin-top:4px; font-family:var(--mono); font-size:9.5px; color:var(--app-text-faint); letter-spacing:.05em; text-transform:uppercase; }
+  .app-topbar .status-dot{ width:6px; height:6px; border-radius:50%; background:#3ddc84; box-shadow:0 0 6px #3ddc84; flex:none; }
+  .drawer-btn{ appearance:none; background:transparent; border:none; color:var(--app-text); font-size:17px; line-height:1; cursor:pointer; padding:2px 4px; }
+  .topbar-row{ display:flex; align-items:center; justify-content:space-between; }
+
+  .app-content{ flex:1; overflow-y:auto; padding:14px 16px; background:radial-gradient(ellipse at 30% 0%, rgba(79,227,255,.07), transparent 60%); }
+  .app-frame.is-light .app-content{ background:radial-gradient(ellipse at 30% 0%, rgba(14,143,166,.08), transparent 60%); }
+  .app-panel[hidden]{ display:none; }
+
+  .card{ background:linear-gradient(160deg, rgba(255,255,255,.08), rgba(255,255,255,.02)); backdrop-filter:blur(10px); border:1px solid var(--app-border); border-radius:14px; padding:4px 14px; box-shadow:0 0 22px -14px var(--app-accent); }
+  .app-frame.is-light .card{ background:linear-gradient(160deg, rgba(255,255,255,.88), rgba(255,255,255,.62)); box-shadow:0 10px 26px -16px rgba(20,30,40,.22); }
+  .row{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:11px 0; border-bottom:1px solid var(--app-border-soft); }
+  .row:last-child{ border-bottom:none; }
+  .row-main{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+  .row-title{ font-family:var(--ui); font-size:13px; color:var(--app-text); }
+  .row-sub{ font-family:var(--mono); font-size:10px; color:var(--app-text-faint); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+  .chip{ flex:none; font-family:var(--mono); font-size:9px; padding:3px 8px; border-radius:20px; letter-spacing:.05em; }
+  .chip-online{ color:#12a866; background:rgba(18,168,102,.16); }
+  .chip-pending{ color:#c9791a; background:rgba(201,121,26,.16); }
+
+  .switch{ flex:none; width:36px; height:21px; border-radius:20px; background:var(--app-panel); border:1px solid var(--app-border); position:relative; cursor:pointer; transition:border-color .2s ease; }
+  .switch .knob{ position:absolute; top:2px; left:2px; width:15px; height:15px; border-radius:50%; background:var(--app-text-faint); transition:transform .2s ease, background .2s ease, box-shadow .2s ease; }
+  .switch.is-on{ border-color:var(--app-accent); }
+  .switch.is-on .knob{ transform:translateX(15px); background:var(--app-accent); box-shadow:0 0 8px var(--app-accent); }
+
+  .stat-row{ display:flex; gap:8px; }
+  .stat{ flex:1; background:linear-gradient(160deg, rgba(255,255,255,.08), rgba(255,255,255,.02)); backdrop-filter:blur(10px); border:1px solid var(--app-border); border-radius:10px; padding:12px 6px; text-align:center; }
+  .app-frame.is-light .stat{ background:linear-gradient(160deg, rgba(255,255,255,.88), rgba(255,255,255,.62)); }
+  .stat-value{ font-family:var(--mono); font-size:18px; color:var(--accent,var(--tool-accent)); font-variant-numeric:tabular-nums; }
+  .stat-label{ font-family:var(--mono); font-size:8.5px; color:var(--app-text-faint); letter-spacing:.05em; margin-top:4px; text-transform:uppercase; }
+
+  .app-full-btn{ width:100%; margin-top:14px; }
+
+  .app-navbar{ flex:none; display:flex; border-top:1px solid var(--app-border-soft); background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02)); backdrop-filter:blur(14px); }
+  .app-frame.is-light .app-navbar{ background:linear-gradient(180deg, rgba(255,255,255,.85), rgba(255,255,255,.72)); }
+  .nav-btn{ flex:1; appearance:none; cursor:pointer; background:transparent; border:none; color:var(--app-text-faint); font-family:var(--mono); font-size:9px; letter-spacing:.04em; padding:10px 2px 11px; display:flex; flex-direction:column; align-items:center; gap:5px; transition:color .15s ease; }
+  .nav-btn .nav-icon{ width:30px; height:24px; border-radius:8px; border:1px solid transparent; display:flex; align-items:center; justify-content:center; color:var(--app-text-faint); transition:border-color .15s ease, color .15s ease, box-shadow .15s ease; }
+  .nav-btn.is-active{ color:var(--app-text); }
+  .nav-btn.is-active .nav-icon{ color:var(--app-accent); border-color:var(--app-accent); box-shadow:0 0 10px -3px var(--app-accent); }
+  .nav-btn:focus-visible{ outline:2px solid var(--app-accent); outline-offset:-2px; }
+
+  /* side drawer variant — kept in reserve, hidden by default */
+  .drawer-scrim{ position:absolute; inset:0; background:rgba(0,0,0,.5); opacity:0; pointer-events:none; transition:opacity .2s ease; z-index:6; }
+  .drawer-scrim.is-open{ opacity:1; pointer-events:auto; }
+  .drawer-panel{ position:absolute; top:0; bottom:0; left:0; width:68%; max-width:220px; background:var(--app-panel); border-right:1px solid var(--app-border); z-index:7; transform:translateX(-100%); transition:transform .25s ease; padding:18px 14px; display:flex; flex-direction:column; gap:2px; }
+  .drawer-panel.is-open{ transform:translateX(0); }
+  .drawer-head{ font-family:var(--mono); font-size:10px; letter-spacing:.1em; color:var(--app-text-faint); margin-bottom:10px; }
+  .drawer-item{ appearance:none; text-align:left; cursor:pointer; background:transparent; border:none; border-radius:8px; padding:10px 10px; font-family:var(--ui); font-size:13px; color:var(--app-text-dim); }
+  .drawer-item.is-active{ color:var(--app-text); background:rgba(255,255,255,.06); box-shadow:inset 2px 0 0 var(--app-accent); }
+
+  footer.foot{ margin-top:56px; padding-top:18px; border-top:1px solid var(--border-soft); color:var(--text-faint); font-family:var(--mono); font-size:11.5px; line-height:1.6; }
+
+  @media (prefers-reduced-motion:reduce){
+    .radial-ring, .btn--alert, .node.is-alert, .btn--glass::after, .bg-blob, .sparkle{ animation:none !important; transition:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <header class="top">
+    <div class="eyebrow">personal-copilot · style lab · v6 · local</div>
+    <h1>Bridge Console</h1>
+    <p class="lede">Ordinary app navigation, glass throughout, both themes live. The cards now use the same translucent-glow treatment as Glass Card, the bottom bar is glassy too, and the theme row in Settings actually re-skins the whole screen — dark and light, not just a decorative switch.</p>
+    <p class="note">Decided: Bottom Tab Bar is the nav. Top Segmented Control is gone. Side Drawer stays built but tucked behind a disclosure below, in case you want to switch later. Blobs now have a glossy highlight + slow shimmer plus a few sparse twinkling glints — ambient, not attention-grabbing.</p>
+  </header>
+
+  <div class="layout">
+    <nav class="tabs" aria-label="Sections">
+      <button class="tab-btn" data-tab="nav">Nav</button>
+      <button class="tab-btn" data-tab="buttons">Buttons</button>
+      <button class="tab-btn" data-tab="nodes">Nodes &amp; Panels</button>
+      <button class="tab-btn" data-tab="type">Typography</button>
+    </nav>
+
+    <main class="content">
+
+      <!-- ================= NAV ================= -->
+      <section class="tab-panel" id="tab-nav">
+        <div class="section-head">
+          <h2>Bottom Tab Bar</h2>
+          <p>Top bar, scrollable glass cards, fixed bottom tabs. Toggle the theme row in Settings — the whole screen re-skins live.</p>
+        </div>
+        <div class="flow-layout">
+          <div class="app-frame" id="app-frame">
+            <div class="bg-blob bg-blob-a"></div>
+            <div class="bg-blob bg-blob-b"></div>
+            <div class="bg-blob bg-blob-c"></div>
+            <div class="app-topbar">
+              <div class="app-title" id="app-title">SETTINGS</div>
+              <div class="app-sub"><span class="status-dot"></span><span>gateway · connected</span></div>
+            </div>
+
+            <div class="app-content">
+
+              <div class="app-panel" id="app-settings">
+                <div class="card">
+                  <div class="row">
+                    <div class="row-main"><span class="row-title">Theme</span><span class="row-sub" id="theme-sub">Dark mode</span></div>
+                    <div class="switch is-on" id="theme-switch"><span class="knob"></span></div>
+                  </div>
+                  <div class="row">
+                    <div class="row-main"><span class="row-title">Account</span><span class="row-sub">lidor@example.com</span></div>
+                    <span class="chip chip-online">ONLINE</span>
+                  </div>
+                  <div class="row">
+                    <div class="row-main"><span class="row-title">Realtime connection</span><span class="row-sub">Socket.IO · /ws</span></div>
+                    <span class="chip chip-online">CONNECTED</span>
+                  </div>
+                </div>
+                <button class="btn btn--glass btn--glass-danger app-full-btn">LOG OUT</button>
+              </div>
+
+              <div class="app-panel" id="app-users" hidden>
+                <div class="card">
+                  <div class="row">
+                    <div class="row-main"><span class="row-title">lidor</span><span class="row-sub">lidor@example.com · user</span></div>
+                    <span class="chip chip-online">ACTIVE</span>
+                  </div>
+                  <div class="row">
+                    <div class="row-main"><span class="row-title">admin</span><span class="row-sub">admin@example.com · admin</span></div>
+                    <span class="chip chip-online">ACTIVE</span>
+                  </div>
+                  <div class="row">
+                    <div class="row-main"><span class="row-title">guest_412</span><span class="row-sub">invited 2 days ago</span></div>
+                    <span class="chip chip-pending">PENDING</span>
+                  </div>
+                </div>
+                <button class="btn btn--glass app-full-btn">INVITE USER</button>
+              </div>
+
+              <div class="app-panel" id="app-admin" hidden>
+                <div class="stat-row">
+                  <div class="stat accent-green"><div class="stat-value">128</div><div class="stat-label">Users</div></div>
+                  <div class="stat accent-blue"><div class="stat-value">4</div><div class="stat-label">Pending</div></div>
+                  <div class="stat accent-amber"><div class="stat-value">1</div><div class="stat-label">Admins</div></div>
+                </div>
+                <div class="card" style="margin-top:12px;">
+                  <div class="row">
+                    <div class="row-main"><span class="row-title">Gateway rate limit</span><span class="row-sub">100 req / 60s</span></div>
+                    <span class="chip chip-online">OK</span>
+                  </div>
+                  <div class="row">
+                    <div class="row-main"><span class="row-title">Auth throttle</span><span class="row-sub">5 req / 60s</span></div>
+                    <span class="chip chip-online">OK</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="app-panel" id="app-agent" hidden>
+                <div class="card">
+                  <div class="row">
+                    <div class="row-main"><span class="row-title">Uplink</span><span class="row-sub">Kafka · gateway</span></div>
+                    <span class="chip chip-online">STABLE</span>
+                  </div>
+                  <div class="row">
+                    <div class="row-main"><span class="row-title">Queue</span><span class="row-sub">personal-copilot.events</span></div>
+                    <span class="chip chip-online">EMPTY</span>
+                  </div>
+                </div>
+                <button class="btn btn--glass app-full-btn">RESTART AGENT</button>
+              </div>
+
+            </div>
+
+            <div class="app-navbar">
+              <button class="nav-btn is-active" data-nav="settings">
+                <span class="nav-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"></line><circle cx="16" cy="6" r="2"></circle><line x1="3" y1="12" x2="21" y2="12"></line><circle cx="8" cy="12" r="2"></circle><line x1="3" y1="18" x2="21" y2="18"></line><circle cx="14" cy="18" r="2"></circle></svg></span>
+                Settings
+              </button>
+              <button class="nav-btn" data-nav="users">
+                <span class="nav-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 21v-2a5 5 0 0 1 5-5h6a5 5 0 0 1 5 5v2"></path></svg></span>
+                Users
+              </button>
+              <button class="nav-btn" data-nav="admin">
+                <span class="nav-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7.5-3.5 7.5-9.5V5.2L12 2.5 4.5 5.2v6.3C4.5 17.5 12 21 12 21z"></path></svg></span>
+                Admin
+              </button>
+              <button class="nav-btn" data-nav="agent">
+                <span class="nav-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"></rect><rect x="10" y="10" width="4" height="4"></rect><line x1="12" y1="1" x2="12" y2="4"></line><line x1="12" y1="20" x2="12" y2="23"></line><line x1="1" y1="12" x2="4" y2="12"></line><line x1="20" y1="12" x2="23" y2="12"></line></svg></span>
+                Agent
+              </button>
+            </div>
+          </div>
+          <p class="flow-hint"><b>Try it:</b> tap a tab to switch screens, tap the theme switch in Settings to flip dark/light.</p>
+        </div>
+
+        <button class="disclosure-btn" id="hidden-toggle">▸ Side drawer — hidden, future option</button>
+        <div class="hidden-variant" id="hidden-variant-wrap" hidden>
+          <div class="flow-layout">
+            <div class="variant-name">Side Drawer</div>
+            <div class="app-frame" id="drawer-frame">
+              <div class="bg-blob bg-blob-a"></div>
+              <div class="bg-blob bg-blob-b"></div>
+              <div class="bg-blob bg-blob-c"></div>
+              <div class="app-topbar topbar-row">
+                <button class="drawer-btn" id="drawer-open" aria-label="Open menu">☰</button>
+                <div class="app-title" id="drawer-title">SETTINGS</div>
+                <span style="width:20px;"></span>
+              </div>
+              <div class="app-content">
+                <div class="app-panel" id="drawer-settings">
+                  <div class="card">
+                    <div class="row"><div class="row-main"><span class="row-title">Theme</span><span class="row-sub">Dark mode</span></div><span class="chip chip-online">SET</span></div>
+                    <div class="row"><div class="row-main"><span class="row-title">Account</span><span class="row-sub">lidor@example.com</span></div><span class="chip chip-online">ONLINE</span></div>
+                  </div>
+                </div>
+                <div class="app-panel" id="drawer-users" hidden>
+                  <div class="card">
+                    <div class="row"><div class="row-main"><span class="row-title">lidor</span><span class="row-sub">user</span></div><span class="chip chip-online">ACTIVE</span></div>
+                    <div class="row"><div class="row-main"><span class="row-title">admin</span><span class="row-sub">admin</span></div><span class="chip chip-online">ACTIVE</span></div>
+                  </div>
+                </div>
+                <div class="app-panel" id="drawer-admin" hidden>
+                  <div class="stat-row">
+                    <div class="stat accent-green"><div class="stat-value">128</div><div class="stat-label">Users</div></div>
+                    <div class="stat accent-blue"><div class="stat-value">4</div><div class="stat-label">Pending</div></div>
+                    <div class="stat accent-amber"><div class="stat-value">1</div><div class="stat-label">Admins</div></div>
+                  </div>
+                </div>
+                <div class="app-panel" id="drawer-agent" hidden>
+                  <div class="card">
+                    <div class="row"><div class="row-main"><span class="row-title">Uplink</span><span class="row-sub">Kafka</span></div><span class="chip chip-online">STABLE</span></div>
+                    <div class="row"><div class="row-main"><span class="row-title">Queue</span><span class="row-sub">events</span></div><span class="chip chip-online">EMPTY</span></div>
+                  </div>
+                </div>
+              </div>
+              <div class="drawer-scrim" id="drawer-scrim"></div>
+              <div class="drawer-panel" id="drawer-panel">
+                <div class="drawer-head">MENU</div>
+                <button class="drawer-item is-active" data-drawer="settings">Settings</button>
+                <button class="drawer-item" data-drawer="users">Users</button>
+                <button class="drawer-item" data-drawer="admin">Admin</button>
+                <button class="drawer-item" data-drawer="agent">Agent</button>
+              </div>
+            </div>
+            <p class="flow-hint">☰ opens a slide-in menu, kept in reserve for later — not wired into the main flow.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= BUTTONS ================= -->
+      <section class="tab-panel" id="tab-buttons" hidden>
+        <div class="section-head">
+          <h2>Buttons</h2>
+          <p>Glass is flagged as the one you already liked — still here alongside the others for contrast. All four are used live in the Nav tab.</p>
+        </div>
+        <div class="btn-grid">
+          <div class="btn-card accent-green">
+            <button class="btn btn--hud">ENGAGE</button>
+            <div class="btn-meta"><span class="btn-name">HUD Bracket</span></div>
+          </div>
+          <div class="btn-card accent-blue">
+            <button class="btn btn--toggle"><span class="led"></span>UPLINK</button>
+            <div class="btn-meta"><span class="btn-name">Console Toggle</span></div>
+          </div>
+          <div class="btn-card accent-cyan is-favorite">
+            <button class="btn btn--glass">OPEN CHANNEL</button>
+            <div class="btn-meta"><span class="btn-name">Glass Panel</span><br><span class="fave-tag">★ your pick</span></div>
+          </div>
+          <div class="btn-card">
+            <button class="btn btn--alert">ABORT</button>
+            <div class="btn-meta"><span class="btn-name">Alert (semantic)</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= NODES & PANELS ================= -->
+      <section class="tab-panel" id="tab-nodes" hidden>
+        <div class="section-head">
+          <h2>Nodes &amp; panels</h2>
+          <p>Component families for denser data than a plain row — stat tiles, status panels.</p>
+        </div>
+
+        <div class="node-family accent-green">
+          <div class="family-head"><h3>Console Panel</h3><p>Header bar, status LED, monospace readout with a scanline overlay.</p></div>
+          <div class="family-row">
+            <div class="node node--console">
+              <div class="node-bar"><span>USER MGMT</span><span class="node-dot"></span></div>
+              <div class="node-read">UPTIME 118:42:07</div>
+              <div class="node-status">ONLINE</div>
+            </div>
+            <div class="node node--console is-locked">
+              <div class="node-bar"><span>ADMIN PANEL</span><span class="node-dot"></span></div>
+              <div class="node-read">ACCESS DENIED</div>
+              <div class="node-status">OFFLINE</div>
+            </div>
+            <div class="node node--console is-alert">
+              <div class="node-bar"><span>AGENT PANEL</span><span class="node-dot"></span></div>
+              <div class="node-read">RETRYING… 3/5</div>
+              <div class="node-status">ALERT</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="node-family accent-blue">
+          <div class="family-head"><h3>Gauge Tile</h3><p>Ring readout for a value that has a percentage worth showing.</p></div>
+          <div class="family-row">
+            <div class="node node--gauge">
+              <div class="node-label">SETTINGS</div>
+              <div class="gauge"><div class="gauge-ring" style="--pct:82"></div><div class="gauge-inner">82%</div></div>
+              <div class="node-status">ONLINE</div>
+            </div>
+            <div class="node node--gauge is-locked">
+              <div class="node-label">ADMIN PANEL</div>
+              <div class="gauge"><div class="gauge-ring" style="--pct:0"></div><div class="gauge-inner">—</div></div>
+              <div class="node-status">LOCKED</div>
+            </div>
+            <div class="node node--gauge is-alert">
+              <div class="node-label">USER MGMT</div>
+              <div class="gauge"><div class="gauge-ring" style="--pct:34"></div><div class="gauge-inner">34%</div></div>
+              <div class="node-status">ALERT</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="node-family accent-cyan">
+          <div class="family-head"><h3>Glass Card <span class="fave-tag">★ your pick</span></h3><p>Translucent surface, icon-led, soft outer glow.</p></div>
+          <div class="family-row">
+            <div class="node node--glass">
+              <div class="node-icon">◆</div>
+              <div class="node-label">UPLINK</div>
+              <div class="node-status">ONLINE</div>
+            </div>
+            <div class="node node--glass is-locked">
+              <div class="node-icon">⛔</div>
+              <div class="node-label">ADMIN PANEL</div>
+              <div class="node-status">OFFLINE</div>
+            </div>
+            <div class="node node--glass is-alert">
+              <div class="node-icon">◆</div>
+              <div class="node-label">AGENT PANEL</div>
+              <div class="node-status">ALERT</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="node-family accent-amber">
+          <div class="family-head"><h3>Radial Node</h3><p>Rotating ring border, like a radar sweep frozen mid-turn.</p></div>
+          <div class="family-row">
+            <div class="node node--radial">
+              <div class="radial-ring"><div class="radial-core"></div></div>
+              <div class="node-label">SETTINGS</div>
+              <div class="node-status">ONLINE</div>
+            </div>
+            <div class="node node--radial is-locked">
+              <div class="radial-ring"><div class="radial-core"></div></div>
+              <div class="node-label">ADMIN PANEL</div>
+              <div class="node-status">OFFLINE</div>
+            </div>
+            <div class="node node--radial is-alert">
+              <div class="radial-ring"><div class="radial-core"></div></div>
+              <div class="node-label">USER MGMT</div>
+              <div class="node-status">ALERT</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= TYPOGRAPHY ================= -->
+      <section class="tab-panel" id="tab-type" hidden>
+        <div class="section-head">
+          <h2>Typeface pairings</h2>
+          <p>Same copy, same node label, four faces. The bottom line replays a terminal-style reveal.</p>
+        </div>
+        <div class="type-grid">
+
+          <div class="type-card font-pair-a accent-green">
+            <div class="eyebrow-row"><span class="type-eyebrow">Pairing A</span><button class="replay-btn" data-line="a">↻ replay</button></div>
+            <h3>Bridge Access</h3>
+            <span class="sub">Primary navigation hub</span>
+            <p class="body">Bridge Console keeps every screen one tap away. Switch tabs and the content fades in place — no scene to travel through.</p>
+            <span class="readout">UPLINK 04:12:33 · 3 ROOMS ONLINE</span>
+            <span class="terminal" id="type-a"></span>
+            <span class="pair-name">Orbitron / Exo 2</span>
+          </div>
+
+          <div class="type-card font-pair-b accent-blue">
+            <div class="eyebrow-row"><span class="type-eyebrow">Pairing B</span><button class="replay-btn" data-line="b">↻ replay</button></div>
+            <h3>Bridge Access</h3>
+            <span class="sub">Primary navigation hub</span>
+            <p class="body">Bridge Console keeps every screen one tap away. Switch tabs and the content fades in place — no scene to travel through.</p>
+            <span class="readout">UPLINK 04:12:33 · 3 ROOMS ONLINE</span>
+            <span class="terminal" id="type-b"></span>
+            <span class="pair-name">Chakra Petch / Inter</span>
+          </div>
+
+          <div class="type-card font-pair-c accent-cyan">
+            <div class="eyebrow-row"><span class="type-eyebrow">Pairing C</span><button class="replay-btn" data-line="c">↻ replay</button></div>
+            <h3>Bridge Access</h3>
+            <span class="sub">Primary navigation hub</span>
+            <p class="body">Bridge Console keeps every screen one tap away. Switch tabs and the content fades in place — no scene to travel through.</p>
+            <span class="readout">UPLINK 04:12:33 · 3 ROOMS ONLINE</span>
+            <span class="terminal" id="type-c"></span>
+            <span class="pair-name">Share Tech Mono / IBM Plex Sans</span>
+          </div>
+
+          <div class="type-card font-pair-d accent-amber">
+            <div class="eyebrow-row"><span class="type-eyebrow">Pairing D</span><button class="replay-btn" data-line="d">↻ replay</button></div>
+            <h3>Bridge Access</h3>
+            <span class="sub">Primary navigation hub</span>
+            <p class="body">Bridge Console keeps every screen one tap away. Switch tabs and the content fades in place — no scene to travel through.</p>
+            <span class="readout">UPLINK 04:12:33 · 3 ROOMS ONLINE</span>
+            <span class="terminal" id="type-d"></span>
+            <span class="pair-name">Audiowide / Rajdhani</span>
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <footer class="foot">bridge console v6 — throwaway HTML for picking a direction, per frontend/DESIGN.md. real build: react-native-skia + reanimated + moti (this nav shell needs much less of that stack than the earlier spatial ideas did).</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var REDUCE_MOTION = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------------- outer lab tabs ---------------- */
+  var typedStarted = false;
+  function showTab(name){
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.toggle('is-active', b.dataset.tab === name); });
+    document.querySelectorAll('.tab-panel').forEach(function(p){ p.hidden = p.id !== 'tab-' + name; });
+    if(name === 'type') startTyping();
+  }
+  document.querySelectorAll('.tab-btn').forEach(function(b){
+    b.addEventListener('click', function(){ showTab(b.dataset.tab); });
+  });
+
+  /* ---------------- typing effect (typography tab) ---------------- */
+  function typeLine(el, text, speed){
+    if(!el) return;
+    speed = speed || 30;
+    el.textContent = '';
+    var i = 0;
+    clearInterval(el._timer);
+    if(REDUCE_MOTION){ el.textContent = text; return; }
+    el._timer = setInterval(function(){
+      el.textContent = text.slice(0, i+1);
+      i++;
+      if(i >= text.length) clearInterval(el._timer);
+    }, speed);
+  }
+  var TYPE_LINES = { a:'ESTABLISHING UPLINK…', b:'BRIDGE ACCESS GRANTED', c:'SCANNING SECTOR…', d:'ALL SYSTEMS NOMINAL' };
+  function startTyping(){
+    if(typedStarted) return;
+    typedStarted = true;
+    ['a','b','c','d'].forEach(function(k, idx){
+      setTimeout(function(){ typeLine(document.getElementById('type-'+k), TYPE_LINES[k]); }, idx*220);
+    });
+  }
+  document.querySelectorAll('.replay-btn').forEach(function(b){
+    b.addEventListener('click', function(){
+      var k = b.dataset.line;
+      typeLine(document.getElementById('type-'+k), TYPE_LINES[k]);
+    });
+  });
+
+  function fadeIn(panel){
+    if(REDUCE_MOTION || !panel) return;
+    panel.animate(
+      [{ opacity:0, transform:'translateY(4px)' }, { opacity:1, transform:'none' }],
+      { duration:180, easing:'ease-out' }
+    );
+  }
+
+  /* ---------------- variant 1: bottom tab bar ---------------- */
+  var NAV_LABELS = { settings:'SETTINGS', users:'USER MANAGEMENT', admin:'ADMIN', agent:'AGENT PANEL' };
+  var appTitle = document.getElementById('app-title');
+  function showAppTab(name){
+    document.querySelectorAll('#app-frame .nav-btn').forEach(function(b){ b.classList.toggle('is-active', b.dataset.nav === name); });
+    ['settings','users','admin','agent'].forEach(function(k){
+      var p = document.getElementById('app-'+k);
+      var match = k === name;
+      p.hidden = !match;
+      if(match) fadeIn(p);
+    });
+    appTitle.textContent = NAV_LABELS[name];
+  }
+  document.querySelectorAll('#app-frame .nav-btn').forEach(function(b){
+    b.addEventListener('click', function(){ showAppTab(b.dataset.nav); });
+  });
+
+  var appFrame = document.getElementById('app-frame');
+  var themeSwitch = document.getElementById('theme-switch');
+  var themeSub = document.getElementById('theme-sub');
+  themeSwitch.addEventListener('click', function(){
+    var wasDark = themeSwitch.classList.contains('is-on');
+    themeSwitch.classList.toggle('is-on');
+    appFrame.classList.toggle('is-light', wasDark);
+    themeSub.textContent = wasDark ? 'Light mode' : 'Dark mode';
+  });
+
+  /* ---------------- random sparkle spawner — random position, direction, duration, interval ---------------- */
+  function rand(min, max){ return min + Math.random() * (max - min); }
+  function spawnSparkle(container, maxAlive){
+    if(container.querySelectorAll('.sparkle').length >= maxAlive) return;
+    var el = document.createElement('div');
+    el.className = 'sparkle';
+    var angle = rand(0, Math.PI * 2);
+    var dist = rand(10, 26);
+    var duration = rand(4.5, 9.5);
+    el.style.top = rand(8, 88) + '%';
+    el.style.left = rand(8, 88) + '%';
+    el.style.setProperty('--dx', (Math.cos(angle) * dist).toFixed(1) + 'px');
+    el.style.setProperty('--dy', (Math.sin(angle) * dist).toFixed(1) + 'px');
+    el.style.animationDuration = duration + 's';
+    container.appendChild(el);
+    setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); }, duration * 1000 + 60);
+  }
+  function startSparkles(container, maxAlive){
+    var timerId;
+    (function tick(){
+      spawnSparkle(container, maxAlive);
+      timerId = setTimeout(tick, rand(300, 1000));
+    })();
+    return function stop(){ clearTimeout(timerId); };
+  }
+  var stopAppSparkles = REDUCE_MOTION ? null : startSparkles(appFrame, 10);
+
+  /* ---------------- side drawer — kept in reserve, hidden by default ---------------- */
+  var hiddenToggle = document.getElementById('hidden-toggle');
+  var hiddenWrap = document.getElementById('hidden-variant-wrap');
+  var stopDrawerSparkles = null;
+  hiddenToggle.addEventListener('click', function(){
+    var willShow = hiddenWrap.hidden;
+    hiddenWrap.hidden = !willShow;
+    hiddenToggle.textContent = (willShow ? '▾' : '▸') + ' Side drawer — hidden, future option';
+    if(willShow && !REDUCE_MOTION){
+      stopDrawerSparkles = startSparkles(document.getElementById('drawer-frame'), 10);
+    } else if(stopDrawerSparkles){
+      stopDrawerSparkles();
+      stopDrawerSparkles = null;
+      document.querySelectorAll('#drawer-frame .sparkle').forEach(function(el){ el.remove(); });
+    }
+  });
+
+  var DRAWER_LABELS = { settings:'SETTINGS', users:'USER MANAGEMENT', admin:'ADMIN', agent:'AGENT PANEL' };
+  var drawerTitle = document.getElementById('drawer-title');
+  var drawerPanel = document.getElementById('drawer-panel');
+  var drawerScrim = document.getElementById('drawer-scrim');
+  function showDrawerTab(name){
+    document.querySelectorAll('.drawer-item').forEach(function(b){ b.classList.toggle('is-active', b.dataset.drawer === name); });
+    ['settings','users','admin','agent'].forEach(function(k){
+      var p = document.getElementById('drawer-'+k);
+      var match = k === name;
+      p.hidden = !match;
+      if(match) fadeIn(p);
+    });
+    drawerTitle.textContent = DRAWER_LABELS[name];
+  }
+  function openDrawer(){ drawerPanel.classList.add('is-open'); drawerScrim.classList.add('is-open'); }
+  function closeDrawer(){ drawerPanel.classList.remove('is-open'); drawerScrim.classList.remove('is-open'); }
+  document.getElementById('drawer-open').addEventListener('click', openDrawer);
+  drawerScrim.addEventListener('click', closeDrawer);
+  document.querySelectorAll('.drawer-item').forEach(function(b){
+    b.addEventListener('click', function(){ showDrawerTab(b.dataset.drawer); closeDrawer(); });
+  });
+
+  document.addEventListener('DOMContentLoaded', function(){
+    showTab('nav');
+    showAppTab('settings');
+    showDrawerTab('settings');
+  });
+})();
+</script>
+</body>
+</html>
