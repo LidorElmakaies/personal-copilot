@@ -1,29 +1,25 @@
 import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
 import { Tabs } from 'expo-router';
-import { Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useThemeAnim } from '../../src/context/ThemeAnimContext';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useAppTheme } from '../../src/hooks/useAppTheme';
-import { dark as darkColors, light as lightColors } from '../../src/theme/colors';
 
-// One tab today (Settings) — same animated-bar mechanics as a multi-tab bar would use, so adding
-// a second tab later is just another entry in TABS, not a rewrite.
-const TABS = [{ name: 'index', label: 'Settings', icon: 'settings-outline', iconActive: 'settings' }];
+// One tab today (Settings) — same bar mechanics as a multi-tab bar would use, so adding a second
+// tab later is just another entry in TABS, not a rewrite. Icon matches the line-icon set settled
+// on in design-lab/ (sliders for Settings, not a gear) — see DESIGN.md's "Navigation" section.
+const TABS = [{ name: 'index', label: 'Settings', icon: 'options-outline', iconActive: 'options' }];
 
 function CustomTabBar({ navigation, state }) {
-  const { colors } = useAppTheme();
-  const progress = useThemeAnim();
-
-  const animatedBg = progress.interpolate({
-    inputRange: [0, 1],
-    outputRange: [lightColors.tabBar, darkColors.tabBar],
-  });
-  const animatedBorder = progress.interpolate({
-    inputRange: [0, 1],
-    outputRange: [lightColors.tabBarBorder, darkColors.tabBarBorder],
-  });
+  const { isDark, colors } = useAppTheme();
 
   return (
-    <Animated.View style={[styles.bar, { backgroundColor: animatedBg, borderTopColor: animatedBorder }]}>
+    <View style={[styles.barWrapper, { borderTopColor: colors.tabBarBorder }]}>
+      <BlurView
+        intensity={isDark ? 40 : 60}
+        tint={isDark ? 'dark' : 'light'}
+        style={StyleSheet.absoluteFill}
+      />
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.tabBar }]} />
       {TABS.map((tab, index) => {
         const isActive = state.index === index;
 
@@ -38,11 +34,10 @@ function CustomTabBar({ navigation, state }) {
               style={[
                 styles.iconWrapper,
                 isActive && {
-                  backgroundColor: colors.card,
-                  borderColor: colors.cardBorder,
+                  borderColor: colors.accent,
                   borderWidth: 1,
-                  shadowColor: colors.primary,
-                  shadowOpacity: 0.4,
+                  shadowColor: colors.accent,
+                  shadowOpacity: 0.5,
                   shadowRadius: 8,
                   shadowOffset: { width: 0, height: 0 },
                   elevation: 4,
@@ -51,17 +46,23 @@ function CustomTabBar({ navigation, state }) {
             >
               <Ionicons
                 name={isActive ? tab.iconActive : tab.icon}
-                size={22}
+                size={20}
                 color={isActive ? colors.activeTab : colors.inactiveTab}
               />
             </View>
-            <Text style={[styles.label, { color: isActive ? colors.activeTab : colors.inactiveTab }, isActive && styles.labelActive]}>
+            <Text
+              style={[
+                styles.label,
+                { color: isActive ? colors.activeTab : colors.inactiveTab },
+                isActive && styles.labelActive,
+              ]}
+            >
               {tab.label}
             </Text>
           </TouchableOpacity>
         );
       })}
-    </Animated.View>
+    </View>
   );
 }
 
@@ -74,9 +75,15 @@ export default function TabsLayout() {
 }
 
 const styles = StyleSheet.create({
-  bar: { flexDirection: 'row', borderTopWidth: 1, paddingBottom: 8, paddingTop: 6 },
+  barWrapper: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    paddingBottom: 8,
+    paddingTop: 6,
+    overflow: 'hidden',
+  },
   tab: { flex: 1, alignItems: 'center', gap: 4, paddingVertical: 6 },
-  iconWrapper: { width: 40, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  iconWrapper: { width: 34, height: 30, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   label: { fontSize: 11, fontWeight: '500' },
   labelActive: { fontWeight: '700' },
 });

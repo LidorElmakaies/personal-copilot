@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useDispatch, useSelector } from 'react-redux';
+import AmbientBackground from '../../src/components/AmbientBackground';
 import GlowCard from '../../src/components/GlowCard';
 import GradientButton from '../../src/components/GradientButton';
 import InputField from '../../src/components/InputField';
-import SpaceBackground from '../../src/components/SpaceBackground';
 import { useAppTheme } from '../../src/hooks/useAppTheme';
 import { clearAuthError, loginUser } from '../../src/store/slices/authSlice';
 import { isValidEmail } from '../../src/utils/validation';
@@ -32,7 +32,7 @@ export default function LoginScreen() {
   };
 
   return (
-    <SpaceBackground>
+    <AmbientBackground>
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
           <Text style={[styles.heading, { color: colors.text }]}>Welcome back</Text>
@@ -89,7 +89,7 @@ export default function LoginScreen() {
           </Text>
         </TouchableOpacity>
       </ScrollView>
-    </SpaceBackground>
+    </AmbientBackground>
   );
 }
 

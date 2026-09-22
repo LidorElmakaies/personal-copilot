@@ -1,32 +1,17 @@
-import { StyleSheet, Text, View } from 'react-native';
-import { useAppTheme } from '../hooks/useAppTheme';
+import Chip from './Chip';
 
 // Mirrors wsSlice's `status` values (connecting | connected | disconnected).
 const STATUS_META = {
-  connected: { label: 'Connected', colorKey: 'success' },
-  connecting: { label: 'Connecting…', colorKey: 'accent' },
-  disconnected: { label: 'Disconnected', colorKey: 'textMuted' },
+  connected: { label: 'Connected', variant: 'online' },
+  connecting: { label: 'Connecting…', variant: 'pending' },
+  disconnected: { label: 'Disconnected', variant: 'error' },
 };
 
 /**
- * Small reusable "are we live" indicator — dot + label, driven entirely by wsSlice's status.
+ * Small reusable "are we live" indicator — a status Chip driven entirely by wsSlice's status.
  * Reads Redux state only; doesn't touch the connection itself (that's wsSlice's thunks).
  */
 export default function ConnectionStatus({ status, style }) {
-  const { colors } = useAppTheme();
   const meta = STATUS_META[status] || STATUS_META.disconnected;
-  const dotColor = colors[meta.colorKey] || colors.textMuted;
-
-  return (
-    <View style={[styles.row, style]}>
-      <View style={[styles.dot, { backgroundColor: dotColor }]} />
-      <Text style={[styles.label, { color: colors.text }]}>{meta.label}</Text>
-    </View>
-  );
+  return <Chip label={meta.label} variant={meta.variant} style={style} />;
 }
-
-const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  dot: { width: 10, height: 10, borderRadius: 5 },
-  label: { fontSize: 14, fontWeight: '600' },
-});

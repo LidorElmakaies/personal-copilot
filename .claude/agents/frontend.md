@@ -37,14 +37,14 @@ To theme a new component: import `useAppTheme` (and `useThemeAnim` only if it ne
 color transition, e.g. a custom tab bar). Use `colors.*` for static values.
 
 **Always use `useAppTheme()` for colors — never hardcode or import `src/theme/colors.js` directly
-in a screen/component.** (`SpaceBackground` and a themed tab bar are the two deliberate exceptions
+in a screen/component.** (`AmbientBackground` and a themed tab bar are the two deliberate exceptions
 — they interpolate between the two static palettes directly, which `useAppTheme()`'s single
 resolved palette can't express.)
 
 ## Build for reuse — components, not per-screen markup
 
 Favor small, composable components in `src/components/` over duplicating UI per screen.
-`InputField`, `GlowCard`, `GradientButton`, `SpaceBackground`, `ConnectionStatus` already exist —
+`InputField`, `GlowCard`, `GradientButton`, `AmbientBackground`, `ConnectionStatus` already exist —
 use them instead of hand-rolling a `TextInput`/card/button/background per screen. If a UI pattern
 is about to appear a second time, extract it to a component before a third screen copies it again.
 

@@ -1,11 +1,12 @@
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
+import AmbientBackground from '../../src/components/AmbientBackground';
 import ConnectionStatus from '../../src/components/ConnectionStatus';
 import GlowCard from '../../src/components/GlowCard';
-import SpaceBackground from '../../src/components/SpaceBackground';
+import GradientButton from '../../src/components/GradientButton';
+import Row from '../../src/components/Row';
+import Switch from '../../src/components/Switch';
 import { useAppTheme } from '../../src/hooks/useAppTheme';
 import { clearAuth, selectUser } from '../../src/store/slices/authSlice';
 import { setThemeMode } from '../../src/store/slices/themeSlice';
@@ -18,125 +19,84 @@ export default function SettingsScreen() {
   const { isDark, colors, colorMode } = useAppTheme();
   const [confirmingLogout, setConfirmingLogout] = useState(false);
 
-  const toggle = () => dispatch(setThemeMode(isDark ? 'light' : 'dark'));
+  const toggleTheme = (nextIsDark) => dispatch(setThemeMode(nextIsDark ? 'dark' : 'light'));
   // Clearing authSlice is the whole action — AuthGate (app/_layout.js) reacts to accessToken
   // going null and redirects to /login itself, and RealtimeConnectionManager disconnects the
   // socket the same way, so no manual navigation/disconnect needed here.
   const logout = () => dispatch(clearAuth());
 
   return (
-    <SpaceBackground>
+    <AmbientBackground>
       <View style={styles.container}>
         <Text style={[styles.heading, { color: colors.text }]}>Settings</Text>
-        <Text style={[styles.section, { color: colors.textMuted }]}>Appearance</Text>
 
-        {/* Toggle pill */}
-        <TouchableOpacity
-          onPress={toggle}
-          activeOpacity={0.85}
-          style={[styles.pill, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
-        >
-          {/* Sliding indicator */}
-          <LinearGradient
-            colors={colors.primaryGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={[styles.indicator, isDark ? styles.indicatorRight : styles.indicatorLeft]}
+        <GlowCard>
+          <Row
+            title="Theme"
+            subtitle={mode === null ? `Following system · ${colorMode}` : isDark ? 'Dark mode' : 'Light mode'}
+            right={<Switch value={isDark} onValueChange={toggleTheme} />}
+            last
           />
-
-          <View style={styles.side}>
-            <Text style={styles.sideIcon}>☀️</Text>
-            <Text style={[styles.sideLabel, { color: !isDark ? colors.onPrimary : colors.textMuted }]}>
-              Light
-            </Text>
-          </View>
-
-          <View style={styles.side}>
-            <Text style={styles.sideIcon}>🌙</Text>
-            <Text style={[styles.sideLabel, { color: isDark ? colors.onPrimary : colors.textMuted }]}>
-              Dark
-            </Text>
-          </View>
-        </TouchableOpacity>
-
-        {mode === null && (
-          <Text style={[styles.note, { color: colors.textMuted }]}>
-            Following system default · {colorMode}
-          </Text>
-        )}
-
-        <Text style={[styles.section, styles.sectionSpaced, { color: colors.textMuted }]}>
-          Account
-        </Text>
-        <GlowCard>
-          <Text style={[styles.accountLabel, { color: colors.textMuted }]}>Logged in as</Text>
-          <Text style={[styles.accountValue, { color: colors.text }]}>{user?.email ?? '—'}</Text>
         </GlowCard>
 
-        <Text style={[styles.section, styles.sectionSpaced, { color: colors.textMuted }]}>
-          Live connection
-        </Text>
         <GlowCard>
-          <ConnectionStatus status={wsStatus} />
+          <Row title="Account" subtitle={user?.email ?? '—'} last />
         </GlowCard>
 
-        <Text style={[styles.section, styles.sectionSpaced, { color: colors.textMuted }]}>
-          Session
-        </Text>
+        <GlowCard>
+          <Row
+            title="Realtime connection"
+            subtitle="Socket.IO · /ws"
+            right={<ConnectionStatus status={wsStatus} />}
+            last
+          />
+        </GlowCard>
+
         <GlowCard>
           {confirmingLogout ? (
-            <View style={styles.confirmRow}>
+            <View style={styles.confirmGroup}>
               <Text style={[styles.confirmText, { color: colors.text }]}>Log out of your account?</Text>
               <View style={styles.confirmActions}>
-                <TouchableOpacity
+                <GradientButton
+                  label="Log Out"
                   onPress={logout}
-                  style={[styles.confirmButton, { backgroundColor: colors.error }]}
-                >
-                  <Text style={styles.confirmButtonText}>Log Out</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => setConfirmingLogout(false)} style={styles.cancelButton}>
-                  <Text style={[styles.cancelText, { color: colors.textMuted }]}>Cancel</Text>
-                </TouchableOpacity>
+                  variant="danger"
+                  style={styles.confirmButton}
+                />
+                <GradientButton
+                  label="Cancel"
+                  onPress={() => setConfirmingLogout(false)}
+                  style={styles.confirmButton}
+                />
               </View>
             </View>
           ) : (
-            <TouchableOpacity
-              onPress={() => setConfirmingLogout(true)}
-              style={styles.logoutRow}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="log-out-outline" size={20} color={colors.error} />
-              <Text style={[styles.logoutText, { color: colors.error }]}>Log Out</Text>
-            </TouchableOpacity>
+            <Row
+              title="Log out"
+              subtitle="End your session on this device"
+              right={
+                <GradientButton
+                  label="Log Out"
+                  onPress={() => setConfirmingLogout(true)}
+                  variant="danger"
+                  style={styles.logoutButton}
+                />
+              }
+              last
+            />
           )}
         </GlowCard>
       </View>
-    </SpaceBackground>
+    </AmbientBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 28, gap: 8 },
-  heading: { fontSize: 30, fontWeight: '800', letterSpacing: 0.5, marginBottom: 2 },
-  section: { fontSize: 12, fontWeight: '700', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 20 },
-  sectionSpaced: { marginTop: 32 },
-  pill: { flexDirection: 'row', borderWidth: 1, borderRadius: 50, overflow: 'hidden', height: 56, position: 'relative' },
-  indicator: { position: 'absolute', top: 0, bottom: 0, width: '50%', borderRadius: 50 },
-  indicatorLeft: { left: 0 },
-  indicatorRight: { right: 0 },
-  side: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, zIndex: 1 },
-  sideIcon: { fontSize: 18 },
-  sideLabel: { fontSize: 15, fontWeight: '700' },
-  note: { fontSize: 13, textAlign: 'center', marginTop: 16 },
-  accountLabel: { fontSize: 12, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
-  accountValue: { fontSize: 16, fontWeight: '600', marginTop: 4 },
-  logoutRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
-  logoutText: { fontSize: 15, fontWeight: '700' },
-  confirmRow: { gap: 12 },
+  container: { flex: 1, padding: 20, paddingTop: 64, gap: 14 },
+  heading: { fontSize: 26, fontWeight: '800', letterSpacing: 0.3, marginBottom: 6 },
+  confirmGroup: { gap: 14 },
   confirmText: { fontSize: 14, fontWeight: '600' },
-  confirmActions: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  confirmButton: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 },
-  confirmButtonText: { color: '#ffffff', fontSize: 13, fontWeight: '700' },
-  cancelButton: { paddingHorizontal: 8 },
-  cancelText: { fontSize: 13, fontWeight: '600' },
+  confirmActions: { flexDirection: 'row', gap: 12 },
+  confirmButton: { flex: 1, paddingVertical: 4 },
+  logoutButton: { paddingHorizontal: 16, paddingVertical: 2 },
 });
