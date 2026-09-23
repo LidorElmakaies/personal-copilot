@@ -145,6 +145,43 @@
   .font-pair-c{ --f-head:'Share Tech Mono', monospace; --f-body:'IBM Plex Sans', sans-serif; }
   .font-pair-d{ --f-head:'Audiowide', sans-serif; --f-body:'Rajdhani', sans-serif; }
 
+  /* ---------- panels: ported from example/frontend's GlassPanel.tsx ---------- */
+  .panel-demo-row{ position:relative; padding:32px 20px; border-radius:18px; background:#05070a; overflow:hidden; display:flex; flex-wrap:wrap; gap:20px; }
+  .panel-demo-star{ position:absolute; width:3px; height:3px; border-radius:50%; background:#fff; box-shadow:0 0 3px 1px rgba(255,255,255,.7); z-index:0; }
+  .panel-demo{ position:relative; z-index:1; flex:1; min-width:230px; }
+  .panel-demo-label{ font-family:var(--mono); font-size:10.5px; color:var(--text-faint); margin-bottom:8px; text-transform:uppercase; letter-spacing:.06em; }
+  .panel-row-title{ font-family:var(--ui); font-size:15px; font-weight:600; color:#e8ecf0; }
+  .panel-row-sub{ font-family:var(--mono); font-size:11.5px; color:#8b939e; margin-top:2px; }
+
+  /* Current — matches GlowCard.js: solid border, real backdrop blur, flat tint. Blur is why the
+     stars behind it smear into a soft glow instead of staying crisp dots. */
+  .panel-current{ background:linear-gradient(160deg, rgba(255,255,255,.08), rgba(255,255,255,.02)); backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,.14); border-radius:20px; padding:22px; box-shadow:0 0 24px -8px rgba(79,227,255,.35); }
+
+  /* Proposed — ported from GlassPanel.tsx (gradient ring border + soft accent glow), plus a light
+     blur — much lighter than .panel-current's blur(10px) so dots keep a soft glow/bloom instead
+     of either staying pinpoint-sharp or washing out completely. */
+  .panel-glassy{ padding:1px; border-radius:20px; background:linear-gradient(135deg, rgba(79,227,255,.18), rgba(79,227,255,.02)); box-shadow:0 0 22px rgba(79,227,255,.16); }
+  .panel-glassy-inner{ border-radius:19px; background:rgba(255,255,255,.07); backdrop-filter:blur(3px); padding:22px; overflow:hidden; }
+
+  /* ---------- status: ported from example/frontend's StatusBadge.tsx ---------- */
+  .status-demo-row{ display:flex; flex-direction:column; gap:16px; align-items:flex-start; }
+  .status-chip{ display:inline-flex; align-items:center; gap:6px; border:1px solid var(--chip-color); border-radius:999px; padding:3px 10px; background:transparent; font-family:var(--ui); font-size:12px; font-weight:600; color:var(--chip-color); text-transform:capitalize; }
+  /* Wrap sized exactly to the dot/ring — no slack, so there's no centering math (flex or
+     otherwise) needed to line the dot up inside it at all; it just fills the box. */
+  .status-dot-wrap{ position:relative; width:6px; height:6px; flex:none; }
+  /* display:block matters here, not just decoration — a plain inline span (this wrap's default,
+     now that it's not a flex container blockifying its children) ignores explicit width/height
+     entirely per spec, so without this the dot silently collapses toward zero size while staying
+     anchored top-left, which reads as "the ring isn't centered on it" (it's the dot that moved). */
+  .status-dot{ display:block; width:6px; height:6px; border-radius:50%; background:var(--chip-color); }
+  .status-chip.is-active .status-dot{ box-shadow:0 0 6px var(--chip-color); }
+  /* top/left 50% + a translate(-50%,-50%) baked into every keyframe, not flex centering on the
+     wrap — a flex container centering an out-of-flow absolute child via its "static position" is
+     correct per spec, but explicit centering removes any doubt rather than leaning on it. */
+  .status-ring{ position:absolute; top:50%; left:50%; width:6px; height:6px; border-radius:50%; background:var(--chip-color); animation:statusPulse 1.8s ease-out infinite; }
+  @keyframes statusPulse{ 0%{ transform:translate(-50%,-50%) scale(1); opacity:.7; } 100%{ transform:translate(-50%,-50%) scale(2.8); opacity:0; } }
+  .status-caption{ font-family:var(--mono); font-size:11px; color:var(--text-faint); }
+
   /* ---------- nav: app shells, theme-capable ---------- */
   .flow-layout{ display:flex; flex-direction:column; align-items:center; gap:14px; }
   .flow-hint{ font-family:var(--mono); font-size:11.5px; color:var(--text-faint); text-align:center; max-width:46ch; line-height:1.6; }
@@ -267,7 +304,7 @@
   footer.foot{ margin-top:56px; padding-top:18px; border-top:1px solid var(--border-soft); color:var(--text-faint); font-family:var(--mono); font-size:11.5px; line-height:1.6; }
 
   @media (prefers-reduced-motion:reduce){
-    .radial-ring, .btn--alert, .node.is-alert, .btn--glass::after, .bg-blob, .sparkle{ animation:none !important; transition:none !important; }
+    .radial-ring, .btn--alert, .node.is-alert, .btn--glass::after, .bg-blob, .sparkle, .status-ring{ animation:none !important; transition:none !important; }
   }
 </style>
 </head>
@@ -286,6 +323,8 @@
       <button class="tab-btn" data-tab="nav">Nav</button>
       <button class="tab-btn" data-tab="buttons">Buttons</button>
       <button class="tab-btn" data-tab="nodes">Nodes &amp; Panels</button>
+      <button class="tab-btn" data-tab="panels">Panels</button>
+      <button class="tab-btn" data-tab="status">Status</button>
       <button class="tab-btn" data-tab="type">Typography</button>
     </nav>
 
@@ -573,6 +612,70 @@
         </div>
       </section>
 
+      <!-- ================= PANELS ================= -->
+      <section class="tab-panel" id="tab-panels" hidden>
+        <div class="section-head">
+          <h2>Panel surface</h2>
+          <p>Ported from <code>example/frontend</code>'s <code>GlassPanel.tsx</code>, not designed here — a
+          gradient ring border (accent color fading to transparent, via a 1px-padded background gradient) plus
+          a soft accent glow, deliberately with <strong>no backdrop blur</strong>. The current panel
+          (<code>GlowCard.js</code>) uses a flat solid border + a real blur, which smears whatever's behind it
+          (now-colorful stars/meteors) into a soft wash instead of keeping them as sharp dots.</p>
+        </div>
+        <div class="panel-demo-row" id="panel-compare">
+          <!-- static stand-in "stars" so the blur-vs-crisp difference is visible without the real app's canvas -->
+          <div class="panel-demo">
+            <div class="panel-demo-label">Current — solid border + blur</div>
+            <div class="panel-current">
+              <div class="panel-row-title">Realtime connection</div>
+              <div class="panel-row-sub">Socket.IO · /ws</div>
+            </div>
+          </div>
+          <div class="panel-demo">
+            <div class="panel-demo-label">Proposed — gradient ring + glow, no blur</div>
+            <div class="panel-glassy">
+              <div class="panel-glassy-inner">
+                <div class="panel-row-title">Realtime connection</div>
+                <div class="panel-row-sub">Socket.IO · /ws</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= STATUS ================= -->
+      <section class="tab-panel" id="tab-status" hidden>
+        <div class="section-head">
+          <h2>Connection status</h2>
+          <p>Ported from <code>example/frontend</code>'s <code>StatusBadge.tsx</code>, not designed here — an
+          outline chip (no fill, 1px border + text in the status color) with a glow dot, plus an expanding pulse
+          ring while actively connected. Every other state stays flat: neutral border, solid dot, no motion.</p>
+        </div>
+        <div class="status-demo-row">
+          <div>
+            <span class="status-chip is-active" style="--chip-color:#3ddc84;">
+              <span class="status-dot-wrap"><span class="status-ring"></span><span class="status-dot"></span></span>
+              Connected
+            </span>
+            <div class="status-caption">active — glow + expanding pulse ring</div>
+          </div>
+          <div>
+            <span class="status-chip" style="--chip-color:#ffb84f;">
+              <span class="status-dot-wrap"><span class="status-dot"></span></span>
+              Connecting…
+            </span>
+            <div class="status-caption">flat — no glow, no motion</div>
+          </div>
+          <div>
+            <span class="status-chip" style="--chip-color:#ff6b5b;">
+              <span class="status-dot-wrap"><span class="status-dot"></span></span>
+              Disconnected
+            </span>
+            <div class="status-caption">flat — no glow, no motion</div>
+          </div>
+        </div>
+      </section>
+
       <!-- ================= TYPOGRAPHY ================= -->
       <section class="tab-panel" id="tab-type" hidden>
         <div class="section-head">
@@ -776,10 +879,24 @@
     b.addEventListener('click', function(){ showDrawerTab(b.dataset.drawer); closeDrawer(); });
   });
 
+  /* ---------- panels tab: scatter identical "stars" behind both comparison cards ---------- */
+  function scatterPanelStars(){
+    var container = document.getElementById('panel-compare');
+    if(!container) return;
+    for(var i = 0; i < 18; i++){
+      var el = document.createElement('div');
+      el.className = 'panel-demo-star';
+      el.style.left = rand(2, 96) + '%';
+      el.style.top = rand(5, 92) + '%';
+      container.appendChild(el);
+    }
+  }
+
   document.addEventListener('DOMContentLoaded', function(){
     showTab('nav');
     showAppTab('settings');
     showDrawerTab('settings');
+    scatterPanelStars();
   });
 })();
 </script>

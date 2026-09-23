@@ -17,7 +17,9 @@ export const dark = {
   accent: '#4fe3ff',
   text: '#e8ecf0',
   textMuted: '#8b939e',
-  textFaint: '#525a63',
+  // Lightened from #525a63 — that was barely distinguishable from the near-black bg (#0a0c0f),
+  // making a Row's subtitle (theme mode, account email, "Socket.IO · /ws") hard to read.
+  textFaint: '#7d8792',
   inputBg: 'rgba(255,255,255,0.05)',
   inputBorder: 'rgba(255,255,255,0.14)',
   inputFocusBorder: '#4fe3ff',
@@ -34,6 +36,19 @@ export const dark = {
   errorBorder: 'rgba(255,107,91,0.4)',
   shadow: '#4fe3ff',
   onPrimary: '#04141a',
+  spaceGradient: ['#0a0c0f', '#0d0f1c', '#0a0c0f'],
+  // Picked from per particle (Stars.js/Meteors.js) — real starlight varies from blue-white to
+  // gold depending on temperature, so a single flat white read as duller than intended.
+  particleColors: [
+    '#ffffff', '#bfe9ff', '#d8c7ff', '#ffe3ad', '#ffc9e8',
+    '#c8ffe0', '#ffb8a8', '#a8fff0', '#c8d4ff',
+  ],
+  // GradientButton.js's resting diagonal gradient fill, top-edge highlight rim, and hover sweep
+  // streak — a translucent white wash in dark mode (see this file's own "Glass" comment above).
+  buttonFillStart: 'rgba(255,255,255,0.08)',
+  buttonFillEnd: 'rgba(255,255,255,0.02)',
+  buttonRim: 'rgba(255,255,255,0.3)',
+  buttonSweep: 'rgba(255,255,255,0.4)',
 };
 
 export const light = {
@@ -46,7 +61,9 @@ export const light = {
   accent: '#0e8fa6',
   text: '#1b1f24',
   textMuted: '#5b6570',
-  textFaint: '#93a0aa',
+  // Darkened from #93a0aa — that was too washed-out against the near-white bg (#eef1f4), making
+  // a Row's subtitle (theme mode, account email, "Socket.IO · /ws") hard to read.
+  textFaint: '#6b7680',
   inputBg: 'rgba(20,30,40,0.03)',
   inputBorder: 'rgba(20,30,40,0.16)',
   inputFocusBorder: '#0e8fa6',
@@ -63,4 +80,19 @@ export const light = {
   errorBorder: 'rgba(164,39,30,0.35)',
   shadow: '#0e8fa6',
   onPrimary: '#ffffff',
+  spaceGradient: ['#eef1f4', '#eaf0f6', '#eef1f4'],
+  // Darker/more saturated than the dark-mode set on purpose — these need real contrast against
+  // a near-white bg, not just a tint of it, or they vanish (see Stars.js/Meteors.js's higher
+  // light-mode opacity for the other half of that fix).
+  particleColors: [
+    '#3a424a', '#0b6f81', '#5f3fa0', '#8f6608', '#8f3f5c',
+    '#1f7a4d', '#a8501f', '#0f6b6b', '#4a4a9e',
+  ],
+  // Translucent charcoal wash, not white — light mode inverts the wash direction (see this
+  // file's own "Glass" comment above), and the sweep is dimmer since a bright white streak reads
+  // harsh on a light surface.
+  buttonFillStart: 'rgba(20,30,40,0.07)',
+  buttonFillEnd: 'rgba(20,30,40,0.02)',
+  buttonRim: 'rgba(20,30,40,0.18)',
+  buttonSweep: 'rgba(255,255,255,0.22)',
 };

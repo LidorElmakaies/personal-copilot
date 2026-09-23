@@ -61,12 +61,14 @@ export default function SettingsScreen() {
                   label="Log Out"
                   onPress={logout}
                   variant="danger"
-                  style={styles.confirmButton}
+                  style={styles.confirmButtonFlex}
+                  contentStyle={styles.confirmButtonContent}
                 />
                 <GradientButton
                   label="Cancel"
                   onPress={() => setConfirmingLogout(false)}
-                  style={styles.confirmButton}
+                  style={styles.confirmButtonFlex}
+                  contentStyle={styles.confirmButtonContent}
                 />
               </View>
             </View>
@@ -79,7 +81,7 @@ export default function SettingsScreen() {
                   label="Log Out"
                   onPress={() => setConfirmingLogout(true)}
                   variant="danger"
-                  style={styles.logoutButton}
+                  contentStyle={styles.logoutButtonContent}
                 />
               }
               last
@@ -97,6 +99,7 @@ const styles = StyleSheet.create({
   confirmGroup: { gap: 14 },
   confirmText: { fontSize: 14, fontWeight: '600' },
   confirmActions: { flexDirection: 'row', gap: 12 },
-  confirmButton: { flex: 1, paddingVertical: 4 },
-  logoutButton: { paddingHorizontal: 16, paddingVertical: 2 },
+  confirmButtonFlex: { flex: 1 },
+  confirmButtonContent: { paddingVertical: 10 },
+  logoutButtonContent: { paddingHorizontal: 18, paddingVertical: 9 },
 });
