@@ -30,7 +30,11 @@ export default function Chip({ label, variant = 'pending', style }) {
 
   useEffect(() => {
     if (!reducedMotion) {
-      pulse.value = withRepeat(withTiming(1, { duration: 1800, easing: Easing.out(Easing.quad) }), -1, false);
+      pulse.value = withRepeat(
+        withTiming(1, { duration: 1800, easing: Easing.out(Easing.quad) }),
+        -1,
+        false,
+      );
     } else {
       cancelAnimation(pulse);
       pulse.value = 0;
@@ -46,7 +50,11 @@ export default function Chip({ label, variant = 'pending', style }) {
   return (
     <View style={[styles.chip, { borderColor: color }, style]}>
       <View style={styles.dotWrap}>
-        {!reducedMotion && <Animated.View style={[styles.ring, { backgroundColor: color }, ringStyle]} />}
+        {!reducedMotion && (
+          <Animated.View
+            style={[styles.ring, { backgroundColor: color }, ringStyle]}
+          />
+        )}
         <View
           style={[
             styles.dot,

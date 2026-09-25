@@ -1,5 +1,11 @@
 import { useState } from 'react';
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../hooks/useAppTheme';
 
@@ -47,12 +53,19 @@ export default function InputField({
     <View style={[styles.wrapper, style]}>
       {label || showCharCount ? (
         <View style={styles.labelRow}>
-          {label ? <Text style={[styles.label, { color: colors.textMuted }]}>{label}</Text> : null}
+          {label ? (
+            <Text style={[styles.label, { color: colors.textMuted }]}>
+              {label}
+            </Text>
+          ) : null}
           {showCharCount ? (
             <Text
               style={[
                 styles.charCount,
-                { color: value.length > maxLength ? colors.error : colors.textMuted },
+                {
+                  color:
+                    value.length > maxLength ? colors.error : colors.textMuted,
+                },
               ]}
             >
               {value.length}/{maxLength}
@@ -60,7 +73,9 @@ export default function InputField({
           ) : null}
         </View>
       ) : null}
-      {hint ? <Text style={[styles.hint, { color: colors.textMuted }]}>{hint}</Text> : null}
+      {hint ? (
+        <Text style={[styles.hint, { color: colors.textMuted }]}>{hint}</Text>
+      ) : null}
       <View style={styles.inputRow}>
         <TextInput
           value={value}
@@ -80,7 +95,11 @@ export default function InputField({
             isPassword && styles.inputWithToggle,
             multiline && styles.inputMultiline,
             monospace && styles.inputMonospace,
-            { backgroundColor: colors.inputBg, borderColor, color: colors.text },
+            {
+              backgroundColor: colors.inputBg,
+              borderColor,
+              color: colors.text,
+            },
             glow && {
               shadowColor: focused ? colors.primary : 'transparent',
               shadowOpacity: 0.4,
@@ -104,19 +123,36 @@ export default function InputField({
           </TouchableOpacity>
         ) : null}
       </View>
-      {error ? <Text style={[styles.error, { color: colors.error }]}>{error}</Text> : null}
+      {error ? (
+        <Text style={[styles.error, { color: colors.error }]}>{error}</Text>
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   wrapper: { gap: 6 },
-  labelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  label: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase' },
+  labelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  label: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
   charCount: { fontSize: 11, fontWeight: '600' },
   hint: { fontSize: 12 },
   inputRow: { position: 'relative', justifyContent: 'center' },
-  input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, fontSize: 15 },
+  input: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 15,
+  },
   inputWithToggle: { paddingRight: 44 },
   inputMultiline: { minHeight: 80, textAlignVertical: 'top' },
   inputMonospace: { fontFamily: 'monospace' },

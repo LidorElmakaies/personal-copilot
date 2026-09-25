@@ -10,12 +10,25 @@ export default function Switch({ value, onValueChange, style }) {
   const anim = useRef(new Animated.Value(value ? 1 : 0)).current;
 
   useEffect(() => {
-    Animated.timing(anim, { toValue: value ? 1 : 0, duration: 200, useNativeDriver: false }).start();
+    Animated.timing(anim, {
+      toValue: value ? 1 : 0,
+      duration: 200,
+      useNativeDriver: false,
+    }).start();
   }, [value, anim]);
 
-  const knobTranslate = anim.interpolate({ inputRange: [0, 1], outputRange: [2, 22] });
-  const trackBorder = anim.interpolate({ inputRange: [0, 1], outputRange: [colors.cardBorder, colors.accent] });
-  const knobColor = anim.interpolate({ inputRange: [0, 1], outputRange: [colors.textFaint, colors.accent] });
+  const knobTranslate = anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [2, 22],
+  });
+  const trackBorder = anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [colors.cardBorder, colors.accent],
+  });
+  const knobColor = anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [colors.textFaint, colors.accent],
+  });
 
   return (
     <TouchableOpacity
@@ -24,12 +37,20 @@ export default function Switch({ value, onValueChange, style }) {
       style={[styles.track, { backgroundColor: colors.panel }, style]}
     >
       <Animated.View
-        style={[StyleSheet.absoluteFill, styles.track, { borderColor: trackBorder, borderWidth: 1 }]}
+        style={[
+          StyleSheet.absoluteFill,
+          styles.track,
+          { borderColor: trackBorder, borderWidth: 1 },
+        ]}
       />
       <Animated.View
         style={[
           styles.knob,
-          { transform: [{ translateX: knobTranslate }], backgroundColor: knobColor, shadowColor: colors.accent },
+          {
+            transform: [{ translateX: knobTranslate }],
+            backgroundColor: knobColor,
+            shadowColor: colors.accent,
+          },
         ]}
       />
     </TouchableOpacity>

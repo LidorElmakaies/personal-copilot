@@ -8,6 +8,13 @@ export interface LoginInput {
   password: string;
 }
 
+export interface UpdateAccountInput {
+  email: string;
+  currentPassword: string;
+  newEmail?: string;
+  newPassword?: string;
+}
+
 export interface AuthTokens {
   accessToken: string;
   refreshToken: string;
@@ -20,4 +27,6 @@ export interface IAuthService {
   /** Rotates the refresh token — the old one is revoked, a new pair is issued. */
   refresh(refreshToken: string): Promise<AuthTokens>;
   logout(refreshToken: string): Promise<void>;
+  /** Body-driven, not JwtAuthGuard-based — currentPassword is the proof of identity. */
+  updateAccount(input: UpdateAccountInput): Promise<AuthTokens>;
 }

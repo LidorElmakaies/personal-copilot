@@ -5,7 +5,10 @@ import { PersistGate } from 'redux-persist/integration/react';
 import { ThemeAnimProvider } from '../src/context/ThemeAnimContext';
 import { persistor, store } from '../src/store';
 import { clearAuth } from '../src/store/slices/authSlice';
-import { connectWebSocket, disconnectWebSocket } from '../src/store/slices/wsSlice';
+import {
+  connectWebSocket,
+  disconnectWebSocket,
+} from '../src/store/slices/wsSlice';
 import { isTokenExpired, msUntilExpiry } from '../src/utils/jwt';
 
 // Connects/disconnects the WS as soon as a token becomes available/unavailable — app-wide.
@@ -24,7 +27,8 @@ function RealtimeConnectionManager() {
   return null;
 }
 
-// Gates the (tabs) screens behind a valid, non-expired session.
+// Login is optional app-wide (see CLAUDE.md) — clears an expired session on a timer and keeps a
+// logged-in visitor out of (auth).
 function AuthGate() {
   const router = useRouter();
   const segments = useSegments();
@@ -37,16 +41,17 @@ function AuthGate() {
       dispatch(clearAuth());
       return;
     }
-    const timer = setTimeout(() => dispatch(clearAuth()), msUntilExpiry(accessToken));
+    const timer = setTimeout(
+      () => dispatch(clearAuth()),
+      msUntilExpiry(accessToken),
+    );
     return () => clearTimeout(timer);
   }, [accessToken, dispatch]);
 
   useEffect(() => {
     const inAuthGroup = segments[0] === '(auth)';
     const hasValidSession = !!accessToken && !isTokenExpired(accessToken);
-    if (!hasValidSession && !inAuthGroup) {
-      router.replace('/login');
-    } else if (hasValidSession && inAuthGroup) {
+    if (hasValidSession && inAuthGroup) {
       router.replace('/');
     }
   }, [accessToken, segments, router]);

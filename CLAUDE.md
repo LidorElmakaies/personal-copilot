@@ -40,7 +40,8 @@ file for what it does and doesn't own.
 ```
 backend/                 NestJS monorepo — apps/{gateway,auth} + libs/{auth-kernel,otel,
                           kafka-client,kafka-contracts}
-frontend/                 Expo/React Native app — login/register, a Home tab, and a Settings tab
+frontend/                 Expo/React Native app — login/register (optional, not gated app-wide), a
+                          Home tab, and an auth-gated Account tab
 devops/                   docker-compose.yml (app stack) + observability/ (Grafana/Loki/
                           Prometheus/Tempo/OTel, joined to the app stack via a shared Docker
                           network)
@@ -53,11 +54,15 @@ docs/specs/               services.md, event-schemas.md, architecture.md (Mermai
 - **gateway** (`backend/apps/gateway`) — HTTP + WS, the only backend service reachable from outside
   the Docker network. Rate-limited globally (`@nestjs/throttler`, `THROTTLE_TTL_MS`/
   `THROTTLE_LIMIT`, default 60s/100req) plus a tighter per-route limit on `/auth/register`,
-  `/auth/login`, `/auth/refresh` (`AUTH_THROTTLE_TTL_MS`/`AUTH_THROTTLE_LIMIT`, default 60s/5req).
-  Two modules:
-  - `src/auth-proxy/` — thin pass-through to Auth Service: `/auth/*` only (no guard — that's how
-    you get a token). No `/me` — the access token itself carries `{ sub, role, email }`, so
-    there's nothing left for a "who am I" endpoint to return that the client can't already decode.
+  `/auth/login`, `/auth/refresh`, `/auth/account`
+  (`AUTH_THROTTLE_TTL_MS`/`AUTH_THROTTLE_LIMIT`, default 60s/5req); `/auth/logout` stays on the
+  global default since it needs a valid token already. Two modules:
+  - `src/auth-proxy/` — thin pass-through to Auth Service, one hardcoded route per operation (not
+    a wildcard): `register`, `login`, `refresh`, `logout`, `account` — no guard on any of them
+    (that's how you get a token in the first place, and `account` is body-driven the same way, see
+    `apps/auth` below). No `/me` — the access token itself carries
+    `{ sub, role, email }`, so there's nothing left for a "who am I" endpoint to return that the
+    client can't already decode.
   - `src/realtime/` — Socket.IO at `/ws` (token in the handshake's `auth.token`). Generic plumbing
     kept for the next feature: `IRealtimeConnectionService.pushToUser(userId, event, payload)` is
     the entry point a feature module injects to reach a user's live connection. Nothing pushes
@@ -65,22 +70,39 @@ docs/specs/               services.md, event-schemas.md, architecture.md (Mermai
 - **auth** (`backend/apps/auth`) — HTTP, internal-only (never published to the host — stricter
   than `ask-my-crawl`'s own Auth Service, which still publishes its port as documented debt; this
   project starts without that exception). `POST /auth/register`, `/auth/login`, `/auth/refresh`,
-  `/auth/logout` — none return a `user` object, just tokens. Postgres via TypeORM (`users`,
-  `refresh_tokens`), salt+pepper+SHA-256 password hashing (`PASSWORD_PEPPER`), 15-min access
-  tokens (`{ sub, role, email }` payload — the client decodes this instead of a separate `/me`
-  call) + 30-day rotating refresh tokens (`backend/libs/auth-kernel` for the shared JWT sign/
-  verify + guard).
-- **frontend** (`frontend/`) — Expo Router app. `(auth)/{login,register}`, `(tabs)/index` (Home —
-  the landing tab: live clock, today's Gregorian and Hebrew/Jewish date (`@hebcal/hdate`, see
-  `frontend/README.md` for why not `Intl`), and a live/disconnected connection chip read straight
-  from `wsSlice.status`), `(tabs)/settings` (theme toggle, logged-in account, live connection
-  status, logout). Redux Toolkit, services-layer convention (all I/O in `src/services/`, split by
-  transport — `http/` and `ws/` — called only from thunks in `src/store/slices/`). Socket.IO
+  `/auth/logout` — none return a `user` object, just tokens. `POST /auth/account`
+  (`{email, currentPassword, newEmail?, newPassword?}`, at least one of `newEmail`/`newPassword`
+  required) verifies `currentPassword` the same way `login` does, applies whichever field(s) are
+  present in one atomic update, and always returns a fresh `{access_token, refresh_token}` — one
+  endpoint rather than two sequential calls, since an atomic single request rules out a caller
+  ever authenticating a second call with an already-stale password. Body-driven rather than
+  `JwtAuthGuard`-gated, deliberately consistent with this service's existing stateless pattern
+  rather than introducing bearer-token auth for just this one caller. Postgres via
+  TypeORM (`users`, `refresh_tokens`), salt+pepper+SHA-256 password hashing (`PASSWORD_PEPPER`),
+  15-min access tokens (`{ sub, role, email }` payload — the client decodes this instead of a
+  separate `/me` call) + 30-day rotating refresh tokens (`backend/libs/auth-kernel` for the
+  shared JWT sign/verify + guard).
+- **frontend** (`frontend/`) — Expo Router app. Login is optional app-wide, not a gate on the whole
+  app — `(tabs)` routes are freely reachable while signed out; `(auth)/{login,register}` each add a
+  "Continue without logging in" link back to `/` for whoever lands there without wanting to
+  authenticate. `(tabs)/index` (Home — the landing tab, no session required: live clock, today's
+  Gregorian and Hebrew/Jewish date (`@hebcal/hdate`, see `frontend/README.md` for why not `Intl`),
+  and a live/disconnected connection chip read straight from `wsSlice.status`), `(tabs)/account`
+  (theme toggle, logged-in account, edit email/password via `AccountEditForm`, logout — the one tab
+  so far opted into `requiresAuth: true`; the shared `CustomTabBar` intercepts a press on it while
+  signed out and shows `ConfirmModal` instead of navigating, but a direct hit on the route — deep
+  link, web refresh — bypasses that, so the screen itself also calls `useRequireAuth()` on mount and
+  renders `RequireAuthNotice` instead — both generic and reusable by any future `requiresAuth` tab,
+  not Account-specific). Redux Toolkit, services-layer convention (all I/O in
+  `src/services/`, split by transport — `http/` and `ws/` — called only from thunks in
+  `src/store/slices/`). Socket.IO
   auto-connects whenever `authSlice.accessToken` changes (`app/_layout.js`'s
   `RealtimeConnectionManager`) — generic plumbing, same as Gateway's `/ws`; nothing listens for a
   specific event yet. Themed via the three-layer pipeline described in the Architecture section
-  below — `GlowCard`/`GradientButton`/`InputField`/`AmbientBackground` in `src/components/` are the
-  shared building blocks login/register/Home/Settings all use.
+  below — `GlowCard`/`GradientButton`/`InputField`/`AmbientBackground`/`Alert` in `src/components/`
+  are the shared building blocks login/register/Home/Account all use; `ConfirmModal` is the shared
+  Yes/No overlay (used today by the `requiresAuth` tab-press guard and Account's logout
+  confirmation).
 - **Kafka** runs (`devops/kafka/docker-compose.yml`) as generic plumbing, but nothing produces or
   consumes yet — `backend/libs/kafka-contracts` is an empty shell, ready for the next feature to
   fill in. Gateway's WS layer (above) is the same kind of kept-but-unused plumbing.

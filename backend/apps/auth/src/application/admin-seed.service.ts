@@ -1,4 +1,9 @@
-import { Inject, Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  Logger,
+  OnApplicationBootstrap,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PASSWORD_HASHER, USER_REPOSITORY } from '../tokens';
 import type { IPasswordHasher } from '../infrastructure/interfaces/password-hasher.interface';
@@ -26,7 +31,9 @@ export class AdminSeedService implements OnApplicationBootstrap {
     const email = this.config.get<string>('ADMIN_EMAIL');
     const password = this.config.get<string>('ADMIN_PASSWORD');
     if (!email || !password) {
-      this.logger.log('ADMIN_EMAIL/ADMIN_PASSWORD not set — skipping admin seed');
+      this.logger.log(
+        'ADMIN_EMAIL/ADMIN_PASSWORD not set — skipping admin seed',
+      );
       return;
     }
 

@@ -1,5 +1,11 @@
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { useDispatch, useSelector } from 'react-redux';
 import AmbientBackground from '../../src/components/AmbientBackground';
@@ -8,10 +14,12 @@ import GradientButton from '../../src/components/GradientButton';
 import InputField from '../../src/components/InputField';
 import { useAppTheme } from '../../src/hooks/useAppTheme';
 import { clearAuthError, registerUser } from '../../src/store/slices/authSlice';
-import { isValidEmail, PASSWORD_REQUIREMENTS_HINT } from '../../src/utils/validation';
+import {
+  isValidEmail,
+  PASSWORD_REQUIREMENTS_HINT,
+} from '../../src/utils/validation';
 
-// Post-register redirect into the app is handled centrally by AuthGate (app/_layout.js), which
-// reacts to authSlice.accessToken app-wide — this screen doesn't duplicate that navigation.
+// AuthGate (app/_layout.js) handles the post-register redirect via accessToken — don't duplicate it here.
 export default function RegisterScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -22,10 +30,15 @@ export default function RegisterScreen() {
   const { colors } = useAppTheme();
 
   const emailError =
-    email.trim().length > 0 && !isValidEmail(email) ? 'Enter a valid email address' : null;
+    email.trim().length > 0 && !isValidEmail(email)
+      ? 'Enter a valid email address'
+      : null;
   const passwordError =
-    password.length > 0 && password.length < 8 ? PASSWORD_REQUIREMENTS_HINT : null;
-  const canSubmit = email.trim().length > 0 && isValidEmail(email) && password.length >= 8;
+    password.length > 0 && password.length < 8
+      ? PASSWORD_REQUIREMENTS_HINT
+      : null;
+  const canSubmit =
+    email.trim().length > 0 && isValidEmail(email) && password.length >= 8;
 
   const handleSubmit = () => {
     setSubmitAttempted(true);
@@ -35,9 +48,14 @@ export default function RegisterScreen() {
 
   return (
     <AmbientBackground>
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.header}>
-          <Text style={[styles.heading, { color: colors.text }]}>Create account</Text>
+          <Text style={[styles.heading, { color: colors.text }]}>
+            Create account
+          </Text>
           <Text style={[styles.subheading, { color: colors.textMuted }]}>
             Register to get started
           </Text>
@@ -59,7 +77,11 @@ export default function RegisterScreen() {
               onChangeText={setPassword}
               placeholder="At least 8 characters"
               isPassword
-              hint={submitAttempted && passwordError ? null : PASSWORD_REQUIREMENTS_HINT}
+              hint={
+                submitAttempted && passwordError
+                  ? null
+                  : PASSWORD_REQUIREMENTS_HINT
+              }
               error={submitAttempted ? passwordError : null}
             />
           </View>
@@ -75,10 +97,20 @@ export default function RegisterScreen() {
 
         {status === 'failed' && error && (
           <View
-            style={[styles.feedback, { backgroundColor: colors.errorBg, borderColor: colors.errorBorder }]}
+            style={[
+              styles.feedback,
+              {
+                backgroundColor: colors.errorBg,
+                borderColor: colors.errorBorder,
+              },
+            ]}
           >
-            <Text style={[styles.feedbackTitle, { color: colors.error }]}>✗ Error</Text>
-            <Text style={[styles.feedbackBody, { color: colors.text }]}>{error}</Text>
+            <Text style={[styles.feedbackTitle, { color: colors.error }]}>
+              ✗ Error
+            </Text>
+            <Text style={[styles.feedbackBody, { color: colors.text }]}>
+              {error}
+            </Text>
           </View>
         )}
 
@@ -91,7 +123,18 @@ export default function RegisterScreen() {
         >
           <Text style={[styles.switchText, { color: colors.textMuted }]}>
             Already have an account?{' '}
-            <Text style={[styles.switchTextBold, { color: colors.primary }]}>Log in</Text>
+            <Text style={[styles.switchTextBold, { color: colors.primary }]}>
+              Log in
+            </Text>
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => router.push('/')}
+          style={styles.switchLink}
+        >
+          <Text style={[styles.switchText, { color: colors.textMuted }]}>
+            Continue without logging in
           </Text>
         </TouchableOpacity>
       </ScrollView>

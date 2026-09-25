@@ -88,7 +88,12 @@ export default function Meteors({ isDark, palette }) {
   if (reducedMotion) return null;
 
   return slots.map((slot, i) => (
-    <Meteor key={i} slot={slot} maxOpacity={maxOpacity} reducedMotion={reducedMotion} />
+    <Meteor
+      key={i}
+      slot={slot}
+      maxOpacity={maxOpacity}
+      reducedMotion={reducedMotion}
+    />
   ));
 }
 

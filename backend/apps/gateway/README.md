@@ -22,10 +22,12 @@ client set its own `X-Forwarded-For` and dodge the limiter entirely.
 - Global default (`THROTTLE_TTL_MS`/`THROTTLE_LIMIT`) is the floor every route gets, sized for
   normal traffic. It exists so a new route can never end up completely unthrottled just because
   nobody added a decorator to it.
-- `authStrictThrottlePolicy` (`throttle-policies.ts`) is a much tighter override, applied only to
-  auth-proxy's `register`/`login`/`refresh` — the only routes where throughput is directly useful to
-  an attacker (password guessing, email enumeration, refresh-token abuse). `logout` deliberately
-  stays on the global default: it needs a valid token already, so hammering it gains nothing.
+- `authStrictThrottlePolicy` (`throttle-policies.ts`) is a much tighter override, applied to
+  auth-proxy's `register`/`login`/`refresh`/`account` — the routes where throughput is directly
+  useful to an attacker (password guessing, email enumeration, refresh-token abuse; `account`
+  verifies `currentPassword` from the request body the same way `login` does, so it carries the
+  same guessing risk). `logout` deliberately stays on the global default: it needs a valid refresh
+  token already, so hammering it gains nothing.
 - Add a new named policy to `throttle-policies.ts` for a future controller with a similarly
   distinct risk profile, rather than inlining a one-off `@Throttle()` config in that controller or
   folding it into the global default.

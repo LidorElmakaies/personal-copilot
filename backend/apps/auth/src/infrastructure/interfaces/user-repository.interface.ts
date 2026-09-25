@@ -13,4 +13,10 @@ export interface IUserRepository {
   create(input: CreateUserInput): Promise<User>;
   findById(id: string): Promise<User | null>;
   findByEmail(email: string): Promise<User | null>;
+  updatePassword(
+    userId: string,
+    passwordHash: string,
+    passwordSalt: string,
+  ): Promise<void>;
+  updateEmail(userId: string, email: string): Promise<void>;
 }

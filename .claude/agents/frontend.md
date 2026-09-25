@@ -16,10 +16,19 @@ second one.
 
 ## Where you work
 
-`frontend/` — see root `CLAUDE.md` for the overall stack. This app is currently auth
-(login/register) + a Home tab (landing) + a Settings tab; there is no scraper/jobs/admin surface
-here — don't port that part of `ask-my-crawl`'s frontend, only its theme/component/services
-conventions.
+`frontend/` — see root `CLAUDE.md` for the overall stack. This app is currently optional auth
+(login/register, not a whole-app gate) + a Home tab (landing, no session required) + an auth-gated
+Account tab; there is no scraper/jobs/admin surface here — don't port that part of
+`ask-my-crawl`'s frontend, only its theme/component/services conventions.
+
+A tab opts into requiring a session via `TABS`' `requiresAuth: true` entry in `(tabs)/_layout.js`
+— `CustomTabBar` intercepts a tab press while signed out and shows `ConfirmModal` instead of
+navigating. That only covers a *tab press*; a direct hit on the route (deep link, web refresh,
+reopening the app on that tab) bypasses it, so a `requiresAuth` screen also needs its own mount-time
+check. Both halves are generic, not Account-specific: `useRequireAuth()`
+(`src/hooks/useRequireAuth.js`) is the mount-time check, `RequireAuthNotice`
+(`src/components/RequireAuthNotice.js`) is the logged-out fallback to render when it's false — see
+`(tabs)/account.js` for the pattern the next `requiresAuth` tab should follow.
 
 ## Theme system — three-layer pipeline, no Gluestack
 
@@ -45,10 +54,13 @@ resolved palette can't express.)
 ## Build for reuse — components, not per-screen markup
 
 Favor small, composable components in `src/components/` over duplicating UI per screen.
-`InputField`, `GlowCard`, `GradientButton`, `AmbientBackground`, `Chip`, `ConnectionStatus` already
-exist —
-use them instead of hand-rolling a `TextInput`/card/button/background per screen. If a UI pattern
-is about to appear a second time, extract it to a component before a third screen copies it again.
+`InputField`, `GlowCard`, `GradientButton`, `AmbientBackground`, `Chip`, `ConfirmModal`, `Alert`,
+`AccountEditForm`, `RequireAuthNotice` already exist — use them instead of hand-rolling a
+`TextInput`/card/button/background/confirm-dialog/message-box per screen. If a UI pattern is about
+to appear a second time, extract it to a component before a third screen copies it again. A base/
+composite split is planned for `src/components/` (base: buttons/inputs/alerts; composite: built
+from base ones) — until that physical folder split lands, treat `Alert` as base and
+`AccountEditForm`/`RequireAuthNotice` as composite by convention.
 
 ## Services layer — where all I/O lives
 

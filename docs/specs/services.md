@@ -9,14 +9,19 @@ The only backend service reachable from outside the Docker network — directly 
 (in the cloud/Hetzner deployment — see `architecture.md`'s "System topology") indirectly via an SSH
 tunnel from a Caddy instance on the public internet. HTTP + WebSocket.
 
-- `POST /auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout` — pure pass-through to
-  Auth Service, no guard (that's how you get a token in the first place). No `GET /me` — there's
-  nothing left for it to return that the client can't already decode from its own access token
-  (see `apps/auth`'s note below).
+- `POST /auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout`, `/auth/account` — one
+  hardcoded route per operation, not a wildcard proxy; each forwards to the identically-named Auth
+  Service route with the body untouched. No guard on any of them (for the first four, that's how
+  you get a token in the first place; `account` is body-driven the same way — see `apps/auth`
+  below). No `GET /me` — there's nothing left for it to return that the
+  client can't already decode from its own access token (see `apps/auth`'s note below).
 - Global rate limiting (`@nestjs/throttler`, `THROTTLE_TTL_MS`/`THROTTLE_LIMIT`, default
-  60s/100req) plus a tighter limit on the four `/auth/*` routes above
+  60s/100req) plus a tighter limit on `register`/`login`/`refresh`/`account`
   (`AUTH_THROTTLE_TTL_MS`/`AUTH_THROTTLE_LIMIT`, default 60s/5req) — those are the brute-force
-  targets now that Gateway can be reached from the open internet via the cloud path. Keyed on
+  targets now that Gateway can be reached from the open internet via the cloud path (password
+  guessing, email enumeration, refresh/session abuse). `logout` deliberately stays on the global
+  default — it needs a valid refresh token already, so hammering it gains nothing; see
+  `backend/apps/gateway/README.md` for the full reasoning behind the two-tier split. Keyed on
   client IP; `main.ts` sets `app.set('trust proxy', 'loopback')` so that IP is correct behind the
   SSH tunnel without letting a directly-reached connection spoof it — see `architecture.md`.
 - `src/realtime/` — Socket.IO at path `/ws` (token in the handshake's `auth.token`, verified the
@@ -40,12 +45,25 @@ HTTP, internal-only — never published to the host, only Gateway calls it.
 - `POST /auth/refresh` — `{ refresh_token }` → new `{ access_token, refresh_token }` (rotates; the
   old refresh token is revoked regardless of outcome).
 - `POST /auth/logout` — `{ refresh_token }` → revokes it.
+- `POST /auth/account` — `{ email, currentPassword, newEmail?, newPassword? }` → fresh
+  `{ access_token, refresh_token }`. Verifies `currentPassword` the same way `login` verifies a
+  password, then applies whichever of `newEmail`/`newPassword` is present in one atomic update
+  (`newEmail` uniqueness-checked, `409 Conflict`, same as `register`; `newPassword` hashed the same
+  way as at registration). Throws `400 Bad Request` if neither field is set. One endpoint covering
+  both fields rather than two — the frontend's combined edit form submits whichever field(s)
+  changed in a single call, and an atomic request structurally rules out a caller ever
+  authenticating a second sequential call with an already-stale password, something two separate
+  endpoints couldn't guarantee.
 
 None of these return a `user` object — the access token itself carries `{ sub, role, email }`
 (`@app/auth-kernel`'s `JwtPayload`), so there's nothing left for a `GET /me` endpoint to return
-that the client can't already decode. This only works because the project has no profile-editing
-feature; if one's ever added, a 15-min-stale email in an already-issued token becomes a real
-tradeoff to reconsider, not a non-issue.
+that the client can't already decode. `account` is body-driven (`currentPassword` is the proof of
+identity) rather than `JwtAuthGuard`-gated, deliberately consistent with this service's existing
+stateless pattern rather than introducing bearer-token auth for just this one caller. `account`
+always reissues a token pair, even on a password-only change: a token issued before the change
+would otherwise keep showing a stale `email` claim until it naturally expired if only the email
+changed, and always reissuing gives the endpoint one response shape regardless of which field(s)
+were updated.
 
 Postgres via TypeORM (`users`, `refresh_tokens`), password_hash = SHA256(`PASSWORD_PEPPER` + salt +
 plaintext). Access tokens: 15-min TTL, `{ sub, role, email }` payload. `UserRole` has exactly one
@@ -58,19 +76,34 @@ issues a new pair, so a stolen-and-replayed refresh token only ever works once.
 
 ## frontend
 
-Expo Router app. `(auth)/login`, `(auth)/register`, `(tabs)/index` (Home — the landing tab: live
-clock, today's Gregorian date, and today's Hebrew/Jewish date via `@hebcal/hdate`, chosen over
-`Intl`'s `'he-u-ca-hebrew'` calendar extension because Hermes's bundled ICU data isn't guaranteed to
-include non-Gregorian calendar tables on-device — see `frontend/README.md`), `(tabs)/settings`
-(theme toggle, logged-in account, live connection status, logout). Talks only to Gateway
-(`EXPO_PUBLIC_GATEWAY_ORIGIN`, baked in at build time, required — `src/config/urls.js` throws at
-load if it's unset) — never Auth Service or any other backend service directly.
+Expo Router app. Login is optional app-wide, not a gate on the whole app: `(tabs)` routes are
+reachable while signed out, and `(auth)/login`/`(auth)/register` each add a "Continue without
+logging in" link (routes to `/`) for whoever lands there without wanting to authenticate.
+
+- `(tabs)/index` (Home — the landing tab, no session required: live clock, today's Gregorian date,
+  and today's Hebrew/Jewish date via `@hebcal/hdate`, chosen over `Intl`'s `'he-u-ca-hebrew'`
+  calendar extension because Hermes's bundled ICU data isn't guaranteed to include non-Gregorian
+  calendar tables on-device — see `frontend/README.md`; a live/disconnected connection chip read
+  straight from `wsSlice.status`).
+- `(tabs)/account` (theme toggle, logged-in account, edit account email/password, logout) — the
+  one tab opted into `requiresAuth: true` (`(tabs)/_layout.js`'s `TABS`). `CustomTabBar` intercepts
+  a press on a `requiresAuth` tab while signed out and shows `ConfirmModal` ("Log in to view
+  Account?") instead of navigating; a direct hit on the route (deep link, web refresh, reopening
+  the app on this tab) bypasses that entirely, so `AccountScreen` also calls `useRequireAuth()`
+  on mount and renders `RequireAuthNotice` in that case — both are generic (`src/hooks/`,
+  `src/components/`), reusable by any future `requiresAuth` tab, not Account-specific.
+  `AccountEditForm` is a tap-to-reveal form for both editable fields at once, wired to Auth
+  Service's `account` endpoint (see `apps/auth` above) via a single `updateAccount` thunk in
+  `authSlice`, with one `Alert` reporting success/failure for the whole request.
+
+Talks only to Gateway (`EXPO_PUBLIC_GATEWAY_ORIGIN`, baked in at build time, required —
+`src/config/urls.js` throws at load if it's unset) — never Auth Service or any other backend
+service directly.
 
 Themed via a three-layer pipeline (`themeSlice` → `useAppTheme()` → `ThemeAnimContext`) and shared
-components (`GlowCard`, `GradientButton`, `InputField`, `AmbientBackground`, `ConnectionStatus`) —
-see `.claude/agents/frontend.md` for the full convention and why there's no Gluestack layer here.
-Home reads `wsSlice.status` directly into a binary Live/Disconnected `Chip` rather than the
-three-state `ConnectionStatus` component Settings uses — deliberately coarser for the landing tab.
+components (`GlowCard`, `GradientButton`, `InputField`, `AmbientBackground`, `ConfirmModal`,
+`Alert`, `AccountEditForm`, `RequireAuthNotice`) — see `.claude/agents/frontend.md` for the full
+convention and why there's no Gluestack layer here.
 
 `src/services/` is split by transport: `http/` (fetch-based calls — `authService`) and `ws/`
 (`socketService`, a single shared Socket.IO connection). `wsSlice`'s `connectWebSocket`/

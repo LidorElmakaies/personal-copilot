@@ -51,4 +51,20 @@ export class AuthProxyController {
       await this.proxy.forward({ method: 'POST', path: '/auth/logout', body }),
     );
   }
+
+  @Throttle(authStrictThrottlePolicy)
+  @Post('account')
+  async updateAccount(
+    @Body() body: unknown,
+    @Res() res: Response,
+  ): Promise<void> {
+    writeProxyResponse(
+      res,
+      await this.proxy.forward({
+        method: 'POST',
+        path: '/auth/account',
+        body,
+      }),
+    );
+  }
 }

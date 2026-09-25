@@ -43,17 +43,24 @@ export default function HomeScreen() {
       <View style={styles.container}>
         <GlowCard style={styles.panel}>
           <View style={styles.statusRow}>
-            <Chip label={isLive ? 'Live' : 'Disconnected'} variant={isLive ? 'online' : 'error'} />
+            <Chip
+              label={isLive ? 'Live' : 'Disconnected'}
+              variant={isLive ? 'online' : 'error'}
+            />
           </View>
 
           <Text style={[styles.clock, { color: colors.text }]}>{time}</Text>
 
           <View style={styles.dateBlock}>
-            <Text style={[styles.dateNumeric, { color: colors.textMuted }]}>{numericDate}</Text>
+            <Text style={[styles.dateNumeric, { color: colors.textMuted }]}>
+              {numericDate}
+            </Text>
             <Text style={[styles.dateLong, { color: colors.textFaint }]}>
               {weekday}, {monthName}
             </Text>
-            <Text style={[styles.hebrewDate, { color: colors.accent }]}>{hebrewDate}</Text>
+            <Text style={[styles.hebrewDate, { color: colors.accent }]}>
+              {hebrewDate}
+            </Text>
           </View>
         </GlowCard>
       </View>
@@ -62,9 +69,18 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 20 },
+  container: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
   panel: { width: '100%', maxWidth: 420 },
-  statusRow: { flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 4 },
+  statusRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginBottom: 4,
+  },
   clock: {
     fontSize: 56,
     fontWeight: '700',

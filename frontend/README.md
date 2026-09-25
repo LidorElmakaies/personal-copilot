@@ -1,6 +1,7 @@
 # frontend
 
-Expo/React Native app — login/register, a Home tab, and a Settings tab. See the root
+Expo/React Native app — optional login/register (the app doesn't gate itself on a session), a Home
+tab, and an auth-gated Account tab. See the root
 [CLAUDE.md](../CLAUDE.md) for architecture, [.claude/agents/frontend.md](../.claude/agents/frontend.md)
 for the conventions to follow when changing anything here.
 

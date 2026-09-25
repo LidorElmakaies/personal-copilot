@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Inject,
   Injectable,
@@ -14,11 +15,13 @@ import {
 import type { IPasswordHasher } from '../infrastructure/interfaces/password-hasher.interface';
 import type { IRefreshTokenRepository } from '../infrastructure/interfaces/refresh-token-repository.interface';
 import type { IUserRepository } from '../infrastructure/interfaces/user-repository.interface';
+import type { User } from '../models/user';
 import type {
   AuthTokens,
   IAuthService,
   LoginInput,
   RegisterInput,
+  UpdateAccountInput,
 } from './interfaces/auth-service.interface';
 
 const ACCESS_TOKEN_TTL = '15m';
@@ -53,15 +56,7 @@ export class AuthService implements IAuthService {
   }
 
   async login(input: LoginInput): Promise<AuthTokens> {
-    const email = input.email.toLowerCase();
-    const user = await this.users.findByEmail(email);
-    if (
-      !user ||
-      !this.hasher.verify(input.password, user.passwordHash, user.passwordSalt)
-    ) {
-      throw new UnauthorizedException('Invalid email or password');
-    }
-
+    const user = await this.verifyCredentials(input.email, input.password);
     return this.issueTokens(user.id, user.email, user.role);
   }
 
@@ -92,6 +87,54 @@ export class AuthService implements IAuthService {
     if (stored) {
       await this.refreshTokens.revoke(stored.id);
     }
+  }
+
+  async updateAccount(input: UpdateAccountInput): Promise<AuthTokens> {
+    if (!input.newEmail && !input.newPassword) {
+      throw new BadRequestException(
+        'At least one of newEmail or newPassword is required',
+      );
+    }
+
+    const user = await this.verifyCredentials(
+      input.email,
+      input.currentPassword,
+    );
+
+    let finalEmail = user.email;
+    if (input.newEmail) {
+      const newEmail = input.newEmail.toLowerCase();
+      const existing = await this.users.findByEmail(newEmail);
+      if (existing && existing.id !== user.id) {
+        throw new ConflictException('Email is already registered');
+      }
+      await this.users.updateEmail(user.id, newEmail);
+      finalEmail = newEmail;
+    }
+
+    if (input.newPassword) {
+      const { hash, salt } = this.hasher.hash(input.newPassword);
+      await this.users.updatePassword(user.id, hash, salt);
+      // Not revoking existing refresh tokens on password change — possible future hardening.
+    }
+
+    // Always reissue, even on a password-only change, so this endpoint has one response shape
+    // rather than a conditional one depending on which field changed.
+    return this.issueTokens(user.id, finalEmail, user.role);
+  }
+
+  private async verifyCredentials(
+    email: string,
+    password: string,
+  ): Promise<User> {
+    const user = await this.users.findByEmail(email.toLowerCase());
+    if (
+      !user ||
+      !this.hasher.verify(password, user.passwordHash, user.passwordSalt)
+    ) {
+      throw new UnauthorizedException('Invalid email or password');
+    }
+    return user;
   }
 
   private async issueTokens(

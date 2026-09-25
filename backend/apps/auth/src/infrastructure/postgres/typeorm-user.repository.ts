@@ -40,4 +40,16 @@ export class TypeOrmUserRepository implements IUserRepository {
     const entity = await this.repo.findOneBy({ email });
     return entity ? toDomain(entity) : null;
   }
+
+  async updatePassword(
+    userId: string,
+    passwordHash: string,
+    passwordSalt: string,
+  ): Promise<void> {
+    await this.repo.update({ id: userId }, { passwordHash, passwordSalt });
+  }
+
+  async updateEmail(userId: string, email: string): Promise<void> {
+    await this.repo.update({ id: userId }, { email });
+  }
 }

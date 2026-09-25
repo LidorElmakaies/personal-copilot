@@ -26,9 +26,18 @@ export default function GlowCard({ children, style }) {
   const { isDark, colors } = useAppTheme();
 
   return (
-    <View style={[styles.shadowWrapper, { shadowColor: colors.shadow, shadowOpacity: isDark ? 0.35 : 0.16 }, style]}>
+    <View
+      style={[
+        styles.shadowWrapper,
+        { shadowColor: colors.shadow, shadowOpacity: isDark ? 0.35 : 0.16 },
+        style,
+      ]}
+    >
       <LinearGradient
-        colors={[withAlpha(colors.accent, 0.18), withAlpha(colors.accent, 0.02)]}
+        colors={[
+          withAlpha(colors.accent, 0.18),
+          withAlpha(colors.accent, 0.02),
+        ]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.borderGradient}
@@ -39,7 +48,9 @@ export default function GlowCard({ children, style }) {
             tint={isDark ? 'dark' : 'light'}
             style={StyleSheet.absoluteFill}
           />
-          <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.card }]} />
+          <View
+            style={[StyleSheet.absoluteFill, { backgroundColor: colors.card }]}
+          />
           <View style={styles.content}>{children}</View>
         </View>
       </LinearGradient>

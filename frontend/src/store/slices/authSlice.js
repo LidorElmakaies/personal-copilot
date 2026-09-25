@@ -25,6 +25,17 @@ export const loginUser = createAsyncThunk(
   },
 );
 
+export const updateAccount = createAsyncThunk(
+  'auth/updateAccount',
+  async (payload, { rejectWithValue }) => {
+    try {
+      return await authService.updateAccount(payload);
+    } catch (err) {
+      return rejectWithValue(err.message);
+    }
+  },
+);
+
 const authSlice = createSlice({
   name: 'auth',
   initialState: {
@@ -66,7 +77,11 @@ const authSlice = createSlice({
       .addCase(registerUser.rejected, handleRejected)
       .addCase(loginUser.pending, handlePending)
       .addCase(loginUser.fulfilled, handleFulfilled)
-      .addCase(loginUser.rejected, handleRejected);
+      .addCase(loginUser.rejected, handleRejected)
+      // Reuses handleFulfilled — updateAccount returns the same token-pair shape as login/register.
+      .addCase(updateAccount.pending, handlePending)
+      .addCase(updateAccount.fulfilled, handleFulfilled)
+      .addCase(updateAccount.rejected, handleRejected);
   },
 });
 

@@ -18,7 +18,9 @@ export function ThemeAnimProvider({ children }) {
   }, [isDark]);
 
   return (
-    <ThemeAnimContext.Provider value={progress}>{children}</ThemeAnimContext.Provider>
+    <ThemeAnimContext.Provider value={progress}>
+      {children}
+    </ThemeAnimContext.Provider>
   );
 }
 

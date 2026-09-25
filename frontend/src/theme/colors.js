@@ -40,8 +40,15 @@ export const dark = {
   // Picked from per particle (Stars.js/Meteors.js) — real starlight varies from blue-white to
   // gold depending on temperature, so a single flat white read as duller than intended.
   particleColors: [
-    '#ffffff', '#bfe9ff', '#d8c7ff', '#ffe3ad', '#ffc9e8',
-    '#c8ffe0', '#ffb8a8', '#a8fff0', '#c8d4ff',
+    '#ffffff',
+    '#bfe9ff',
+    '#d8c7ff',
+    '#ffe3ad',
+    '#ffc9e8',
+    '#c8ffe0',
+    '#ffb8a8',
+    '#a8fff0',
+    '#c8d4ff',
   ],
   // GradientButton.js's resting diagonal gradient fill, top-edge highlight rim, and hover sweep
   // streak — a translucent white wash in dark mode (see this file's own "Glass" comment above).
@@ -85,8 +92,15 @@ export const light = {
   // a near-white bg, not just a tint of it, or they vanish (see Stars.js/Meteors.js's higher
   // light-mode opacity for the other half of that fix).
   particleColors: [
-    '#3a424a', '#0b6f81', '#5f3fa0', '#8f6608', '#8f3f5c',
-    '#1f7a4d', '#a8501f', '#0f6b6b', '#4a4a9e',
+    '#3a424a',
+    '#0b6f81',
+    '#5f3fa0',
+    '#8f6608',
+    '#8f3f5c',
+    '#1f7a4d',
+    '#a8501f',
+    '#0f6b6b',
+    '#4a4a9e',
   ],
   // Translucent charcoal wash, not white — light mode inverts the wash direction (see this
   // file's own "Glass" comment above), and the sweep is dimmer since a bright white streak reads

@@ -1,5 +1,11 @@
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { useDispatch, useSelector } from 'react-redux';
 import AmbientBackground from '../../src/components/AmbientBackground';
@@ -10,8 +16,7 @@ import { useAppTheme } from '../../src/hooks/useAppTheme';
 import { clearAuthError, loginUser } from '../../src/store/slices/authSlice';
 import { isValidEmail } from '../../src/utils/validation';
 
-// Post-login redirect into the app is handled centrally by AuthGate (app/_layout.js), which
-// reacts to authSlice.accessToken app-wide — this screen doesn't duplicate that navigation.
+// AuthGate (app/_layout.js) handles the post-login redirect via accessToken — don't duplicate it here.
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -22,8 +27,11 @@ export default function LoginScreen() {
   const { colors } = useAppTheme();
 
   const emailError =
-    email.trim().length > 0 && !isValidEmail(email) ? 'Enter a valid email address' : null;
-  const canSubmit = email.trim().length > 0 && isValidEmail(email) && password.length > 0;
+    email.trim().length > 0 && !isValidEmail(email)
+      ? 'Enter a valid email address'
+      : null;
+  const canSubmit =
+    email.trim().length > 0 && isValidEmail(email) && password.length > 0;
 
   const handleSubmit = () => {
     setSubmitAttempted(true);
@@ -33,10 +41,17 @@ export default function LoginScreen() {
 
   return (
     <AmbientBackground>
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.header}>
-          <Text style={[styles.heading, { color: colors.text }]}>Welcome back</Text>
-          <Text style={[styles.subheading, { color: colors.textMuted }]}>Log in to continue</Text>
+          <Text style={[styles.heading, { color: colors.text }]}>
+            Welcome back
+          </Text>
+          <Text style={[styles.subheading, { color: colors.textMuted }]}>
+            Log in to continue
+          </Text>
         </View>
 
         <GlowCard>
@@ -69,10 +84,20 @@ export default function LoginScreen() {
 
         {status === 'failed' && error && (
           <View
-            style={[styles.feedback, { backgroundColor: colors.errorBg, borderColor: colors.errorBorder }]}
+            style={[
+              styles.feedback,
+              {
+                backgroundColor: colors.errorBg,
+                borderColor: colors.errorBorder,
+              },
+            ]}
           >
-            <Text style={[styles.feedbackTitle, { color: colors.error }]}>✗ Error</Text>
-            <Text style={[styles.feedbackBody, { color: colors.text }]}>{error}</Text>
+            <Text style={[styles.feedbackTitle, { color: colors.error }]}>
+              ✗ Error
+            </Text>
+            <Text style={[styles.feedbackBody, { color: colors.text }]}>
+              {error}
+            </Text>
           </View>
         )}
 
@@ -85,7 +110,18 @@ export default function LoginScreen() {
         >
           <Text style={[styles.switchText, { color: colors.textMuted }]}>
             Don&apos;t have an account?{' '}
-            <Text style={[styles.switchTextBold, { color: colors.primary }]}>Register</Text>
+            <Text style={[styles.switchTextBold, { color: colors.primary }]}>
+              Register
+            </Text>
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => router.push('/')}
+          style={styles.switchLink}
+        >
+          <Text style={[styles.switchText, { color: colors.textMuted }]}>
+            Continue without logging in
           </Text>
         </TouchableOpacity>
       </ScrollView>

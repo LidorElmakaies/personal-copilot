@@ -11,13 +11,20 @@ export default function Row({ title, subtitle, right, last, style }) {
     <View
       style={[
         styles.row,
-        !last && { borderBottomColor: colors.cardBorderSoft, borderBottomWidth: 1 },
+        !last && {
+          borderBottomColor: colors.cardBorderSoft,
+          borderBottomWidth: 1,
+        },
         style,
       ]}
     >
       <View style={styles.main}>
         <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
-        {subtitle ? <Text style={[styles.subtitle, { color: colors.textFaint }]}>{subtitle}</Text> : null}
+        {subtitle ? (
+          <Text style={[styles.subtitle, { color: colors.textFaint }]}>
+            {subtitle}
+          </Text>
+        ) : null}
       </View>
       {right ? <View style={styles.right}>{right}</View> : null}
     </View>
