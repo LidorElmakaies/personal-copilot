@@ -40,7 +40,7 @@ file for what it does and doesn't own.
 ```
 backend/                 NestJS monorepo — apps/{gateway,auth} + libs/{auth-kernel,otel,
                           kafka-client,kafka-contracts}
-frontend/                 Expo/React Native app — login/register + a Settings tab
+frontend/                 Expo/React Native app — login/register, a Home tab, and a Settings tab
 devops/                   docker-compose.yml (app stack) + observability/ (Grafana/Loki/
                           Prometheus/Tempo/OTel, joined to the app stack via a shared Docker
                           network)
@@ -70,14 +70,17 @@ docs/specs/               services.md, event-schemas.md, architecture.md (Mermai
   tokens (`{ sub, role, email }` payload — the client decodes this instead of a separate `/me`
   call) + 30-day rotating refresh tokens (`backend/libs/auth-kernel` for the shared JWT sign/
   verify + guard).
-- **frontend** (`frontend/`) — Expo Router app. `(auth)/{login,register}`, `(tabs)/index` (Settings
-  — theme toggle, logged-in account, live connection status, logout). Redux Toolkit, services-layer
-  convention (all I/O in `src/services/`, split by transport — `http/` and `ws/` — called only from
-  thunks in `src/store/slices/`). Socket.IO auto-connects whenever `authSlice.accessToken` changes
-  (`app/_layout.js`'s `RealtimeConnectionManager`) — generic plumbing, same as Gateway's `/ws`;
-  nothing listens for a specific event yet. Themed via the three-layer pipeline described in the
-  Architecture section below — `GlowCard`/`GradientButton`/`InputField`/`SpaceBackground` in
-  `src/components/` are the shared building blocks login/register/Settings all use.
+- **frontend** (`frontend/`) — Expo Router app. `(auth)/{login,register}`, `(tabs)/index` (Home —
+  the landing tab: live clock, today's Gregorian and Hebrew/Jewish date (`@hebcal/hdate`, see
+  `frontend/README.md` for why not `Intl`), and a live/disconnected connection chip read straight
+  from `wsSlice.status`), `(tabs)/settings` (theme toggle, logged-in account, live connection
+  status, logout). Redux Toolkit, services-layer convention (all I/O in `src/services/`, split by
+  transport — `http/` and `ws/` — called only from thunks in `src/store/slices/`). Socket.IO
+  auto-connects whenever `authSlice.accessToken` changes (`app/_layout.js`'s
+  `RealtimeConnectionManager`) — generic plumbing, same as Gateway's `/ws`; nothing listens for a
+  specific event yet. Themed via the three-layer pipeline described in the Architecture section
+  below — `GlowCard`/`GradientButton`/`InputField`/`AmbientBackground` in `src/components/` are the
+  shared building blocks login/register/Home/Settings all use.
 - **Kafka** runs (`devops/kafka/docker-compose.yml`) as generic plumbing, but nothing produces or
   consumes yet — `backend/libs/kafka-contracts` is an empty shell, ready for the next feature to
   fill in. Gateway's WS layer (above) is the same kind of kept-but-unused plumbing.

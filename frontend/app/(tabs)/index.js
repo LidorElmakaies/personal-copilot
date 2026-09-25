@@ -1,92 +1,60 @@
-import { useState } from 'react';
+import { HDate } from '@hebcal/hdate';
+import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
 import AmbientBackground from '../../src/components/AmbientBackground';
-import ConnectionStatus from '../../src/components/ConnectionStatus';
+import Chip from '../../src/components/Chip';
 import GlowCard from '../../src/components/GlowCard';
-import GradientButton from '../../src/components/GradientButton';
-import Row from '../../src/components/Row';
-import Switch from '../../src/components/Switch';
 import { useAppTheme } from '../../src/hooks/useAppTheme';
-import { clearAuth, selectUser } from '../../src/store/slices/authSlice';
-import { setThemeMode } from '../../src/store/slices/themeSlice';
 
-export default function SettingsScreen() {
-  const dispatch = useDispatch();
-  const { mode } = useSelector((state) => state.theme);
+const pad2 = (n) => String(n).padStart(2, '0');
+
+// D.M.YYYY, no leading zeros — toLocaleDateString's numeric form is locale-dependent (padding/
+// field order vary), so hand-format instead.
+function formatNumericDate(date) {
+  return `${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()}`;
+}
+
+// @hebcal/hdate rather than Intl's 'he-u-ca-hebrew' calendar — see frontend/README.md for why.
+// render('he')'s comma is stripped to match the approved mockup's "14 Tishrei 5787" spacing.
+function formatHebrewDate(date) {
+  return new HDate(date).render('he').replace(',', '');
+}
+
+export default function HomeScreen() {
+  const { colors } = useAppTheme();
   const wsStatus = useSelector((state) => state.ws.status);
-  const user = useSelector(selectUser);
-  const { isDark, colors, colorMode } = useAppTheme();
-  const [confirmingLogout, setConfirmingLogout] = useState(false);
+  const [now, setNow] = useState(() => new Date());
 
-  const toggleTheme = (nextIsDark) => dispatch(setThemeMode(nextIsDark ? 'dark' : 'light'));
-  // Clearing authSlice is the whole action — AuthGate (app/_layout.js) reacts to accessToken
-  // going null and redirects to /login itself, and RealtimeConnectionManager disconnects the
-  // socket the same way, so no manual navigation/disconnect needed here.
-  const logout = () => dispatch(clearAuth());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const isLive = wsStatus === 'connected';
+  const time = `${pad2(now.getHours())}:${pad2(now.getMinutes())}:${pad2(now.getSeconds())}`;
+  const numericDate = formatNumericDate(now);
+  const weekday = now.toLocaleDateString('en-US', { weekday: 'long' });
+  const monthName = now.toLocaleDateString('en-US', { month: 'long' });
+  const hebrewDate = formatHebrewDate(now);
 
   return (
     <AmbientBackground>
       <View style={styles.container}>
-        <Text style={[styles.heading, { color: colors.text }]}>Settings</Text>
+        <GlowCard style={styles.panel}>
+          <View style={styles.statusRow}>
+            <Chip label={isLive ? 'Live' : 'Disconnected'} variant={isLive ? 'online' : 'error'} />
+          </View>
 
-        <GlowCard>
-          <Row
-            title="Theme"
-            subtitle={mode === null ? `Following system · ${colorMode}` : isDark ? 'Dark mode' : 'Light mode'}
-            right={<Switch value={isDark} onValueChange={toggleTheme} />}
-            last
-          />
-        </GlowCard>
+          <Text style={[styles.clock, { color: colors.text }]}>{time}</Text>
 
-        <GlowCard>
-          <Row title="Account" subtitle={user?.email ?? '—'} last />
-        </GlowCard>
-
-        <GlowCard>
-          <Row
-            title="Realtime connection"
-            subtitle="Socket.IO · /ws"
-            right={<ConnectionStatus status={wsStatus} />}
-            last
-          />
-        </GlowCard>
-
-        <GlowCard>
-          {confirmingLogout ? (
-            <View style={styles.confirmGroup}>
-              <Text style={[styles.confirmText, { color: colors.text }]}>Log out of your account?</Text>
-              <View style={styles.confirmActions}>
-                <GradientButton
-                  label="Log Out"
-                  onPress={logout}
-                  variant="danger"
-                  style={styles.confirmButtonFlex}
-                  contentStyle={styles.confirmButtonContent}
-                />
-                <GradientButton
-                  label="Cancel"
-                  onPress={() => setConfirmingLogout(false)}
-                  style={styles.confirmButtonFlex}
-                  contentStyle={styles.confirmButtonContent}
-                />
-              </View>
-            </View>
-          ) : (
-            <Row
-              title="Log out"
-              subtitle="End your session on this device"
-              right={
-                <GradientButton
-                  label="Log Out"
-                  onPress={() => setConfirmingLogout(true)}
-                  variant="danger"
-                  contentStyle={styles.logoutButtonContent}
-                />
-              }
-              last
-            />
-          )}
+          <View style={styles.dateBlock}>
+            <Text style={[styles.dateNumeric, { color: colors.textMuted }]}>{numericDate}</Text>
+            <Text style={[styles.dateLong, { color: colors.textFaint }]}>
+              {weekday}, {monthName}
+            </Text>
+            <Text style={[styles.hebrewDate, { color: colors.accent }]}>{hebrewDate}</Text>
+          </View>
         </GlowCard>
       </View>
     </AmbientBackground>
@@ -94,12 +62,24 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, paddingTop: 64, gap: 14 },
-  heading: { fontSize: 26, fontWeight: '800', letterSpacing: 0.3, marginBottom: 6 },
-  confirmGroup: { gap: 14 },
-  confirmText: { fontSize: 14, fontWeight: '600' },
-  confirmActions: { flexDirection: 'row', gap: 12 },
-  confirmButtonFlex: { flex: 1 },
-  confirmButtonContent: { paddingVertical: 10 },
-  logoutButtonContent: { paddingHorizontal: 18, paddingVertical: 9 },
+  container: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 20 },
+  panel: { width: '100%', maxWidth: 420 },
+  statusRow: { flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 4 },
+  clock: {
+    fontSize: 56,
+    fontWeight: '700',
+    textAlign: 'center',
+    letterSpacing: 2,
+    fontFamily: 'monospace',
+    fontVariant: ['tabular-nums'],
+  },
+  dateBlock: { marginTop: 22, alignItems: 'center', gap: 6 },
+  dateNumeric: {
+    fontSize: 18,
+    fontWeight: '600',
+    fontFamily: 'monospace',
+    fontVariant: ['tabular-nums'],
+  },
+  dateLong: { fontSize: 14, fontWeight: '500' },
+  hebrewDate: { fontSize: 16, fontWeight: '700', marginTop: 4 },
 });

@@ -4,10 +4,11 @@ import { Tabs } from 'expo-router';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useAppTheme } from '../../src/hooks/useAppTheme';
 
-// One tab today (Settings) — same bar mechanics as a multi-tab bar would use, so adding a second
-// tab later is just another entry in TABS, not a rewrite. Icon matches the line-icon set settled
-// on in design-lab/ (sliders for Settings, not a gear) — see DESIGN.md's "Navigation" section.
-const TABS = [{ name: 'index', label: 'Settings', icon: 'options-outline', iconActive: 'options' }];
+// One entry per tab (bar + Tabs.Screen below); icon set per DESIGN.md's "Navigation" section.
+const TABS = [
+  { name: 'index', label: 'Home', icon: 'time-outline', iconActive: 'time' },
+  { name: 'settings', label: 'Settings', icon: 'options-outline', iconActive: 'options' },
+];
 
 function CustomTabBar({ navigation, state }) {
   const { isDark, colors } = useAppTheme();
@@ -70,6 +71,7 @@ export default function TabsLayout() {
   return (
     <Tabs screenOptions={{ headerShown: false }} tabBar={(props) => <CustomTabBar {...props} />}>
       <Tabs.Screen name="index" />
+      <Tabs.Screen name="settings" />
     </Tabs>
   );
 }

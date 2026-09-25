@@ -16,9 +16,10 @@ second one.
 
 ## Where you work
 
-`frontend/` — see root `CLAUDE.md` for the overall stack. This app is currently just auth
-(login/register) + a Settings tab; there is no scraper/jobs/admin surface here — don't port that
-part of `ask-my-crawl`'s frontend, only its theme/component/services conventions.
+`frontend/` — see root `CLAUDE.md` for the overall stack. This app is currently auth
+(login/register) + a Home tab (landing) + a Settings tab; there is no scraper/jobs/admin surface
+here — don't port that part of `ask-my-crawl`'s frontend, only its theme/component/services
+conventions.
 
 ## Theme system — three-layer pipeline, no Gluestack
 
@@ -44,7 +45,8 @@ resolved palette can't express.)
 ## Build for reuse — components, not per-screen markup
 
 Favor small, composable components in `src/components/` over duplicating UI per screen.
-`InputField`, `GlowCard`, `GradientButton`, `AmbientBackground`, `ConnectionStatus` already exist —
+`InputField`, `GlowCard`, `GradientButton`, `AmbientBackground`, `Chip`, `ConnectionStatus` already
+exist —
 use them instead of hand-rolling a `TextInput`/card/button/background per screen. If a UI pattern
 is about to appear a second time, extract it to a component before a third screen copies it again.
 

@@ -1,6 +1,6 @@
 # frontend
 
-Expo/React Native app — login/register + a Settings tab. See the root
+Expo/React Native app — login/register, a Home tab, and a Settings tab. See the root
 [CLAUDE.md](../CLAUDE.md) for architecture, [.claude/agents/frontend.md](../.claude/agents/frontend.md)
 for the conventions to follow when changing anything here.
 
@@ -23,6 +23,15 @@ brand.
 Same Redux Toolkit + services-layer + Expo Router conventions otherwise: all I/O lives in
 `src/services/`, split by transport — `services/http/` (fetch-based calls) and `services/ws/` (the
 Socket.IO client) — called only from thunks in `src/store/slices/`, never inline in a component.
+
+## Hebrew date (`@hebcal/hdate`)
+
+The Home tab's Hebrew/Jewish date uses `@hebcal/hdate` rather than `Intl`'s `'he-u-ca-hebrew'`
+calendar extension. The `Intl` approach works in a desktop browser, but Hermes (React Native's JS
+engine) isn't guaranteed to ship non-Gregorian calendar tables in its bundled ICU data — the same
+code can silently fall back to the Gregorian calendar on-device with no error. `@hebcal/hdate` is
+pure JS with no ICU dependency, so it renders the same regardless of platform. Don't swap this back
+to `Intl` to drop the dependency without re-verifying on-device (not just web) first.
 
 ## Caddy deployment (`Caddyfile`)
 

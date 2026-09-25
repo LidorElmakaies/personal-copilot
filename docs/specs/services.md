@@ -58,14 +58,19 @@ issues a new pair, so a stolen-and-replayed refresh token only ever works once.
 
 ## frontend
 
-Expo Router app. `(auth)/login`, `(auth)/register`, `(tabs)/index` (Settings — theme toggle,
-logged-in account, live connection status, logout). Talks only to Gateway
+Expo Router app. `(auth)/login`, `(auth)/register`, `(tabs)/index` (Home — the landing tab: live
+clock, today's Gregorian date, and today's Hebrew/Jewish date via `@hebcal/hdate`, chosen over
+`Intl`'s `'he-u-ca-hebrew'` calendar extension because Hermes's bundled ICU data isn't guaranteed to
+include non-Gregorian calendar tables on-device — see `frontend/README.md`), `(tabs)/settings`
+(theme toggle, logged-in account, live connection status, logout). Talks only to Gateway
 (`EXPO_PUBLIC_GATEWAY_ORIGIN`, baked in at build time, required — `src/config/urls.js` throws at
 load if it's unset) — never Auth Service or any other backend service directly.
 
 Themed via a three-layer pipeline (`themeSlice` → `useAppTheme()` → `ThemeAnimContext`) and shared
-components (`GlowCard`, `GradientButton`, `InputField`, `SpaceBackground`, `ConnectionStatus`) —
+components (`GlowCard`, `GradientButton`, `InputField`, `AmbientBackground`, `ConnectionStatus`) —
 see `.claude/agents/frontend.md` for the full convention and why there's no Gluestack layer here.
+Home reads `wsSlice.status` directly into a binary Live/Disconnected `Chip` rather than the
+three-state `ConnectionStatus` component Settings uses — deliberately coarser for the landing tab.
 
 `src/services/` is split by transport: `http/` (fetch-based calls — `authService`) and `ws/`
 (`socketService`, a single shared Socket.IO connection). `wsSlice`'s `connectWebSocket`/
