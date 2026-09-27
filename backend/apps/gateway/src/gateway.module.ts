@@ -3,6 +3,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AuthProxyModule } from './auth-proxy/auth-proxy.module';
+import { CalendarProxyModule } from './calendar-proxy/calendar-proxy.module';
 import { RealtimeModule } from './realtime/realtime.module';
 
 // Composes the self-contained modules below, plus global rate limiting (see main.ts for the
@@ -22,6 +23,7 @@ import { RealtimeModule } from './realtime/realtime.module';
       }),
     }),
     AuthProxyModule,
+    CalendarProxyModule,
     RealtimeModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

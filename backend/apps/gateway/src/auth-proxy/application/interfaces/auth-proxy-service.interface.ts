@@ -1,15 +1,5 @@
-// Forwards register/login/refresh/logout to Auth Service verbatim — all unguarded. See docs/specs/services.md#gateway.
-export interface ProxyRequest {
-  method: 'POST';
-  /** Auth Service's own path, e.g. '/auth/login'. */
-  path: string;
-  body?: unknown;
-}
-
-export interface ProxyResponse {
-  status: number;
-  body: unknown;
-}
+// Forwards register/login/refresh/logout/account to Auth Service verbatim — all unguarded. See docs/specs/services.md#gateway.
+import type { ProxyRequest, ProxyResponse } from '../../../proxy/proxy.types';
 
 /** Implemented by AuthProxyService, consumed by the API layer. */
 export interface IAuthProxyService {

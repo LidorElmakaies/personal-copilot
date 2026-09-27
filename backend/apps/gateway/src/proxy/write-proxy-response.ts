@@ -1,7 +1,7 @@
 import type { Response } from 'express';
-import type { ProxyResponse } from '../application/interfaces/auth-proxy-service.interface';
+import type { ProxyResponse } from './proxy.types';
 
-/** Writes exactly what Auth Service returned — status and body, verbatim. */
+/** Writes exactly what the internal service returned — status and body, verbatim. */
 export function writeProxyResponse(
   res: Response,
   response: ProxyResponse,

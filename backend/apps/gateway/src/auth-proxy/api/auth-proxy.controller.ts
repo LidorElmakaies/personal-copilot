@@ -4,7 +4,7 @@ import type { Response } from 'express';
 import { AUTH_PROXY_SERVICE } from '../../tokens';
 import { authStrictThrottlePolicy } from '../../throttle-policies';
 import type { IAuthProxyService } from '../application/interfaces/auth-proxy-service.interface';
-import { writeProxyResponse } from './write-proxy-response';
+import { writeProxyResponse } from '../../proxy/write-proxy-response';
 
 // Pure passthrough to Auth Service — no domain decisions here.
 @Controller('auth')

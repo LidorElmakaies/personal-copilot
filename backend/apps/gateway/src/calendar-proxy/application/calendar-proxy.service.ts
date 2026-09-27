@@ -1,16 +1,16 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { AUTH_SERVICE_CLIENT } from '../../tokens';
+import { CALENDAR_SERVICE_CLIENT } from '../../tokens';
 import type {
   IServiceClient,
   ProxyRequest,
   ProxyResponse,
 } from '../../proxy/proxy.types';
-import type { IAuthProxyService } from './interfaces/auth-proxy-service.interface';
+import type { ICalendarProxyService } from './interfaces/calendar-proxy-service.interface';
 
 @Injectable()
-export class AuthProxyService implements IAuthProxyService {
+export class CalendarProxyService implements ICalendarProxyService {
   constructor(
-    @Inject(AUTH_SERVICE_CLIENT) private readonly client: IServiceClient,
+    @Inject(CALENDAR_SERVICE_CLIENT) private readonly client: IServiceClient,
   ) {}
 
   forward(request: ProxyRequest): Promise<ProxyResponse> {

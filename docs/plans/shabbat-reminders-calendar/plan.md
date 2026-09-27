@@ -56,7 +56,7 @@ with a countdown. The Reminders and Notification services exist and run, but do 
   Input validation (lat/lon ranges, valid IANA tz).
   *Tests:* Tel Aviv on a normal week; Jerusalem; a place abroad (e.g. New York); a request made
   during Shabbat (returns the current one); a Shabbat that's also a holiday.
-- [ ] **1.3 Gateway `calendar-proxy`.** Same shape as `auth-proxy`: one explicit route, no auth
+- [x] **1.3 Gateway `calendar-proxy`.** Same shape as `auth-proxy`: one explicit route, no auth
   guard (works while signed out), rate-limited.
   *Check:* `curl` through Gateway returns the same result as 1.2.
 - [ ] **1.4 Reminders Service skeleton.** `backend/apps/reminders`: layering, OTel, health, its
