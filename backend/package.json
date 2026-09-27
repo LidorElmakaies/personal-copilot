@@ -22,6 +22,7 @@
     "test:cov": "jest --config jest.config.js --coverage"
   },
   "dependencies": {
+    "@hebcal/core": "6.9.3",
     "@nestjs/axios": "^4.0.1",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.4",

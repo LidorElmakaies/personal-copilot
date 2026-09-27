@@ -25,8 +25,13 @@ If a design changes, update the HTML file here in the same commit.
 - **All calendar calculation is on the server**, in one Calendar Service using `@hebcal/core`. This
   isn't about CPU; the calculation is cheap either way. One implementation keeps the Home clock,
   the calendar, and reminders in agreement, and reminders need server-side times anyway.
-- **Israel vs. abroad** comes from the time zone (`Asia/Jerusalem`). Candle lighting defaults to 18
-  minutes before sunset (becomes a setting later).
+- **Israel vs. abroad** comes from the time zone (`Asia/Jerusalem`). Candle lighting is **20 minutes
+  before sunset in Israel, 18 abroad** (set explicitly in `ShabbatService`; `@hebcal/core` would
+  otherwise silently swap 18→20 in Israel). City customs (Jerusalem 40, Haifa 30) become a setting
+  later.
+- **`@hebcal/core` v6** (ESM-only). Imported via its `@hebcal/core/dist/esm/index` subpath so the
+  CommonJS backend can `require()` it on Node 22; Jest compiles it to CJS (`backend/jest.config.js`).
+  v5 was tried and rejected: its type declarations don't resolve under `nodenext`.
 - **Reminders are per user** (login required, user id from the JWT). The first type is "before
   candle lighting", with a user-picked offset (e.g. 1h 30m), repeating weekly.
 - **Reminders → Kafka → Notifications.** Reminders decides *when* and publishes
@@ -45,7 +50,7 @@ with a countdown. The Reminders and Notification services exist and run, but do 
   API / Application / Infrastructure / models layout like `apps/auth`, OTel wired, a health route,
   `devops/calendar/docker-compose.yml` with no published port, included in the app stack.
   *Check:* container starts and is healthy; not reachable from the host.
-- [ ] **1.2 Shabbat calculation.** `ICalendarCalculator` (application interface) +
+- [x] **1.2 Shabbat calculation.** `ICalendarCalculator` (application interface) +
   `HebcalCalculator` (infrastructure, `@hebcal/core`). `GET /calendar/shabbat?lat&lon&tz` returns
   the next or current Shabbat: candle lighting, Havdalah, parasha, and any holiday on that Shabbat.
   Input validation (lat/lon ranges, valid IANA tz).
