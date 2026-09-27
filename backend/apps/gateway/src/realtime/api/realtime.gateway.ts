@@ -10,9 +10,7 @@ import type { IAuthTokenService } from '@app/auth-kernel';
 import { REALTIME_CONNECTION_SERVICE } from '../../tokens';
 import type { IRealtimeConnectionService } from '../application/interfaces/realtime-connection.interface';
 
-// Socket.IO at /ws — identity comes from the handshake's auth.token, verified the same way as the
-// HTTP guard. Owns only the connection lifecycle; a feature that wants to push to a user injects
-// IRealtimeConnectionService and calls pushToUser — this class never knows what it's pushing.
+// Socket.IO at /ws — see docs/specs/services.md#gateway for the handshake/pushToUser contract.
 @WebSocketGateway({ path: '/ws', cors: { origin: true } })
 export class RealtimeGateway
   implements OnGatewayConnection, OnGatewayDisconnect

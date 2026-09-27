@@ -1,142 +1,101 @@
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useDispatch, useSelector } from 'react-redux';
-import ConnectionStatus from '../../src/components/ConnectionStatus';
-import GlowCard from '../../src/components/GlowCard';
-import SpaceBackground from '../../src/components/SpaceBackground';
+import { HDate } from '@hebcal/hdate';
+import { useEffect, useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import { useSelector } from 'react-redux';
+import AmbientBackground from '../../src/components/composite/AmbientBackground';
+import Chip from '../../src/components/base/feedback/Chip';
+import GlowCard from '../../src/components/base/layout/GlowCard';
 import { useAppTheme } from '../../src/hooks/useAppTheme';
-import { clearAuth, selectUser } from '../../src/store/slices/authSlice';
-import { setThemeMode } from '../../src/store/slices/themeSlice';
 
-export default function SettingsScreen() {
-  const dispatch = useDispatch();
-  const { mode } = useSelector((state) => state.theme);
+const pad2 = (n) => String(n).padStart(2, '0');
+
+// D.M.YYYY, no leading zeros — toLocaleDateString's numeric form is locale-dependent (padding/
+// field order vary), so hand-format instead.
+function formatNumericDate(date) {
+  return `${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()}`;
+}
+
+// @hebcal/hdate rather than Intl's 'he-u-ca-hebrew' calendar — see frontend/README.md for why.
+// render('he')'s comma is stripped to match the approved mockup's "14 Tishrei 5787" spacing.
+function formatHebrewDate(date) {
+  return new HDate(date).render('he').replace(',', '');
+}
+
+export default function HomeScreen() {
+  const { colors } = useAppTheme();
   const wsStatus = useSelector((state) => state.ws.status);
-  const user = useSelector(selectUser);
-  const { isDark, colors, colorMode } = useAppTheme();
-  const [confirmingLogout, setConfirmingLogout] = useState(false);
+  const [now, setNow] = useState(() => new Date());
 
-  const toggle = () => dispatch(setThemeMode(isDark ? 'light' : 'dark'));
-  // Clearing authSlice is the whole action — AuthGate (app/_layout.js) reacts to accessToken
-  // going null and redirects to /login itself, and RealtimeConnectionManager disconnects the
-  // socket the same way, so no manual navigation/disconnect needed here.
-  const logout = () => dispatch(clearAuth());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const isLive = wsStatus === 'connected';
+  const time = `${pad2(now.getHours())}:${pad2(now.getMinutes())}:${pad2(now.getSeconds())}`;
+  const numericDate = formatNumericDate(now);
+  const weekday = now.toLocaleDateString('en-US', { weekday: 'long' });
+  const monthName = now.toLocaleDateString('en-US', { month: 'long' });
+  const hebrewDate = formatHebrewDate(now);
 
   return (
-    <SpaceBackground>
+    <AmbientBackground>
       <View style={styles.container}>
-        <Text style={[styles.heading, { color: colors.text }]}>Settings</Text>
-        <Text style={[styles.section, { color: colors.textMuted }]}>Appearance</Text>
-
-        {/* Toggle pill */}
-        <TouchableOpacity
-          onPress={toggle}
-          activeOpacity={0.85}
-          style={[styles.pill, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
-        >
-          {/* Sliding indicator */}
-          <LinearGradient
-            colors={colors.primaryGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={[styles.indicator, isDark ? styles.indicatorRight : styles.indicatorLeft]}
-          />
-
-          <View style={styles.side}>
-            <Text style={styles.sideIcon}>☀️</Text>
-            <Text style={[styles.sideLabel, { color: !isDark ? colors.onPrimary : colors.textMuted }]}>
-              Light
-            </Text>
+        <GlowCard style={styles.panel}>
+          <View style={styles.statusRow}>
+            <Chip
+              label={isLive ? 'Live' : 'Disconnected'}
+              variant={isLive ? 'online' : 'error'}
+            />
           </View>
 
-          <View style={styles.side}>
-            <Text style={styles.sideIcon}>🌙</Text>
-            <Text style={[styles.sideLabel, { color: isDark ? colors.onPrimary : colors.textMuted }]}>
-              Dark
+          <Text style={[styles.clock, { color: colors.text }]}>{time}</Text>
+
+          <View style={styles.dateBlock}>
+            <Text style={[styles.dateNumeric, { color: colors.textMuted }]}>
+              {numericDate}
+            </Text>
+            <Text style={[styles.dateLong, { color: colors.textFaint }]}>
+              {weekday}, {monthName}
+            </Text>
+            <Text style={[styles.hebrewDate, { color: colors.accent }]}>
+              {hebrewDate}
             </Text>
           </View>
-        </TouchableOpacity>
-
-        {mode === null && (
-          <Text style={[styles.note, { color: colors.textMuted }]}>
-            Following system default · {colorMode}
-          </Text>
-        )}
-
-        <Text style={[styles.section, styles.sectionSpaced, { color: colors.textMuted }]}>
-          Account
-        </Text>
-        <GlowCard>
-          <Text style={[styles.accountLabel, { color: colors.textMuted }]}>Logged in as</Text>
-          <Text style={[styles.accountValue, { color: colors.text }]}>{user?.email ?? '—'}</Text>
-        </GlowCard>
-
-        <Text style={[styles.section, styles.sectionSpaced, { color: colors.textMuted }]}>
-          Live connection
-        </Text>
-        <GlowCard>
-          <ConnectionStatus status={wsStatus} />
-        </GlowCard>
-
-        <Text style={[styles.section, styles.sectionSpaced, { color: colors.textMuted }]}>
-          Session
-        </Text>
-        <GlowCard>
-          {confirmingLogout ? (
-            <View style={styles.confirmRow}>
-              <Text style={[styles.confirmText, { color: colors.text }]}>Log out of your account?</Text>
-              <View style={styles.confirmActions}>
-                <TouchableOpacity
-                  onPress={logout}
-                  style={[styles.confirmButton, { backgroundColor: colors.error }]}
-                >
-                  <Text style={styles.confirmButtonText}>Log Out</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => setConfirmingLogout(false)} style={styles.cancelButton}>
-                  <Text style={[styles.cancelText, { color: colors.textMuted }]}>Cancel</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          ) : (
-            <TouchableOpacity
-              onPress={() => setConfirmingLogout(true)}
-              style={styles.logoutRow}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="log-out-outline" size={20} color={colors.error} />
-              <Text style={[styles.logoutText, { color: colors.error }]}>Log Out</Text>
-            </TouchableOpacity>
-          )}
         </GlowCard>
       </View>
-    </SpaceBackground>
+    </AmbientBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 28, gap: 8 },
-  heading: { fontSize: 30, fontWeight: '800', letterSpacing: 0.5, marginBottom: 2 },
-  section: { fontSize: 12, fontWeight: '700', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 20 },
-  sectionSpaced: { marginTop: 32 },
-  pill: { flexDirection: 'row', borderWidth: 1, borderRadius: 50, overflow: 'hidden', height: 56, position: 'relative' },
-  indicator: { position: 'absolute', top: 0, bottom: 0, width: '50%', borderRadius: 50 },
-  indicatorLeft: { left: 0 },
-  indicatorRight: { right: 0 },
-  side: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, zIndex: 1 },
-  sideIcon: { fontSize: 18 },
-  sideLabel: { fontSize: 15, fontWeight: '700' },
-  note: { fontSize: 13, textAlign: 'center', marginTop: 16 },
-  accountLabel: { fontSize: 12, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
-  accountValue: { fontSize: 16, fontWeight: '600', marginTop: 4 },
-  logoutRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
-  logoutText: { fontSize: 15, fontWeight: '700' },
-  confirmRow: { gap: 12 },
-  confirmText: { fontSize: 14, fontWeight: '600' },
-  confirmActions: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  confirmButton: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 },
-  confirmButtonText: { color: '#ffffff', fontSize: 13, fontWeight: '700' },
-  cancelButton: { paddingHorizontal: 8 },
-  cancelText: { fontSize: 13, fontWeight: '600' },
+  container: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  panel: { width: '100%', maxWidth: 420 },
+  statusRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginBottom: 4,
+  },
+  clock: {
+    fontSize: 56,
+    fontWeight: '700',
+    textAlign: 'center',
+    letterSpacing: 2,
+    fontFamily: 'monospace',
+    fontVariant: ['tabular-nums'],
+  },
+  dateBlock: { marginTop: 22, alignItems: 'center', gap: 6 },
+  dateNumeric: {
+    fontSize: 18,
+    fontWeight: '600',
+    fontFamily: 'monospace',
+    fontVariant: ['tabular-nums'],
+  },
+  dateLong: { fontSize: 14, fontWeight: '500' },
+  hebrewDate: { fontSize: 16, fontWeight: '700', marginTop: 4 },
 });

@@ -1,12 +1,9 @@
-// OpenTelemetry bootstrap for every backend app.
+// Order is load-bearing: startOtel() must be main.ts's literal first statement, before any other
+// import — Node's auto-instrumentation patches require(), so anything required first stays
+// uninstrumented (missing child spans under an HTTP root span is the tell).
 //
-// Order is load-bearing: startOtel() must be the literal first statement of main.ts, before any
-// other import — Node's auto-instrumentation patches require(), so a library required first is
-// never instrumented. Missing child spans under an HTTP root span is the signature of broken order.
-//
-// If the collector is unreachable, the SDK swallows export failures silently by default —
-// diag.setLogger below at least makes that visible in logs (no retry/buffering, data is still
-// lost during an outage, just no longer invisibly).
+// A collector that's unreachable fails exports silently by default; diag.setLogger below at least
+// surfaces that in logs (no retry/buffering — data is still lost during an outage).
 
 import * as os from 'os';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';

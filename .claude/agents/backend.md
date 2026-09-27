@@ -21,18 +21,23 @@ backend/
   apps/
     gateway/            # the only BACKEND service reachable from outside the Docker network
                         # (published to the host, reachable over Tailscale from your phone).
-                        # src/auth-proxy/: thin pass-through to Auth Service (/auth/* only — no
-                        # /me, see JwtPayload's doc comment in @app/auth-kernel for why).
+                        # src/auth-proxy/: thin pass-through to Auth Service, one hardcoded route
+                        # per operation (not a wildcard) — register/login/refresh/logout/account.
+                        # No /me, see JwtPayload's doc comment in @app/auth-kernel for why.
                         # src/realtime/: Socket.IO at /ws, generic connection plumbing — no
                         # feature pushes anything over it yet, see services.md#gateway for the
                         # IRealtimeConnectionService.pushToUser entry point a future one uses.
                         # Thin pass-through everywhere — never business logic. A new feature's
                         # HTTP surface gets its own self-contained module here, same shape.
     auth/                # HTTP, internal-only (never published to the host — only Gateway calls
-                        # it). register/login/refresh/logout — none return a `user` object, just
-                        # tokens (the access token itself carries { sub, role, email }). Postgres
-                        # via TypeORM, salt+pepper+SHA-256 hashing. UserRole has exactly one value
-                        # ('user') — no admin/role system in this project.
+                        # it). register/login/refresh/logout/account — none return a `user`
+                        # object, just tokens (the access token itself carries
+                        # { sub, role, email }). account (one endpoint, both newEmail/newPassword
+                        # optional, at least one required) is body-driven (current password
+                        # proves identity), not JwtAuthGuard-gated, and always reissues tokens
+                        # since email may have changed. Postgres via TypeORM, salt+pepper+SHA-256
+                        # hashing. UserRole has exactly one value ('user') — no admin/role system
+                        # in this project.
   libs/
     auth-kernel/          # generic JWT sign/verify (the only class allowed to import
                         # `jsonwebtoken`), JwtAuthGuard, CurrentUser decorator — shared by auth
@@ -90,13 +95,21 @@ doesn't (e.g. wrapping the generic `IEventPublisher` in a topic-specific publish
   email }` — see `@app/auth-kernel`'s `JwtPayload`). No endpoint (backend or Gateway proxy) hands
   back a separate `user` object; the client decodes the token it already has instead. Don't add a
   `/me`-style endpoint, or a `user` field to a register/login/refresh response, without checking
-  whether the field could just go in the JWT payload instead — this only holds because the project
-  has no profile-editing feature; revisit if one's ever added (a stale field in an
-  already-issued token becomes a real tradeoff at that point, not a non-issue).
+  whether the field could just go in the JWT payload instead. Profile editing does exist now
+  (`account`) — the pattern this project uses for a field that changes is to reissue a fresh token
+  pair from that endpoint rather than adding `/me`; follow that precedent for any other editable
+  claim.
 - **Comments stay terse.** One line, not a paragraph; a comment earns more than one line only for a
   genuine footgun (e.g. OTel's import-order requirement), never for general architecture
   explanation — that belongs in `docs/specs/`, referenced with a short pointer if needed. Don't
   reach for the dense, narrative comment style — that's not this project's convention.
+- **Don't duplicate a check/pattern that already exists elsewhere in the same service.** Before
+  writing a new "find user by email, verify password, throw `UnauthorizedException`" block (or any
+  other logic already present elsewhere in the service), look for an existing method doing the same
+  thing and extract a shared private helper instead of copy-pasting (see `AuthService.
+  verifyCredentials`, shared by `login`/`updateAccount`). If extracting the helper means touching a
+  method other callers already depend on, that's a cross-cutting change to working code — propose it
+  and ask first rather than restructuring unprompted.
 
 ## When you're done
 

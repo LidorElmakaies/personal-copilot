@@ -1,6 +1,5 @@
-// Extend this union to add a role (e.g. 'guest') — the JWT payload, the `users.role` DB column
-// (plain `text`, no enum constraint), and every switch/guard over UserRole all follow from this
-// one type, so nothing else needs a schema change to grow the set.
+// Extend this union to add a role — the JWT payload and the `users.role` column (plain `text`, no
+// enum constraint) both follow from this one type, so no schema change is needed to grow the set.
 export type UserRole = 'user' | 'admin';
 
 export interface JwtPayload {

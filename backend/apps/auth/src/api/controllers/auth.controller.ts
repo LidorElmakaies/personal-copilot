@@ -4,6 +4,7 @@ import type { IAuthService } from '../../application/interfaces/auth-service.int
 import { LoginDto } from '../dto/login.dto';
 import { RefreshTokenDto } from '../dto/refresh-token.dto';
 import { RegisterDto } from '../dto/register.dto';
+import { UpdateAccountDto } from '../dto/update-account.dto';
 
 // No `user` object in any response — see docs/specs/services.md#auth.
 @Controller('auth')
@@ -51,5 +52,20 @@ export class AuthController {
   @HttpCode(204)
   async logout(@Body() dto: RefreshTokenDto): Promise<void> {
     await this.authService.logout(dto.refresh_token);
+  }
+
+  @Post('account')
+  @HttpCode(200)
+  async updateAccount(@Body() dto: UpdateAccountDto) {
+    const tokens = await this.authService.updateAccount({
+      email: dto.email,
+      currentPassword: dto.currentPassword,
+      newEmail: dto.newEmail,
+      newPassword: dto.newPassword,
+    });
+    return {
+      access_token: tokens.accessToken,
+      refresh_token: tokens.refreshToken,
+    };
   }
 }

@@ -47,10 +47,35 @@ each app's `test/` directory. `backend/libs/testing` doesn't exist yet — creat
 
 ## Frontend
 
-Secondary — no test runner is set up yet. If one gets added, the services layer
-(`src/services/http/*.js`, `src/services/ws/socketService.js`) is the highest-value target (mostly
-pure functions, minimal React/Redux involved): assert `authService` builds the right request shape
-and translates a non-2xx response into the message `apiError.js` documents.
+Secondary for automated tests — no test runner is set up yet. If one gets added, the services
+layer (`src/services/http/*.js`, `src/services/ws/socketService.js`) is the highest-value target
+(mostly pure functions, minimal React/Redux involved): assert `authService` builds the right
+request shape and translates a non-2xx response into the message `apiError.js` documents.
+
+### Browser-driven UI verification
+
+When asked to verify a visual/animation change actually works (not a unit test — driving a real
+browser against the running app), Node is fnm-managed and not on the default PATH: prepend
+`C:\Users\lidor\AppData\Roaming\fnm\node-versions\v22.15.0\installation` to `$env:PATH` in
+PowerShell before reaching for `node`/`npm`/`npx`, rather than defaulting straight to pulling a
+`node` Docker image — it's already there and faster. Install Playwright in the session's
+scratchpad directory (`npm install playwright && npx playwright install chromium`, cached at
+`~/AppData/Local/ms-playwright` after the first run), point it at the real running Docker stack
+(`http://localhost:8081` frontend, `:8000` gateway — rebuild via `cd devops && docker compose up
+-d --build frontend` after a code change), and verify with actual measurements
+(`getBoundingClientRect()`/`getComputedStyle()`), not just a screenshot — several apparent visual
+bugs in this project turned out to be the verification script's own mistake (wrong element, wrong
+crop) once the underlying numbers were checked. See `.claude/agents/frontend.md`'s "Seeing your
+changes" section for the full driving conventions (registering via the UI not the API, why
+`getByText(exact:true)` can resolve to the wrong element, `elementFromPoint` skipping
+`pointerEvents:none` layers) and the specific bug patterns already found there.
+
+Pulling a `node` Docker image and running Playwright inside a container remains the right call
+when the task specifically needs isolation from the host (a clean-room repro, no host Node
+available, or explicitly asked for) — from inside such a container, reach the host's published
+ports via `http://host.docker.internal:8081`/`:8000`, and remap `localhost` to
+`host.docker.internal` in the browser's own resolver if the app's build baked in a `localhost` API
+origin (`--host-resolver-rules="MAP localhost host.docker.internal"` for Chromium).
 
 ## Commands
 

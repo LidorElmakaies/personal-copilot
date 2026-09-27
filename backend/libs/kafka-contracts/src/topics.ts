@@ -1,4 +1,3 @@
-// This project's Kafka topics. Empty for now — add one here, and to
-// devops/kafka/docker-compose.yml's kafka-init, the same change a topic's first producer/consumer
-// ships in.
+// This project's Kafka topics — empty until the first one ships. See docs/specs/event-schemas.md
+// for everything that needs to change alongside this file.
 export const KAFKA_TOPICS = {} as const;

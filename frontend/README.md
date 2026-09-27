@@ -1,6 +1,7 @@
 # frontend
 
-Expo/React Native app — login/register + a Settings tab. See the root
+Expo/React Native app — optional login/register (the app doesn't gate itself on a session), a Home
+tab, and an auth-gated Account tab. See the root
 [CLAUDE.md](../CLAUDE.md) for architecture, [.claude/agents/frontend.md](../.claude/agents/frontend.md)
 for the conventions to follow when changing anything here.
 
@@ -13,16 +14,29 @@ npx expo start --web
 
 Matches the sibling project it's modeled on (`ask-my-crawl`) for theme/component conventions — the
 same three-layer theme pipeline (`themeSlice` → `useAppTheme()` → `ThemeAnimContext`, 600ms
-transitions) and the same shared components (`GlowCard`, `GradientButton`, `InputField`,
-`SpaceBackground`), minus the Gluestack layer underneath `ask-my-crawl`'s own pipeline — nothing
-here renders an actual Gluestack component, so it wasn't carried over. The current look
-(space/glow/gradient) is a known stepping-stone, expected to be replaced by a different, more
-animated style later — keep it internally consistent until then rather than treating it as a fixed
-brand.
+transitions), minus the Gluestack layer underneath `ask-my-crawl`'s own pipeline — nothing here
+renders an actual Gluestack component, so it wasn't carried over. The current look (space/glow/
+gradient) is a known stepping-stone, expected to be replaced by a different, more animated style
+later — keep it internally consistent until then rather than treating it as a fixed brand.
+
+`src/components/` splits into `base/` (primitives, grouped into subfolders by purpose:
+`background/` — `Meteors`, `Stars`; `buttons/` — `GradientButton`; `feedback/` — `Alert`, `Chip`;
+`form/` — `InputField`, `Switch`; `layout/` — `GlowCard`, `Row`) and `composite/` (built from one
+or more base/composite components — `AccountEditForm`, `AmbientBackground`, `ConfirmModal`,
+`RequireAuthNotice`). See `.claude/agents/frontend.md` for the classification rule when adding one.
 
 Same Redux Toolkit + services-layer + Expo Router conventions otherwise: all I/O lives in
 `src/services/`, split by transport — `services/http/` (fetch-based calls) and `services/ws/` (the
 Socket.IO client) — called only from thunks in `src/store/slices/`, never inline in a component.
+
+## Hebrew date (`@hebcal/hdate`)
+
+The Home tab's Hebrew/Jewish date uses `@hebcal/hdate` rather than `Intl`'s `'he-u-ca-hebrew'`
+calendar extension. The `Intl` approach works in a desktop browser, but Hermes (React Native's JS
+engine) isn't guaranteed to ship non-Gregorian calendar tables in its bundled ICU data — the same
+code can silently fall back to the Gregorian calendar on-device with no error. `@hebcal/hdate` is
+pure JS with no ICU dependency, so it renders the same regardless of platform. Don't swap this back
+to `Intl` to drop the dependency without re-verifying on-device (not just web) first.
 
 ## Caddy deployment (`Caddyfile`)
 

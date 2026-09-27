@@ -22,3 +22,20 @@ export async function login({ email, password }) {
   if (!response.ok) throw new Error(await parseErrorMessage(response));
   return response.json(); // { access_token, refresh_token }
 }
+
+// Authenticated by password-in-body, not a bearer token — deliberate on the backend side, see
+// CLAUDE.md.
+export async function updateAccount({
+  email,
+  currentPassword,
+  newEmail,
+  newPassword,
+}) {
+  const response = await fetch(`${URLS.auth.origin}/auth/account`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, currentPassword, newEmail, newPassword }),
+  });
+  if (!response.ok) throw new Error(await parseErrorMessage(response));
+  return response.json(); // { access_token, refresh_token }
+}
