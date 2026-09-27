@@ -86,16 +86,13 @@ function Star({ star, peakOpacity, baseOpacity, reducedMotion }) {
   );
 }
 
-// Fixed-position twinkling dots, purely decorative — see AmbientBackground.js. Positions/timings/
-// colors are rolled once at mount (useMemo) so stars don't reshuffle on every re-render. Each
-// star picks its own color from `palette` rather than one flat color for the whole field — real
-// starlight varies from blue-white to gold, and a single color read as duller than intended.
+// Decorative, see AmbientBackground.js. Positions/timings/colors rolled once at mount (useMemo),
+// not on every re-render; per-star color rationale is in colors.js's particleColors comment.
 export default function Stars({ isDark, palette }) {
   const reducedMotion = useReducedMotion();
   const stars = useMemo(() => randomStars(palette), [palette]);
-  // Light mode's colors are already darker/more saturated (see colors.js's particleColors) to
-  // have real contrast against a near-white bg, but they still need more opacity than dark mode's
-  // pale-on-near-black pairing to actually read against it, not just a tint of it.
+  // More opacity than dark mode despite already-darker colors — see colors.js's light
+  // particleColors comment.
   const peakOpacity = isDark ? 0.9 : 0.7;
   const baseOpacity = isDark ? 0.15 : 0.25;
 

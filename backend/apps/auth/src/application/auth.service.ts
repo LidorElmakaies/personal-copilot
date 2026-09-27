@@ -74,8 +74,7 @@ export class AuthService implements IAuthService {
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
 
-    // Rotate: the used token is revoked no matter what happens next, so a stolen-and-replayed
-    // refresh token only ever works once.
+    // Rotate-on-use — see docs/specs/services.md#auth.
     await this.refreshTokens.revoke(stored.id);
     return this.issueTokens(user.id, user.email, user.role);
   }
@@ -118,8 +117,7 @@ export class AuthService implements IAuthService {
       // Not revoking existing refresh tokens on password change — possible future hardening.
     }
 
-    // Always reissue, even on a password-only change, so this endpoint has one response shape
-    // rather than a conditional one depending on which field changed.
+    // Always reissue, even on a password-only change — see docs/specs/services.md#auth.
     return this.issueTokens(user.id, finalEmail, user.role);
   }
 

@@ -4,12 +4,10 @@ import type { INestApplicationContext } from '@nestjs/common';
 import { shutdownOtel } from './start-otel';
 
 /**
- * SIGTERM/SIGINT handling: app.close() (in-flight work finishes) THEN shutdownOtel() THEN exit.
- * Call once, after NestFactory.create()/createMicroservice(), before app.listen().
- *
- * Don't also call app.enableShutdownHooks() — it installs its own SIGTERM/SIGINT listeners that
- * also call app.close(), double-running every onModuleDestroy hook (surfaces as "Called end on
- * pool more than once" from TypeORM). This handler is sufficient on its own.
+ * app.close() then shutdownOtel() then exit — call once, after NestFactory.create(), before
+ * app.listen(). Don't also call app.enableShutdownHooks(): its own SIGTERM/SIGINT listener would
+ * double-call app.close(), double-running onModuleDestroy (surfaces as TypeORM's "Called end on
+ * pool more than once"). This handler replaces it, not supplements it.
  */
 export function installGracefulShutdown(app: INestApplicationContext): void {
   let shuttingDown = false;

@@ -15,7 +15,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
-import { useAppTheme } from '../hooks/useAppTheme';
+import { useAppTheme } from '../../../hooks/useAppTheme';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -25,21 +25,9 @@ function hexToRgb(hex) {
   return { r: (value >> 16) & 255, g: (value >> 8) & 255, b: value & 255 };
 }
 
-// "Glass Button" — see DESIGN.md. Confirmed pick over three other button styles prototyped in
-// design-lab/ (HUD bracket, console toggle, hard alert-border) — every action button uses this,
-// varied only by `variant`, never a different button shape. Name kept as GradientButton for
-// import stability; it's a resting frosted-glass fill (diagonal gradient wash + blur, matching
-// design-lab's `.btn--glass` at rest) with a reanimated press/hover transition — border + glow
-// interpolate toward the accent (or error) color and a diagonal light sweep crosses the button —
-// same technique as design-lab's `.btn--glass:hover`, driven by one shared progress value instead
-// of a boolean `active` state.
-//
-// Two nested boxes: an outer Pressable (casts the shadow — can't sit on the same element as the
-// overflow:hidden clip below, since that would clip the shadow too) wrapping an inner View (the
-// actual border/fill/blur, clipped to the pill shape). `style` reaches the outer box only — use it
-// for layout props that must reach the real flex child (flex/margin/width). `contentStyle` reaches
-// the inner box, for anything that changes the pill's own padding/size — padding on the outer box
-// would inflate the tap target without the visible pill following, leaving a gap.
+// Glass Button — see DESIGN.md's Components section. Kept the name GradientButton for import
+// stability across the design change. Outer/inner shadow+clip split and the style/contentStyle
+// padding split: see .claude/agents/frontend.md's "Bug patterns already hit".
 export default function GradientButton({
   label,
   onPress,
@@ -76,8 +64,7 @@ export default function GradientButton({
     borderColor: interpolateColor(pressed.value, [0, 1], [restBorder, tint]),
   }));
 
-  // Dark mode ramps in a colored glow (per DESIGN.md); light mode gets a plain neutral drop-shadow
-  // instead — a colored glow "reads as messy on white" there.
+  // Colored glow in dark mode, plain drop-shadow in light — see DESIGN.md's Theme section.
   const shadowStyle = useAnimatedStyle(() => {
     const opacity = interpolate(
       pressed.value,
@@ -107,10 +94,8 @@ export default function GradientButton({
     ],
   }));
 
-  // The rim is a flat highlight color, not the tint — left at full opacity while the border
-  // animates to an accent/error color, it reads as a mismatched pale seam cutting across an
-  // otherwise uniformly-colored ring. Fading it out as the border takes over keeps the edge
-  // reading as one coherent color instead of two clashing ones.
+  // Rim is a flat highlight, not the tint — fades out as the border animates to accent/error so
+  // the edge doesn't read as two clashing colors instead of one.
   const rimStyle = useAnimatedStyle(() => ({
     opacity: interpolate(pressed.value, [0, 1], [1, 0]),
   }));
@@ -132,10 +117,8 @@ export default function GradientButton({
       ]}
     >
       <Animated.View style={[styles.inner, borderStyle, contentStyle]}>
-        {/* borderRadius set directly here too, not just inherited via `inner`'s overflow:hidden —
-            on web, backdrop-filter can bleed past an ancestor's rounded clip in a rectangular
-            shape unless the filtered element carries the same radius itself. Barely visible at
-            the old small corner radius; very visible now that the pill is fully rounded. */}
+        {/* Own explicit borderRadius, not just inherited via `inner`'s overflow:hidden — see
+            .claude/agents/frontend.md's "Bug patterns already hit". */}
         <BlurView
           intensity={isDark ? 14 : 22}
           tint={isDark ? 'dark' : 'light'}
@@ -172,12 +155,8 @@ export default function GradientButton({
 }
 
 const styles = StyleSheet.create({
-  // Never gets padding — padding is reserved space a child can never paint into no matter how
-  // it's told to stretch, so any padding landing here (rather than on `inner`) inflates the
-  // invisible hit-target beyond the visible glass pill, exposing the blurred card behind it in
-  // the gap and reading as a second, broken-looking border around the real one. `style` is safe
-  // here only for layout props that must reach the real flex child (flex/margin/width) — use
-  // `contentStyle` for anything that changes the pill's own padding/size.
+  // Never gets padding — use contentStyle for that, see .claude/agents/frontend.md's "Bug
+  // patterns already hit".
   shadowWrapper: {
     borderRadius: 999,
     shadowOffset: { width: 0, height: 0 },

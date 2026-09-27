@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { useAppTheme } from '../hooks/useAppTheme';
+import { useAppTheme } from '../../../hooks/useAppTheme';
 
 // Title + subtitle stack with an optional trailing control (chip, switch, button) — the standard
 // line inside a GlowCard. Pass `last` on the final Row in a card to skip its bottom border. See

@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useDispatch } from 'react-redux';
-import Alert from './Alert';
-import GradientButton from './GradientButton';
-import InputField from './InputField';
-import { updateAccount } from '../store/slices/authSlice';
-import { isValidEmail, PASSWORD_REQUIREMENTS_HINT } from '../utils/validation';
+import Alert from '../base/feedback/Alert';
+import GradientButton from '../base/buttons/GradientButton';
+import InputField from '../base/form/InputField';
+import { updateAccount } from '../../store/slices/authSlice';
+import { isValidEmail, PASSWORD_REQUIREMENTS_HINT } from '../../utils/validation';
 
 // Composite component (InputField/GradientButton/Alert). `email` is the lookup key — the edited
 // value only ever goes in newEmail. See docs/specs/services.md#auth.

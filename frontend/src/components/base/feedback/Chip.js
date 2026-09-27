@@ -10,12 +10,10 @@ import Animated, {
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
-import { useAppTheme } from '../hooks/useAppTheme';
+import { useAppTheme } from '../../../hooks/useAppTheme';
 
-// Outline status chip — ported from example/frontend's StatusBadge.tsx (verified first in
-// design-lab's Status tab before porting for real). No fill: 1px border + text in the status
-// color, plus a glow dot + an expanding pulse ring (scale 1->2.8, fading out, 1.8s loop) on every
-// variant. See DESIGN.md's Components section.
+// Outline status chip — 1px border + text in the status color, plus a glow dot and pulse ring.
+// See DESIGN.md's Components section.
 const VARIANT_COLOR = {
   online: (colors) => colors.success,
   pending: (colors) => colors.pending,

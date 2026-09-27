@@ -1,7 +1,7 @@
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StyleSheet, View } from 'react-native';
-import { useAppTheme } from '../hooks/useAppTheme';
+import { useAppTheme } from '../../../hooks/useAppTheme';
 
 function withAlpha(hex, alpha) {
   const clean = hex.replace('#', '');
@@ -12,16 +12,10 @@ function withAlpha(hex, alpha) {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
-// "Glass Card" — see DESIGN.md. Ported from example/frontend's GlassPanel.tsx (verified first in
-// design-lab's Panels tab): a gradient ring border (accent color fading to transparent, via a
-// 1px-padded LinearGradient wrapper) + a soft accent glow, replacing the old flat solid border.
-// Blur intensity dropped hard (was 40/60) — that heavy a blur smeared whatever's behind
-// (AmbientBackground's now-colorful stars/meteors) into a wash instead of a soft glow; this keeps
-// them as recognizable points with a gentle bloom instead of either sharp pinpoints or a smear.
-//
-// Split into an outer shadow-casting wrapper and an inner overflow:hidden wrapper deliberately —
-// a single view can't clip its own content (for the blur/border radius) and cast an unclipped
-// shadow at the same time.
+// Glass Card — see DESIGN.md's Components section. Blur kept light so it doesn't smear
+// AmbientBackground's stars/meteors into a wash instead of a soft glow. Outer/inner split is the
+// same shadow+clip pattern as GradientButton — see .claude/agents/frontend.md's "Bug patterns
+// already hit".
 export default function GlowCard({ children, style }) {
   const { isDark, colors } = useAppTheme();
 

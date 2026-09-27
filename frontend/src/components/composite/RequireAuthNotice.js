@@ -1,9 +1,9 @@
 import { useRouter } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 import AmbientBackground from './AmbientBackground';
-import GlowCard from './GlowCard';
-import GradientButton from './GradientButton';
-import { useAppTheme } from '../hooks/useAppTheme';
+import GlowCard from '../base/layout/GlowCard';
+import GradientButton from '../base/buttons/GradientButton';
+import { useAppTheme } from '../../hooks/useAppTheme';
 
 // Composite component — pairs with useRequireAuth as the standard fallback for any requiresAuth
 // screen, not just Account.

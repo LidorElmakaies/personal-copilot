@@ -27,7 +27,7 @@ navigating. That only covers a *tab press*; a direct hit on the route (deep link
 reopening the app on that tab) bypasses it, so a `requiresAuth` screen also needs its own mount-time
 check. Both halves are generic, not Account-specific: `useRequireAuth()`
 (`src/hooks/useRequireAuth.js`) is the mount-time check, `RequireAuthNotice`
-(`src/components/RequireAuthNotice.js`) is the logged-out fallback to render when it's false — see
+(`src/components/composite/RequireAuthNotice.js`) is the logged-out fallback to render when it's false — see
 `(tabs)/account.js` for the pattern the next `requiresAuth` tab should follow.
 
 ## Theme system — three-layer pipeline, no Gluestack
@@ -53,14 +53,26 @@ resolved palette can't express.)
 
 ## Build for reuse — components, not per-screen markup
 
-Favor small, composable components in `src/components/` over duplicating UI per screen.
-`InputField`, `GlowCard`, `GradientButton`, `AmbientBackground`, `Chip`, `ConfirmModal`, `Alert`,
-`AccountEditForm`, `RequireAuthNotice` already exist — use them instead of hand-rolling a
-`TextInput`/card/button/background/confirm-dialog/message-box per screen. If a UI pattern is about
-to appear a second time, extract it to a component before a third screen copies it again. A base/
-composite split is planned for `src/components/` (base: buttons/inputs/alerts; composite: built
-from base ones) — until that physical folder split lands, treat `Alert` as base and
-`AccountEditForm`/`RequireAuthNotice` as composite by convention.
+Favor small, composable components over duplicating UI per screen. `src/components/` splits into
+two folders:
+
+- **`base/`** — primitives that don't import any other component from `src/components/`; they only
+  use React Native primitives, Reanimated, `expo-blur`/`expo-linear-gradient`, and
+  `useAppTheme()`/hooks. Grouped into subfolders by purpose: `background/` (`Meteors`, `Stars` —
+  animated background-effect primitives), `buttons/` (`GradientButton`), `feedback/` (`Alert`,
+  `Chip` — status/feedback indicators), `form/` (`InputField`, `Switch` — form input controls),
+  `layout/` (`GlowCard`, `Row` — layout/surface primitives).
+- **`composite/`** — built by composing one or more `base` (or other `composite`) components, flat
+  (no subfolders). Currently: `AccountEditForm` (from `Alert`, `GradientButton`, `InputField`),
+  `AmbientBackground` (from `Meteors`, `Stars`), `ConfirmModal` (from `GlowCard`,
+  `GradientButton`), `RequireAuthNotice` (from `AmbientBackground` + `GlowCard`, `GradientButton`).
+
+Use these instead of hand-rolling a `TextInput`/card/button/background/confirm-dialog/message-box
+per screen. If a UI pattern is about to appear a second time, extract it to a component before a
+third screen copies it again — new component that imports another `src/components/` file goes in
+`composite/`; one that doesn't goes in `base/`, in the subfolder matching its purpose (a new
+subfolder only if none of the five fit). Pages (`app/`) stay composition + Redux wiring only — no
+component definitions or business logic in a page file.
 
 ## Services layer — where all I/O lives
 
@@ -145,9 +157,10 @@ Driving it:
 ### Bug patterns already hit — recognize these fast if they recur
 
 - **Padding must never land on only the outer (shadow-casting) box** of a two-box shadow-wrapper/
-  inner-clip component (`GradientButton.js`'s pattern: an outer `Pressable` casts the shadow, an
-  inner `View` holds the actual border/fill because it needs `overflow:'hidden'`, which would
-  clip the shadow if they were the same element). If a caller's padding reaches only the outer
+  inner-clip component (`GradientButton.js`'s and `GlowCard.js`'s shared pattern: an outer box
+  casts the shadow, an inner one holds the actual border/fill because it needs
+  `overflow:'hidden'`, which would clip the shadow if they were the same element). If a caller's
+  padding reaches only the outer
   box, the inner (visible) box doesn't grow with it, opening a gap that exposes whatever's behind
   — reads as a broken/doubled border. Use a separate prop (this component's `contentStyle`) for
   anything that should resize the *visible* box, and keep the outer box's own style limited to

@@ -2,9 +2,9 @@ import { HDate } from '@hebcal/hdate';
 import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useSelector } from 'react-redux';
-import AmbientBackground from '../../src/components/AmbientBackground';
-import Chip from '../../src/components/Chip';
-import GlowCard from '../../src/components/GlowCard';
+import AmbientBackground from '../../src/components/composite/AmbientBackground';
+import Chip from '../../src/components/base/feedback/Chip';
+import GlowCard from '../../src/components/base/layout/GlowCard';
 import { useAppTheme } from '../../src/hooks/useAppTheme';
 
 const pad2 = (n) => String(n).padStart(2, '0');

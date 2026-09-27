@@ -14,12 +14,16 @@ npx expo start --web
 
 Matches the sibling project it's modeled on (`ask-my-crawl`) for theme/component conventions — the
 same three-layer theme pipeline (`themeSlice` → `useAppTheme()` → `ThemeAnimContext`, 600ms
-transitions) and the same shared components (`GlowCard`, `GradientButton`, `InputField`,
-`AmbientBackground`), minus the Gluestack layer underneath `ask-my-crawl`'s own pipeline — nothing
-here renders an actual Gluestack component, so it wasn't carried over. The current look
-(space/glow/gradient) is a known stepping-stone, expected to be replaced by a different, more
-animated style later — keep it internally consistent until then rather than treating it as a fixed
-brand.
+transitions), minus the Gluestack layer underneath `ask-my-crawl`'s own pipeline — nothing here
+renders an actual Gluestack component, so it wasn't carried over. The current look (space/glow/
+gradient) is a known stepping-stone, expected to be replaced by a different, more animated style
+later — keep it internally consistent until then rather than treating it as a fixed brand.
+
+`src/components/` splits into `base/` (primitives, grouped into subfolders by purpose:
+`background/` — `Meteors`, `Stars`; `buttons/` — `GradientButton`; `feedback/` — `Alert`, `Chip`;
+`form/` — `InputField`, `Switch`; `layout/` — `GlowCard`, `Row`) and `composite/` (built from one
+or more base/composite components — `AccountEditForm`, `AmbientBackground`, `ConfirmModal`,
+`RequireAuthNotice`). See `.claude/agents/frontend.md` for the classification rule when adding one.
 
 Same Redux Toolkit + services-layer + Expo Router conventions otherwise: all I/O lives in
 `src/services/`, split by transport — `services/http/` (fetch-based calls) and `services/ws/` (the

@@ -1,7 +1,7 @@
 import { Modal, StyleSheet, Text, View } from 'react-native';
-import GlowCard from './GlowCard';
-import GradientButton from './GradientButton';
-import { useAppTheme } from '../hooks/useAppTheme';
+import GlowCard from '../base/layout/GlowCard';
+import GradientButton from '../base/buttons/GradientButton';
+import { useAppTheme } from '../../hooks/useAppTheme';
 
 // Reusable Yes/No confirm overlay — in-house replacement for Alert.alert so a prompt matches this
 // app's themed look instead of the platform-native alert box.

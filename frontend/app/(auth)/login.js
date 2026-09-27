@@ -8,10 +8,10 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useDispatch, useSelector } from 'react-redux';
-import AmbientBackground from '../../src/components/AmbientBackground';
-import GlowCard from '../../src/components/GlowCard';
-import GradientButton from '../../src/components/GradientButton';
-import InputField from '../../src/components/InputField';
+import AmbientBackground from '../../src/components/composite/AmbientBackground';
+import GlowCard from '../../src/components/base/layout/GlowCard';
+import GradientButton from '../../src/components/base/buttons/GradientButton';
+import InputField from '../../src/components/base/form/InputField';
 import { useAppTheme } from '../../src/hooks/useAppTheme';
 import { clearAuthError, loginUser } from '../../src/store/slices/authSlice';
 import { isValidEmail } from '../../src/utils/validation';

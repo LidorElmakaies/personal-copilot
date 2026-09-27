@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, TouchableOpacity } from 'react-native';
-import { useAppTheme } from '../hooks/useAppTheme';
+import { useAppTheme } from '../../../hooks/useAppTheme';
 
 // Reusable boolean toggle — track + sliding knob, knob picks up the accent color + glow when on.
 // Drives the theme row in Settings today; generic for any future on/off setting. See DESIGN.md's

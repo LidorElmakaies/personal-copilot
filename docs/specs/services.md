@@ -91,7 +91,7 @@ logging in" link (routes to `/`) for whoever lands there without wanting to auth
   Account?") instead of navigating; a direct hit on the route (deep link, web refresh, reopening
   the app on this tab) bypasses that entirely, so `AccountScreen` also calls `useRequireAuth()`
   on mount and renders `RequireAuthNotice` in that case — both are generic (`src/hooks/`,
-  `src/components/`), reusable by any future `requiresAuth` tab, not Account-specific.
+  `src/components/composite/`), reusable by any future `requiresAuth` tab, not Account-specific.
   `AccountEditForm` is a tap-to-reveal form for both editable fields at once, wired to Auth
   Service's `account` endpoint (see `apps/auth` above) via a single `updateAccount` thunk in
   `authSlice`, with one `Alert` reporting success/failure for the whole request.
@@ -101,9 +101,11 @@ Talks only to Gateway (`EXPO_PUBLIC_GATEWAY_ORIGIN`, baked in at build time, req
 service directly.
 
 Themed via a three-layer pipeline (`themeSlice` → `useAppTheme()` → `ThemeAnimContext`) and shared
-components (`GlowCard`, `GradientButton`, `InputField`, `AmbientBackground`, `ConfirmModal`,
-`Alert`, `AccountEditForm`, `RequireAuthNotice`) — see `.claude/agents/frontend.md` for the full
-convention and why there's no Gluestack layer here.
+components under `src/components/base/` (grouped into `background`/`buttons`/`feedback`/`form`/
+`layout` subfolders by purpose) and `src/components/composite/` (`GlowCard`, `GradientButton`,
+`InputField`, `AmbientBackground`, `ConfirmModal`, `Alert`, `AccountEditForm`,
+`RequireAuthNotice`) — see `.claude/agents/frontend.md` for the base/composite split, the full
+convention, and why there's no Gluestack layer here.
 
 `src/services/` is split by transport: `http/` (fetch-based calls — `authService`) and `ws/`
 (`socketService`, a single shared Socket.IO connection). `wsSlice`'s `connectWebSocket`/

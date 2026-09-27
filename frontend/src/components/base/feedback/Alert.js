@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { useAppTheme } from '../hooks/useAppTheme';
+import { useAppTheme } from '../../../hooks/useAppTheme';
 
 // Base component — success/error message box, no dismiss/timeout logic.
 export default function Alert({ variant = 'error', children, style }) {

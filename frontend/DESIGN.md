@@ -96,20 +96,20 @@ Glass itself is not a naive color invert between themes:
 
 ## Background / ambient motion
 
-One layer, strictly decorative — legibility of whatever's on top always wins. Already built for
-real (`src/components/AmbientBackground.js`), ahead of the rest of this file — it runs behind the
-app's current space/glow/gradient screens too, not just the future glass shell.
+One layer, strictly decorative — legibility of whatever's on top always wins. A simpler version is
+already built and live (`src/components/composite/AmbientBackground.js`): a static per-theme
+gradient backdrop, cross-faded 600ms on theme toggle, plus twinkling stars and a looping meteor
+pool (`Stars.js`/`Meteors.js`, both Reanimated-driven, gated behind `useReducedMotion()`). It runs
+behind the app's current space/glow/gradient screens too, not just the future glass shell.
 
-3 soft radial-gradient "wash" layers per theme (`src/theme/colors.js`'s `dark`/`light` `wash`
-arrays — cyan/violet/pink for dark's "space" set, gold/coral for light's "sun" set), each
-independently drifting (translate + scale) and breathing in opacity on its own slow loop (13–19s
-per layer, eased). Rendered as `react-native-svg` `<RadialGradient>`s, animated with plain React
-Native `Animated` (`useNativeDriver: true`) rather than a canvas — the platform composites a few
-flat gradient transforms instead of anything being redrawn in JS every frame.
-
-Must fully stop under `prefers-reduced-motion: reduce` — the RN implementation gates this with
-Reanimated's `useReducedMotion()` hook: when true, the drift/breathe `Animated.loop` simply never
-starts, leaving the washes static at rest. Should never be the first thing the eye goes to.
+The multi-layer wash system below is a further refinement, not yet built: 3 soft radial-gradient
+"wash" layers per theme (cyan/violet/pink for dark's "space" set, gold/coral for light's "sun"
+set), each independently drifting (translate + scale) and breathing in opacity on its own slow
+loop (13–19s per layer, eased). Would render as `react-native-svg` `<RadialGradient>`s, animated
+with plain React Native `Animated` (`useNativeDriver: true`) rather than a canvas — the platform
+composites a few flat gradient transforms instead of anything being redrawn in JS every frame.
+Same reduced-motion requirement as the live version: the drift/breathe loop must not start when
+`prefers-reduced-motion`/`useReducedMotion()` is set.
 
 ## Typography
 
@@ -132,13 +132,14 @@ uses plain CSS/canvas tricks that don't map 1:1 onto React Native. Real build:
 
 | Lab concept | Real implementation |
 |---|---|
-| `.card` / Glass Card | Restyle of `GlowCard` (`src/components/`) — same glass token logic, theme-aware per the table above |
-| `.btn--glass` / `.btn--glass-danger` | Restyle of `GradientButton` — glass instead of gradient fill, `variant="danger"` prop for the tint |
+| `.card` / Glass Card | Restyle of `GlowCard` (`src/components/base/layout/`) — same glass token logic, theme-aware per the table above |
+| `.btn--glass` / `.btn--glass-danger` | Restyle of `GradientButton` (`src/components/base/buttons/`) — glass instead of gradient fill, `variant="danger"` prop for the tint |
 | Bottom tab bar | New component — Expo Router `(tabs)` already provides the routing; this is the visual chrome around it |
-| Ambient wash background | Already built — `AmbientBackground.js` (`react-native-svg` `<RadialGradient>` + RN `Animated`, replaced `SpaceBackground` directly) — no further porting needed for this row |
+| Ambient wash background | Further refinement of the already-live `AmbientBackground.js` (`src/components/composite/`) — see "Background / ambient motion" above for what's built vs. what this row still requires |
 | Theme switch | Already exists (`themeSlice`, `useAppTheme()`, `ThemeAnimContext`) — this design doesn't change the pipeline, only what it themes |
 | Tab-switch fade | `react-native-reanimated` `entering`/`exiting` (or `moti`) on the focused screen, ~180ms |
-| Stat tile, Chip, Switch, Row | New components — none of these exist in `src/components/` yet |
+| Stat tile | New component — doesn't exist in `src/components/` yet |
+| Chip, Switch, Row | Already exist (`src/components/base/{feedback,form,layout}/`) in the current space/glow look — this design only restyles them onto glass tokens |
 
 `react-native-gesture-handler` and `moti` stay in `package.json` from the earlier draft; gesture
 handling has no role in this design (nothing to pan/pinch), keep the dependency only if `moti` ends

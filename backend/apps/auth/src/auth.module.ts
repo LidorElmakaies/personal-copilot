@@ -27,8 +27,7 @@ import {
         type: 'postgres' as const,
         url: config.get<string>('DATABASE_URL'),
         entities: [UserEntity, RefreshTokenEntity],
-        // Simplest thing that works for a single-user personal project — no migration
-        // framework, revisit before this ever holds data that matters to lose.
+        // See backend/apps/auth/README.md's "synchronize: true below production" section.
         synchronize: config.get<string>('NODE_ENV') !== 'production',
       }),
       inject: [ConfigService],

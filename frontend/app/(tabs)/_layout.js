@@ -4,7 +4,7 @@ import { Tabs, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSelector } from 'react-redux';
-import ConfirmModal from '../../src/components/ConfirmModal';
+import ConfirmModal from '../../src/components/composite/ConfirmModal';
 import { useAppTheme } from '../../src/hooks/useAppTheme';
 
 // One entry per tab (bar + Tabs.Screen below); icon set per DESIGN.md's "Navigation" section.

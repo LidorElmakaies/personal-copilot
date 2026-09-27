@@ -99,8 +99,11 @@ docs/specs/               services.md, event-schemas.md, architecture.md (Mermai
   auto-connects whenever `authSlice.accessToken` changes (`app/_layout.js`'s
   `RealtimeConnectionManager`) — generic plumbing, same as Gateway's `/ws`; nothing listens for a
   specific event yet. Themed via the three-layer pipeline described in the Architecture section
-  below — `GlowCard`/`GradientButton`/`InputField`/`AmbientBackground`/`Alert` in `src/components/`
-  are the shared building blocks login/register/Home/Account all use; `ConfirmModal` is the shared
+  below — `GlowCard`/`GradientButton`/`InputField`/`Alert` (`src/components/base/`, split into
+  `background`/`buttons`/`feedback`/`form`/`layout` subfolders by purpose — see
+  `.claude/agents/frontend.md`) and `AmbientBackground` (`src/components/composite/`) are the
+  shared building blocks login/register/
+  Home/Account all use; `ConfirmModal` (composite) is the shared
   Yes/No overlay (used today by the `requiresAuth` tab-press guard and Account's logout
   confirmation).
 - **Kafka** runs (`devops/kafka/docker-compose.yml`) as generic plumbing, but nothing produces or

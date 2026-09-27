@@ -1,11 +1,6 @@
-// Static color definitions — the single source of truth for all colors.
-// Import this file directly anywhere you need raw values (StyleSheet, animations, etc.)
-// useAppTheme() uses this to return the correct palette at runtime.
-//
-// "Glass" palette — see ../../DESIGN.md. Glass is not a naive light/dark invert: dark mode washes
-// translucent white over a surface, light mode washes translucent dark (charcoal) over it — see
-// GlowCard/GradientButton, which pick the wash direction themselves rather than reading a single
-// "glass color" token.
+// Read via useAppTheme() — never imported directly in a screen/component, see
+// .claude/agents/frontend.md. "Glass" wash direction (white in dark mode, charcoal in light)
+// follows DESIGN.md's Theme section; GlowCard/GradientButton pick it themselves.
 
 export const dark = {
   bg: '#0a0c0f',
@@ -17,8 +12,8 @@ export const dark = {
   accent: '#4fe3ff',
   text: '#e8ecf0',
   textMuted: '#8b939e',
-  // Lightened from #525a63 — that was barely distinguishable from the near-black bg (#0a0c0f),
-  // making a Row's subtitle (theme mode, account email, "Socket.IO · /ws") hard to read.
+  // Kept lighter than the muted tone below — needs to stay legible for a Row subtitle against
+  // the near-black bg (#0a0c0f).
   textFaint: '#7d8792',
   inputBg: 'rgba(255,255,255,0.05)',
   inputBorder: 'rgba(255,255,255,0.14)',
@@ -37,8 +32,8 @@ export const dark = {
   shadow: '#4fe3ff',
   onPrimary: '#04141a',
   spaceGradient: ['#0a0c0f', '#0d0f1c', '#0a0c0f'],
-  // Picked from per particle (Stars.js/Meteors.js) — real starlight varies from blue-white to
-  // gold depending on temperature, so a single flat white read as duller than intended.
+  // Per-particle palette (Stars.js/Meteors.js) — a single flat white reads duller than real
+  // starlight, which varies blue-white to gold.
   particleColors: [
     '#ffffff',
     '#bfe9ff',
@@ -50,8 +45,7 @@ export const dark = {
     '#a8fff0',
     '#c8d4ff',
   ],
-  // GradientButton.js's resting diagonal gradient fill, top-edge highlight rim, and hover sweep
-  // streak — a translucent white wash in dark mode (see this file's own "Glass" comment above).
+  // GradientButton.js's fill/rim/sweep — translucent white wash (see top-of-file comment).
   buttonFillStart: 'rgba(255,255,255,0.08)',
   buttonFillEnd: 'rgba(255,255,255,0.02)',
   buttonRim: 'rgba(255,255,255,0.3)',
@@ -68,8 +62,8 @@ export const light = {
   accent: '#0e8fa6',
   text: '#1b1f24',
   textMuted: '#5b6570',
-  // Darkened from #93a0aa — that was too washed-out against the near-white bg (#eef1f4), making
-  // a Row's subtitle (theme mode, account email, "Socket.IO · /ws") hard to read.
+  // Kept darker than a straight muted tone — needs to stay legible for a Row subtitle against
+  // the near-white bg (#eef1f4).
   textFaint: '#6b7680',
   inputBg: 'rgba(20,30,40,0.03)',
   inputBorder: 'rgba(20,30,40,0.16)',
@@ -88,9 +82,8 @@ export const light = {
   shadow: '#0e8fa6',
   onPrimary: '#ffffff',
   spaceGradient: ['#eef1f4', '#eaf0f6', '#eef1f4'],
-  // Darker/more saturated than the dark-mode set on purpose — these need real contrast against
-  // a near-white bg, not just a tint of it, or they vanish (see Stars.js/Meteors.js's higher
-  // light-mode opacity for the other half of that fix).
+  // Darker/more saturated than the dark-mode set — needs real contrast against a near-white bg or
+  // it vanishes (Stars.js/Meteors.js's higher light-mode opacity is the other half of that fix).
   particleColors: [
     '#3a424a',
     '#0b6f81',
@@ -102,9 +95,8 @@ export const light = {
     '#0f6b6b',
     '#4a4a9e',
   ],
-  // Translucent charcoal wash, not white — light mode inverts the wash direction (see this
-  // file's own "Glass" comment above), and the sweep is dimmer since a bright white streak reads
-  // harsh on a light surface.
+  // Inverted wash direction (see top-of-file comment); sweep kept dimmer since a bright white
+  // streak reads harsh on a light surface.
   buttonFillStart: 'rgba(20,30,40,0.07)',
   buttonFillEnd: 'rgba(20,30,40,0.02)',
   buttonRim: 'rgba(20,30,40,0.18)',

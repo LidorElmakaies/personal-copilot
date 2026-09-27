@@ -1,19 +1,15 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, View } from 'react-native';
-import Meteors from './Meteors';
-import Stars from './Stars';
-import { useAppTheme } from '../hooks/useAppTheme';
-import { dark as darkColors, light as lightColors } from '../theme/colors';
+import Meteors from '../base/background/Meteors';
+import Stars from '../base/background/Stars';
+import { useAppTheme } from '../../hooks/useAppTheme';
+import { dark as darkColors, light as lightColors } from '../../theme/colors';
 
-// Ambient background — see DESIGN.md's "Background / ambient motion" (that section still
-// describes an earlier wash-layer design that was never built; this is what's actually live).
-// A static themed space-gradient backdrop (cross-fades 600ms on theme toggle via the same
-// Animated.Value pattern used elsewhere in this file) plus fixed-position twinkling stars and a
-// small looping meteor pool (Stars.js/Meteors.js), both reanimated-driven. Purely decorative —
-// nothing here should ever compete with the content on top of it. Replaced an earlier Skia
-// canvas (blobs + a setTimeout sparkle spawner) that pegged CPU/memory on web — see DESIGN.md's
-// "Explored and rejected".
+// Decorative only — never compete with the content on top. Static per-theme gradient backdrop,
+// cross-faded 600ms on theme toggle, plus twinkling stars and a looping meteor pool (Stars.js/
+// Meteors.js). See DESIGN.md's "Background / ambient motion" for the target wash-layer design
+// this stands in for — not yet built, see that section's note.
 
 export default function AmbientBackground({ children, style }) {
   const { isDark, colors } = useAppTheme();

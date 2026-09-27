@@ -2,9 +2,8 @@ import { Injectable } from '@nestjs/common';
 import type { Socket } from 'socket.io';
 import type { IConnectionStore } from '../interfaces/connection-store.interface';
 
-// One socket per user — a second login from another device replaces the first. Fine for a single
-// Gateway replica (this project's actual scale); a Redis-backed store (Socket.IO's official Redis
-// adapter) is the upgrade path if that ever changes.
+// One socket per user (a second login replaces the first) — single-replica only, see
+// docs/specs/services.md#gateway for the Redis-backed upgrade path.
 @Injectable()
 export class InMemoryConnectionStore implements IConnectionStore {
   private readonly socketsByUserId = new Map<string, Socket>();
