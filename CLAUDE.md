@@ -121,12 +121,15 @@ docs/specs/               services.md, event-schemas.md, architecture.md (Mermai
 
 1. `cd devops/observability && docker compose up -d` (telemetry stack must exist first —
    `devops/docker-compose.yml` references its network as `external: true`).
-2. `cd devops && cp .env.example .env` and set real values: `GATEWAY_PUBLIC_URL` to your PC's
-   Tailscale MagicDNS name (port 8000 — this is what makes it reachable from your phone), and real
-   random `JWT_SECRET`/`PASSWORD_PEPPER`.
+2. `cd devops && cp .env.example .env` and set real random `JWT_SECRET`/`PASSWORD_PEPPER`.
+   `GATEWAY_PUBLIC_URL`: `http://localhost:8000` for use on this PC only, or the HTTPS tailnet URL
+   from step 4 for your phone.
 3. `docker compose up -d --build`.
-4. Open `http://localhost:8081` (or your Tailscale-reachable frontend origin) from your phone,
-   register an account, log in.
+4. Phone access: run `devops/tailscale/serve.sh` once (see README's "Phone access (Tailscale
+   HTTPS)" for the one-time Tailscale setup), put the Gateway URL it prints into `GATEWAY_PUBLIC_URL`,
+   and `docker compose up -d --build frontend`. HTTPS is required — phone browsers block GPS on
+   plain HTTP.
+5. Open `http://localhost:8081` on this PC, or `https://<pc>.ts.net` from your phone.
 
 ## Commands
 

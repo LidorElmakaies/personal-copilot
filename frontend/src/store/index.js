@@ -11,12 +11,26 @@ import {
   REHYDRATE,
 } from 'redux-persist';
 import authReducer from './slices/authSlice';
+import calendarReducer from './slices/calendarSlice';
+import locationReducer from './slices/locationSlice';
 import themeReducer from './slices/themeSlice';
 import wsReducer from './slices/wsSlice';
 
 const themePersistConfig = {
   key: 'theme',
   storage: AsyncStorage,
+};
+
+const locationPersistConfig = {
+  key: 'location',
+  storage: AsyncStorage,
+  whitelist: ['coords'], // last known location survives a reload; status doesn't
+};
+
+const calendarPersistConfig = {
+  key: 'calendar',
+  storage: AsyncStorage,
+  whitelist: ['shabbat'],
 };
 
 const authPersistConfig = {
@@ -30,6 +44,8 @@ export const store = configureStore({
     theme: persistReducer(themePersistConfig, themeReducer),
     auth: persistReducer(authPersistConfig, authReducer),
     ws: wsReducer, // ephemeral — connection status shouldn't survive a reload
+    location: persistReducer(locationPersistConfig, locationReducer),
+    calendar: persistReducer(calendarPersistConfig, calendarReducer),
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

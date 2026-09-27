@@ -11,6 +11,14 @@
     },
     "web": {
       "bundler": "metro"
-    }
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Personal Copilot uses your location to show Shabbat and holiday times for where you are."
+        }
+      ]
+    ]
   }
 }

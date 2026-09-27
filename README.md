@@ -8,6 +8,32 @@ of it yet.
 See [CLAUDE.md](CLAUDE.md) for architecture, setup, and how this repo is organized —
 [docs/specs/](docs/specs/) for the service/event contracts.
 
+## Phone access (Tailscale HTTPS)
+
+The app reaches your phone over [Tailscale](https://tailscale.com). It must be served over HTTPS,
+because phone browsers only allow location (GPS) on HTTPS pages — the Shabbat times need it.
+
+One-time setup on this PC:
+
+```bash
+curl -fsSL https://tailscale.com/install.sh | sh     # install
+sudo tailscale up                                      # log in (opens a browser link)
+sudo tailscale set --operator=$USER                    # lets serve.sh run without sudo
+```
+
+In the Tailscale admin console (DNS page), turn on **MagicDNS** and **HTTPS Certificates**. Install
+Tailscale on your phone and log in with the same account.
+
+Then, with the stack running:
+
+```bash
+devops/tailscale/serve.sh     # prints your https://<pc>.ts.net URLs
+```
+
+Set the printed Gateway URL as `GATEWAY_PUBLIC_URL` in `devops/.env`, rebuild the frontend
+(`cd devops && docker compose up -d --build frontend`), and open `https://<pc>.ts.net` on your
+phone. `tailscale serve` settings survive reboots; `tailscale serve reset` removes them.
+
 ## Git rule for Claude and every agent
 
 **Never stage or commit anything unless the user explicitly says so** ("stage this", "commit

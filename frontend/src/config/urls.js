@@ -10,6 +10,9 @@ export const URLS = {
   auth: {
     origin: BASE_URL,
   },
+  calendar: {
+    origin: BASE_URL,
+  },
   ws: {
     origin: BASE_URL,
     path: '/ws',

@@ -63,13 +63,13 @@ with a countdown. The Reminders and Notification services exist and run, but do 
   own Postgres database, compose file with no published port. No endpoints yet.
 - [ ] **1.5 Notification Service skeleton.** `backend/apps/notifications`: same as 1.4. No
   endpoints or consumer yet.
-- [ ] **1.6 HTTPS for the web app.** `tailscale serve` in front of the frontend and Gateway so a
+- [ ] **1.6 HTTPS for the web app.** *(Repo side done: `devops/tailscale/serve.sh` + README "Phone access". Waiting on the user to install Tailscale on this PC and run it.)* `tailscale serve` in front of the frontend and Gateway so a
   phone browser allows GPS. Update `.env.example` / `GATEWAY_PUBLIC_URL` and the README.
   *Check:* the site opens over `https://<pc>.ts.net` from the phone.
-- [ ] **1.7 Frontend location.** Add `expo-location`, a `locationSlice` (coords + tz, cached),
+- [x] **1.7 Frontend location.** Add `expo-location`, a `locationSlice` (coords + tz, cached),
   permission request on first use. If permission is denied, the Shabbat section shows a short
   "Location is off" message with a retry button.
-- [ ] **1.8 Home card Shabbat section (H1).** `services/http/calendarApi`, `calendarSlice` thunk,
+- [x] **1.8 Home card Shabbat section (H1).** `services/http/calendarApi`, `calendarSlice` thunk,
   the section under the clock: label, candle lighting, Havdalah, countdown. During Shabbat it
   shows "Shabbat Shalom · ends HH:MM". The last result is cached so it still shows offline.
 - [ ] **1.9 Docs sync.** `docs/specs/*`, `CLAUDE.md`, READMEs (via the `docs` agent).
