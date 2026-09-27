@@ -1,0 +1,2 @@
+# Browser tests run in their own container (devops/playwright), never part of the app image.
+e2e/

@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shabbat &amp; Calendar Mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Rubik:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --bg:#eef1f4; --panel:#ffffff; --card:rgba(20,30,40,0.06); --cardBorder:rgba(20,30,40,0.14);
+  --cardBorderSoft:rgba(20,30,40,0.08); --accent:#0e8fa6; --accentSoft:rgba(14,143,166,0.12);
+  --text:#1b1f24; --muted:#5b6570; --faint:#6b7680; --tabBar:rgba(255,255,255,0.86);
+  --inactive:#93a0aa; --success:#12a866; --successBg:rgba(18,168,102,0.12);
+  --pending:#c9791a; --pendingBg:rgba(201,121,26,0.12); --error:#a4271e; --errorBg:rgba(164,39,30,0.08);
+  --candle:#c9791a; --glow:rgba(14,143,166,0.18); --screen1:#eef1f4; --screen2:#e6eef6;
+  --star:rgba(40,50,70,0.25); --frame:#c9d1d8; --page:#e4e8ec; --pageInk:#1b1f24;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  --sans:"Rubik",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0a0c0f; --panel:#12151a; --card:rgba(255,255,255,0.07); --cardBorder:rgba(255,255,255,0.14);
+    --cardBorderSoft:rgba(255,255,255,0.08); --accent:#4fe3ff; --accentSoft:rgba(79,227,255,0.12);
+    --text:#e8ecf0; --muted:#8b939e; --faint:#7d8792; --tabBar:rgba(18,21,26,0.86);
+    --inactive:#525a63; --success:#3ddc84; --successBg:rgba(61,220,132,0.14);
+    --pending:#ffb84f; --pendingBg:rgba(255,184,79,0.14); --error:#ff6b5b; --errorBg:rgba(255,107,91,0.12);
+    --candle:#ffb84f; --glow:rgba(79,227,255,0.16); --screen1:#0a0c0f; --screen2:#0d0f1c;
+    --star:rgba(255,255,255,0.55); --frame:#2a3038; --page:#07090b; --pageInk:#e8ecf0;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0a0c0f; --panel:#12151a; --card:rgba(255,255,255,0.07); --cardBorder:rgba(255,255,255,0.14);
+  --cardBorderSoft:rgba(255,255,255,0.08); --accent:#4fe3ff; --accentSoft:rgba(79,227,255,0.12);
+  --text:#e8ecf0; --muted:#8b939e; --faint:#7d8792; --tabBar:rgba(18,21,26,0.86);
+  --inactive:#525a63; --success:#3ddc84; --successBg:rgba(61,220,132,0.14);
+  --pending:#ffb84f; --pendingBg:rgba(255,184,79,0.14); --error:#ff6b5b; --errorBg:rgba(255,107,91,0.12);
+  --candle:#ffb84f; --glow:rgba(79,227,255,0.16); --screen1:#0a0c0f; --screen2:#0d0f1c;
+  --star:rgba(255,255,255,0.55); --frame:#2a3038; --page:#07090b; --pageInk:#e8ecf0;
+}
+*{box-sizing:border-box}
+body{background:var(--page);color:var(--pageInk);font-family:var(--sans);font-size:15px;line-height:1.5;padding:0 16px}
+.wrap{max-width:1180px;margin:0 auto;padding-block:32px 64px}
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:8px}
+h1{font-size:28px;font-weight:700;margin:0;text-wrap:balance;letter-spacing:-0.01em}
+.lede{color:var(--muted);max-width:68ch;margin:8px 0 0}
+.themeBtn{font:600 13px var(--sans);color:var(--accent);background:var(--accentSoft);border:1px solid var(--cardBorder);border-radius:999px;padding:8px 14px;cursor:pointer}
+.themeBtn:focus-visible,.day:focus-visible,.pill:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.note{font-size:12px;color:var(--faint);margin-top:6px}
+section.group{margin-top:44px}
+.groupHead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;border-bottom:1px solid var(--cardBorderSoft);padding-bottom:10px;margin-bottom:22px}
+.groupHead h2{font-size:20px;margin:0}
+.groupHead span{color:var(--muted);font-size:14px}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:28px;align-items:start}
+.idea{display:flex;flex-direction:column;gap:12px}
+.ideaLabel{display:flex;gap:10px;align-items:baseline}
+.tag{font:700 12px var(--mono);color:var(--accent);letter-spacing:.06em}
+.ideaLabel h3{margin:0;font-size:16px}
+.idea p{margin:0;color:var(--muted);font-size:14px}
+.idea ul{margin:0;padding-left:18px;color:var(--muted);font-size:13px}
+
+/* phone */
+.phone{width:100%;max-width:320px;height:640px;border-radius:38px;border:8px solid var(--frame);overflow:hidden;position:relative;
+  background:radial-gradient(1px 1px at 20% 12%,var(--star),transparent 60%),radial-gradient(1px 1px at 72% 22%,var(--star),transparent 60%),
+  radial-gradient(1.5px 1.5px at 40% 58%,var(--star),transparent 60%),radial-gradient(1px 1px at 86% 70%,var(--star),transparent 60%),
+  radial-gradient(1px 1px at 12% 84%,var(--star),transparent 60%),linear-gradient(180deg,var(--screen1),var(--screen2),var(--screen1));
+  color:var(--text);display:flex;flex-direction:column;box-shadow:0 20px 50px -20px rgba(0,0,0,.35)}
+.screen{flex:1;overflow:auto;padding:22px 14px 12px;display:flex;flex-direction:column;gap:12px;scrollbar-width:none}
+.screen::-webkit-scrollbar{display:none}
+.screen.center{justify-content:center}
+.tabbar{display:flex;justify-content:space-around;padding:10px 6px 14px;background:var(--tabBar);border-top:1px solid var(--cardBorderSoft);backdrop-filter:blur(8px)}
+.tab{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10.5px;color:var(--inactive);font-weight:500}
+.tab svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8}
+.tab.on{color:var(--accent)}
+.glow{background:var(--card);border:1px solid var(--cardBorder);border-radius:20px;padding:16px;box-shadow:0 0 28px -6px var(--glow)}
+.soft{background:var(--card);border:1px solid var(--cardBorderSoft);border-radius:14px;padding:12px}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px;background:var(--successBg);color:var(--success)}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip.warn{background:var(--pendingBg);color:var(--pending)}
+.chip.plain{background:var(--accentSoft);color:var(--accent)}
+.chip.plain::before{display:none}
+.clock{font:700 44px/1.1 var(--mono);text-align:center;letter-spacing:1px;font-variant-numeric:tabular-nums}
+.dates{text-align:center;display:flex;flex-direction:column;gap:3px;margin-top:12px}
+.dNum{font:600 15px var(--mono);color:var(--muted)}
+.dLong{font-size:12.5px;color:var(--faint)}
+.dHeb{font-size:14px;font-weight:700;color:var(--accent)}
+.statusRow{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.loc{font-size:11px;color:var(--faint);display:flex;align-items:center;gap:4px}
+.loc svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.lbl{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);font-weight:600}
+.big{font:700 20px var(--mono);font-variant-numeric:tabular-nums}
+.candle{color:var(--candle)}
+.divider{height:1px;background:var(--cardBorderSoft);margin:14px 0}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.split>div{display:flex;flex-direction:column;gap:2px}
+.split>div:last-child{text-align:right}
+.sub{font-size:11.5px;color:var(--muted)}
+.countdown{display:flex;justify-content:center;gap:6px;margin-top:12px}
+.cd{display:flex;flex-direction:column;align-items:center;background:var(--accentSoft);border-radius:10px;padding:6px 9px;min-width:48px}
+.cd b{font:700 18px var(--mono);color:var(--accent)}
+.cd span{font-size:9.5px;color:var(--faint);text-transform:uppercase;letter-spacing:.06em}
+.he{font-family:var(--sans);direction:rtl;unicode-bidi:isolate}
+
+/* week track (home B) */
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:10px}
+.wd{display:flex;flex-direction:column;align-items:center;gap:5px;font-size:10px;color:var(--faint)}
+.wd i{display:block;width:100%;height:6px;border-radius:3px;background:var(--cardBorderSoft)}
+.wd.past i{background:var(--accent);opacity:.55}
+.wd.now i{background:linear-gradient(90deg,var(--accent) 45%,var(--cardBorderSoft) 45%)}
+.wd.sh i{background:var(--candle);opacity:.8}
+.wd.now{color:var(--accent);font-weight:700}
+.wd.sh{color:var(--candle);font-weight:700}
+
+/* ring (home C) */
+.ringWrap{position:relative;width:236px;height:236px;margin:4px auto 0}
+.ringWrap svg{position:absolute;inset:0}
+.ringInner{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.ringInner .clock{font-size:34px}
+
+/* calendar grid */
+.monthHead{display:flex;justify-content:space-between;align-items:center}
+.monthHead h4{margin:0;font-size:17px}
+.monthHead .he{font-size:12.5px;color:var(--accent);font-weight:600}
+.arrows{display:flex;gap:6px}
+.arrows b{width:28px;height:28px;border-radius:9px;display:grid;place-items:center;background:var(--card);border:1px solid var(--cardBorderSoft);color:var(--muted);font-weight:500}
+.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-top:10px}
+.dow{font-size:10px;text-align:center;color:var(--faint);font-weight:600;padding-bottom:2px}
+.day{appearance:none;border:1px solid transparent;background:transparent;color:var(--text);border-radius:9px;padding:4px 0 5px;display:flex;flex-direction:column;align-items:center;gap:1px;cursor:pointer;font:inherit;min-height:44px}
+.day .g{font:600 13px var(--mono)}
+.day .h{font-size:9.5px;color:var(--faint)}
+.day .dot{width:5px;height:5px;border-radius:50%;background:transparent;margin-top:1px}
+.day.hol .dot{background:var(--accent)}
+.day.fast .dot{background:var(--error)}
+.day.shab .g{color:var(--candle)}
+.day.out{opacity:.3;pointer-events:none}
+.day.today{border-color:var(--accent)}
+.day.sel{background:var(--accent);border-color:var(--accent)}
+.day.sel .g,.day.sel .h{color:var(--bg)}
+.day.sel .dot{background:var(--bg)}
+.detail h5{margin:0;font-size:15px}
+.detail .he{font-size:12.5px;color:var(--accent);font-weight:600}
+.times{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.t{display:flex;justify-content:space-between;align-items:center;font-size:12.5px}
+.t .mono{font-weight:700}
+.remAdd{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--accent);font-weight:600;margin-top:10px;padding-top:10px;border-top:1px dashed var(--cardBorder)}
+
+/* agenda */
+.pills{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.pill{flex:none;font:600 11.5px var(--sans);padding:6px 11px;border-radius:999px;border:1px solid var(--cardBorder);color:var(--muted);background:transparent;cursor:pointer}
+.pill.on{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+.hero{position:relative;overflow:hidden}
+.hero h4{margin:2px 0 0;font-size:19px}
+.progress{height:5px;border-radius:3px;background:var(--cardBorderSoft);margin-top:12px;overflow:hidden}
+.progress i{display:block;height:100%;width:28%;background:var(--accent)}
+.monthSep{font-size:11px;color:var(--faint);font-weight:600;letter-spacing:.08em;text-transform:uppercase;margin-top:4px}
+.ev{display:grid;grid-template-columns:44px 1fr;gap:10px;align-items:start}
+.evDate{display:flex;flex-direction:column;align-items:center;border-radius:11px;padding:6px 0;background:var(--accentSoft)}
+.evDate b{font:700 17px var(--mono);color:var(--accent);line-height:1}
+.evDate span{font-size:9.5px;color:var(--faint);text-transform:uppercase;margin-top:3px}
+.ev.fastE .evDate{background:var(--errorBg)} .ev.fastE .evDate b{color:var(--error)}
+.ev.remE .evDate{background:var(--pendingBg)} .ev.remE .evDate b{color:var(--pending)}
+.evBody{display:flex;flex-direction:column;gap:2px}
+.evBody strong{font-size:13.5px}
+.evBody .he{font-size:11.5px;color:var(--muted)}
+.inout{display:flex;gap:12px;font-size:11.5px;color:var(--muted);margin-top:2px}
+.inout b{font-family:var(--mono);color:var(--text)}
+
+/* week strip + day timeline */
+.strip{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.sd{display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 0;border-radius:12px;border:1px solid var(--cardBorderSoft);background:var(--card)}
+.sd .n{font:700 14px var(--mono)}
+.sd .w{font-size:9.5px;color:var(--faint)}
+.sd .h{font-size:9.5px;color:var(--accent)}
+.sd.on{background:var(--accent);border-color:var(--accent)}
+.sd.on .n,.sd.on .w,.sd.on .h{color:var(--bg)}
+.sd.sh .n{color:var(--candle)}
+.toggle{display:flex;background:var(--card);border:1px solid var(--cardBorderSoft);border-radius:10px;padding:3px;font-size:11.5px;font-weight:600}
+.toggle span{flex:1;text-align:center;padding:5px 0;border-radius:7px;color:var(--muted)}
+.toggle span.on{background:var(--accentSoft);color:var(--accent)}
+.tl{position:relative;display:flex;flex-direction:column;gap:9px;padding-left:18px}
+.tl::before{content:"";position:absolute;left:5px;top:4px;bottom:4px;width:2px;background:var(--cardBorderSoft);border-radius:1px}
+.tp{position:relative;display:flex;justify-content:space-between;font-size:12px}
+.tp::before{content:"";position:absolute;left:-17px;top:4px;width:8px;height:8px;border-radius:50%;background:var(--panel);border:2px solid var(--faint)}
+.tp.key::before{border-color:var(--candle);background:var(--candle)}
+.tp.nowP::before{border-color:var(--accent);background:var(--accent);box-shadow:0 0 0 4px var(--accentSoft)}
+.tp.nowP{color:var(--accent);font-weight:600}
+.tp .mono{color:var(--muted)}
+.tp.key .mono{color:var(--candle);font-weight:700}
+.rem{display:flex;gap:10px;align-items:center;font-size:12.5px}
+.rem i{width:30px;height:30px;border-radius:9px;background:var(--pendingBg);display:grid;place-items:center;flex:none}
+.rem i svg{width:15px;height:15px;stroke:var(--pending);fill:none;stroke-width:2}
+.rem small{display:block;color:var(--faint);font-size:11px}
+
+.plan{margin-top:48px;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px}
+.plan div{border-top:2px solid var(--accent);padding-top:10px}
+.plan h4{margin:0 0 4px;font-size:14px}
+.plan p{margin:0;font-size:13.5px;color:var(--muted)}
+@media (prefers-reduced-motion:no-preference){.day,.pill{transition:background .15s,border-color .15s}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Shabbat times &amp; Jewish calendar</h1>
+      <p class="lede">Design options for two pieces: Shabbat times on the Home clock, and a new Calendar tab with holidays, dual dates and (later) reminders. All screens use the app's real palette. Switch themes to see both.</p>
+      <p class="note">Example data: Tel Aviv, Sunday 27 Sep 2026 (16 Tishrei 5787, Chol HaMoed Sukkot). Times are approximate placeholders until the calculation service exists.</p>
+    </div>
+    <button class="themeBtn" id="themeBtn" type="button">Toggle light / dark</button>
+  </header>
+
+  <!-- ================= HOME ================= -->
+  <section class="group">
+    <div class="groupHead"><h2>Home: Shabbat on the clock</h2><span>Three ways to add the nearest Shabbat to the existing clock card</span></div>
+    <div class="row">
+
+      <div class="idea">
+        <div class="ideaLabel"><span class="tag">H1</span><h3>Times under the clock</h3></div>
+        <div class="phone"><div class="screen center">
+          <div class="glow">
+            <div class="statusRow"><span class="loc"><svg viewBox="0 0 24 24"><path d="M12 21s-7-6.5-7-12a7 7 0 0 1 14 0c0 5.5-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>Tel Aviv</span><span class="chip">Live</span></div>
+            <div class="clock">10:42:18</div>
+            <div class="dates"><span class="dNum">27.9.2026</span><span class="dLong">Sunday, September</span><span class="dHeb he">ט״ז תשרי תשפ״ז</span></div>
+            <div class="divider"></div>
+            <div class="lbl" style="text-align:center">Shabbat · Shemini Atzeret</div>
+            <div class="split" style="margin-top:10px">
+              <div><span class="sub">Candle lighting</span><span class="big candle">18:04</span><span class="sub">Fri 2 Oct</span></div>
+              <div><span class="sub">Havdalah</span><span class="big">19:01</span><span class="sub">Sat 3 Oct</span></div>
+            </div>
+            <div class="countdown"><div class="cd"><b>4</b><span>days</span></div><div class="cd"><b>07</b><span>hrs</span></div><div class="cd"><b>22</b><span>min</span></div></div>
+          </div>
+        </div>
+        <div class="tabbar" data-tab="home"></div></div>
+        <p>Keeps the current card and adds one section below a divider. Least change to the screen.</p>
+        <ul><li>During Shabbat the countdown becomes "Shabbat Shalom · ends 19:01"</li><li>Location shown top-left so you know whose times these are</li></ul>
+      </div>
+
+      <div class="idea">
+        <div class="ideaLabel"><span class="tag">H2</span><h3>Week track</h3></div>
+        <div class="phone"><div class="screen center">
+          <div class="glow">
+            <div class="statusRow"><span class="loc"><svg viewBox="0 0 24 24"><path d="M12 21s-7-6.5-7-12a7 7 0 0 1 14 0c0 5.5-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>Tel Aviv</span><span class="chip">Live</span></div>
+            <div class="clock">10:42:18</div>
+            <div class="dates"><span class="dNum">27.9.2026</span><span class="dHeb he">ט״ז תשרי תשפ״ז</span></div>
+          </div>
+          <div class="soft">
+            <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="lbl">Toward Shabbat</span><span class="sub mono">4d 07h 22m</span></div>
+            <div class="week">
+              <div class="wd now"><i></i>Sun</div><div class="wd"><i></i>Mon</div><div class="wd"><i></i>Tue</div><div class="wd"><i></i>Wed</div><div class="wd"><i></i>Thu</div><div class="wd sh"><i></i>Fri</div><div class="wd sh"><i></i>Sat</div>
+            </div>
+            <div class="split" style="margin-top:12px">
+              <div><span class="sub">Enters Fri</span><span class="big candle">18:04</span></div>
+              <div><span class="sub">Leaves Sat</span><span class="big">19:01</span></div>
+            </div>
+          </div>
+          <div class="soft" style="display:flex;justify-content:space-between;align-items:center">
+            <div><span class="lbl">Now</span><div style="font-size:13.5px;font-weight:600">Chol HaMoed Sukkot</div></div><span class="chip plain">Day 2</span>
+          </div>
+        </div>
+        <div class="tabbar" data-tab="home"></div></div>
+        <p>A second card under the clock with a Sun→Sat bar that fills through the week. Also has room for "today is…" when it's a holiday.</p>
+        <ul><li>Friday/Saturday segments glow in candle amber</li><li>The "Now" card is hidden on plain weekdays</li></ul>
+      </div>
+
+      <div class="idea">
+        <div class="ideaLabel"><span class="tag">H3</span><h3>Ring around the clock</h3></div>
+        <div class="phone"><div class="screen center">
+          <div class="glow">
+            <div class="statusRow"><span class="loc"><svg viewBox="0 0 24 24"><path d="M12 21s-7-6.5-7-12a7 7 0 0 1 14 0c0 5.5-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>Tel Aviv</span><span class="chip">Live</span></div>
+            <div class="ringWrap">
+              <svg viewBox="0 0 236 236" aria-hidden="true">
+                <circle cx="118" cy="118" r="104" fill="none" stroke="var(--cardBorderSoft)" stroke-width="8"/>
+                <!-- circumference 653; week elapsed since Havdalah ≈ 15.7h/168h -->
+                <circle cx="118" cy="118" r="104" fill="none" stroke="var(--accent)" stroke-width="8" stroke-linecap="round"
+                  stroke-dasharray="61 592" transform="rotate(-90 118 118)"/>
+                <!-- shabbat arc: last 25h/168h of the ring, ending at the top -->
+                <circle cx="118" cy="118" r="104" fill="none" stroke="var(--candle)" stroke-width="8" stroke-linecap="round" opacity=".85"
+                  stroke-dasharray="97 556" transform="rotate(-143.6 118 118)"/>
+                <circle cx="118" cy="14" r="5" fill="var(--candle)"/>
+              </svg>
+              <div class="ringInner">
+                <span class="clock">10:42</span>
+                <span class="dNum" style="font-size:12.5px">27.9.2026</span>
+                <span class="dHeb he" style="font-size:12.5px">ט״ז תשרי</span>
+              </div>
+            </div>
+            <div class="split" style="margin-top:8px">
+              <div><span class="sub">Candles Fri</span><span class="big candle">18:04</span></div>
+              <div><span class="sub">Havdalah Sat</span><span class="big">19:01</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="tabbar" data-tab="home"></div></div>
+        <p>The ring is the week: it starts at Havdalah and closes at candle lighting. The amber arc is Shabbat itself. The most visual option and the biggest change.</p>
+        <ul><li>Seconds move off the main number to keep it calm</li><li>Pairs well with a later, more animated style</li></ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= CALENDAR ================= -->
+  <section class="group">
+    <div class="groupHead"><h2>New tab: Calendar</h2><span>Holidays with enter/leave times, Hebrew + Gregorian dates, a place for reminders. Tap days in C1 and filters in C2.</span></div>
+    <div class="row">
+
+      <div class="idea">
+        <div class="ideaLabel"><span class="tag">C1</span><h3>Month grid + day card</h3></div>
+        <div class="phone"><div class="screen">
+          <div class="monthHead">
+            <div><h4>September 2026</h4><span class="he">אלול – תשרי תשפ״ז</span></div>
+            <div class="arrows"><b>‹</b><b>›</b></div>
+          </div>
+          <div class="grid" id="grid"></div>
+          <div class="soft detail" id="detail"></div>
+        </div>
+        <div class="tabbar" data-tab="cal"></div></div>
+        <p>Classic month view. Every cell shows both dates; a dot marks a holiday (cyan) or fast (red). Tapping a day fills the card below with its times.</p>
+        <ul><li>Familiar, dense, good for "what's happening this month"</li><li>"Add reminder" lives on the day card</li></ul>
+      </div>
+
+      <div class="idea">
+        <div class="ideaLabel"><span class="tag">C2</span><h3>Upcoming agenda</h3></div>
+        <div class="phone"><div class="screen">
+          <div class="pills" id="pills">
+            <button class="pill on" data-f="all" type="button">All</button>
+            <button class="pill" data-f="hol" type="button">Holidays</button>
+            <button class="pill" data-f="shab" type="button">Shabbat</button>
+            <button class="pill" data-f="fast" type="button">Fasts</button>
+            <button class="pill" data-f="rem" type="button">Reminders</button>
+          </div>
+          <div class="glow hero">
+            <span class="lbl">Next · in 4 days</span>
+            <h4>Shemini Atzeret &amp; Shabbat</h4>
+            <span class="he" style="color:var(--accent);font-size:12.5px;font-weight:600">שמיני עצרת · כ״ב תשרי</span>
+            <div class="split" style="margin-top:12px">
+              <div><span class="sub">Enters Fri 2 Oct</span><span class="big candle">18:04</span></div>
+              <div><span class="sub">Leaves Sat 3 Oct</span><span class="big">19:01</span></div>
+            </div>
+            <div class="progress"><i></i></div>
+          </div>
+          <div id="agenda" style="display:flex;flex-direction:column;gap:10px"></div>
+        </div>
+        <div class="tabbar" data-tab="cal"></div></div>
+        <p>A scrolling list of what's coming, nearest first, with the next event as a large card. Filters split holidays, Shabbatot, fasts and your reminders.</p>
+        <ul><li>Best for "when does the next thing start/end"</li><li>Reminders show up inline as amber items</li></ul>
+      </div>
+
+      <div class="idea">
+        <div class="ideaLabel"><span class="tag">C3</span><h3>Week strip + day timeline</h3></div>
+        <div class="phone"><div class="screen">
+          <div class="toggle"><span class="on">Gregorian</span><span>עברי</span></div>
+          <div class="strip">
+            <div class="sd"><span class="w">Sun</span><span class="n">27</span><span class="h he">ט״ז</span></div>
+            <div class="sd on"><span class="w">Mon</span><span class="n">28</span><span class="h he">י״ז</span></div>
+            <div class="sd"><span class="w">Tue</span><span class="n">29</span><span class="h he">י״ח</span></div>
+            <div class="sd"><span class="w">Wed</span><span class="n">30</span><span class="h he">י״ט</span></div>
+            <div class="sd"><span class="w">Thu</span><span class="n">1</span><span class="h he">כ׳</span></div>
+            <div class="sd sh"><span class="w">Fri</span><span class="n">2</span><span class="h he">כ״א</span></div>
+            <div class="sd sh"><span class="w">Sat</span><span class="n">3</span><span class="h he">כ״ב</span></div>
+          </div>
+          <div class="glow">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+              <div><span class="lbl">Mon 28 Sep</span><div style="font-size:16px;font-weight:700;margin-top:2px">Chol HaMoed Sukkot</div><span class="he" style="font-size:12.5px;color:var(--accent);font-weight:600">י״ז תשרי תשפ״ז</span></div>
+              <span class="chip plain">Day 3</span>
+            </div>
+            <div class="divider"></div>
+            <div class="tl">
+              <div class="tp"><span>Dawn</span><span class="mono">05:14</span></div>
+              <div class="tp"><span>Sunrise</span><span class="mono">06:34</span></div>
+              <div class="tp nowP"><span>Now</span><span class="mono">10:42</span></div>
+              <div class="tp"><span>Midday</span><span class="mono">12:30</span></div>
+              <div class="tp"><span>Sunset</span><span class="mono">18:26</span></div>
+              <div class="tp"><span>Nightfall</span><span class="mono">18:49</span></div>
+            </div>
+          </div>
+          <div class="soft">
+            <span class="lbl">Your reminders</span>
+            <div class="rem" style="margin-top:8px"><i><svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10 21h4"/></svg></i><div>Buy flowers before Shabbat<small>Thu 1 Oct · 17:00 · push</small></div></div>
+          </div>
+        </div>
+        <div class="tabbar" data-tab="cal"></div></div>
+        <p>Zoomed into one day: a week strip on top, then the day's times (sunrise, sunset, nightfall) as a timeline with a "now" marker, then reminders for that day.</p>
+        <ul><li>Toggle flips the strip and headers to Hebrew-first</li><li>Holiday/Shabbat days replace sunset with candle lighting / Havdalah in amber</li></ul>
+      </div>
+    </div>
+  </section>
+
+  <div class="plan">
+    <div><h4>Mix and match</h4><p>C2's agenda and C1's grid can be one screen with a List / Month switch at the top. H1 or H2 fit any calendar choice.</p></div>
+    <div><h4>Where the times come from</h4><p>Candle lighting, Havdalah and holidays are calculated from your coordinates and date. A small backend service behind Gateway (or on-device with @hebcal/core) can do this.</p></div>
+    <div><h4>Reminders later</h4><p>Every design leaves a slot for reminders: the day card (C1), inline amber items (C2), or a per-day list (C3). Push delivery comes with that feature.</p></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  // theme toggle
+  var root=document.documentElement;
+  document.getElementById('themeBtn').addEventListener('click',function(){
+    var cur=root.getAttribute('data-theme');
+    if(!cur){cur=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
+    root.setAttribute('data-theme',cur==='dark'?'light':'dark');
+  });
+
+  // tab bars
+  var icons={
+    home:'<svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>',
+    cal:'<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
+    acc:'<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 5-5 8-5s6.5 1 8 5"/></svg>'
+  };
+  document.querySelectorAll('.tabbar').forEach(function(tb){
+    var on=tb.getAttribute('data-tab');
+    tb.innerHTML=[['home','Home'],['cal','Calendar'],['acc','Account']].map(function(t){
+      return '<div class="tab'+(t[0]===on?' on':'')+'">'+icons[t[0]]+t[1]+'</div>';
+    }).join('');
+  });
+
+  // hebrew numerals 1-30
+  function heb(n){
+    if(n===15)return 'ט״ו'; if(n===16)return 'ט״ז';
+    var tens=['','י','כ','ל'][Math.floor(n/10)], ones=['','א','ב','ג','ד','ה','ו','ז','ח','ט'][n%10];
+    var s=tens+ones; return s.length===1?s+'׳':s.slice(0,-1)+'״'+s.slice(-1);
+  }
+  // Sept 2026: 1 Sept = Tue. 1 Tishrei = 12 Sept; Elul day = n+18 before that.
+  function hDay(n){return n>=12?heb(n-11):heb(n+18);}
+  function hMonth(n){return n>=12?'תשרי':'אלול';}
+
+  var events={
+    11:{c:'hol',t:'Erev Rosh Hashana',he:'ערב ראש השנה',rows:[['Candle lighting','18:32','candle']]},
+    12:{c:'hol',t:'Rosh Hashana I',he:'ראש השנה א׳',rows:[['Holiday all day','']]},
+    13:{c:'hol',t:'Rosh Hashana II',he:'ראש השנה ב׳',rows:[['Holiday ends','19:28','']]},
+    14:{c:'fast',t:'Tzom Gedaliah',he:'צום גדליה',rows:[['Fast begins','05:02',''],['Fast ends','19:25','']]},
+    18:{c:'shab',t:'Erev Shabbat Shuva',he:'ערב שבת שובה',rows:[['Candle lighting','18:23','candle']]},
+    19:{c:'shab',t:'Shabbat Shuva',he:'שבת שובה · האזינו',rows:[['Havdalah','19:20','']]},
+    20:{c:'hol',t:'Erev Yom Kippur',he:'ערב יום כיפור',rows:[['Candle lighting · fast begins','18:20','candle']]},
+    21:{c:'fast',t:'Yom Kippur',he:'יום כיפור',rows:[['Fast ends','19:17','']]},
+    25:{c:'hol',t:'Erev Sukkot · Erev Shabbat',he:'ערב סוכות',rows:[['Candle lighting','18:13','candle']]},
+    26:{c:'hol',t:'Sukkot I · Shabbat',he:'סוכות · שבת',rows:[['Holiday &amp; Shabbat end','19:10','']]},
+    27:{c:'hol',t:'Chol HaMoed Sukkot',he:'חול המועד סוכות',rows:[['Sunset','18:28',''],['Nightfall','18:51','']]},
+    28:{c:'hol',t:'Chol HaMoed Sukkot',he:'חול המועד סוכות',rows:[['Sunset','18:26','']]},
+    29:{c:'hol',t:'Chol HaMoed Sukkot',he:'חול המועד סוכות',rows:[['Sunset','18:25','']]},
+    30:{c:'hol',t:'Chol HaMoed Sukkot',he:'חול המועד סוכות',rows:[['Sunset','18:24','']]}
+  };
+  var fridays={4:1,5:1};
+  var grid=document.getElementById('grid'), detail=document.getElementById('detail');
+  ['S','M','T','W','T','F','S'].forEach(function(d){grid.insertAdjacentHTML('beforeend','<div class="dow">'+d+'</div>');});
+  // Sept 1 is a Tuesday: lead with Sun 30 / Mon 31 Aug (17-18 Elul)
+  grid.insertAdjacentHTML('beforeend','<div class="day out"><span class="g">30</span><span class="h he">י״ז</span><span class="dot"></span></div><div class="day out"><span class="g">31</span><span class="h he">י״ח</span><span class="dot"></span></div>');
+  for(var n=1;n<=30;n++){
+    var dow=(n+1)%7; // 1 Sept = Tue(2)
+    var ev=events[n], cls='day';
+    if(ev){cls+=ev.c==='fast'?' fast':' hol';}
+    if(dow===6||dow===5)cls+=' shab';
+    if(n===27)cls+=' today sel';
+    grid.insertAdjacentHTML('beforeend','<button type="button" class="'+cls+'" data-d="'+n+'"><span class="g">'+n+'</span><span class="h he">'+hDay(n)+'</span><span class="dot"></span></button>');
+  }
+  ['1','2','3'].forEach(function(d,i){grid.insertAdjacentHTML('beforeend','<div class="day out"><span class="g">'+d+'</span><span class="h he">'+heb(20+i)+'</span><span class="dot"></span></div>');});
+
+  // rough Tel Aviv sunset in minutes: ~18:57 on 1 Sept to ~18:24 on 30 Sept
+  function sunset(n){return 18*60+Math.round(57-(n-1)*1.13);}
+  function hm(m){return Math.floor(m/60)+':'+String(m%60).padStart(2,'0');}
+  function show(n){
+    var ev=events[n], dow=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][(n+1)%7];
+    var title=ev?ev.t:(dow==='Fri'?'Erev Shabbat':(dow==='Sat'?'Shabbat':'Weekday'));
+    var he=(ev?ev.he+' · ':'')+hDay(n)+' '+hMonth(n);
+    var rows=ev?ev.rows:(dow==='Fri'?[['Candle lighting',hm(sunset(n)-18),'candle']]:dow==='Sat'?[['Havdalah',hm(sunset(n)+42),'']]:[['Sunset',hm(sunset(n)),'']]);
+    detail.innerHTML='<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><h5>'+title+'</h5><span class="lbl">'+dow+' '+n+' Sep</span></div>'+
+      '<span class="he">'+he+'</span><div class="times">'+rows.map(function(r){return '<div class="t"><span>'+r[0]+'</span>'+(r[1]?'<span class="mono '+(r[2]||'')+'">'+r[1]+'</span>':'')+'</div>';}).join('')+'</div>'+
+      '<div class="remAdd">＋ Add reminder for this day</div>';
+  }
+  grid.addEventListener('click',function(e){
+    var b=e.target.closest('button.day'); if(!b)return;
+    grid.querySelectorAll('.day.sel').forEach(function(x){x.classList.remove('sel');});
+    b.classList.add('sel'); show(+b.getAttribute('data-d'));
+  });
+  show(27);
+
+  // agenda
+  var agenda=[
+    {m:'October'},
+    {k:'hol',d:'2',w:'Fri',t:'Hoshana Raba',he:'הושענא רבה · כ״א תשרי',io:[['Candles','18:04']]},
+    {k:'rem',d:'1',w:'Thu',t:'Buy flowers before Shabbat',he:'Reminder · 17:00',io:[]},
+    {k:'shab',d:'9',w:'Fri',t:'Shabbat · Noach',he:'פרשת נח',io:[['In','17:57'],['Out','18:54']]},
+    {k:'hol',d:'12',w:'Mon',t:'Rosh Chodesh Cheshvan',he:'ראש חודש חשון',io:[]},
+    {k:'shab',d:'16',w:'Fri',t:'Shabbat · Lech Lecha',he:'פרשת לך לך',io:[['In','17:50'],['Out','18:48']]},
+    {m:'December'},
+    {k:'hol',d:'4',w:'Fri',t:'Chanukah begins',he:'חנוכה · כ״ה כסלו',io:[['1st candle','16:17']]},
+    {k:'fast',d:'20',w:'Sun',t:'Asara BeTevet',he:'עשרה בטבת',io:[['Begins','05:10'],['Ends','17:21']]}
+  ];
+  var agEl=document.getElementById('agenda');
+  function renderAgenda(f){
+    agEl.innerHTML=agenda.filter(function(a){return a.m||f==='all'||a.k===f;}).map(function(a){
+      if(a.m)return '<div class="monthSep">'+a.m+'</div>';
+      var cls='ev'+(a.k==='fast'?' fastE':a.k==='rem'?' remE':'');
+      return '<div class="'+cls+'"><div class="evDate"><b>'+a.d+'</b><span>'+a.w+'</span></div><div class="evBody soft" style="padding:9px 11px"><strong>'+a.t+'</strong><span class="'+(a.k==='rem'?'':'he')+'" style="font-size:11.5px;color:var(--muted)">'+a.he+'</span>'+
+        (a.io.length?'<div class="inout">'+a.io.map(function(x){return x[0]+' <b>'+x[1]+'</b>';}).join('')+'</div>':'')+'</div></div>';
+    }).join('').replace(/<div class="monthSep">[^<]*<\/div>(?=<div class="monthSep">|$)/g,'');
+  }
+  renderAgenda('all');
+  document.getElementById('pills').addEventListener('click',function(e){
+    var b=e.target.closest('.pill'); if(!b)return;
+    this.querySelectorAll('.pill').forEach(function(p){p.classList.remove('on');});
+    b.classList.add('on'); renderAgenda(b.getAttribute('data-f'));
+  });
+})();
+</script>

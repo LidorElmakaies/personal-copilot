@@ -47,35 +47,42 @@ each app's `test/` directory. `backend/libs/testing` doesn't exist yet — creat
 
 ## Frontend
 
-Secondary for automated tests — no test runner is set up yet. If one gets added, the services
-layer (`src/services/http/*.js`, `src/services/ws/socketService.js`) is the highest-value target
+No unit-test runner is set up for the frontend yet (browser tests below cover the UI). If one gets
+added, the services layer (`src/services/http/*.js`, `src/services/ws/socketService.js`) is the highest-value target
 (mostly pure functions, minimal React/Redux involved): assert `authService` builds the right
 request shape and translates a non-2xx response into the message `apiError.js` documents.
 
-### Browser-driven UI verification
+### Browser-driven UI verification (Playwright, in a container)
 
-When asked to verify a visual/animation change actually works (not a unit test — driving a real
-browser against the running app), Node is fnm-managed and not on the default PATH: prepend
-`C:\Users\lidor\AppData\Roaming\fnm\node-versions\v22.15.0\installation` to `$env:PATH` in
-PowerShell before reaching for `node`/`npm`/`npx`, rather than defaulting straight to pulling a
-`node` Docker image — it's already there and faster. Install Playwright in the session's
-scratchpad directory (`npm install playwright && npx playwright install chromium`, cached at
-`~/AppData/Local/ms-playwright` after the first run), point it at the real running Docker stack
-(`http://localhost:8081` frontend, `:8000` gateway — rebuild via `cd devops && docker compose up
--d --build frontend` after a code change), and verify with actual measurements
-(`getBoundingClientRect()`/`getComputedStyle()`), not just a screenshot — several apparent visual
-bugs in this project turned out to be the verification script's own mistake (wrong element, wrong
-crop) once the underlying numbers were checked. See `.claude/agents/frontend.md`'s "Seeing your
-changes" section for the full driving conventions (registering via the UI not the API, why
-`getByText(exact:true)` can resolve to the wrong element, `elementFromPoint` skipping
-`pointerEvents:none` layers) and the specific bug patterns already found there.
+`frontend/e2e/` is a small standalone Playwright package (`@playwright/test`, phone viewport) run
+inside the pinned `mcr.microsoft.com/playwright` image via `devops/playwright/docker-compose.yml` —
+no host Node or browser install needed. The container uses host networking, so the browser reaches
+the running stack at `http://localhost:8081` (frontend) / `:8000` (gateway) exactly as the web
+build expects. See `frontend/e2e/README.md` for the commands.
 
-Pulling a `node` Docker image and running Playwright inside a container remains the right call
-when the task specifically needs isolation from the host (a clean-room repro, no host Node
-available, or explicitly asked for) — from inside such a container, reach the host's published
-ports via `http://host.docker.internal:8081`/`:8000`, and remap `localhost` to
-`host.docker.internal` in the browser's own resolver if the app's build baked in a `localhost` API
-origin (`--host-resolver-rules="MAP localhost host.docker.internal"` for Chromium).
+Use it for three things:
+- **Regression tests** in `frontend/e2e/tests/*.spec.js` — one file per screen/feature. Every new
+  screen or user-visible flow gets at least one spec that clicks through it and asserts on text.
+- **Screenshots of actions** — `page.screenshot({ path: 'screenshots/<name>.png' })` at each step
+  worth seeing, then open the PNG with the Read tool and actually look at it before reporting a UI
+  change as done.
+- **Ad-hoc driving** — `node scripts/<script>.js` inside the same container for a one-off
+  investigation; promote it to a spec if it's worth keeping.
+
+Conventions and known traps:
+- RN-web animations run in JS, so `animations: 'disabled'` doesn't stop them — wait for the
+  settled state (the `settle()` helper in `tests/home.spec.js`) before a screenshot, or you capture
+  a half-faded modal.
+- Assert with measurements (`getBoundingClientRect()`/`getComputedStyle()`), not only a screenshot —
+  several apparent visual bugs here turned out to be the script's own mistake (wrong element, wrong
+  crop). `getByText(exact: true)` can resolve to a hidden duplicate; `elementFromPoint` skips
+  `pointerEvents: 'none'` layers. See `.claude/agents/frontend.md`'s "Seeing your changes".
+- Register/log in through the UI, not by calling the API, so the flow under test is the real one.
+- Rebuild the frontend container after a code change (`cd devops && docker compose up -d --build
+  frontend`) — the tests hit the built static export, not a dev server.
+- Location-dependent screens: use `context.grantPermissions(['geolocation'])` +
+  `context.setGeolocation({ latitude, longitude })` (or `test.use({ geolocation, permissions })`)
+  so results are deterministic; pin the clock with `page.clock` when asserting times.
 
 ## Commands
 
@@ -83,4 +90,7 @@ origin (`--host-resolver-rules="MAP localhost host.docker.internal"` for Chromiu
 cd backend
 npm test            # unit tests, all apps/libs
 npm run test:cov
+
+# browser tests against the running stack (from repo root)
+docker compose -f devops/playwright/docker-compose.yml run --rm e2e
 ```

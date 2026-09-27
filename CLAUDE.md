@@ -35,6 +35,13 @@ change is otherwise done — it keeps `docs/specs/`, `CLAUDE.md`, the READMEs, a
 siblings in sync with current reality, and trims comments that have grown past a line. See its own
 file for what it does and doesn't own.
 
+## Git rule (non-negotiable)
+
+**Never run `git add` or `git commit` (or anything else that stages or commits) unless the user
+explicitly says so** — e.g. "stage this", "commit this". Finishing a task, ticking a plan box, or
+"ok, go ahead" is not permission. Leave changes unstaged so the user reviews the diff. Applies to
+every agent in `.claude/agents/` too. Also in [README.md](README.md).
+
 ## Repo layout
 
 ```

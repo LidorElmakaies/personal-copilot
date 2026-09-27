@@ -1,0 +1,17 @@
+# On-demand browser tests — not in the root include list. See frontend/e2e/README.md.
+services:
+  e2e:
+    image: mcr.microsoft.com/playwright:v1.63.0-noble   # keep in lockstep with frontend/e2e/package.json
+    working_dir: /e2e
+    volumes:
+      - ../../frontend/e2e:/e2e
+    # Host network so the browser reaches the stack at localhost:8081/:8000, same as the baked GATEWAY_PUBLIC_URL.
+    network_mode: host
+    ipc: host
+    user: "${UID:-1000}:${GID:-1000}"
+    environment:
+      - HOME=/tmp
+      - CI=1
+      - E2E_BASE_URL=${E2E_BASE_URL:-http://localhost:8081}
+    entrypoint: ["sh", "-c", "npm ci --no-audit --no-fund --loglevel=error && exec \"$$@\"", "--"]
+    command: ["npx", "playwright", "test"]

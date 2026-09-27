@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zmanim Architecture Plan</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Rubik:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --page:#eef1f4; --panel:#ffffff; --ink:#1b1f24; --muted:#5b6570; --faint:#6b7680;
+  --line:rgba(20,30,40,0.14); --soft:rgba(20,30,40,0.07); --accent:#0e8fa6; --accentSoft:rgba(14,143,166,0.10);
+  --amber:#c9791a; --amberSoft:rgba(201,121,26,0.10); --ok:#12a866; --okSoft:rgba(18,168,102,0.10);
+  --violet:#6a4fc4; --violetSoft:rgba(106,79,196,0.10); --boxFill:#ffffff; --netFill:rgba(14,143,166,0.04);
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace; --sans:"Rubik",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;
+  --page:#0a0c0f; --panel:#12151a; --ink:#e8ecf0; --muted:#8b939e; --faint:#7d8792;
+  --line:rgba(255,255,255,0.14); --soft:rgba(255,255,255,0.07); --accent:#4fe3ff; --accentSoft:rgba(79,227,255,0.10);
+  --amber:#ffb84f; --amberSoft:rgba(255,184,79,0.12); --ok:#3ddc84; --okSoft:rgba(61,220,132,0.12);
+  --violet:#b39dff; --violetSoft:rgba(179,157,255,0.12); --boxFill:#12151a; --netFill:rgba(79,227,255,0.03);}}
+:root[data-theme="dark"]{color-scheme:dark;
+  --page:#0a0c0f; --panel:#12151a; --ink:#e8ecf0; --muted:#8b939e; --faint:#7d8792;
+  --line:rgba(255,255,255,0.14); --soft:rgba(255,255,255,0.07); --accent:#4fe3ff; --accentSoft:rgba(79,227,255,0.10);
+  --amber:#ffb84f; --amberSoft:rgba(255,184,79,0.12); --ok:#3ddc84; --okSoft:rgba(61,220,132,0.12);
+  --violet:#b39dff; --violetSoft:rgba(179,157,255,0.12); --boxFill:#12151a; --netFill:rgba(79,227,255,0.03);}
+*{box-sizing:border-box}
+body{background:var(--page);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.55;padding:0 16px}
+.wrap{max-width:1080px;margin:0 auto;padding-block:32px 64px}
+h1{font-size:28px;margin:0;text-wrap:balance;letter-spacing:-.01em}
+h2{font-size:19px;margin:0 0 12px;text-wrap:balance}
+.lede{color:var(--muted);max-width:72ch;margin:8px 0 0}
+section{margin-top:40px}
+.diagram{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px}
+.diagram svg{display:block;min-width:900px;width:100%;height:auto}
+svg text{font-family:var(--sans);fill:var(--ink)}
+svg .t-title{font-weight:700;font-size:15px}
+svg .t-sub{font-size:11.5px;fill:var(--muted)}
+svg .t-mono{font-family:var(--mono);font-size:11px;fill:var(--muted)}
+svg .t-lbl{font-size:10.5px;font-weight:600;letter-spacing:.08em;fill:var(--faint)}
+svg .t-acc{fill:var(--accent);font-weight:600}
+svg .t-amb{fill:var(--amber);font-weight:600}
+svg .t-vio{fill:var(--violet);font-weight:600}
+svg .t-faint{fill:var(--faint)}
+.legend{display:flex;flex-wrap:wrap;gap:18px;margin-top:12px;font-size:13px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:8px}
+.sw{width:26px;height:0;border-top:2px solid var(--accent)}
+.sw.phase2{border-top:2px dashed var(--violet)}
+.sw.fut{border-top:2px dotted var(--faint)}
+.sw.net{height:12px;border:1.5px dashed var(--accent);border-radius:3px;background:var(--netFill)}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}
+.card h3{margin:0 0 4px;font-size:16px}
+.card .role{margin:0 0 8px;color:var(--muted);font-size:14px}
+.card ul{margin:6px 0 0;padding-left:18px;font-size:14px;color:var(--muted)}
+.card li{margin-bottom:4px}
+.card.p1{border-top:3px solid var(--accent)}
+.card.p2{border-top:3px solid var(--violet)}
+.badge{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 9px;border-radius:999px;margin-bottom:8px}
+.badge.p1{background:var(--accentSoft);color:var(--accent)}
+.badge.p2{background:var(--violetSoft);color:var(--violet)}
+.callout{border-left:3px solid var(--amber);background:var(--amberSoft);padding:14px 16px;border-radius:0 12px 12px 0;max-width:82ch}
+.callout p{margin:0 0 6px}
+.callout p:last-child{margin:0}
+code{font-family:var(--mono);font-size:.88em;background:var(--soft);padding:1px 5px;border-radius:5px}
+pre{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;overflow-x:auto;font:13px/1.6 var(--mono);color:var(--ink);margin:0}
+pre .c{color:var(--faint)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+.tbl{overflow-x:auto}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);font-weight:600}
+td:first-child{font-family:var(--mono);font-size:13px;white-space:nowrap}
+.split{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;align-items:start}
+.split p{margin:0 0 10px;color:var(--muted);font-size:14.5px}
+ol.steps{margin:0;padding-left:22px;color:var(--muted);max-width:82ch}
+ol.steps li{margin-bottom:8px}
+ol.steps b{color:var(--ink)}
+.phase{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin:18px 0 8px}
+.phase.p1{color:var(--accent)} .phase.p2{color:var(--violet)}
+.ui{display:flex;flex-direction:column;gap:12px;max-width:340px;width:100%}
+.uiCard,.uiSheet{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px}
+.uiSheet{border-color:var(--violet);box-shadow:0 10px 30px -14px var(--violet)}
+.uiLbl{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);text-align:center}
+.uiTimes{display:grid;grid-template-columns:1fr 1fr;margin-top:10px}
+.uiTimes div{display:flex;flex-direction:column}
+.uiTimes .r{text-align:right}
+.uiTimes small{font-size:12px;color:var(--muted)}
+.uiTimes b{font:700 20px var(--mono)}
+.uiTimes b.amb{color:var(--amber)}
+.uiBtn{margin-top:14px;width:100%;font:600 13px var(--sans);color:var(--violet);background:var(--violetSoft);border:1px solid var(--violet);border-radius:12px;padding:10px;cursor:pointer}
+.wheel{display:flex;justify-content:center;gap:28px;margin-top:12px}
+.wheel div{display:flex;flex-direction:column;align-items:center;font:700 18px/1.5 var(--mono)}
+.wheel .dim{color:var(--faint);opacity:.5;font-size:14px}
+.wheel .on{color:var(--ink);font-size:24px}
+.wheel small{font:500 11px var(--sans);color:var(--muted)}
+.presets{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:12px}
+.presets span{font-size:12px;font-weight:600;padding:5px 10px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.presets span.on{background:var(--violet);border-color:var(--violet);color:var(--panel)}
+.uiNote{text-align:center;font-size:12.5px;color:var(--muted);margin-top:12px}
+.uiNote b{font-family:var(--mono);color:var(--ink)}
+.uiRow{display:flex;justify-content:space-between;margin-top:14px;font-size:13px;font-weight:600}
+.uiRow .ghost{color:var(--muted);padding:8px 4px}
+.uiRow .save{background:var(--violet);color:var(--panel);padding:8px 22px;border-radius:10px}
+</style>
+
+<div class="wrap">
+  <h1>Shabbat, calendar &amp; reminders architecture</h1>
+  <p class="lede">A Calendar Service handles all the calendar calculations. A Reminders Service decides <em>when</em> to notify you and publishes to Kafka. A Notification Service decides <em>how</em> (push today, and email or SMS later with one new adapter each).</p>
+
+  <section>
+    <h2>System</h2>
+    <div class="diagram">
+      <svg viewBox="0 0 1000 780" role="img" aria-label="Phone calls Gateway. Gateway forwards to Calendar Service and Reminders Service. Reminders asks Calendar for event times and publishes notification.requested to Kafka. Notification Service consumes it and sends through Push, Email or SMS adapters; push reaches the phone.">
+        <defs>
+          <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--accent)"/></marker>
+          <marker id="ahv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--violet)"/></marker>
+        </defs>
+
+        <!-- Phone -->
+        <rect x="20" y="30" width="270" height="440" rx="26" fill="var(--boxFill)" stroke="var(--ink)" stroke-opacity=".5" stroke-width="1.5"/>
+        <text x="40" y="62" class="t-title">Phone (Expo app)</text>
+        <text x="40" y="80" class="t-sub">native app, or web over HTTPS</text>
+
+        <rect x="40" y="96" width="230" height="58" rx="10" fill="var(--amberSoft)" stroke="var(--amber)" stroke-opacity=".6"/>
+        <text x="54" y="118" class="t-amb" font-size="13">expo-location</text>
+        <text x="54" y="136" class="t-sub">GPS lat / lon + phone time zone</text>
+        <text x="54" y="148" class="t-mono">→ locationSlice (cached)</text>
+
+        <rect x="40" y="166" width="108" height="56" rx="10" fill="var(--soft)" stroke="var(--line)"/>
+        <text x="52" y="188" font-weight="600" font-size="12.5">Home (H1)</text>
+        <text x="52" y="206" class="t-sub">next Shabbat</text>
+        <rect x="162" y="166" width="108" height="56" rx="10" fill="var(--soft)" stroke="var(--line)"/>
+        <text x="174" y="188" font-weight="600" font-size="12.5">Calendar (C1)</text>
+        <text x="174" y="206" class="t-sub">month + day card</text>
+
+        <rect x="40" y="234" width="230" height="52" rx="10" fill="var(--soft)" stroke="var(--line)"/>
+        <text x="54" y="256" font-weight="600" font-size="12.5">calendarSlice · remindersSlice</text>
+        <text x="54" y="274" class="t-mono">thunks only</text>
+
+        <rect x="40" y="298" width="230" height="52" rx="10" fill="var(--soft)" stroke="var(--line)"/>
+        <text x="54" y="320" font-weight="600" font-size="12.5">services/http/*Api</text>
+        <text x="54" y="338" class="t-mono">the only place that calls fetch</text>
+
+        <line x1="155" y1="154" x2="155" y2="166" stroke="var(--line)"/>
+        <line x1="155" y1="222" x2="155" y2="234" stroke="var(--line)"/>
+        <line x1="155" y1="286" x2="155" y2="298" stroke="var(--line)"/>
+
+        <rect x="40" y="370" width="230" height="80" rx="10" fill="var(--violetSoft)" stroke="var(--violet)" stroke-dasharray="5 4"/>
+        <text x="54" y="392" class="t-vio" font-size="12.5">expo-notifications</text>
+        <text x="54" y="410" class="t-sub">gets a push token, registers it</text>
+        <text x="54" y="426" class="t-sub">once; shows the notification</text>
+        <text x="54" y="442" class="t-sub">when it arrives</text>
+
+        <!-- Docker network -->
+        <rect x="340" y="20" width="645" height="745" rx="18" fill="var(--netFill)" stroke="var(--accent)" stroke-opacity=".55" stroke-dasharray="7 5"/>
+        <text x="360" y="44" class="t-lbl">HOME PC · DOCKER NETWORK</text>
+
+        <!-- Gateway -->
+        <rect x="360" y="64" width="240" height="250" rx="14" fill="var(--boxFill)" stroke="var(--accent)" stroke-width="1.5"/>
+        <text x="378" y="92" class="t-title">Gateway</text>
+        <text x="378" y="110" class="t-sub">only published backend port</text>
+        <rect x="376" y="124" width="208" height="42" rx="9" fill="var(--accentSoft)" stroke="var(--accent)" stroke-opacity=".6"/>
+        <text x="388" y="143" class="t-acc" font-size="12.5">calendar-proxy</text>
+        <text x="388" y="158" class="t-mono">open, rate-limited</text>
+        <rect x="376" y="174" width="208" height="42" rx="9" fill="var(--violetSoft)" stroke="var(--violet)" stroke-opacity=".6" stroke-dasharray="5 4"/>
+        <text x="388" y="193" class="t-vio" font-size="12.5">reminders-proxy</text>
+        <text x="388" y="208" class="t-mono">JwtAuthGuard: your reminders</text>
+        <rect x="376" y="224" width="208" height="36" rx="9" fill="var(--violetSoft)" stroke="var(--violet)" stroke-opacity=".6" stroke-dasharray="5 4"/>
+        <text x="388" y="247" class="t-vio" font-size="12.5">notifications-proxy (devices)</text>
+        <rect x="376" y="268" width="208" height="32" rx="9" fill="var(--soft)" stroke="var(--line)"/>
+        <text x="388" y="289" font-size="12">auth-proxy · realtime /ws</text>
+
+        <!-- Calendar service -->
+        <rect x="680" y="64" width="285" height="250" rx="14" fill="var(--boxFill)" stroke="var(--accent)" stroke-width="1.5"/>
+        <text x="698" y="92" class="t-title">Calendar Service</text>
+        <text x="698" y="110" class="t-sub">all calendar calculation · stateless</text>
+        <rect x="696" y="124" width="253" height="46" rx="9" fill="var(--soft)" stroke="var(--line)"/>
+        <text x="708" y="143" class="t-lbl">API</text>
+        <text x="708" y="161" class="t-mono">/calendar/shabbat · /month · /events</text>
+        <rect x="696" y="178" width="253" height="40" rx="9" fill="var(--soft)" stroke="var(--line)"/>
+        <text x="708" y="203" class="t-mono">ICalendarCalculator</text>
+        <rect x="696" y="226" width="253" height="72" rx="9" fill="var(--accentSoft)" stroke="var(--accent)" stroke-opacity=".6"/>
+        <text x="708" y="247" class="t-acc" font-size="12.5">HebcalCalculator</text>
+        <text x="708" y="265" class="t-mono">@hebcal/core · candles, havdalah,</text>
+        <text x="708" y="280" class="t-mono">holidays, fasts, zmanim · cache</text>
+
+        <!-- Reminders service -->
+        <rect x="360" y="370" width="240" height="210" rx="14" fill="var(--boxFill)" stroke="var(--violet)" stroke-width="1.5" stroke-dasharray="7 5"/>
+        <text x="378" y="398" class="t-title">Reminders Service</text>
+        <text x="378" y="416" class="t-sub">decides WHEN</text>
+        <text x="378" y="442" class="t-sub">• per user: yours only</text>
+        <text x="378" y="460" class="t-sub">• "1h 30m before candle lighting"</text>
+        <text x="392" y="476" class="t-sub">→ asks Calendar for the time</text>
+        <text x="378" y="494" class="t-sub">• scheduler fires, then sets next week</text>
+        <text x="378" y="512" class="t-sub">• publishes, never sends itself</text>
+        <rect x="376" y="530" width="208" height="34" rx="8" fill="var(--soft)" stroke="var(--line)"/>
+        <text x="388" y="552" class="t-mono">Postgres: reminders (by userId)</text>
+
+        <!-- Kafka -->
+        <rect x="680" y="370" width="285" height="84" rx="14" fill="var(--boxFill)" stroke="var(--ink)" stroke-opacity=".45" stroke-width="1.5"/>
+        <text x="698" y="396" class="t-title">Kafka</text>
+        <text x="760" y="396" class="t-sub">(already running)</text>
+        <rect x="696" y="408" width="253" height="32" rx="8" fill="var(--violetSoft)" stroke="var(--violet)" stroke-opacity=".6"/>
+        <text x="708" y="429" class="t-mono" style="fill:var(--violet)">notification.requested</text>
+
+        <!-- Notification service -->
+        <rect x="680" y="500" width="285" height="250" rx="14" fill="var(--boxFill)" stroke="var(--violet)" stroke-width="1.5" stroke-dasharray="7 5"/>
+        <text x="698" y="528" class="t-title">Notification Service</text>
+        <text x="698" y="546" class="t-sub">decides HOW · knows your devices</text>
+        <rect x="696" y="558" width="253" height="34" rx="8" fill="var(--soft)" stroke="var(--line)"/>
+        <text x="708" y="580" class="t-mono">INotificationChannel (interface)</text>
+        <rect x="696" y="600" width="80" height="50" rx="8" fill="var(--violetSoft)" stroke="var(--violet)" stroke-opacity=".7"/>
+        <text x="708" y="622" class="t-vio" font-size="12.5">Push</text>
+        <text x="708" y="638" class="t-mono">Expo</text>
+        <rect x="782" y="600" width="80" height="50" rx="8" fill="none" stroke="var(--faint)" stroke-dasharray="2 3"/>
+        <text x="794" y="622" class="t-faint" font-size="12.5" font-weight="600">Email</text>
+        <text x="794" y="638" class="t-mono">future</text>
+        <rect x="868" y="600" width="80" height="50" rx="8" fill="none" stroke="var(--faint)" stroke-dasharray="2 3"/>
+        <text x="880" y="622" class="t-faint" font-size="12.5" font-weight="600">SMS</text>
+        <text x="880" y="638" class="t-mono">future</text>
+        <rect x="696" y="660" width="253" height="34" rx="8" fill="var(--soft)" stroke="var(--line)"/>
+        <text x="708" y="682" class="t-mono">Postgres: devices, delivery log</text>
+        <text x="698" y="728" class="t-sub">new channel = one new adapter here</text>
+
+        <!-- arrows: phase 1 -->
+        <path d="M270 324 L360 150" fill="none" stroke="var(--accent)" stroke-width="2" marker-end="url(#ah)"/>
+        <rect x="258" y="206" width="94" height="40" rx="6" fill="var(--panel)"/>
+        <text x="266" y="222" class="t-mono" style="fill:var(--accent)">lat, lon, tz</text>
+        <text x="266" y="238" class="t-sub">HTTPS · Tailscale</text>
+        <path d="M600 145 L680 145" fill="none" stroke="var(--accent)" stroke-width="2" marker-end="url(#ah)"/>
+        <text x="614" y="136" class="t-mono" style="fill:var(--accent)">HTTP</text>
+
+        <!-- arrows: phase 2 -->
+        <path d="M480 314 L480 370" fill="none" stroke="var(--violet)" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#ahv)"/>
+        <path d="M600 244 C640 244 640 520 680 600" fill="none" stroke="var(--violet)" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#ahv)"/>
+        <text x="612" y="480" class="t-sub" transform="rotate(-78 612 480)">register push token</text>
+        <path d="M600 430 C640 430 650 300 690 300" fill="none" stroke="var(--violet)" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#ahv)"/>
+        <text x="618" y="352" class="t-sub">event times</text>
+        <path d="M600 470 L680 426" fill="none" stroke="var(--violet)" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#ahv)"/>
+        <text x="616" y="474" class="t-sub">publish</text>
+        <path d="M822 454 L822 500" fill="none" stroke="var(--violet)" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#ahv)"/>
+        <text x="830" y="482" class="t-sub">consume</text>
+        <path d="M736 650 C736 760 180 770 150 452" fill="none" stroke="var(--violet)" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#ahv)"/>
+        <text x="200" y="700" class="t-sub">push notification (via Expo)</text>
+      </svg>
+    </div>
+    <div class="legend">
+      <span><i class="sw"></i>Phase 1: Shabbat + Calendar tab</span>
+      <span><i class="sw phase2"></i>Phase 2: reminders + notifications</span>
+      <span><i class="sw fut"></i>future channels</span>
+      <span><i class="sw net"></i>internal Docker network (only Gateway published)</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>The three services</h2>
+    <div class="cards">
+      <div class="card p1">
+        <span class="badge p1">Phase 1</span>
+        <h3>Calendar Service</h3>
+        <p class="role">Every calendar calculation, in one place.</p>
+        <ul>
+          <li>Next Shabbat, month grid, holidays, fasts, daily times</li>
+          <li>Stateless: location in, times out. No database.</li>
+          <li>Used by the phone (via Gateway) and by Reminders</li>
+        </ul>
+      </div>
+      <div class="card p2">
+        <span class="badge p2">Phase 2</span>
+        <h3>Reminders Service</h3>
+        <p class="role">What to remind you about, and when.</p>
+        <ul>
+          <li>Every reminder belongs to one user and needs you to be logged in</li>
+          <li>First type: <b>before candle lighting</b>, with the offset you pick (e.g. 1h 30m), repeating every week</li>
+          <li>Later: other types (before a holiday, custom date/time) reuse the same table</li>
+          <li>When a reminder is due it publishes an event and stops there. It never knows about push, email or SMS.</li>
+        </ul>
+      </div>
+      <div class="card p2">
+        <span class="badge p2">Phase 2</span>
+        <h3>Notification Service</h3>
+        <p class="role">How to reach you.</p>
+        <ul>
+          <li>Consumes <code>notification.requested</code> from Kafka</li>
+          <li>Knows your push tokens (later: email address, phone number)</li>
+          <li>One adapter per channel behind <code>INotificationChannel</code>. Email or SMS is a new adapter, with no change to Reminders.</li>
+          <li>Any future service can send you a notification the same way</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>The candle-lighting reminder</h2>
+    <div class="split">
+      <div class="ui">
+        <div class="uiCard">
+          <div class="uiLbl">Shabbat · Shemini Atzeret</div>
+          <div class="uiTimes"><div><small>Candle lighting</small><b class="amb">18:04</b></div><div class="r"><small>Havdalah</small><b>19:01</b></div></div>
+          <button class="uiBtn" type="button">🔔&nbsp; Remind me · 1h 30m before</button>
+        </div>
+        <div class="uiSheet">
+          <div class="uiLbl">Remind me before candle lighting</div>
+          <div class="wheel">
+            <div><span class="dim">0</span><span class="on">1</span><span class="dim">2</span><small>hours</small></div>
+            <div><span class="dim">15</span><span class="on">30</span><span class="dim">45</span><small>min</small></div>
+          </div>
+          <div class="presets"><span>30m</span><span>1h</span><span class="on">1h 30m</span><span>2h</span><span>3h</span></div>
+          <div class="uiNote">Every Friday · fires at <b>16:34</b> this week</div>
+          <div class="uiRow"><span class="ghost">Turn off</span><span class="save">Save</span></div>
+        </div>
+      </div>
+      <div>
+        <p><b style="color:var(--ink)">Where it lives:</b> a bell button on the Shabbat section of the Home card (H1). Tapping it opens a sheet with an hours/minutes picker and quick presets. The button label shows what's set. It's per user, so if you're signed out, tapping it shows the same "log in to use this" prompt the Account tab uses.</p>
+        <p><b style="color:var(--ink)">What gets saved:</b> one row per user and type, not one per week.</p>
+        <pre><span class="c">-- reminders</span>
+id            uuid
+user_id       uuid        <span class="c">-- owner, from the JWT</span>
+type          'shabbat_candles'
+offset_min    90          <span class="c">-- 1h 30m</span>
+lat, lon, tz  saved location
+enabled       true
+next_fire_at  2026-10-02 16:34 local</pre>
+        <p style="margin-top:10px"><b style="color:var(--ink)">How it fires:</b> every minute the scheduler picks rows with <code>next_fire_at ≤ now</code>, publishes <code>notification.requested</code>, then asks Calendar for <em>next</em> week's candle lighting and sets <code>next_fire_at</code> = that − 90 min. Change the offset or your location and <code>next_fire_at</code> is recalculated right away.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>The Kafka message</h2>
+    <div class="split">
+      <pre><span class="c">// topic: notification.requested   key: userId</span>
+{
+  "notificationId": "7f3c…",      <span class="c">// dedupe on retry</span>
+  "userId": "u_123",
+  "title": "Shabbat in 1h 30m",
+  "body": "Candle lighting at 18:04",
+  "channels": ["push"],           <span class="c">// optional; default = user's prefs</span>
+  "source": "reminders",
+  "requestedAt": "2026-10-02T13:34:00Z"
+}</pre>
+      <div>
+        <p>This goes in <code>libs/kafka-contracts</code>, which is empty today, so both services share one typed contract.</p>
+        <p>Keying by <code>userId</code> keeps one person's notifications in order. <code>notificationId</code> lets the Notification Service skip a message it already sent if Kafka delivers it twice.</p>
+        <p>The message says <em>what</em> to tell you, not <em>where</em>. That's why adding email later is only a change to the Notification Service.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Your exact location</h2>
+    <p class="lede" style="margin-bottom:14px"><code>expo-location</code> gives GPS coordinates, and <code>@hebcal/core</code> calculates from latitude, longitude and time zone directly. The time zone also decides Israel vs. abroad (one day of Yom Tov or two). Candle lighting defaults to 18 minutes before sunset and becomes a setting later (Jerusalem uses 40).</p>
+    <div class="callout">
+      <p><b>Needs HTTPS in the browser.</b> Phone browsers only allow GPS on HTTPS. The web app is plain HTTP on :8081 today, so we add <code>tailscale serve</code> (a real certificate for your <code>*.ts.net</code> name). The native app doesn't need this.</p>
+      <p>Reminders will need your location saved on the server, since they fire while the app is closed. That's stored with the reminder in phase 2, not in phase 1.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Endpoints (through Gateway)</h2>
+    <div class="tbl"><table>
+      <thead><tr><th>Route</th><th>Auth</th><th>What it does</th><th>Phase</th></tr></thead>
+      <tbody>
+        <tr><td>GET /calendar/shabbat</td><td>open</td><td>Next or current Shabbat: candle lighting, havdalah, parasha, and the holiday if one falls on it</td><td>1</td></tr>
+        <tr><td>GET /calendar/month</td><td>open</td><td>Each day of a month: Hebrew date, holidays and fasts, enter and leave times</td><td>1</td></tr>
+        <tr><td>GET /calendar/events</td><td>internal</td><td>Upcoming events in a date range. Reminders uses it to resolve "before candle lighting".</td><td>2</td></tr>
+        <tr><td>GET /reminders</td><td>login</td><td>Your reminders (only yours: user id comes from the token)</td><td>2</td></tr>
+        <tr><td>PUT /reminders/shabbat-candles</td><td>login</td><td>Turn on or update: <code>{ offsetMinutes: 90, lat, lon, tz }</code>. One per user, so PUT, not POST.</td><td>2</td></tr>
+        <tr><td>DELETE /reminders/shabbat-candles</td><td>login</td><td>Turn it off</td><td>2</td></tr>
+        <tr><td>POST /notifications/devices</td><td>login</td><td>Register the phone's push token</td><td>2</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section>
+    <h2>Build order</h2>
+    <div class="phase p1">Phase 1 · Shabbat + Calendar tab</div>
+    <ol class="steps">
+      <li><b>Calendar Service:</b> <code>apps/calendar</code> with <code>/calendar/shabbat</code>, and <code>@hebcal/core</code> behind <code>ICalendarCalculator</code>. Tests against known dates and places.</li>
+      <li><b>Gateway <code>calendar-proxy</code>:</b> same shape as <code>auth-proxy</code>, rate-limited.</li>
+      <li><b>Devops:</b> a compose entry with no published port; HTTPS through <code>tailscale serve</code>.</li>
+      <li><b>Home (H1):</b> location permission, <code>locationSlice</code>, <code>calendarSlice</code>, times and countdown under the clock, last result cached.</li>
+      <li><b>Calendar tab (C1):</b> <code>/calendar/month</code>, the grid with both dates, and the day card.</li>
+    </ol>
+    <div class="phase p2">Phase 2 · Reminders + notifications</div>
+    <ol class="steps" start="6">
+      <li><b>Kafka contract:</b> <code>notification.requested</code> in <code>libs/kafka-contracts</code>.</li>
+      <li><b>Notification Service:</b> the Kafka consumer, device registration, and the Expo push adapter.</li>
+      <li><b>Reminders Service:</b> Postgres, CRUD, the scheduler, and publishing to Kafka.</li>
+      <li><b>Frontend:</b> <code>expo-notifications</code>, the bell button and offset sheet on the Home card, <code>remindersSlice</code>.</li>
+    </ol>
+  </section>
+</div>
