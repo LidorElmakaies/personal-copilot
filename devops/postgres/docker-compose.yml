@@ -8,8 +8,7 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=personal_copilot
-    # Not published to the host — only Auth Service (the one table-owning service so far) talks
-    # to it, and that's internal-only per the gateway-only-access rule.
+    # Not published to the host — only internal services talk to it, per the gateway-only-access rule.
     volumes:
       - ../data/postgres:/var/lib/postgresql/data
     networks:
@@ -19,3 +18,25 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
+  # One-shot, idempotent: creates each service's own database if missing. Runs on every `up` —
+  # the data dir already exists, so Postgres's own first-boot init scripts never would.
+  postgres-init:
+    image: postgres:16-alpine
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - PGHOST=postgres
+      - PGUSER=postgres
+      - PGPASSWORD=postgres
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        for db in reminders notifications; do
+          psql -tAc "SELECT 1 FROM pg_database WHERE datname = '$$db'" | grep -q 1 \
+            || psql -c "CREATE DATABASE $$db"
+        done
+    restart: "no"
+    networks:
+      - personal-copilot

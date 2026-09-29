@@ -31,6 +31,20 @@
       "sourceRoot": "apps/calendar/src",
       "compilerOptions": { "tsConfigPath": "apps/calendar/tsconfig.app.json" }
     },
+    "reminders": {
+      "type": "application",
+      "root": "apps/reminders",
+      "entryFile": "main",
+      "sourceRoot": "apps/reminders/src",
+      "compilerOptions": { "tsConfigPath": "apps/reminders/tsconfig.app.json" }
+    },
+    "notifications": {
+      "type": "application",
+      "root": "apps/notifications",
+      "entryFile": "main",
+      "sourceRoot": "apps/notifications/src",
+      "compilerOptions": { "tsConfigPath": "apps/notifications/tsconfig.app.json" }
+    },
     "auth-kernel": {
       "type": "library",
       "root": "libs/auth-kernel",

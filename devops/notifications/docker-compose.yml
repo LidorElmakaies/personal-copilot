@@ -1,0 +1,25 @@
+services:
+  notifications:
+    extends:
+      file: ../common.yml
+      service: _defaults
+    build:
+      context: ../../backend
+      dockerfile: apps/notifications/Dockerfile
+    env_file:
+      - ../docker.env
+    environment:
+      - OTEL_SERVICE_NAME=notifications
+    # No ports: — internal-only, never published to the host (see
+    # .claude/memory/feedback_gateway_only_service_access.md).
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8004/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    depends_on:
+      postgres-init:
+        condition: service_completed_successfully
+    networks:
+      - personal-copilot
+      - observability

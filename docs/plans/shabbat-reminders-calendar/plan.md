@@ -59,9 +59,9 @@ with a countdown. The Reminders and Notification services exist and run, but do 
 - [x] **1.3 Gateway `calendar-proxy`.** Same shape as `auth-proxy`: one explicit route, no auth
   guard (works while signed out), rate-limited.
   *Check:* `curl` through Gateway returns the same result as 1.2.
-- [ ] **1.4 Reminders Service skeleton.** `backend/apps/reminders`: layering, OTel, health, its
+- [x] **1.4 Reminders Service skeleton.** `backend/apps/reminders`: layering, OTel, health, its
   own Postgres database, compose file with no published port. No endpoints yet.
-- [ ] **1.5 Notification Service skeleton.** `backend/apps/notifications`: same as 1.4. No
+- [x] **1.5 Notification Service skeleton.** `backend/apps/notifications`: same as 1.4. No
   endpoints or consumer yet.
 - [ ] **1.6 HTTPS for the web app.** *(Repo side done: `devops/tailscale/serve.sh` + README "Phone access". Waiting on the user to install Tailscale on this PC and run it.)* `tailscale serve` in front of the frontend and Gateway so a
   phone browser allows GPS. Update `.env.example` / `GATEWAY_PUBLIC_URL` and the README.
