@@ -27,6 +27,10 @@ backend/
                         # src/realtime/: Socket.IO at /ws, generic connection plumbing — no
                         # feature pushes anything over it yet, see services.md#gateway for the
                         # IRealtimeConnectionService.pushToUser entry point a future one uses.
+                        # src/calendar-proxy/: GET /calendar/shabbat → Calendar Service.
+                        # src/proxy/: the one shared forwarder every *-proxy module uses
+                        # (createServiceHttpClient + writeProxyResponse) — a new proxied service
+                        # gets a new *-proxy module on top of it, never its own HTTP client copy.
                         # Thin pass-through everywhere — never business logic. A new feature's
                         # HTTP surface gets its own self-contained module here, same shape.
     auth/                # HTTP, internal-only (never published to the host — only Gateway calls
@@ -38,6 +42,12 @@ backend/
                         # since email may have changed. Postgres via TypeORM, salt+pepper+SHA-256
                         # hashing. UserRole has exactly one value ('user') — no admin/role system
                         # in this project.
+    calendar/            # HTTP, internal-only, stateless. All calendar math (@hebcal/core v6 behind
+                        # ICalendarCalculator). GET /calendar/shabbat. See its README for the
+                        # ESM-subpath import and time-zone rules before touching it.
+    reminders/           # Skeleton — /health + its own `reminders` DB (REMINDERS_DATABASE_URL).
+    notifications/       # Skeleton — /health + its own `notifications` DB
+                        # (NOTIFICATIONS_DATABASE_URL). Both filled in by plan stage 2.
   libs/
     auth-kernel/          # generic JWT sign/verify (the only class allowed to import
                         # `jsonwebtoken`), JwtAuthGuard, CurrentUser decorator — shared by auth
@@ -80,6 +90,10 @@ doesn't (e.g. wrapping the generic `IEventPublisher` in a topic-specific publish
 - **The frontend only ever talks to Gateway** — never Auth Service or any other backend service
   directly, even though the frontend has its own published port (it's a static web export, not a
   backend service).
+- **A service that owns tables gets its own database** in the shared Postgres: its own
+  `<SERVICE>_DATABASE_URL` (never reuse Auth's `DATABASE_URL`), and its name added to
+  `devops/postgres/docker-compose.yml`'s `postgres-init` loop so the database exists before the
+  service boots.
 - **Kafka topics/consumer groups live in `libs/kafka-contracts`**, never inlined as a string
   literal in an app. Adding the first topic means updating `topics.ts` *and* adding a `kafka-init`
   service to `devops/kafka/docker-compose.yml` in the same change — `KAFKA_AUTO_CREATE_TOPICS_ENABLE=
@@ -123,8 +137,8 @@ Don't rely on your own judgment for comment density or doc accuracy — that's i
 ```bash
 cd backend
 npm install
-npx nest start gateway --watch     # or: auth
-npm test
+npx nest start gateway --watch     # or: auth, calendar, reminders, notifications
+npm test                           # jest.config.js
 npm run lint
 ```
 Full stack (see root CLAUDE.md for the two-command bring-up sequence, observability first).

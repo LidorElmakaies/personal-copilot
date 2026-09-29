@@ -10,10 +10,9 @@ you travel between, later a spaceship corridor, later a real 3D alien-hull scene
 prototyped and then deliberately dropped in favor of what's below. See "Explored and rejected" at
 the bottom before proposing any of that again.
 
-A working prototype of everything in this file lives at `design-lab/` (repo root, sibling to this
-folder) — throwaway HTML/CSS/JS, not real code, not tracked, but it is the source of truth for
-exact look/feel/timing until this gets built for real. `cd design-lab && npm install && npm run
-dev`, open `localhost:5173`.
+This file is the reference for the app shell's look/feel/timing. Feature-specific screens are
+designed as HTML mockups under `docs/plans/<feature>/mockups.html` and follow the tokens and
+components described here.
 
 ## The idea
 
@@ -27,23 +26,21 @@ background detail, not the headline.
 
 - **Top bar** — current page title + a small connection-status dot (real data: gateway/socket
   state, not decorative).
-- **Bottom tab bar** — the primary nav, one destination per tab (Settings today; User Management /
-  Admin Panel / Agent Panel join it as those get built). Icon + label per tab, simple stroke-based
-  line icons (not emoji, not filled/solid icons) — see `design-lab/index.html`'s inline SVGs for
-  the exact set (sliders / person / shield / chip). Active tab: icon switches to the accent color
-  and gets a soft outer glow; inactive tabs stay in `text-faint`.
+- **Bottom tab bar** — the primary nav, one destination per tab (Home and Account today; Calendar
+  is planned). Icon + label per tab, Ionicons outline icons (not emoji) — see `(tabs)/_layout.js`'s
+  `TABS` for each tab's outline/active icon pair. Active tab: icon switches to its filled variant
+  in the accent color and gets a soft outer glow; inactive tabs stay in `text-faint`.
 - **Content transitions** — switching tabs is a plain ~180ms fade + slight rise on the incoming
   panel. No travel, no zoom, no scene to move through.
-- **Side drawer** — built and working in the lab (`#drawer-frame`, hidden behind a disclosure
-  toggle) as a documented fallback, not the active pattern. Revisit only if the tab bar runs out of
+- **Side drawer** — a fallback pattern, not the active one. Revisit only if the tab bar runs out of
   room for more destinations than four-ish icons comfortably hold.
-- **Top segmented control** — prototyped, compared side-by-side with the tab bar, not chosen.
-  Removed from the lab; don't re-propose without a specific reason the tab bar stopped working.
+- **Top segmented control** — compared side-by-side with the tab bar and not chosen; don't
+  re-propose without a specific reason the tab bar stopped working.
 
 ## Theme — dark and light, both fully live
 
-Not a palette that only theoretically supports light mode — the lab's theme switch actually
-re-skins the whole screen on tap, and every component below was checked in both states. The bug
+Not a palette that only theoretically supports light mode — the theme switch re-skins the whole
+screen on tap, and every component below is checked in both states. The bug
 that shipped once and got caught: `.btn--glass`'s original translucent-white treatment was
 invisible on a light background (white-on-near-white) because the button wasn't reading the
 frame's live theme tokens at all. Any new component must consume the same tokens, not hardcode a
@@ -62,8 +59,8 @@ dark-mode-only color.
 Semantic colors (status chips, alerts) stay the same hex across both themes — tuned to hold
 readable contrast on both a near-black and a near-white surface rather than getting a separate
 light-mode variant: online/success `#12a866`, pending `#c9791a`, danger `#a4271e`
-(`#ff9d8f`/`rgba(255,107,91,…)` on dark surfaces reads better with a brighter danger tone — see the
-lab's `.btn--glass-danger` rule for the exact dark/light split).
+(`#ff9d8f`/`rgba(255,107,91,…)` on dark surfaces reads better with a brighter danger tone — the
+per-theme values are `colors.error`/`errorBorder` in `src/theme/colors.js`).
 
 Glass itself is not a naive color invert between themes:
 
@@ -75,11 +72,11 @@ Glass itself is not a naive color invert between themes:
 
 ## Components
 
-- **Glass Card** — the standard container for grouped content (`.card` in the lab): translucent
+- **Glass Card** — the standard container for grouped content: translucent
   blurred surface (`backdrop-filter: blur(10px)`), soft accent-colored glow shadow in dark mode /
   soft neutral shadow in light mode. This was the explicitly confirmed pick over three other node
-  styles that were prototyped (console-panel, gauge-tile, radial-node) — those stay in the lab as
-  reference for denser data display (e.g. a future detail screen) but aren't the default.
+  styles that were prototyped (console-panel, gauge-tile, radial-node) — possible starting points
+  for denser data display (e.g. a future detail screen), not the default.
 - **Row** — title + subtitle stack, optional trailing chip or control, used inside a card,
   bottom-border-separated from the next row.
 - **Chip** — small pill badge, semantic color only (online/pending/etc.), never used for anything
@@ -91,8 +88,8 @@ Glass itself is not a naive color invert between themes:
 - **Buttons** — **Glass is the one button**, confirmed pick over three other styles prototyped (HUD
   bracket, console toggle, hard alert-border). Every action button uses the glass family; semantic
   differentiation (e.g. Log Out) is a color modifier on glass (`.btn--glass-danger`: red-tinted
-  border/text/glow), never a different button shape. The other three styles stay in the lab's
-  Buttons tab as rejected reference, not options to mix back in.
+  border/text/glow), never a different button shape. The other three styles are rejected, not
+  options to mix back in.
 
 ## Background / ambient motion
 
@@ -121,16 +118,16 @@ Keeps the pairing already established in `src/theme/`, not a new choice:
   up (`tabular-nums`).
 
 Four alternate display-face pairings were explored for a more distinctive heading font (Orbitron +
-Exo 2, Chakra Petch + Inter, Share Tech Mono + IBM Plex Sans, Audiowide + Rajdhani — still visible
-in the lab's Typography tab) but none were picked. Open question, not a blocker — revisit only if
+Exo 2, Chakra Petch + Inter, Share Tech Mono + IBM Plex Sans, Audiowide + Rajdhani) but none were
+picked. Open question, not a blocker — revisit only if
 Rajdhani starts feeling generic once real content is in place.
 
 ## Mapping to the real stack
 
-The lab is disposable HTML standing in for fidelity, not a port target — `design-lab/index.html`
-uses plain CSS/canvas tricks that don't map 1:1 onto React Native. Real build:
+The concepts above are described in web terms (CSS classes, canvas tricks) that don't map 1:1 onto
+React Native. Real implementation:
 
-| Lab concept | Real implementation |
+| Concept | Real implementation |
 |---|---|
 | `.card` / Glass Card | Restyle of `GlowCard` (`src/components/base/layout/`) — same glass token logic, theme-aware per the table above |
 | `.btn--glass` / `.btn--glass-danger` | Restyle of `GradientButton` (`src/components/base/buttons/`) — glass instead of gradient fill, `variant="danger"` prop for the tint |
@@ -176,6 +173,5 @@ Recorded so none of this gets re-proposed from scratch:
   draft, once after actually building and discarding a three.js prototype).
 - No spatial/travel navigation metaphor of any kind.
 - No sound design commitment.
-- No panel content changes — this file is about the shell (background, navigation, transitions,
-  theme, shared components), not what Settings/User Management/Admin Panel/Agent Panel each contain
-  beyond the placeholder content already sketched in `design-lab/index.html`.
+- No screen content here — this file is about the shell (background, navigation, transitions,
+  theme, shared components), not what each tab contains; that lives in each feature's mockups.

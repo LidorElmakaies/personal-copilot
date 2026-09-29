@@ -22,8 +22,7 @@ import type {
 } from './interfaces/shabbat-service.interface';
 
 const FRIDAY = 5;
-// Minutes before sunset. Explicit so @hebcal/core's hidden 18→20 Israel swap never applies;
-// city customs (Jerusalem 40, Haifa 30) become a user setting later.
+// Minutes before sunset, set explicitly — see backend/apps/calendar/README.md.
 const CANDLE_LIGHTING_MINUTES = { israel: 20, abroad: 18 };
 const ISRAEL_TIME_ZONE = 'Asia/Jerusalem';
 

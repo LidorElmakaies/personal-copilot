@@ -1,7 +1,7 @@
 # Services
 
-Two NestJS apps in `backend/apps/`, one shared event-bus lib pair, one frontend. See
-`architecture.md` for the topology diagram.
+Five NestJS apps in `backend/apps/` (`gateway`, `auth`, `calendar`, `reminders`, `notifications`),
+shared libs in `backend/libs/`, one frontend. See `architecture.md` for the topology diagram.
 
 ## gateway
 
@@ -15,11 +15,18 @@ tunnel from a Caddy instance on the public internet. HTTP + WebSocket.
   you get a token in the first place; `account` is body-driven the same way — see `apps/auth`
   below). No `GET /me` — there's nothing left for it to return that the
   client can't already decode from its own access token (see `apps/auth`'s note below).
+- `GET /calendar/shabbat?lat&lon&tz` — forwards exactly those three query params to Calendar
+  Service's route of the same name and relays its status/body verbatim (Calendar validates them;
+  its `400`s pass straight through). Unguarded, so Home works signed out.
+- Every proxy module (`auth-proxy`, `calendar-proxy`) is built on one shared forwarder in
+  `src/proxy/`: `ServiceHttpClient` (one instance per internal service, base URL from
+  `<SERVICE>_SERVICE_URL`), `writeProxyResponse`, and the `ProxyRequest`/`ProxyResponse` types. An
+  unreachable service answers `502 { error: { code: '<service>_unreachable', message } }`.
 - Global rate limiting (`@nestjs/throttler`, `THROTTLE_TTL_MS`/`THROTTLE_LIMIT`, default
   60s/100req) plus a tighter limit on `register`/`login`/`refresh`/`account`
   (`AUTH_THROTTLE_TTL_MS`/`AUTH_THROTTLE_LIMIT`, default 60s/5req) — those are the brute-force
   targets now that Gateway can be reached from the open internet via the cloud path (password
-  guessing, email enumeration, refresh/session abuse). `logout` deliberately stays on the global
+  guessing, email enumeration, refresh/session abuse). `logout` and `/calendar/*` stay on the global
   default — it needs a valid refresh token already, so hammering it gains nothing; see
   `backend/apps/gateway/README.md` for the full reasoning behind the two-tier split. Keyed on
   client IP; `main.ts` sets `app.set('trust proxy', 'loopback')` so that IP is correct behind the
@@ -74,6 +81,46 @@ token is already a high-entropy random value, not human-guessable like a passwor
 guards against a raw DB leak, not brute force. `refresh` always revokes the used token first, then
 issues a new pair, so a stolen-and-replayed refresh token only ever works once.
 
+## calendar
+
+HTTP, internal-only, stateless (no database). Every calendar calculation lives here, using
+`@hebcal/core` behind `ICalendarCalculator` (`HebcalCalendarCalculator` is the only file that
+imports it).
+
+- `GET /calendar/shabbat?lat&lon&tz` — the Shabbat in progress at request time, otherwise the next
+  one, for the user's location:
+  ```json
+  { "candleLighting": "2026-10-02T15:04:00.000Z", "havdalah": "2026-10-03T16:00:00.000Z",
+    "parasha": null, "holidays": [{ "en": "Shmini Atzeret", "he": "שמיני עצרת" }], "isNow": false }
+  ```
+  - `lat`/`lon` validated as coordinates, `tz` as an IANA time zone → `400` otherwise. `422` where
+    there's no sunset to count from (e.g. polar summer).
+  - "Today" is the user's local date in `tz`, never the server's. The Shabbat that started last
+    Friday is returned while it's still running — including through a Yom Tov directly after it
+    (abroad, `havdalah` can be Sunday or Monday night).
+  - Israel vs. abroad rules (one- vs. two-day Yom Tov) follow `tz === 'Asia/Jerusalem'`. Candle
+    lighting is 20 minutes before sunset in Israel, 18 abroad; Havdalah is Hebcal's default (sun
+    8.5° below the horizon).
+  - `parasha` is `null` when a holiday replaces the weekly reading. `holidays` lists what falls on
+    that Saturday (holidays, Chol HaMoed, Rosh Chodesh, Chanukah, named Shabbatot), minus eves,
+    modern civic days, and Leil Selichot. Names come in English and unvoweled Hebrew.
+- `GET /health`.
+
+See `backend/apps/calendar/README.md` for the non-obvious implementation details.
+
+## reminders
+
+HTTP, internal-only. Skeleton: boots, connects to its own `reminders` database
+(`REMINDERS_DATABASE_URL`) in the shared Postgres, answers `GET /health`. No endpoints yet — will
+own per-user reminders and the scheduler that publishes due ones to Kafka (see
+`docs/plans/shabbat-reminders-calendar/plan.md`, stage 2).
+
+## notifications
+
+HTTP, internal-only. Skeleton: same as `reminders`, with its own `notifications` database
+(`NOTIFICATIONS_DATABASE_URL`). No endpoints yet — will consume notification requests from Kafka
+and deliver them per channel (push first).
+
 ## frontend
 
 Expo Router app. Login is optional app-wide, not a gate on the whole app: `(tabs)` routes are
@@ -84,7 +131,19 @@ logging in" link (routes to `/`) for whoever lands there without wanting to auth
   and today's Hebrew/Jewish date via `@hebcal/hdate`, chosen over `Intl`'s `'he-u-ca-hebrew'`
   calendar extension because Hermes's bundled ICU data isn't guaranteed to include non-Gregorian
   calendar tables on-device — see `frontend/README.md`; a live/disconnected connection chip read
-  straight from `wsSlice.status`).
+  straight from `wsSlice.status`, which stays "Disconnected" while signed out since the socket
+  only opens with a token). Under the clock, `ShabbatSection` shows the current/next Shabbat for
+  the device's location: a label (holiday or parasha, or "Shabbat Shalom" while it's in progress),
+  candle lighting and Havdalah with their dates, and a countdown to whichever comes next. "In
+  progress" and the countdown are computed from the device clock against the two returned times.
+  - When it fetches: on Home's first mount (`locate()` for a fresh GPS fix; the persisted
+    last-known location is used meanwhile), when the fix arrives, when Havdalah passes (next
+    Shabbat, same location), and on Retry. Switching tabs or returning from the background doesn't
+    refetch.
+  - `locationSlice` persists only `coords` (`{ latitude, longitude, timeZone }`, the time zone
+    from the device) and `calendarSlice` persists the last `shabbat` response, so Home still shows
+    times offline. Location refused → "Location is off" + Retry (or, with a cached result, a
+    "using your last known location" note).
 - `(tabs)/account` (theme toggle, logged-in account, edit account email/password, logout) — the
   one tab opted into `requiresAuth: true` (`(tabs)/_layout.js`'s `TABS`). `CustomTabBar` intercepts
   a press on a `requiresAuth` tab while signed out and shows `ConfirmModal` ("Log in to view
@@ -102,13 +161,13 @@ service directly.
 
 Themed via a three-layer pipeline (`themeSlice` → `useAppTheme()` → `ThemeAnimContext`) and shared
 components under `src/components/base/` (grouped into `background`/`buttons`/`feedback`/`form`/
-`layout` subfolders by purpose) and `src/components/composite/` (`GlowCard`, `GradientButton`,
-`InputField`, `AmbientBackground`, `ConfirmModal`, `Alert`, `AccountEditForm`,
-`RequireAuthNotice`) — see `.claude/agents/frontend.md` for the base/composite split, the full
+`layout` subfolders by purpose) and `src/components/composite/` (`AccountEditForm`, `AmbientBackground`,
+`ConfirmModal`, `RequireAuthNotice`, `ShabbatSection`) — see `.claude/agents/frontend.md` for the base/composite split, the full
 convention, and why there's no Gluestack layer here.
 
-`src/services/` is split by transport: `http/` (fetch-based calls — `authService`) and `ws/`
-(`socketService`, a single shared Socket.IO connection). `wsSlice`'s `connectWebSocket`/
+`src/services/` is split by transport: `http/` (fetch-based calls — `authService`,
+`calendarService`), `ws/` (`socketService`, a single shared Socket.IO connection), and `device/`
+(`locationService` — `expo-location` permission + position, plus the device's IANA time zone). `wsSlice`'s `connectWebSocket`/
 `disconnectWebSocket` thunks open/close it whenever `authSlice.accessToken` changes
 (`app/_layout.js`'s `RealtimeConnectionManager`) — generic plumbing, same as Gateway's `/ws`; no
 feature listens for a specific event yet. A future feature attaches its own listener via
@@ -128,7 +187,7 @@ for the first one that needs it).
 
 ## libs/kafka-contracts / libs/kafka-client
 
-Generic Kafka plumbing kept from an earlier feature: `kafka-client` (the producer wrapper,
+Generic Kafka plumbing: `kafka-client` (the producer wrapper,
 `IEventPublisher`/`KafkajsEventPublisher`) and `kafka-contracts` (this project's own topics/message
 shapes). `kafka-contracts` is currently an empty shell — no topic exists yet. The Kafka broker
 itself still runs (`devops/kafka/docker-compose.yml`); nothing produces or consumes today. See

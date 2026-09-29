@@ -1,9 +1,9 @@
 # personal-copilot
 
-A NestJS + Expo scaffold: Gateway, Auth Service (Postgres-backed login/JWT), full OTel
-observability, and a frontend with working login/register — the shared infrastructure this project
-started with, kept as the base for whatever feature comes next. No product feature is built on top
-of it yet.
+A personal NestJS + Expo app, self-hosted on a home PC and used from a phone over Tailscale.
+Today it shows Shabbat times (candle lighting, Havdalah, countdown) for the phone's location on the
+Home screen, with optional login. Per-user reminders and a Jewish-calendar tab are next — see
+[the plan](docs/plans/shabbat-reminders-calendar/plan.md).
 
 See [CLAUDE.md](CLAUDE.md) for architecture, setup, and how this repo is organized —
 [docs/specs/](docs/specs/) for the service/event contracts.

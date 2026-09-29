@@ -6,7 +6,7 @@ and [docs/specs/](../docs/specs/) for the service/event contracts.
 ```bash
 npm install
 cp .env.example .env        # for local (non-Docker) runs
-npx nest start gateway --watch     # or: auth
-npm test
+npx nest start gateway --watch     # or: auth, calendar, reminders, notifications
+npm test                           # jest.config.js — unit + API tests across apps/libs
 npm run lint
 ```

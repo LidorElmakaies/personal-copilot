@@ -17,7 +17,8 @@ second one.
 ## Where you work
 
 `frontend/` — see root `CLAUDE.md` for the overall stack. This app is currently optional auth
-(login/register, not a whole-app gate) + a Home tab (landing, no session required) + an auth-gated
+(login/register, not a whole-app gate) + a Home tab (landing, no session required; clock, dates,
+and Shabbat times for the device's location via `locationSlice` + `calendarSlice`) + an auth-gated
 Account tab; there is no scraper/jobs/admin surface here — don't port that part of
 `ask-my-crawl`'s frontend, only its theme/component/services conventions.
 
@@ -65,7 +66,9 @@ two folders:
 - **`composite/`** — built by composing one or more `base` (or other `composite`) components, flat
   (no subfolders). Currently: `AccountEditForm` (from `Alert`, `GradientButton`, `InputField`),
   `AmbientBackground` (from `Meteors`, `Stars`), `ConfirmModal` (from `GlowCard`,
-  `GradientButton`), `RequireAuthNotice` (from `AmbientBackground` + `GlowCard`, `GradientButton`).
+  `GradientButton`), `RequireAuthNotice` (from `AmbientBackground` + `GlowCard`, `GradientButton`),
+  `ShabbatSection` (from `GradientButton` — Home's Shabbat times; presentational, Home owns the
+  Redux wiring and passes `now`).
 
 Use these instead of hand-rolling a `TextInput`/card/button/background/confirm-dialog/message-box
 per screen. If a UI pattern is about to appear a second time, extract it to a component before a
@@ -76,8 +79,9 @@ component definitions or business logic in a page file.
 
 ## Services layer — where all I/O lives
 
-Every network call (HTTP or WebSocket) lives in a plain module under `src/services/`, split by
-transport (`http/`, `ws/`) — never inline inside a thunk and never inside a component. Services
+Every network call (HTTP or WebSocket) and every device API (location) lives in a plain module
+under `src/services/`, split by transport (`http/`, `ws/`, `device/`) — never inline inside a thunk
+and never inside a component. Services
 know nothing about Redux (no `dispatch`, no reading state); thunks call the service and translate
 its result/callbacks into dispatched actions; components only ever `dispatch()` a thunk and
 `useSelector()` state. **Custom hooks are the exception, not the default** — reach for one only
@@ -87,7 +91,8 @@ when a component genuinely needs something no thunk/selector combination can giv
 
 - Always use `useAppTheme()` for colors — never hardcode or import `colors.js` directly in a
   screen/component.
-- Don't hand-write to AsyncStorage — redux-persist handles persisted slices (`auth`, `theme`).
+- Don't hand-write to AsyncStorage — redux-persist handles persisted slices (`auth`, `theme`,
+  `location` — `coords` only, `calendar` — `shabbat` only).
 - Provider order in `app/_layout.js` is load-bearing (`Provider` → `PersistGate` →
   `ThemeAnimProvider` → `AuthGate`/`RealtimeConnectionManager` → `Stack`) — adding a provider means
   deciding where it sits deliberately, not appending it wherever's convenient.
@@ -102,49 +107,32 @@ when a component genuinely needs something no thunk/selector combination can giv
 
 Don't declare a visual/animation change done from reading the code or a single screenshot — this
 project has repeatedly had bugs that only showed up once actually measured or interacted with
-(see "Bug patterns already hit" below). Two separate things get verified this way, for different
-reasons:
+(see "Bug patterns already hit" below).
 
-- **`design-lab/index.html`** — the throwaway HTML/CSS/JS prototyping ground (see root
-  `DESIGN.md`/`CLAUDE.md`). For any new visual idea, prototype it here first and get the user's
-  sign-off *before* touching real component code — `cd design-lab && npm run dev` serves it on
-  `:5173`. Cheaper to iterate on than the real app (no Docker rebuild, no Expo bundling), and it's
-  the shared reference the user actually looks at to give feedback.
-- **The real app**, via the already-running Docker stack — `cd devops && docker compose up -d
-  --build frontend` rebuilds and restarts just the frontend container after a code change, served
-  at `http://localhost:8081` (Gateway's at `:8000`). The Expo web dev server alone doesn't prove
-  what ships; prefer this once a design-lab prototype is confirmed and ported. If `docker info`
-  fails, Docker Desktop isn't running — start it and poll `docker info` until it succeeds before
-  running compose commands. The compose project has orphaned containers from an unrelated sibling
-  project sharing the same Docker Compose project namespace — never touch anything not defined in
-  `devops/*/docker-compose.yml`.
+- **New UI ideas start as an HTML mockup** under the feature's plan folder
+  (`docs/plans/<feature>/mockups.html` — e.g. the chosen H1/C1 designs for Shabbat/calendar) and
+  get the user's sign-off before real component code. Update that file when a design changes.
+- **The real app** runs from the Docker stack: `cd devops && docker compose up -d --build frontend`
+  after a code change, then `http://localhost:8081` (Gateway at the baked `GATEWAY_PUBLIC_URL`).
+  The Expo web dev server alone doesn't prove what ships.
+- **Browser tests and screenshots** run in the pinned Playwright container —
+  `docker compose -f devops/playwright/docker-compose.yml run --rm e2e` from the repo root; specs in
+  `frontend/e2e/tests/`, one per screen/flow. See `.claude/agents/testing.md` for conventions
+  (fixed GPS via `geolocation`/`permissions`, frozen clock via `page.clock`, mocked API via
+  `page.route`, waiting out RN-web JS animations before a screenshot). Look at every screenshot you
+  take before reporting a UI change done.
+- **On the phone**: Expo Go over Tailscale (`docs/frontend/environment.md`) for native behavior
+  (permissions, GPS), or `https://<pc>.ts.net` in the phone browser for the web build.
 
-### Node/Playwright on this machine
-
-Node isn't on the default PATH here — it's fnm-managed. In PowerShell, prepend it before running
-`node`/`npm`/`npx`:
-
-```powershell
-$env:PATH = "C:\Users\lidor\AppData\Roaming\fnm\node-versions\v22.15.0\installation;" + $env:PATH
-```
-
-For anything needing a real browser (hover states, animation frames, computed styles), install
-Playwright in the session's scratchpad directory (never inside the repo): `npm install playwright`
-then `npx playwright install chromium` (the browser binary caches at
-`~/AppData/Local/ms-playwright`, so this is instant on later runs). Clean up scratch scripts/
-screenshots and any dev server you started when done — they don't belong in the repo, and orphaned
-`node`/browser processes on a port block the next run.
-
-Driving it:
-- Launch non-headless (`headless: false`) when checking anything GPU-composited (blur, shadow,
-  `backdrop-filter`) — most "must be a rendering difference" hunches during this project turned
-  out to be real structural bugs once actually measured, but headless/software rendering is still
-  a real variable worth ruling out first for that category of visual bug specifically.
+Driving tips:
 - Register a throwaway account through the UI (`fill`/`click`) rather than scripting the API —
   React-controlled inputs ignore `eval`-setting `.value` directly (`onChange` never fires).
 - Don't trust `getByText(x, { exact: true })` to resolve to the element you expect — RN-web's
   `text-transform: uppercase` etc. means visible text and the DOM's actual text content differ,
-  and a label can match several nested ancestors at once (button *and* its containing row).
+  and a label can match several nested ancestors at once (button *and* its containing row). A
+  non-exact `getByText` also matches substrings ("Candle lighting" matches "until candle
+  lighting"). An `accessibilityLabel` (rendered as `aria-label`) + `getByLabel` is the most stable
+  hook for composite values like a countdown.
 - For anything about alignment/centering/sizing, pull `getBoundingClientRect()`/
   `getComputedStyle()` on the real DOM nodes and diff the numbers — a screenshot proves a shape
   *looks* right at that moment, a coordinate delta proves an offset is or isn't real. A crop
@@ -173,12 +161,12 @@ Driving it:
   transparent child sitting on top of a strong gradient *blends* with it rather than occluding it.
   A naive port of this trick reads as a solid tinted wash, not a subtle rim, unless the gradient's
   alpha is tuned down hard.
-- **design-lab (plain HTML/CSS) only, doesn't apply to React Native**: a plain inline element
+- **HTML mockups only (`docs/plans/**/*.html`), doesn't apply to React Native**: a plain inline element
   (default for a `<span>`) ignores explicit `width`/`height` entirely unless blockified. A flex
   item is auto-blockified by its container, but removing `display:flex` from that container
   silently un-blockifies its children too, collapsing them toward zero size — reads as "things
   aren't centered" when it's actually one element that shrank. Yoga (React Native's layout engine)
-  has no inline/block distinction, so this specific footgun is design-lab-only.
+  has no inline/block distinction, so this specific footgun is mockup-only.
 
 ## Commands
 

@@ -21,8 +21,7 @@ function countdownParts(from, to) {
   };
 }
 
-// The H1 "times under the clock" section (docs/plans/shabbat-reminders-calendar/mockups.html).
-// Presentational only — Home owns the Redux wiring. `now` drives the countdown and in-progress state.
+// Home's H1 design (docs/plans/shabbat-reminders-calendar/mockups.html); presentational, Home owns Redux.
 export default function ShabbatSection({
   shabbat,
   now,

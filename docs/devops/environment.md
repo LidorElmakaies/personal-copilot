@@ -9,10 +9,12 @@ behind this.
   [docs/gateway/environment.md](../gateway/environment.md) and
   [docs/auth/environment.md](../auth/environment.md) for what's in it.
 - **`devops/docker.env`** (checked into git — no secrets) — container-network overrides layered on
-  top of `backend/.env` via each service's own `env_file:` list: `KAFKA_BROKERS`, `DATABASE_URL`,
-  `OTEL_EXPORTER_OTLP_ENDPOINT`, all pointed at Docker service names instead of `localhost`.
+  top of `backend/.env` via each service's own `env_file:` list: `KAFKA_BROKERS`, `DATABASE_URL`
+  (auth), `REMINDERS_DATABASE_URL`, `NOTIFICATIONS_DATABASE_URL`, `OTEL_EXPORTER_OTLP_ENDPOINT`, all
+  pointed at Docker service names instead of `localhost`.
 - **`devops/.env`** (gitignored, copy of `devops/.env.example`) — read directly by `docker compose`
-  when invoked from `devops/`. `GATEWAY_PUBLIC_URL` (baked into the frontend build — see
+  when invoked from `devops/`. `GATEWAY_PUBLIC_URL` (baked into the frontend build — for phone
+  access, the HTTPS `:8443` URL `devops/tailscale/serve.sh` prints; see
   [docs/frontend/environment.md](../frontend/environment.md)), plus `JWT_SECRET`/`PASSWORD_PEPPER`
   passed explicitly into Gateway's `environment:` so they're guaranteed to match `backend/.env`'s
   copy that Auth Service reads. Not shared with `devops/observability`'s compose project (a

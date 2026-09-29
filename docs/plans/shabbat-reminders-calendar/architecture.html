@@ -136,7 +136,7 @@ ol.steps b{color:var(--ink)}
         <text x="54" y="274" class="t-mono">thunks only</text>
 
         <rect x="40" y="298" width="230" height="52" rx="10" fill="var(--soft)" stroke="var(--line)"/>
-        <text x="54" y="320" font-weight="600" font-size="12.5">services/http/*Api</text>
+        <text x="54" y="320" font-weight="600" font-size="12.5">services/http/*Service</text>
         <text x="54" y="338" class="t-mono">the only place that calls fetch</text>
 
         <line x1="155" y1="154" x2="155" y2="166" stroke="var(--line)"/>
@@ -347,9 +347,9 @@ next_fire_at  2026-10-02 16:34 local</pre>
 
   <section>
     <h2>Your exact location</h2>
-    <p class="lede" style="margin-bottom:14px"><code>expo-location</code> gives GPS coordinates, and <code>@hebcal/core</code> calculates from latitude, longitude and time zone directly. The time zone also decides Israel vs. abroad (one day of Yom Tov or two). Candle lighting defaults to 18 minutes before sunset and becomes a setting later (Jerusalem uses 40).</p>
+    <p class="lede" style="margin-bottom:14px"><code>expo-location</code> gives GPS coordinates, and <code>@hebcal/core</code> calculates from latitude, longitude and time zone directly. The time zone also decides Israel vs. abroad (one day of Yom Tov or two). Candle lighting is 20 minutes before sunset in Israel and 18 abroad; city customs (Jerusalem 40, Haifa 30) become a setting later.</p>
     <div class="callout">
-      <p><b>Needs HTTPS in the browser.</b> Phone browsers only allow GPS on HTTPS. The web app is plain HTTP on :8081 today, so we add <code>tailscale serve</code> (a real certificate for your <code>*.ts.net</code> name). The native app doesn't need this.</p>
+      <p><b>Needs HTTPS in the browser.</b> Phone browsers only allow GPS on HTTPS, so <code>tailscale serve</code> puts the app and Gateway behind a real certificate for the PC's <code>*.ts.net</code> name (<code>devops/tailscale/serve.sh</code>). The native app doesn't need this.</p>
       <p>Reminders will need your location saved on the server, since they fire while the app is closed. That's stored with the reminder in phase 2, not in phase 1.</p>
     </div>
   </section>

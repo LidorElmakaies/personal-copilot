@@ -13,9 +13,16 @@ covered below.
 
 Two independent Compose projects, joined by a shared `observability` Docker network:
 - `devops/` — the app stack: `gateway` (the only *backend* service published to the host, port
-  8000), `auth` (internal-only, no published port), `frontend` (published, port 8081 — a static
-  web export, not a backend service, see the `frontend` compose service's own comment), `postgres`,
+  8000), `auth`, `calendar`, `reminders`, `notifications` (internal-only, no published ports,
+  healthchecks on `/health` for the last three), `frontend` (published, port 8081 — a static web
+  export, not a backend service, see the `frontend` compose service's own comment), `postgres`
+  (one instance, one database per table-owning service, created by the one-shot `postgres-init`),
   `kafka` (idle — no service produces or consumes yet).
+- `devops/tailscale/serve.sh` — not a compose project: puts `frontend` (`https://<pc>.ts.net`) and
+  `gateway` (`:8443`) behind Tailscale HTTPS for phone access. `tailscale serve` config persists
+  on the host; `tailscale serve reset` removes it.
+- `devops/playwright/` — on-demand browser-test runner (not in the root `include:`), see
+  `frontend/e2e/README.md`.
 - `devops/observability/` — `otel-collector`, `loki`, `prometheus`, `tempo`, `grafana`.
 
 ### Startup order
@@ -30,7 +37,9 @@ observability up first.
 ## Non-negotiables
 
 - **Reuse existing shared infrastructure** — a new service that needs Kafka or Postgres points at
-  the existing `kafka`/`postgres` container, it never gets its own instance.
+  the existing `kafka`/`postgres` container, it never gets its own instance. A new database is one
+  more name in `postgres-init`'s loop (`devops/postgres/docker-compose.yml`), and the service
+  `depends_on` `postgres-init: service_completed_successfully`.
 - **Pin every image version, never `:latest`.** An unpinned image silently drifting onto an
   incompatible config/schema (Tempo's 2.x -> 3.x break is the canonical example — a real historical
   incident, not a hypothetical) is a genuine failure mode here, not hygiene. Check the exact
@@ -81,7 +90,8 @@ these hard-won rules from that project instead of re-learning them:
 - **One dashboard file per service** (`service-gateway.json`, `service-auth.json`, ...), not one
   templated dashboard with a service dropdown — each shows up as its own named tile, and every
   query is scoped by a literal `job="<name>"`. Drop the panels that don't apply (Kafka-only
-  services get no HTTP row; only Gateway and Auth have one; only Auth has a DB row). `frontend`
+  services get no HTTP row; only services with a database — auth, reminders, notifications — get a
+  DB row). `frontend`
   sends no telemetry (a static web export, not a Nest service) — no dashboard for it.
 - **A multi-select variable's "All" option defaults to `.*`, and Loki 3.x rejects that outright**
   (`parse error: queries require at least one regexp or equality matcher that does not have an

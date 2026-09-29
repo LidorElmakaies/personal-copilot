@@ -4,22 +4,26 @@ This file provides guidance to Claude Code when working with code in this reposi
 
 ## What this project is
 
-**personal-copilot**: right now, a clean-slate NestJS + Expo scaffold — Gateway, a Postgres-backed
-Auth Service, full OTel observability, and a frontend with working login/register. No product
-feature is built on top of this yet; a previous Shabbat-notification feature (WhatsApp + location
-sharing) was deliberately stripped back out to start fresh. Treat "what's implemented" below as the
-actual current scope, not a placeholder for the old feature.
+**personal-copilot**: a NestJS + Expo app — Gateway, a Postgres-backed Auth Service, a Calendar
+Service, full OTel observability, and a frontend with optional login. The first feature is being
+built in stages from [`docs/plans/shabbat-reminders-calendar/plan.md`](docs/plans/shabbat-reminders-calendar/plan.md)
+(Shabbat times on Home → per-user candle-lighting reminders → a Jewish-calendar tab); read that
+plan and its design pages (`architecture.html`, `mockups.html`) before working on the feature.
+Stage 1 (Shabbat times) is live; Reminders and Notification services exist as skeletons. Work the
+plan one task at a time and stop for review after each.
 
 Hosted on the user's personal PC, reachable from their phone via **Tailscale** — `gateway` is the
 only backend service published to the host (`frontend` also has its own published port — it's a
-static web export, not a backend service, see "Key constraints" below). A second, optional
+static web export, not a backend service, see "Key constraints" below). `tailscale serve`
+(`devops/tailscale/serve.sh`) puts both behind HTTPS on the PC's `*.ts.net` name, which phone
+browsers require for GPS. A second, optional
 deployment path also exists in code (not yet live infra): `frontend` built and run standalone on a
 Hetzner VPS behind Caddy, reaching `gateway` back on the home machine over an SSH reverse tunnel —
 see `docs/specs/architecture.md`'s "System topology" and "SSH reverse-tunnel hardening" sections.
 Tailscale remains the primary access path either way.
 
-**Deliberately bootstrapped to match a sibling project's conventions** — `C:\Users\lidor\Desktop\
-ask-my-crawl` — same NestJS Nest-CLI monorepo shape, same clean/hexagonal layering, same
+**Deliberately bootstrapped to match a sibling project's conventions** — `ask-my-crawl`, a separate
+repo not checked out on this machine — same NestJS Nest-CLI monorepo shape, same clean/hexagonal layering, same
 Gateway/Auth Service split with a shared `auth-kernel` lib, same `devops/<service>/docker-
 compose.yml` structure, same `.claude/agents`/`.claude/memory` setup, and — as of this rewrite —
 the same frontend theme/component conventions (see the Architecture section's Frontend paragraph).
@@ -45,15 +49,17 @@ every agent in `.claude/agents/` too. Also in [README.md](README.md).
 ## Repo layout
 
 ```
-backend/                 NestJS monorepo — apps/{gateway,auth} + libs/{auth-kernel,otel,
-                          kafka-client,kafka-contracts}
+backend/                 NestJS monorepo — apps/{gateway,auth,calendar,reminders,notifications}
+                          + libs/{auth-kernel,otel,kafka-client,kafka-contracts}
 frontend/                 Expo/React Native app — login/register (optional, not gated app-wide), a
-                          Home tab, and an auth-gated Account tab
+                          Home tab (clock + Shabbat times), and an auth-gated Account tab;
+                          e2e/ holds the containerized Playwright tests
 devops/                   docker-compose.yml (app stack) + observability/ (Grafana/Loki/
                           Prometheus/Tempo/OTel, joined to the app stack via a shared Docker
                           network)
 docs/specs/               services.md, event-schemas.md, architecture.md (Mermaid diagrams) —
                           source of truth for how it's wired
+docs/plans/               staged feature plans + their HTML design pages
 ```
 
 ## What's implemented
@@ -63,13 +69,17 @@ docs/specs/               services.md, event-schemas.md, architecture.md (Mermai
   `THROTTLE_LIMIT`, default 60s/100req) plus a tighter per-route limit on `/auth/register`,
   `/auth/login`, `/auth/refresh`, `/auth/account`
   (`AUTH_THROTTLE_TTL_MS`/`AUTH_THROTTLE_LIMIT`, default 60s/5req); `/auth/logout` stays on the
-  global default since it needs a valid token already. Two modules:
+  global default since it needs a valid token already, as does `/calendar/*`. Three feature
+  modules, with the proxying ones built on one shared forwarder in `src/proxy/`
+  (`ServiceHttpClient`, `writeProxyResponse` — `502 <service>_unreachable` when a service is down):
   - `src/auth-proxy/` — thin pass-through to Auth Service, one hardcoded route per operation (not
     a wildcard): `register`, `login`, `refresh`, `logout`, `account` — no guard on any of them
     (that's how you get a token in the first place, and `account` is body-driven the same way, see
     `apps/auth` below). No `/me` — the access token itself carries
     `{ sub, role, email }`, so there's nothing left for a "who am I" endpoint to return that the
     client can't already decode.
+  - `src/calendar-proxy/` — `GET /calendar/shabbat` (forwards only `lat`/`lon`/`tz`), unguarded so
+    Home works signed out.
   - `src/realtime/` — Socket.IO at `/ws` (token in the handshake's `auth.token`). Generic plumbing
     kept for the next feature: `IRealtimeConnectionService.pushToUser(userId, event, payload)` is
     the entry point a feature module injects to reach a user's live connection. Nothing pushes
@@ -89,20 +99,34 @@ docs/specs/               services.md, event-schemas.md, architecture.md (Mermai
   15-min access tokens (`{ sub, role, email }` payload — the client decodes this instead of a
   separate `/me` call) + 30-day rotating refresh tokens (`backend/libs/auth-kernel` for the
   shared JWT sign/verify + guard).
+- **calendar** (`backend/apps/calendar`) — HTTP, internal-only, stateless. `GET /calendar/shabbat?
+  lat&lon&tz` → the Shabbat in progress, else the next one, for that location: `{ candleLighting,
+  havdalah, parasha, holidays, isNow }`. `@hebcal/core` v6 behind `ICalendarCalculator`; "today"
+  is the user's date in `tz`; Israel rules and 20-min candle lighting when `tz` is
+  `Asia/Jerusalem`, else 18 min. See `backend/apps/calendar/README.md` for the ESM-import and
+  time-zone gotchas.
+- **reminders** / **notifications** (`backend/apps/{reminders,notifications}`) — internal-only
+  skeletons: OTel, `/health`, and a TypeORM connection to their own database
+  (`REMINDERS_DATABASE_URL` / `NOTIFICATIONS_DATABASE_URL`) in the shared Postgres, created by
+  `devops/postgres`'s one-shot `postgres-init`. No endpoints yet (plan stage 2).
 - **frontend** (`frontend/`) — Expo Router app. Login is optional app-wide, not a gate on the whole
   app — `(tabs)` routes are freely reachable while signed out; `(auth)/{login,register}` each add a
   "Continue without logging in" link back to `/` for whoever lands there without wanting to
   authenticate. `(tabs)/index` (Home — the landing tab, no session required: live clock, today's
   Gregorian and Hebrew/Jewish date (`@hebcal/hdate`, see `frontend/README.md` for why not `Intl`),
-  and a live/disconnected connection chip read straight from `wsSlice.status`), `(tabs)/account`
+  a live/disconnected connection chip read straight from `wsSlice.status` — always "Disconnected"
+  while signed out, since the socket only opens with a token — and `ShabbatSection`: candle
+  lighting, Havdalah, holiday/parasha label, and a countdown for the device's GPS location, fetched
+  on first mount, after the GPS fix, after Havdalah passes, and on Retry; last location and result
+  persisted for offline), `(tabs)/account`
   (theme toggle, logged-in account, edit email/password via `AccountEditForm`, logout — the one tab
   so far opted into `requiresAuth: true`; the shared `CustomTabBar` intercepts a press on it while
   signed out and shows `ConfirmModal` instead of navigating, but a direct hit on the route — deep
   link, web refresh — bypasses that, so the screen itself also calls `useRequireAuth()` on mount and
   renders `RequireAuthNotice` instead — both generic and reusable by any future `requiresAuth` tab,
   not Account-specific). Redux Toolkit, services-layer convention (all I/O in
-  `src/services/`, split by transport — `http/` and `ws/` — called only from thunks in
-  `src/store/slices/`). Socket.IO
+  `src/services/`, split by transport — `http/`, `ws/`, and `device/` (location) — called only
+  from thunks in `src/store/slices/`). Socket.IO
   auto-connects whenever `authSlice.accessToken` changes (`app/_layout.js`'s
   `RealtimeConnectionManager`) — generic plumbing, same as Gateway's `/ws`; nothing listens for a
   specific event yet. Themed via the three-layer pipeline described in the Architecture section
@@ -136,9 +160,14 @@ docs/specs/               services.md, event-schemas.md, architecture.md (Mermai
 Backend (run from `backend/`):
 ```bash
 npm install
-npx nest start gateway --watch     # or: auth
-npm test
+npx nest start gateway --watch     # or: auth, calendar, reminders, notifications
+npm test                           # jest.config.js — unit + API tests
 npm run lint
+```
+
+Browser tests (from the repo root, against the running stack — see `frontend/e2e/README.md`):
+```bash
+docker compose -f devops/playwright/docker-compose.yml run --rm e2e
 ```
 
 Frontend (run from `frontend/`):
@@ -162,8 +191,9 @@ Shared code lives in `backend/libs/`: `auth-kernel` (JWT sign/verify, `JwtAuthGu
 
 **Frontend** — Expo Router, file-based routing, `(auth)`/`(tabs)` groups. Redux Toolkit with a
 strict services-layer convention: all I/O lives in `src/services/`, split by transport —
-`services/http/` (fetch-based calls) and `services/ws/` (the Socket.IO client) — called only from
-thunks in `src/store/slices/`, never inline in a thunk or a component.
+`services/http/` (fetch-based calls), `services/ws/` (the Socket.IO client), and
+`services/device/` (on-device I/O such as `expo-location`) — called only from thunks in
+`src/store/slices/`, never inline in a thunk or a component.
 
 Theming is a three-layer pipeline ported from `ask-my-crawl`, minus its Gluestack layer (nothing
 here rendered an actual Gluestack component, so it was left out rather than carried over as inert

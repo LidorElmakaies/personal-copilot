@@ -2,12 +2,18 @@
 
 - **`EXPO_PUBLIC_GATEWAY_ORIGIN`** (`frontend/.env.example` → `frontend/.env`) — local
   (non-Docker) dev only. Expo inlines `EXPO_PUBLIC_*` vars into the client bundle automatically;
-  `npx expo start` reads this file.
+  `npx expo start` reads this file. A shell env var overrides it, which is how Expo Go on the phone
+  reaches Gateway over Tailscale without editing the file:
+  `EXPO_PUBLIC_GATEWAY_ORIGIN=http://<pc-tailnet-ip>:8000 REACT_NATIVE_PACKAGER_HOSTNAME=<pc-tailnet-ip> npx expo start --port 8082`
+  (`8081` is taken by the Docker frontend), then open `exp://<pc-tailnet-ip>:8082` in Expo Go. A
+  native app doesn't need HTTPS for GPS, so plain HTTP to `:8000` is fine here.
 - **`GATEWAY_PUBLIC_URL`** (`devops/.env.example` → `devops/.env`) — the Dockerized build's
   equivalent, passed as a build `ARG` in `devops/frontend/docker-compose.yml` and baked into
   `EXPO_PUBLIC_GATEWAY_ORIGIN` inside the image (must be a build arg, not a runtime env var — the
-  static web export has no server to read a runtime var from). Set this to your PC's Tailscale
-  MagicDNS name, port 8000, so the phone-reachable build calls the right origin.
+  static web export has no server to read a runtime var from). For the phone browser, set it to
+  the HTTPS Gateway URL `devops/tailscale/serve.sh` prints (`https://<pc>.<tailnet>.ts.net:8443`) —
+  plain HTTP would make the browser block GPS. `http://localhost:8000` works for use on the PC
+  only.
 
 ## Cloud deployment (Hetzner + Caddy, not yet live)
 

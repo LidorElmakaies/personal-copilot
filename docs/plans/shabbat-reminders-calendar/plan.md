@@ -50,7 +50,7 @@ with a countdown. The Reminders and Notification services exist and run, but do 
   API / Application / Infrastructure / models layout like `apps/auth`, OTel wired, a health route,
   `devops/calendar/docker-compose.yml` with no published port, included in the app stack.
   *Check:* container starts and is healthy; not reachable from the host.
-- [x] **1.2 Shabbat calculation.** `ICalendarCalculator` (application interface) +
+- [x] **1.2 Shabbat calculation.** `ICalendarCalculator` (infrastructure interface) +
   `HebcalCalculator` (infrastructure, `@hebcal/core`). `GET /calendar/shabbat?lat&lon&tz` returns
   the next or current Shabbat: candle lighting, Havdalah, parasha, and any holiday on that Shabbat.
   Input validation (lat/lon ranges, valid IANA tz).
@@ -63,16 +63,16 @@ with a countdown. The Reminders and Notification services exist and run, but do 
   own Postgres database, compose file with no published port. No endpoints yet.
 - [x] **1.5 Notification Service skeleton.** `backend/apps/notifications`: same as 1.4. No
   endpoints or consumer yet.
-- [ ] **1.6 HTTPS for the web app.** *(Repo side done: `devops/tailscale/serve.sh` + README "Phone access". Waiting on the user to install Tailscale on this PC and run it.)* `tailscale serve` in front of the frontend and Gateway so a
+- [x] **1.6 HTTPS for the web app.** `tailscale serve` in front of the frontend and Gateway so a
   phone browser allows GPS. Update `.env.example` / `GATEWAY_PUBLIC_URL` and the README.
   *Check:* the site opens over `https://<pc>.ts.net` from the phone.
 - [x] **1.7 Frontend location.** Add `expo-location`, a `locationSlice` (coords + tz, cached),
   permission request on first use. If permission is denied, the Shabbat section shows a short
   "Location is off" message with a retry button.
-- [x] **1.8 Home card Shabbat section (H1).** `services/http/calendarApi`, `calendarSlice` thunk,
+- [x] **1.8 Home card Shabbat section (H1).** `services/http/calendarService`, `calendarSlice` thunk,
   the section under the clock: label, candle lighting, Havdalah, countdown. During Shabbat it
   shows "Shabbat Shalom · ends HH:MM". The last result is cached so it still shows offline.
-- [ ] **1.9 Docs sync.** `docs/specs/*`, `CLAUDE.md`, READMEs (via the `docs` agent).
+- [x] **1.9 Docs sync.** `docs/specs/*`, `CLAUDE.md`, READMEs (via the `docs` agent).
 
 ## Stage 2: Candle-lighting reminder
 
@@ -101,7 +101,7 @@ lighting", and a push notification arrives on the phone at that time every Frida
   the token to 2.2.
 - [ ] **2.8 Frontend: bell button + offset sheet.** On the H1 Shabbat section: hours/minutes
   picker, presets (30m, 1h, 1h 30m, 2h, 3h), "fires at HH:MM this week", Save / Turn off.
-  Signed out → the existing "log in to use this" prompt. `remindersSlice` + `remindersApi`.
+  Signed out → the existing "log in to use this" prompt. `remindersSlice` + `remindersService`.
 - [ ] **2.9 End-to-end check on the phone + docs sync.**
 
 ## Stage 3: Calendar tab

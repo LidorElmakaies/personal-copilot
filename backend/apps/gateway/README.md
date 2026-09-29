@@ -28,6 +28,8 @@ client set its own `X-Forwarded-For` and dodge the limiter entirely.
   verifies `currentPassword` from the request body the same way `login` does, so it carries the
   same guessing risk). `logout` deliberately stays on the global default: it needs a valid refresh
   token already, so hammering it gains nothing.
+- `calendar-proxy` stays on the global default: its routes are read-only and cheap, and give an
+  attacker nothing to guess.
 - Add a new named policy to `throttle-policies.ts` for a future controller with a similarly
   distinct risk profile, rather than inlining a one-off `@Throttle()` config in that controller or
   folding it into the global default.

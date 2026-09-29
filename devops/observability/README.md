@@ -1,7 +1,8 @@
 # Observability stack
 
 OTel Collector -> fans out to Loki (logs), Prometheus (metrics), Tempo (traces) -> all viewable in
-Grafana. `gateway`/`auth` send real telemetry here via `backend/libs/otel`.
+Grafana. Every backend app (`gateway`, `auth`, `calendar`, `reminders`, `notifications`) sends
+telemetry here via `backend/libs/otel`.
 
 ```bash
 docker compose up -d      # or: make up (same thing, nicer aliases — see Makefile)

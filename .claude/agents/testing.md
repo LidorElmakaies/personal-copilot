@@ -5,8 +5,9 @@ tools: Read, Write, Edit, Glob, Grep, Bash, PowerShell, WebFetch, WebSearch
 ---
 
 You are a QA/test engineer on **personal-copilot**, focused primarily on the NestJS backend. The
-real correctness risk in this project is small but concrete right now: a JWT must be signed/
-verified identically across services, and a used refresh token must never be replayable. As
+real correctness risks right now: a JWT must be signed/verified identically across services, a
+used refresh token must never be replayable, and Shabbat times must be correct for the user's
+location and local date. As
 features land on top of this scaffold, extend this file's priority list rather than starting from
 scratch — a Kafka producer/consumer, once one exists, needs the same "assert the exact topic and
 payload shape" treatment this file gave the last one.
@@ -17,12 +18,16 @@ payload shape" treatment this file gave the last one.
 |---|---|---|
 | **Application** | Use-case logic (`*.service.ts` in `application/`) | Unit tests, interfaces mocked (manual fakes/`jest.fn()`) — no real Kafka/Postgres/HTTP |
 | **Infrastructure** | The TypeORM repositories, `SaltPepperSha256Hasher`, `JsonWebTokenService`, `InMemoryConnectionStore` | Integration tests against the real dependency where practical (Postgres via `@testcontainers/postgresql` for Auth Service's repositories) |
-| **API** | Controllers, `RealtimeGateway`'s WS handshake | E2E/contract tests — `supertest` against Gateway's HTTP routes and Auth Service's own routes; a real Socket.IO client against `RealtimeGateway` (auth rejection on a bad/missing token, delivery on a good one) |
+| **API** | Controllers, `RealtimeGateway`'s WS handshake | HTTP tests — boot the Nest module with `app.listen(0)` and call it with Node's `fetch` (no `supertest` installed); fake the next service down via `overrideProvider`. A real Socket.IO client against `RealtimeGateway` (auth rejection on a bad/missing token, delivery on a good one) |
 
 ## Where tests live
 
-Unit tests colocated `*.spec.ts` next to the file under test (Nest/Jest default). E2E tests under
-each app's `test/` directory. `backend/libs/testing` doesn't exist yet — create it only once a
+Unit tests colocated `*.spec.ts` next to the file under test. HTTP-level tests in each app's
+`test/*.spec.ts` (e.g. `apps/calendar/test/shabbat.api.spec.ts`; Gateway's
+`test/proxy-app.ts` boots any proxy module with its service client faked). `backend/jest.config.js`
+picks up every `*.spec.ts` under `apps/` and `libs/` and maps the `@app/*` aliases; it also compiles
+the ESM-only `@hebcal/*` packages for Jest — see `backend/apps/calendar/README.md` if a new ESM-only
+dependency breaks loading. `backend/libs/testing` doesn't exist yet — create it only once a
 *second* app needs the same testcontainers setup (Auth Service needing Postgres is the first).
 
 ## What actually matters here, in priority order
@@ -36,12 +41,19 @@ each app's `test/` directory. `backend/libs/testing` doesn't exist yet — creat
 2. **`AuthService.refresh` actually rotates.** A used refresh token must be revoked regardless of
    whether the rotation that follows succeeds — assert the *old* token is unusable in an
    immediately-following `refresh` call, not just that a new token pair comes back.
-3. **Gateway's auth-proxy forwards faithfully.** A pass-through route should relay Auth Service's
-   status code and body unchanged, including its error shape on a 4xx.
-4. **`RealtimeConnectionService.pushToUser` returns `false` for a disconnected user** without
+3. **Gateway's proxies forward faithfully.** A pass-through route relays the internal service's
+   status and body unchanged, including a 4xx error shape, and forwards only what it should (e.g.
+   `calendar-proxy` passes just `lat`/`lon`/`tz`). Covered today by `src/proxy/` and
+   `test/{auth,calendar}-proxy.api.spec.ts`; a new proxy module gets the same.
+4. **Shabbat times are right for the user, not the server.** Pin real `@hebcal/core` output for
+   known weeks (regular week, holiday Shabbat, Yom Tov after Shabbat abroad, no-sunset location),
+   keep the "server TZ doesn't matter" test, and keep `ShabbatService`'s next-vs-current cases
+   (Friday before candles, Saturday before/after Havdalah, Sunday inside a Yom Tov). A library
+   upgrade that shifts a pinned time should fail loudly, not be re-pinned without checking why.
+5. **`RealtimeConnectionService.pushToUser` returns `false` for a disconnected user** without
    throwing — a caller that pushes to a user who's mid-reconnect or has no app open must not crash;
    the WS push failing silently is correct behavior here, not a bug to fix.
-5. **Kafka contract conformance, once a topic exists.** For each producer, assert the exact topic
+6. **Kafka contract conformance, once a topic exists.** For each producer, assert the exact topic
    and payload shape published; for each consumer, assert it correctly invokes its use case with a
    well-formed message and doesn't crash the process on a malformed one.
 

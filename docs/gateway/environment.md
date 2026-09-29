@@ -5,15 +5,18 @@ Read from `backend/.env` locally (`npx nest start gateway`), or from `devops/doc
 full variable list with defaults.
 
 - **`PORT`** — deliberately not set in the shared `backend/.env`. Gateway defaults to `8000` in its
-  own `main.ts` when unset. Auth Service shares that same file and defaults to a different port
-  (`8001`) — setting `PORT` in the shared file would force both onto the same port and break the
-  proxy. Docker gets `8000` published via `devops/gateway/docker-compose.yml`'s `ports:`.
+  own `main.ts` when unset. Every backend app shares that same file and defaults to its own port
+  (auth `8001`, calendar `8002`, reminders `8003`, notifications `8004`) — setting `PORT` in the
+  shared file would force them all onto the same port and break the proxies. Docker gets `8000` published via `devops/gateway/docker-compose.yml`'s `ports:`.
 - **`AUTH_SERVICE_URL`** — internal-only proxy target for `/auth/*`. `http://localhost:8001`
   locally; `http://auth:8001` in Docker (set via `devops/gateway/docker-compose.yml`'s
   `environment:`, since it needs the Docker network hostname, not `docker.env`'s shared value).
+- **`CALENDAR_SERVICE_URL`** — proxy target for `/calendar/*`. `http://localhost:8002` locally;
+  `http://calendar:8002` in Docker (same `environment:` override as `AUTH_SERVICE_URL`). Gateway
+  fails fast at boot if either service URL is unset.
 - **`THROTTLE_TTL_MS` / `THROTTLE_LIMIT`** — global rate limit, all routes.
 - **`AUTH_THROTTLE_TTL_MS` / `AUTH_THROTTLE_LIMIT`** — tighter limit specifically on
-  `/auth/register`, `/auth/login`, `/auth/refresh`.
+  `/auth/register`, `/auth/login`, `/auth/refresh`, `/auth/account`.
 - **`JWT_SECRET`** — must be byte-identical to Auth Service's copy (Auth signs, Gateway verifies).
   In Docker this comes from `devops/.env` via an explicit `${JWT_SECRET}` in
   `devops/gateway/docker-compose.yml`'s `environment:`, not from `docker.env`.

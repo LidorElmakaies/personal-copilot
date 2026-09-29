@@ -37,7 +37,7 @@ export default function HomeScreen() {
     return () => clearInterval(id);
   }, []);
 
-  // Fresh GPS fix on every visit; the persisted last-known location covers the gap.
+  // GPS fix on first mount (≈ app start — tabs stay mounted); cached last-known location meanwhile.
   useEffect(() => {
     dispatch(locate());
   }, [dispatch]);

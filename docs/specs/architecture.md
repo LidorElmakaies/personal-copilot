@@ -20,11 +20,15 @@ flowchart LR
     Browser(["Browser (public internet)"])
 
     subgraph Home["Home PC"]
+        TsServe["tailscale serve\nHTTPS :443 / :8443"]
         Gateway["gateway\n:8000"]
         FrontendLocal["frontend\n:8081 (Caddy, local mode)"]
         subgraph Docker["Docker network: personal-copilot"]
             Auth["auth"]
-            Postgres[("postgres")]
+            Calendar["calendar"]
+            Reminders["reminders\n(skeleton)"]
+            Notifications["notifications\n(skeleton)"]
+            Postgres[("postgres\nDBs: personal_copilot,\nreminders, notifications")]
             Kafka{{"kafka (idle)"}}
         end
     end
@@ -33,27 +37,35 @@ flowchart LR
         CaddyCloud["frontend\n:443 only (Caddy, cloud mode, auto-HTTPS)"]
     end
 
-    Phone -->|HTTPS + WS, over Tailscale| Gateway
-    Phone -->|HTTPS, over Tailscale| FrontendLocal
-    FrontendLocal -->|REST + WS, same-origin proxy| Gateway
+    Phone -->|HTTPS, over Tailscale| TsServe
+    TsServe -->|":443 → :8081"| FrontendLocal
+    TsServe -->|":8443 → :8000 (REST + WS)"| Gateway
 
     Browser -->|HTTPS| CaddyCloud
-    CaddyCloud -->|"/auth/*, /ws* via SSH reverse tunnel"| Gateway
+    CaddyCloud -->|"/auth/*, /calendar/*, /ws* via SSH reverse tunnel"| Gateway
 
     Gateway -->|HTTP| Auth
+    Gateway -->|HTTP| Calendar
     Auth --> Postgres
+    Reminders --> Postgres
+    Notifications --> Postgres
 ```
 
 Only `gateway` and `frontend` are reachable from outside the Docker network. Over Tailscale,
-`frontend` is a container on the same Docker host as `gateway`; in the cloud path, `frontend`
+`frontend` is a container on the same Docker host as `gateway`, and `tailscale serve`
+(`devops/tailscale/serve.sh`) puts both behind HTTPS with the machine's `*.ts.net` certificate —
+required because phone browsers only allow GPS on HTTPS pages. The frontend build calls Gateway at
+that HTTPS `:8443` address directly (`GATEWAY_PUBLIC_URL`), not through the local Caddy. Expo Go /
+native builds don't need HTTPS and can call Gateway at the PC's tailnet IP on `:8000`; in the cloud path, `frontend`
 (Caddy) instead runs standalone on the VPS and reaches `gateway` only via an SSH reverse tunnel
 from the home machine (see "SSH reverse-tunnel hardening" below) — `gateway` itself is never given
-a public port either way. `auth` is internal-only. `kafka` runs as generic plumbing — nothing
-produces or consumes yet. Gateway's WS (`/ws`) authenticates connections and can push to a specific
+a public port either way. `auth`, `calendar`, `reminders`, and `notifications` are
+internal-only; `reminders` and `notifications` are skeletons with their own databases and no
+endpoints yet. `kafka` runs as generic plumbing — nothing produces or consumes yet. Gateway's WS (`/ws`) authenticates connections and can push to a specific
 user (`IRealtimeConnectionService.pushToUser`), but no feature sends anything over it yet either.
 
 Gateway rate-limits globally (`@nestjs/throttler`, `THROTTLE_TTL_MS`/`THROTTLE_LIMIT`) plus a
-tighter per-route limit on `/auth/register`, `/auth/login`, `/auth/refresh`
+tighter per-route limit on `/auth/register`, `/auth/login`, `/auth/refresh`, `/auth/account`
 (`AUTH_THROTTLE_TTL_MS`/`AUTH_THROTTLE_LIMIT`) — see `docs/specs/services.md#gateway`. The limiter
 keys on client IP, so Gateway's `main.ts` sets `app.set('trust proxy', 'loopback')`: it trusts
 `X-Forwarded-For` only when the connection reaches it *from* loopback. In the cloud path that's
@@ -107,20 +119,52 @@ sequenceDiagram
     Frontend->>Frontend: decode access_token → user
 ```
 
+## Flow: Shabbat times on Home
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant App as Frontend (Home)
+    participant GPS as Device location
+    participant Gateway
+    participant Cal as calendar
+
+    User->>App: open app
+    App->>GPS: request permission + position (locate)
+    App->>Gateway: GET /calendar/shabbat?lat&lon&tz (last known location, if cached)
+    GPS-->>App: { latitude, longitude } + device time zone
+    App->>Gateway: GET /calendar/shabbat?lat&lon&tz
+    Gateway->>Cal: forward lat/lon/tz (HTTP)
+    Cal->>Cal: local date in tz → Friday → @hebcal/core
+    Cal-->>Gateway: { candleLighting, havdalah, parasha, holidays, isNow }
+    Gateway-->>App: relay verbatim
+    App->>App: countdown + "in progress" from the device clock
+    Note over App: after Havdalah passes → fetch again for next Shabbat
+```
+
 ## Compose & build layout
 
 `devops/docker-compose.yml` only lists what to `include:` (one `devops/<unit>/docker-compose.yml`
-per service — `gateway`, `auth`, `frontend`, `postgres`, `kafka` today) plus the shared `networks:`.
+per service — `gateway`, `auth`, `calendar`, `reminders`, `notifications`, `frontend`, `postgres`,
+`kafka` today) plus the shared `networks:`.
 Adding a service means a new Dockerfile under `backend/apps/<service>/` (or `frontend/`), a new
 `devops/<service>/docker-compose.yml`, and one more `include:` line — see
 `.claude/agents/devops.md` for the full shape.
 
 Restart policy, logging, and `env_file` live once in `devops/common.yml`'s `_defaults` service,
 applied per-service via `extends:` (YAML anchors don't resolve across the split files, so that's not
-an option here). `networks:` stays out of `common.yml` and per-service instead, since `gateway`
-needs `[personal-copilot, observability]` and every other service needs just `[personal-copilot]`.
+an option here). `networks:` stays out of `common.yml` and per-service instead, since the Nest services need
+`[personal-copilot, observability]` (they export telemetry) while `frontend`, `postgres`, and
+`kafka` need just `[personal-copilot]`.
 Two `env_file` layers apply in order: `backend/.env` (local-dev defaults, the shared base) then
 `devops/docker.env` (container-network overrides) — later entries win.
+
+**Postgres databases**: one Postgres instance, one database per table-owning service —
+`personal_copilot` (auth, `POSTGRES_DB`), `reminders`, `notifications`. `devops/postgres`'s
+`postgres-init` is a one-shot container that creates any missing database on every `up`
+(idempotent); Postgres's own first-boot init scripts can't do this once `devops/data/postgres`
+exists. Services that need a database wait on it with `condition: service_completed_successfully`.
+Adding a database = add its name to `postgres-init`'s loop.
 
 `devops/docker-compose.yml`'s `observability` network is declared `external: true` — the telemetry
 stack (`devops/observability/`) owns it and must already be running, or `docker compose up` here
