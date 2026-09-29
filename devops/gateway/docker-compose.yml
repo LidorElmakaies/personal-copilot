@@ -13,6 +13,7 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - AUTH_SERVICE_URL=http://auth:8001
       - CALENDAR_SERVICE_URL=http://calendar:8002
+      - NOTIFICATIONS_SERVICE_URL=http://notifications:8004
     # The only service published to the host (see
     # .claude/memory/feedback_gateway_only_service_access.md).
     ports:
@@ -21,6 +22,8 @@ services:
       auth:
         condition: service_started
       calendar:
+        condition: service_healthy
+      notifications:
         condition: service_healthy
     networks:
       - personal-copilot

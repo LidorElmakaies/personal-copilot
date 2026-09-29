@@ -9,7 +9,8 @@ Service, full OTel observability, and a frontend with optional login. The first 
 built in stages from [`docs/plans/shabbat-reminders-calendar/plan.md`](docs/plans/shabbat-reminders-calendar/plan.md)
 (Shabbat times on Home → per-user candle-lighting reminders → a Jewish-calendar tab); read that
 plan and its design pages (`architecture.html`, `mockups.html`) before working on the feature.
-Stage 1 (Shabbat times) is live; Reminders and Notification services exist as skeletons. Work the
+Stage 1 (Shabbat times) is live; stage 2 is in progress (Notifications stores push subscriptions;
+Reminders is still a skeleton). Work the
 plan one task at a time and stop for review after each.
 
 Hosted on the user's personal PC, reachable from their phone via **Tailscale** — `gateway` is the
@@ -69,8 +70,8 @@ docs/plans/               staged feature plans + their HTML design pages
   `THROTTLE_LIMIT`, default 60s/100req) plus a tighter per-route limit on `/auth/register`,
   `/auth/login`, `/auth/refresh`, `/auth/account`
   (`AUTH_THROTTLE_TTL_MS`/`AUTH_THROTTLE_LIMIT`, default 60s/5req); `/auth/logout` stays on the
-  global default since it needs a valid token already, as does `/calendar/*`. Three feature
-  modules, with the proxying ones built on one shared forwarder in `src/proxy/`
+  global default since it needs a valid token already, as do `/calendar/*` and
+  `/notifications/*`. Four feature modules, with the proxying ones built on one shared forwarder in `src/proxy/`
   (`ServiceHttpClient`, `writeProxyResponse` — `502 <service>_unreachable` when a service is down):
   - `src/auth-proxy/` — thin pass-through to Auth Service, one hardcoded route per operation (not
     a wildcard): `register`, `login`, `refresh`, `logout`, `account` — no guard on any of them
@@ -80,6 +81,9 @@ docs/plans/               staged feature plans + their HTML design pages
     client can't already decode.
   - `src/calendar-proxy/` — `GET /calendar/shabbat` (forwards only `lat`/`lon`/`tz`), unguarded so
     Home works signed out.
+  - `src/notifications-proxy/` — `GET /notifications/vapid-public-key` (open),
+    `POST`/`DELETE /notifications/subscriptions` (`JwtAuthGuard`; forwards the user id to
+    Notifications in an `X-User-Id` header Gateway sets itself — see `docs/specs/services.md`).
   - `src/realtime/` — Socket.IO at `/ws` (token in the handshake's `auth.token`). Generic plumbing
     kept for the next feature: `IRealtimeConnectionService.pushToUser(userId, event, payload)` is
     the entry point a feature module injects to reach a user's live connection. Nothing pushes
@@ -105,10 +109,13 @@ docs/plans/               staged feature plans + their HTML design pages
   is the user's date in `tz`; Israel rules and 20-min candle lighting when `tz` is
   `Asia/Jerusalem`, else 18 min. See `backend/apps/calendar/README.md` for the ESM-import and
   time-zone gotchas.
-- **reminders** / **notifications** (`backend/apps/{reminders,notifications}`) — internal-only
-  skeletons: OTel, `/health`, and a TypeORM connection to their own database
-  (`REMINDERS_DATABASE_URL` / `NOTIFICATIONS_DATABASE_URL`) in the shared Postgres, created by
-  `devops/postgres`'s one-shot `postgres-init`. No endpoints yet (plan stage 2).
+- **reminders** (`backend/apps/reminders`) — internal-only skeleton: OTel, `/health`, and a
+  TypeORM connection to its own database (`REMINDERS_DATABASE_URL`) in the shared Postgres,
+  created by `devops/postgres`'s one-shot `postgres-init`. No endpoints yet.
+- **notifications** (`backend/apps/notifications`) — internal-only, own database
+  (`NOTIFICATIONS_DATABASE_URL`). Stores browsers' Web Push subscriptions (`push_subscriptions`)
+  and serves the VAPID public key (`VAPID_*` env, see `docs/notifications/environment.md`). User
+  from Gateway's `X-User-Id` via `@app/auth-kernel`'s `@ForwardedUserId()`. Nothing is sent yet.
 - **frontend** (`frontend/`) — Expo Router app. Login is optional app-wide, not a gate on the whole
   app — `(tabs)` routes are freely reachable while signed out; `(auth)/{login,register}` each add a
   "Continue without logging in" link back to `/` for whoever lands there without wanting to

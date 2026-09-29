@@ -18,7 +18,15 @@ tunnel from a Caddy instance on the public internet. HTTP + WebSocket.
 - `GET /calendar/shabbat?lat&lon&tz` — forwards exactly those three query params to Calendar
   Service's route of the same name and relays its status/body verbatim (Calendar validates them;
   its `400`s pass straight through). Unguarded, so Home works signed out.
-- Every proxy module (`auth-proxy`, `calendar-proxy`) is built on one shared forwarder in
+- `GET /notifications/vapid-public-key` (open), `POST /notifications/subscriptions` and
+  `DELETE /notifications/subscriptions` (`JwtAuthGuard`) → Notification Service's routes of the same
+  name. Body relayed untouched.
+- **User identity for internal services:** a guarded route forwards only the token's user id, in
+  an `X-User-Id` header Gateway sets itself (`USER_ID_HEADER` in `@app/auth-kernel`). Client
+  headers are never passed through, so a client can't supply its own. The internal service reads
+  it with `@ForwardedUserId()` (401 if absent) and trusts it because only Gateway can reach it, so
+  no internal service needs `JWT_SECRET`.
+- Every proxy module (`auth-proxy`, `calendar-proxy`, `notifications-proxy`) is built on one shared forwarder in
   `src/proxy/`: `ServiceHttpClient` (one instance per internal service, base URL from
   `<SERVICE>_SERVICE_URL`), `writeProxyResponse`, and the `ProxyRequest`/`ProxyResponse` types. An
   unreachable service answers `502 { error: { code: '<service>_unreachable', message } }`.
@@ -26,7 +34,7 @@ tunnel from a Caddy instance on the public internet. HTTP + WebSocket.
   60s/100req) plus a tighter limit on `register`/`login`/`refresh`/`account`
   (`AUTH_THROTTLE_TTL_MS`/`AUTH_THROTTLE_LIMIT`, default 60s/5req) — those are the brute-force
   targets now that Gateway can be reached from the open internet via the cloud path (password
-  guessing, email enumeration, refresh/session abuse). `logout` and `/calendar/*` stay on the global
+  guessing, email enumeration, refresh/session abuse). `logout` and `/calendar/*`/`/notifications/*` stay on the global
   default — it needs a valid refresh token already, so hammering it gains nothing; see
   `backend/apps/gateway/README.md` for the full reasoning behind the two-tier split. Keyed on
   client IP; `main.ts` sets `app.set('trust proxy', 'loopback')` so that IP is correct behind the
@@ -117,9 +125,23 @@ own per-user reminders and the scheduler that publishes due ones to Kafka (see
 
 ## notifications
 
-HTTP, internal-only. Skeleton: same as `reminders`, with its own `notifications` database
-(`NOTIFICATIONS_DATABASE_URL`). No endpoints yet — will consume notification requests from Kafka
-and deliver them per channel (push first).
+HTTP, internal-only, its own `notifications` database (`NOTIFICATIONS_DATABASE_URL`). Stores
+browsers' Web Push subscriptions; nothing is sent yet.
+
+- `GET /notifications/vapid-public-key` → `{ publicKey }`, the server's VAPID public key
+  (base64url), which the browser passes to `PushManager.subscribe`.
+- `POST /notifications/subscriptions` — the browser's `PushSubscription.toJSON()` as-is
+  (`{ endpoint, expirationTime, keys: { p256dh, auth } }`) → `204`. `endpoint` must be an `https`
+  URL with a real host name (it's what the sender will POST to), keys base64url. Upsert on
+  `endpoint`: re-registering the same browser moves it to whoever is signed in now.
+- `DELETE /notifications/subscriptions` — `{ endpoint }` → `204`, removed only if it belongs to the
+  caller; idempotent.
+- Both subscription routes take the user from Gateway's `X-User-Id` (see Gateway above), `401`
+  without it.
+
+`push_subscriptions` table: `id`, `user_id` (indexed), `endpoint` (unique), `p256dh`, `auth`,
+`created_at`. VAPID keys come from `VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY`/`VAPID_SUBJECT`; the
+service refuses to boot without them (see `docs/notifications/environment.md`).
 
 ## frontend
 
@@ -182,8 +204,9 @@ acceptable v1.
 Shared JWT sign/verify (`IJwtService`/`JsonWebTokenService`, the only class allowed to import
 `jsonwebtoken`), the higher-level `IAuthTokenService`/`AuthTokenService` used by every guard,
 `JwtAuthGuard`, and the `CurrentUser` param decorator. Used by both `apps/auth` (signs, on
-login/register) and `apps/gateway` (verifies — no route currently uses the guard, but it's ready
-for the first one that needs it).
+login/register) and `apps/gateway` (verifies — `JwtAuthGuard` on `/notifications/subscriptions`).
+Also `USER_ID_HEADER` + `@ForwardedUserId()`, the internal-service side of Gateway's forwarded user
+id (see Gateway above) — used by `apps/notifications`.
 
 ## libs/kafka-contracts / libs/kafka-client
 

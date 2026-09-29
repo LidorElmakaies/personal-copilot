@@ -27,7 +27,7 @@ flowchart LR
             Auth["auth"]
             Calendar["calendar"]
             Reminders["reminders\n(skeleton)"]
-            Notifications["notifications\n(skeleton)"]
+            Notifications["notifications\n(push subscriptions)"]
             Postgres[("postgres\nDBs: personal_copilot,\nreminders, notifications")]
             Kafka{{"kafka\nnotification.requested\n(no producers yet)"}}
         end
@@ -42,10 +42,11 @@ flowchart LR
     TsServe -->|":8443 → :8000 (REST + WS)"| Gateway
 
     Browser -->|HTTPS| CaddyCloud
-    CaddyCloud -->|"/auth/*, /calendar/*, /ws* via SSH reverse tunnel"| Gateway
+    CaddyCloud -->|"/auth/*, /calendar/*, /notifications/*, /ws* via SSH reverse tunnel"| Gateway
 
     Gateway -->|HTTP| Auth
     Gateway -->|HTTP| Calendar
+    Gateway -->|"HTTP + X-User-Id"| Notifications
     Auth --> Postgres
     Reminders --> Postgres
     Notifications --> Postgres
@@ -60,8 +61,8 @@ native builds don't need HTTPS and can call Gateway at the PC's tailnet IP on `:
 (Caddy) instead runs standalone on the VPS and reaches `gateway` only via an SSH reverse tunnel
 from the home machine (see "SSH reverse-tunnel hardening" below) — `gateway` itself is never given
 a public port either way. `auth`, `calendar`, `reminders`, and `notifications` are
-internal-only; `reminders` and `notifications` are skeletons with their own databases and no
-endpoints yet. `kafka` has one topic (`notification.requested`, created by `kafka-init`) but no producer or
+internal-only; `reminders` is a skeleton with its own database and no endpoints yet;
+`notifications` stores browsers' Web Push subscriptions but sends nothing yet. `kafka` has one topic (`notification.requested`, created by `kafka-init`) but no producer or
 consumer yet. Gateway's WS (`/ws`) authenticates connections and can push to a specific
 user (`IRealtimeConnectionService.pushToUser`), but no feature sends anything over it yet either.
 

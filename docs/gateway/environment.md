@@ -12,8 +12,10 @@ full variable list with defaults.
   locally; `http://auth:8001` in Docker (set via `devops/gateway/docker-compose.yml`'s
   `environment:`, since it needs the Docker network hostname, not `docker.env`'s shared value).
 - **`CALENDAR_SERVICE_URL`** — proxy target for `/calendar/*`. `http://localhost:8002` locally;
-  `http://calendar:8002` in Docker (same `environment:` override as `AUTH_SERVICE_URL`). Gateway
-  fails fast at boot if either service URL is unset.
+  `http://calendar:8002` in Docker (same `environment:` override as `AUTH_SERVICE_URL`).
+- **`NOTIFICATIONS_SERVICE_URL`** — proxy target for `/notifications/*`. `http://localhost:8004`
+  locally; `http://notifications:8004` in Docker (same override). Gateway fails fast at boot if any
+  service URL is unset.
 - **`THROTTLE_TTL_MS` / `THROTTLE_LIMIT`** — global rate limit, all routes.
 - **`AUTH_THROTTLE_TTL_MS` / `AUTH_THROTTLE_LIMIT`** — tighter limit specifically on
   `/auth/register`, `/auth/login`, `/auth/refresh`, `/auth/account`.

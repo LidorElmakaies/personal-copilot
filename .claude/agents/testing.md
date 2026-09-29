@@ -43,8 +43,9 @@ dependency breaks loading. `backend/libs/testing` doesn't exist yet — create i
    immediately-following `refresh` call, not just that a new token pair comes back.
 3. **Gateway's proxies forward faithfully.** A pass-through route relays the internal service's
    status and body unchanged, including a 4xx error shape, and forwards only what it should (e.g.
-   `calendar-proxy` passes just `lat`/`lon`/`tz`). Covered today by `src/proxy/` and
-   `test/{auth,calendar}-proxy.api.spec.ts`; a new proxy module gets the same.
+   `calendar-proxy` passes just `lat`/`lon`/`tz`). A guarded route forwards the token's user id as
+   `X-User-Id` and never a client-sent one. Covered today by `src/proxy/` and
+   `test/{auth,calendar,notifications}-proxy.api.spec.ts`; a new proxy module gets the same.
 4. **Shabbat times are right for the user, not the server.** Pin real `@hebcal/core` output for
    known weeks (regular week, holiday Shabbat, Yom Tov after Shabbat abroad, no-sunset location),
    keep the "server TZ doesn't matter" test, and keep `ShabbatService`'s next-vs-current cases

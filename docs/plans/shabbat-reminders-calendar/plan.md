@@ -91,7 +91,7 @@ lighting", and a push notification arrives on the phone at that time every Frida
   `libs/kafka-contracts` (`notificationId`, `userId`, `title`, `body`, `url?`, `channels?`,
   `source`, `requestedAt`), the `kafka-init` topic in `devops/kafka`, and a generic consumer in
   `libs/kafka-client` (it only has a publisher today).
-- [ ] **2.2 Notification Service: push subscriptions.** `push_subscriptions` table (`user_id`,
+- [x] **2.2 Notification Service: push subscriptions.** `push_subscriptions` table (`user_id`,
   `endpoint` unique, `p256dh`, `auth`, `created_at`). `GET /notifications/vapid-public-key` (open —
   the browser needs it to subscribe), `POST /notifications/subscriptions` and
   `DELETE /notifications/subscriptions` (user from the JWT). VAPID keys generated once, kept in

@@ -28,6 +28,8 @@ backend/
                         # feature pushes anything over it yet, see services.md#gateway for the
                         # IRealtimeConnectionService.pushToUser entry point a future one uses.
                         # src/calendar-proxy/: GET /calendar/shabbat → Calendar Service.
+                        # src/notifications-proxy/: vapid-public-key (open) + subscriptions
+                        # (JwtAuthGuard, user id forwarded as X-User-Id — see services.md).
                         # src/proxy/: the one shared forwarder every *-proxy module uses
                         # (createServiceHttpClient + writeProxyResponse) — a new proxied service
                         # gets a new *-proxy module on top of it, never its own HTTP client copy.
@@ -46,12 +48,14 @@ backend/
                         # ICalendarCalculator). GET /calendar/shabbat. See its README for the
                         # ESM-subpath import and time-zone rules before touching it.
     reminders/           # Skeleton — /health + its own `reminders` DB (REMINDERS_DATABASE_URL).
-    notifications/       # Skeleton — /health + its own `notifications` DB
-                        # (NOTIFICATIONS_DATABASE_URL). Both filled in by plan stage 2.
+    notifications/       # Own `notifications` DB. Push subscriptions + VAPID public key. User id
+                        # from Gateway's X-User-Id header (@ForwardedUserId()), never a JWT of
+                        # its own.
   libs/
     auth-kernel/          # generic JWT sign/verify (the only class allowed to import
                         # `jsonwebtoken`), JwtAuthGuard, CurrentUser decorator — shared by auth
-                        # (signs) and gateway (verifies).
+                        # (signs) and gateway (verifies). Plus USER_ID_HEADER/@ForwardedUserId():
+                        # how an internal service reads the user Gateway already authenticated.
     otel/                # generic OTel bootstrap — ported near-verbatim from ask-my-crawl, no
                         # project-specific content in here, treat changes to it with that in mind.
     kafka-client/         # generic Kafka publisher + consumer (IEventPublisher/KafkajsEventPublisher,
@@ -105,6 +109,9 @@ doesn't (e.g. wrapping the generic `IEventPublisher` in a topic-specific publish
 - **`JWT_SECRET` and `PASSWORD_PEPPER` must be identical between Auth Service and Gateway (secret)
   / stable across restarts (pepper)** — a mismatched secret makes Gateway reject every otherwise-
   valid token; a changed pepper invalidates every existing password hash.
+- **Internal services never verify JWTs.** A login-only route is guarded in Gateway
+  (`JwtAuthGuard`), which forwards the user id as `X-User-Id` (`USER_ID_HEADER`, set by Gateway,
+  never copied from the client); the internal service reads it with `@ForwardedUserId()`.
 - **The access token is the single source of truth for client-visible identity** (`{ sub, role,
   email }` — see `@app/auth-kernel`'s `JwtPayload`). No endpoint (backend or Gateway proxy) hands
   back a separate `user` object; the client decodes the token it already has instead. Don't add a

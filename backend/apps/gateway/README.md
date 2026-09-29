@@ -29,7 +29,8 @@ client set its own `X-Forwarded-For` and dodge the limiter entirely.
   same guessing risk). `logout` deliberately stays on the global default: it needs a valid refresh
   token already, so hammering it gains nothing.
 - `calendar-proxy` stays on the global default: its routes are read-only and cheap, and give an
-  attacker nothing to guess.
+  attacker nothing to guess. So does `notifications-proxy`: the key is public, and the
+  subscription routes need a valid access token already.
 - Add a new named policy to `throttle-policies.ts` for a future controller with a similarly
   distinct risk profile, rather than inlining a one-off `@Throttle()` config in that controller or
   folding it into the global default.

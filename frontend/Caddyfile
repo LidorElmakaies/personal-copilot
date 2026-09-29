@@ -18,6 +18,9 @@
 	handle /calendar/* {
 		reverse_proxy {$GATEWAY_UPSTREAM:gateway:8000}
 	}
+	handle /notifications/* {
+		reverse_proxy {$GATEWAY_UPSTREAM:gateway:8000}
+	}
 	handle /ws* {
 		reverse_proxy {$GATEWAY_UPSTREAM:gateway:8000}
 	}

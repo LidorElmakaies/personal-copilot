@@ -366,9 +366,11 @@ next_fire_at  2026-10-02 16:34 local</pre>
         <tr><td>PUT /reminders/shabbat-candles</td><td>login</td><td>Turn on or update: <code>{ offsetMinutes: 90, lat, lon, tz }</code>. One per user, so PUT, not POST.</td><td>2</td></tr>
         <tr><td>DELETE /reminders/shabbat-candles</td><td>login</td><td>Turn it off</td><td>2</td></tr>
         <tr><td>GET /notifications/vapid-public-key</td><td>open</td><td>The server's public key the browser needs to subscribe</td><td>2</td></tr>
-        <tr><td>POST /notifications/subscriptions</td><td>login</td><td>Register the phone browser's push subscription</td><td>2</td></tr>
+        <tr><td>POST /notifications/subscriptions</td><td>login</td><td>Register the phone browser's push subscription (the browser's <code>PushSubscription.toJSON()</code>, posted as-is)</td><td>2</td></tr>
+        <tr><td>DELETE /notifications/subscriptions</td><td>login</td><td>Forget one browser's subscription: <code>{ endpoint }</code>. Only your own.</td><td>2</td></tr>
       </tbody>
     </table></div>
+    <p class="lede" style="margin-top:14px">"login" routes: Gateway checks the access token and passes only the user id on to the internal service, in an <code>X-User-Id</code> header it sets itself (a client-sent one is never forwarded). Internal services trust that header because only Gateway can reach them, so they never need the JWT secret.</p>
   </section>
 
   <section>

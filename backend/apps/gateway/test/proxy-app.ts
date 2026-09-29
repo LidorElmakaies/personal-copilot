@@ -3,6 +3,8 @@ import { ConfigModule } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 import type { ProxyResponse } from '../src/proxy/proxy.types';
 
+export const TEST_JWT_SECRET = 'test-secret';
+
 /** Boots one proxy module over real HTTP with its internal-service client replaced by a fake. */
 export async function bootProxy(
   module: unknown,
@@ -15,7 +17,14 @@ export async function bootProxy(
       ConfigModule.forRoot({
         isGlobal: true,
         ignoreEnvFile: true,
-        load: [() => ({ AUTH_SERVICE_URL: 'x', CALENDAR_SERVICE_URL: 'x' })],
+        load: [
+          () => ({
+            AUTH_SERVICE_URL: 'x',
+            CALENDAR_SERVICE_URL: 'x',
+            NOTIFICATIONS_SERVICE_URL: 'x',
+            JWT_SECRET: TEST_JWT_SECRET,
+          }),
+        ],
       }),
       module as never,
     ],

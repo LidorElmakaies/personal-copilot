@@ -25,6 +25,7 @@ export class ServiceHttpClient implements IServiceClient {
           url: `${this.baseUrl}${request.path}`,
           data: request.body,
           params: request.query,
+          headers: request.headers,
           // Never reject on 4xx/5xx — every status is relayed verbatim, not treated as an error.
           validateStatus: () => true,
         }),

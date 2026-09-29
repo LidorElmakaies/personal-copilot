@@ -21,6 +21,7 @@ describe('ServiceHttpClient', () => {
           JSON.stringify({
             method: req.method,
             url: req.url,
+            userId: req.headers['x-user-id'] ?? null,
             body: raw ? (JSON.parse(raw) as unknown) : null,
           }),
         );
@@ -56,6 +57,25 @@ describe('ServiceHttpClient', () => {
     expect(res.body).toMatchObject({
       method: 'POST',
       body: { email: 'a@b.c' },
+    });
+  });
+
+  it('forwards a DELETE body and the headers Gateway sets', async () => {
+    const client = new ServiceHttpClient(
+      http,
+      baseUrl,
+      'notifications_service',
+    );
+    const res = await client.forward({
+      method: 'DELETE',
+      path: '/notifications/subscriptions',
+      body: { endpoint: 'https://push.example/1' },
+      headers: { 'x-user-id': 'u1' },
+    });
+    expect(res.body).toMatchObject({
+      method: 'DELETE',
+      body: { endpoint: 'https://push.example/1' },
+      userId: 'u1',
     });
   });
 
