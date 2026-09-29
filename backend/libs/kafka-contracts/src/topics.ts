@@ -1,3 +1,5 @@
-// This project's Kafka topics — empty until the first one ships. See docs/specs/event-schemas.md
-// for everything that needs to change alongside this file.
-export const KAFKA_TOPICS = {} as const;
+// This project's Kafka topics. Must match devops/kafka's kafka-init list and
+// docs/specs/event-schemas.md exactly.
+export const KAFKA_TOPICS = {
+  NOTIFICATION_REQUESTED: 'notification.requested',
+} as const;

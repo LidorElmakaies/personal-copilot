@@ -37,6 +37,12 @@ If a design changes, update the HTML file here in the same commit.
 - **Reminders → Kafka → Notifications.** Reminders decides *when* and publishes
   `notification.requested`. The Notification Service decides *how* (push first; email/SMS later as
   new adapters, with no change to Reminders).
+- **Push = Web Push, encrypted, no Expo.** The phone's browser (Chrome or Brave, on the HTTPS
+  tailnet site) subscribes; the Notification Service sends through the browser's push service with
+  the payload end-to-end encrypted (RFC 8291, `aes128gcm`) using keys only the phone holds. The push
+  service (Google) sees timing, size, and which server talks to which subscription — never the text.
+  Our own VAPID key pair identifies the server; nothing goes through Expo. A native-app channel can
+  be added later as another adapter.
 - Every new service is internal-only (no published port). Only Gateway is reachable from outside.
 
 ---
@@ -79,14 +85,23 @@ with a countdown. The Reminders and Notification services exist and run, but do 
 Goal: on the Home card, a bell button lets a logged-in user pick "remind me X before candle
 lighting", and a push notification arrives on the phone at that time every Friday.
 
-- [ ] **2.1 Kafka contract + consumer.** `notification.requested` topic and message type in
-  `libs/kafka-contracts` (`notificationId`, `userId`, `title`, `body`, `channels?`, `source`,
-  `requestedAt`); add a generic consumer to `libs/kafka-client` (it only has a publisher today).
-- [ ] **2.2 Notification Service: devices.** `devices` table; `POST /notifications/devices` to
-  register an Expo push token for a user. Gateway `notifications-proxy` route with `JwtAuthGuard`.
+- [x] **2.0 Fix Kafka.** `devops/data/kafka` is owned by root, so the broker crash-loops. Give it to
+  the container's user (one `sudo chown`, run by the user) and confirm the broker stays up.
+- [x] **2.1 Kafka contract + consumer.** `notification.requested` topic and message type in
+  `libs/kafka-contracts` (`notificationId`, `userId`, `title`, `body`, `url?`, `channels?`,
+  `source`, `requestedAt`), the `kafka-init` topic in `devops/kafka`, and a generic consumer in
+  `libs/kafka-client` (it only has a publisher today).
+- [ ] **2.2 Notification Service: push subscriptions.** `push_subscriptions` table (`user_id`,
+  `endpoint` unique, `p256dh`, `auth`, `created_at`). `GET /notifications/vapid-public-key` (open —
+  the browser needs it to subscribe), `POST /notifications/subscriptions` and
+  `DELETE /notifications/subscriptions` (user from the JWT). VAPID keys generated once, kept in
+  env (`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`). Gateway `notifications-proxy`.
 - [ ] **2.3 Notification Service: sending.** Kafka consumer, `INotificationChannel` interface,
-  `ExpoPushChannel` adapter, a delivery log, and skipping a `notificationId` already sent.
-  *Check:* publishing a test message by hand delivers a push to the phone.
+  `WebPushChannel` adapter (`web-push` library), a delivery log, skip a `notificationId` already
+  sent, delete a subscription the push service reports gone (404/410).
+  *Proof test:* capture the request sent to the push service and assert
+  `Content-Encoding: aes128gcm` and that the reminder text does not appear anywhere in the body or
+  headers. *Check:* publishing a test message by hand shows a notification on the phone.
 - [ ] **2.4 Calendar: next candle lighting after a date.** An internal route Reminders uses to
   find the next candle-lighting time for a saved location. Not exposed through Gateway.
 - [ ] **2.5 Reminders Service: storage + API.** `reminders` table (`user_id`, `type`,
@@ -97,12 +112,15 @@ lighting", and a push notification arrives on the phone at that time every Frida
   `notification.requested`, set `next_fire_at` from next week's candle lighting. Recalculate when
   the offset or location changes.
   *Tests:* fires once, not twice; survives a restart; offset change moves the next time.
-- [ ] **2.7 Frontend: push registration.** `expo-notifications`, ask permission after login, send
-  the token to 2.2.
+- [ ] **2.7 Frontend: turn on notifications.** A service worker in the web build (receives the
+  push, shows the notification, opens the app on tap), a "Turn on notifications" step after login
+  that asks permission and calls `PushManager.subscribe` with the VAPID public key, and sends the
+  subscription to 2.2. Web only for now.
 - [ ] **2.8 Frontend: bell button + offset sheet.** On the H1 Shabbat section: hours/minutes
   picker, presets (30m, 1h, 1h 30m, 2h, 3h), "fires at HH:MM this week", Save / Turn off.
   Signed out → the existing "log in to use this" prompt. `remindersSlice` + `remindersService`.
-- [ ] **2.9 End-to-end check on the phone + docs sync.**
+- [ ] **2.9 End-to-end check on the phone + docs sync.** Real reminder a few minutes out, received
+  in the phone's browser over `https://<pc>.ts.net`.
 
 ## Stage 3: Calendar tab
 
@@ -124,9 +142,6 @@ and a day card with that day's times.
 
 ## Open questions
 
-- **Push on the phone needs a native build.** Expo Go on Android no longer receives remote push
-  notifications, and the web app can't use Expo push. Stage 2 will need an Expo development
-  build (EAS) installed on the phone. Decide before 2.7.
 - **Holiday eves for the reminder** (task 3.5): yes or no?
 - **Location denied:** is the "Location is off" message enough, or do you want a manual city
   picker as a fallback?

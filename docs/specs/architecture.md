@@ -2,7 +2,7 @@
 
 How the pieces in `docs/specs/services.md` fit together — diagrams plus the compose/build wiring
 that doesn't fit one. See `services.md` for the per-service contract and `event-schemas.md` for the
-(currently empty) Kafka contract.
+Kafka contract.
 
 ## System topology
 
@@ -29,7 +29,7 @@ flowchart LR
             Reminders["reminders\n(skeleton)"]
             Notifications["notifications\n(skeleton)"]
             Postgres[("postgres\nDBs: personal_copilot,\nreminders, notifications")]
-            Kafka{{"kafka (idle)"}}
+            Kafka{{"kafka\nnotification.requested\n(no producers yet)"}}
         end
     end
 
@@ -61,7 +61,8 @@ native builds don't need HTTPS and can call Gateway at the PC's tailnet IP on `:
 from the home machine (see "SSH reverse-tunnel hardening" below) — `gateway` itself is never given
 a public port either way. `auth`, `calendar`, `reminders`, and `notifications` are
 internal-only; `reminders` and `notifications` are skeletons with their own databases and no
-endpoints yet. `kafka` runs as generic plumbing — nothing produces or consumes yet. Gateway's WS (`/ws`) authenticates connections and can push to a specific
+endpoints yet. `kafka` has one topic (`notification.requested`, created by `kafka-init`) but no producer or
+consumer yet. Gateway's WS (`/ws`) authenticates connections and can push to a specific
 user (`IRealtimeConnectionService.pushToUser`), but no feature sends anything over it yet either.
 
 Gateway rate-limits globally (`@nestjs/throttler`, `THROTTLE_TTL_MS`/`THROTTLE_LIMIT`) plus a
@@ -190,6 +191,9 @@ holds the issued certificate.
 (19092) serves other containers, `PLAINTEXT_HOST` (9092) is published for local debugging (`kcat`,
 etc.). `CLUSTER_ID` is a pinned, arbitrary UUID that must never change once `devops/data/kafka` has
 formatted storage — a regenerated ID on restart mismatches the existing volume and the broker fails
-to start. Runs as unused generic plumbing (`KAFKA_AUTO_CREATE_TOPICS_ENABLE=false`, so a missing
-topic fails loudly at first use instead of silently auto-creating) until a feature's first
-producer/consumer needs it.
+to start. The broker runs as uid 1000, so `devops/data/kafka` must be owned by 1000 on the host
+(a root-owned folder makes it crash-loop on start). `KAFKA_AUTO_CREATE_TOPICS_ENABLE=false`, so a
+missing topic fails loudly at first use; the one-shot `kafka-init` creates every topic in
+`kafka-contracts/src/topics.ts` (idempotent, `--if-not-exists`) on each `up`. Port 9092 on the host
+is also what the opt-in round-trip test uses (`KAFKA_IT_BROKERS=localhost:9092 npx jest
+kafka-roundtrip`).

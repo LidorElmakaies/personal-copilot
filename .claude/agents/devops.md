@@ -17,7 +17,7 @@ Two independent Compose projects, joined by a shared `observability` Docker netw
   healthchecks on `/health` for the last three), `frontend` (published, port 8081 — a static web
   export, not a backend service, see the `frontend` compose service's own comment), `postgres`
   (one instance, one database per table-owning service, created by the one-shot `postgres-init`),
-  `kafka` (idle — no service produces or consumes yet).
+  `kafka` (topics created by the one-shot `kafka-init`; no service produces or consumes yet).
 - `devops/tailscale/serve.sh` — not a compose project: puts `frontend` (`https://<pc>.ts.net`) and
   `gateway` (`:8443`) behind Tailscale HTTPS for phone access. `tailscale serve` config persists
   on the host; `tailscale serve reset` removes it.

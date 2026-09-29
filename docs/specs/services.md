@@ -187,8 +187,9 @@ for the first one that needs it).
 
 ## libs/kafka-contracts / libs/kafka-client
 
-Generic Kafka plumbing: `kafka-client` (the producer wrapper,
-`IEventPublisher`/`KafkajsEventPublisher`) and `kafka-contracts` (this project's own topics/message
-shapes). `kafka-contracts` is currently an empty shell — no topic exists yet. The Kafka broker
-itself still runs (`devops/kafka/docker-compose.yml`); nothing produces or consumes today. See
+`kafka-client`: `IEventPublisher`/`KafkajsEventPublisher` (JSON, keyed) and
+`IEventConsumer`/`KafkajsEventConsumer` (subscribe with a type guard; starts on
+`onApplicationBootstrap`; invalid messages logged and skipped, handler errors retried).
+`kafka-contracts`: this project's topics, consumer groups, and message types with their guards —
+currently `notification.requested`. No service produces or consumes yet (plan stage 2). See
 `event-schemas.md`.

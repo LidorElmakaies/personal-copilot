@@ -54,11 +54,11 @@ backend/
                         # (signs) and gateway (verifies).
     otel/                # generic OTel bootstrap — ported near-verbatim from ask-my-crawl, no
                         # project-specific content in here, treat changes to it with that in mind.
-    kafka-client/         # generic Kafka producer wrapper (IEventPublisher/KafkajsEventPublisher).
-    kafka-contracts/      # THIS project's topics + typed message shapes — currently empty (no
-                        # feature uses Kafka yet). topics.ts must stay in lockstep with
-                        # devops/kafka/docker-compose.yml's kafka-init topic list once either has
-                        # an entry.
+    kafka-client/         # generic Kafka publisher + consumer (IEventPublisher/KafkajsEventPublisher,
+                        # IEventConsumer/KafkajsEventConsumer — subscribe(topic, guard, handler)).
+    kafka-contracts/      # THIS project's topics, consumer groups, message types + type guards
+                        # (notification.requested today). topics.ts must stay in lockstep with
+                        # devops/kafka/docker-compose.yml's kafka-init topic list.
 ```
 
 A new Kafka-only or HTTP microservice follows the same `api/ → application/ → infrastructure/ +

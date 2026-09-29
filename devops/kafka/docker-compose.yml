@@ -37,3 +37,21 @@ services:
       timeout: 10s
       retries: 12
       start_period: 30s
+
+  # One-shot, idempotent: creates every topic in backend/libs/kafka-contracts/src/topics.ts (auto-create
+  # is off). The two lists must match — see docs/specs/event-schemas.md.
+  kafka-init:
+    image: apache/kafka:4.3.1
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        for topic in notification.requested; do
+          /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:19092 \
+            --create --if-not-exists --topic "$$topic" --partitions 3 --replication-factor 1
+        done
+    restart: "no"
+    networks:
+      - personal-copilot

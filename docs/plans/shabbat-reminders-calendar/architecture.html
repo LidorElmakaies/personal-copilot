@@ -116,7 +116,7 @@ ol.steps b{color:var(--ink)}
 
         <!-- Phone -->
         <rect x="20" y="30" width="270" height="440" rx="26" fill="var(--boxFill)" stroke="var(--ink)" stroke-opacity=".5" stroke-width="1.5"/>
-        <text x="40" y="62" class="t-title">Phone (Expo app)</text>
+        <text x="40" y="62" class="t-title">Phone (web app)</text>
         <text x="40" y="80" class="t-sub">native app, or web over HTTPS</text>
 
         <rect x="40" y="96" width="230" height="58" rx="10" fill="var(--amberSoft)" stroke="var(--amber)" stroke-opacity=".6"/>
@@ -144,8 +144,8 @@ ol.steps b{color:var(--ink)}
         <line x1="155" y1="286" x2="155" y2="298" stroke="var(--line)"/>
 
         <rect x="40" y="370" width="230" height="80" rx="10" fill="var(--violetSoft)" stroke="var(--violet)" stroke-dasharray="5 4"/>
-        <text x="54" y="392" class="t-vio" font-size="12.5">expo-notifications</text>
-        <text x="54" y="410" class="t-sub">gets a push token, registers it</text>
+        <text x="54" y="392" class="t-vio" font-size="12.5">service worker</text>
+        <text x="54" y="410" class="t-sub">subscribes to Web Push, registers it</text>
         <text x="54" y="426" class="t-sub">once; shows the notification</text>
         <text x="54" y="442" class="t-sub">when it arrives</text>
 
@@ -164,7 +164,7 @@ ol.steps b{color:var(--ink)}
         <text x="388" y="193" class="t-vio" font-size="12.5">reminders-proxy</text>
         <text x="388" y="208" class="t-mono">JwtAuthGuard: your reminders</text>
         <rect x="376" y="224" width="208" height="36" rx="9" fill="var(--violetSoft)" stroke="var(--violet)" stroke-opacity=".6" stroke-dasharray="5 4"/>
-        <text x="388" y="247" class="t-vio" font-size="12.5">notifications-proxy (devices)</text>
+        <text x="388" y="247" class="t-vio" font-size="12.5">notifications-proxy (subscriptions)</text>
         <rect x="376" y="268" width="208" height="32" rx="9" fill="var(--soft)" stroke="var(--line)"/>
         <text x="388" y="289" font-size="12">auth-proxy · realtime /ws</text>
 
@@ -204,12 +204,12 @@ ol.steps b{color:var(--ink)}
         <!-- Notification service -->
         <rect x="680" y="500" width="285" height="250" rx="14" fill="var(--boxFill)" stroke="var(--violet)" stroke-width="1.5" stroke-dasharray="7 5"/>
         <text x="698" y="528" class="t-title">Notification Service</text>
-        <text x="698" y="546" class="t-sub">decides HOW · knows your devices</text>
+        <text x="698" y="546" class="t-sub">decides HOW · knows your subscriptions</text>
         <rect x="696" y="558" width="253" height="34" rx="8" fill="var(--soft)" stroke="var(--line)"/>
         <text x="708" y="580" class="t-mono">INotificationChannel (interface)</text>
         <rect x="696" y="600" width="80" height="50" rx="8" fill="var(--violetSoft)" stroke="var(--violet)" stroke-opacity=".7"/>
         <text x="708" y="622" class="t-vio" font-size="12.5">Push</text>
-        <text x="708" y="638" class="t-mono">Expo</text>
+        <text x="708" y="638" class="t-mono">Web Push</text>
         <rect x="782" y="600" width="80" height="50" rx="8" fill="none" stroke="var(--faint)" stroke-dasharray="2 3"/>
         <text x="794" y="622" class="t-faint" font-size="12.5" font-weight="600">Email</text>
         <text x="794" y="638" class="t-mono">future</text>
@@ -217,7 +217,7 @@ ol.steps b{color:var(--ink)}
         <text x="880" y="622" class="t-faint" font-size="12.5" font-weight="600">SMS</text>
         <text x="880" y="638" class="t-mono">future</text>
         <rect x="696" y="660" width="253" height="34" rx="8" fill="var(--soft)" stroke="var(--line)"/>
-        <text x="708" y="682" class="t-mono">Postgres: devices, delivery log</text>
+        <text x="708" y="682" class="t-mono">Postgres: subscriptions, delivery log</text>
         <text x="698" y="728" class="t-sub">new channel = one new adapter here</text>
 
         <!-- arrows: phase 1 -->
@@ -231,7 +231,7 @@ ol.steps b{color:var(--ink)}
         <!-- arrows: phase 2 -->
         <path d="M480 314 L480 370" fill="none" stroke="var(--violet)" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#ahv)"/>
         <path d="M600 244 C640 244 640 520 680 600" fill="none" stroke="var(--violet)" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#ahv)"/>
-        <text x="612" y="480" class="t-sub" transform="rotate(-78 612 480)">register push token</text>
+        <text x="612" y="480" class="t-sub" transform="rotate(-78 612 480)">register subscription</text>
         <path d="M600 430 C640 430 650 300 690 300" fill="none" stroke="var(--violet)" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#ahv)"/>
         <text x="618" y="352" class="t-sub">event times</text>
         <path d="M600 470 L680 426" fill="none" stroke="var(--violet)" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#ahv)"/>
@@ -239,7 +239,7 @@ ol.steps b{color:var(--ink)}
         <path d="M822 454 L822 500" fill="none" stroke="var(--violet)" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#ahv)"/>
         <text x="830" y="482" class="t-sub">consume</text>
         <path d="M736 650 C736 760 180 770 150 452" fill="none" stroke="var(--violet)" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#ahv)"/>
-        <text x="200" y="700" class="t-sub">push notification (via Expo)</text>
+        <text x="200" y="700" class="t-sub">push notification (encrypted, via browser push service)</text>
       </svg>
     </div>
     <div class="legend">
@@ -280,7 +280,7 @@ ol.steps b{color:var(--ink)}
         <p class="role">How to reach you.</p>
         <ul>
           <li>Consumes <code>notification.requested</code> from Kafka</li>
-          <li>Knows your push tokens (later: email address, phone number)</li>
+          <li>Knows your browser push subscriptions (later: email address, phone number)</li>
           <li>One adapter per channel behind <code>INotificationChannel</code>. Email or SMS is a new adapter, with no change to Reminders.</li>
           <li>Any future service can send you a notification the same way</li>
         </ul>
@@ -365,7 +365,8 @@ next_fire_at  2026-10-02 16:34 local</pre>
         <tr><td>GET /reminders</td><td>login</td><td>Your reminders (only yours: user id comes from the token)</td><td>2</td></tr>
         <tr><td>PUT /reminders/shabbat-candles</td><td>login</td><td>Turn on or update: <code>{ offsetMinutes: 90, lat, lon, tz }</code>. One per user, so PUT, not POST.</td><td>2</td></tr>
         <tr><td>DELETE /reminders/shabbat-candles</td><td>login</td><td>Turn it off</td><td>2</td></tr>
-        <tr><td>POST /notifications/devices</td><td>login</td><td>Register the phone's push token</td><td>2</td></tr>
+        <tr><td>GET /notifications/vapid-public-key</td><td>open</td><td>The server's public key the browser needs to subscribe</td><td>2</td></tr>
+        <tr><td>POST /notifications/subscriptions</td><td>login</td><td>Register the phone browser's push subscription</td><td>2</td></tr>
       </tbody>
     </table></div>
   </section>
@@ -383,9 +384,9 @@ next_fire_at  2026-10-02 16:34 local</pre>
     <div class="phase p2">Phase 2 · Reminders + notifications</div>
     <ol class="steps" start="6">
       <li><b>Kafka contract:</b> <code>notification.requested</code> in <code>libs/kafka-contracts</code>.</li>
-      <li><b>Notification Service:</b> the Kafka consumer, device registration, and the Expo push adapter.</li>
+      <li><b>Notification Service:</b> the Kafka consumer, push subscriptions, and the Web Push adapter (encrypted payload).</li>
       <li><b>Reminders Service:</b> Postgres, CRUD, the scheduler, and publishing to Kafka.</li>
-      <li><b>Frontend:</b> <code>expo-notifications</code>, the bell button and offset sheet on the Home card, <code>remindersSlice</code>.</li>
+      <li><b>Frontend:</b> a service worker + "Turn on notifications", the bell button and offset sheet on the Home card, <code>remindersSlice</code>.</li>
     </ol>
   </section>
 </div>

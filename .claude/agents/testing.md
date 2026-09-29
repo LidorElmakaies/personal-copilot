@@ -53,7 +53,7 @@ dependency breaks loading. `backend/libs/testing` doesn't exist yet — create i
 5. **`RealtimeConnectionService.pushToUser` returns `false` for a disconnected user** without
    throwing — a caller that pushes to a user who's mid-reconnect or has no app open must not crash;
    the WS push failing silently is correct behavior here, not a bug to fix.
-6. **Kafka contract conformance, once a topic exists.** For each producer, assert the exact topic
+6. **Kafka contract conformance.** `KafkajsEventConsumer`'s skip/retry rules are unit-tested; the real broker round trip is opt-in (`KAFKA_IT_BROKERS=localhost:9092 npx jest kafka-roundtrip`, uses a throwaway topic, never a real one). For each producer, assert the exact topic
    and payload shape published; for each consumer, assert it correctly invokes its use case with a
    well-formed message and doesn't crash the process on a malformed one.
 

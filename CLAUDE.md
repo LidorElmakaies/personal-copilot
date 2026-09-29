@@ -137,9 +137,11 @@ docs/plans/               staged feature plans + their HTML design pages
   Home/Account all use; `ConfirmModal` (composite) is the shared
   Yes/No overlay (used today by the `requiresAuth` tab-press guard and Account's logout
   confirmation).
-- **Kafka** runs (`devops/kafka/docker-compose.yml`) as generic plumbing, but nothing produces or
-  consumes yet — `backend/libs/kafka-contracts` is an empty shell, ready for the next feature to
-  fill in. Gateway's WS layer (above) is the same kind of kept-but-unused plumbing.
+- **Kafka** runs (`devops/kafka/docker-compose.yml`, topics created by the one-shot `kafka-init`).
+  One topic so far, `notification.requested` (`@app/kafka-contracts`, with a runtime type guard);
+  `@app/kafka-client` has both a publisher and a validating consumer. No service produces or
+  consumes yet — Reminders and Notifications wire it up in plan stage 2. See
+  `docs/specs/event-schemas.md`. Gateway's WS layer (above) is still kept-but-unused plumbing.
 
 ## First run
 
@@ -187,7 +189,8 @@ domain layer) enforced in every app — see `.claude/agents/backend.md` before w
 Shared code lives in `backend/libs/`: `auth-kernel` (JWT sign/verify, `JwtAuthGuard`,
 `CurrentUser`), `otel` (generic OTel bootstrap, ported unmodified from `ask-my-crawl`),
 `kafka-client` (generic `IEventPublisher`/`KafkajsEventPublisher`, same origin), `kafka-contracts`
-(this project's own topics/message shapes — currently empty, see `docs/specs/event-schemas.md`).
+(this project's own topics, message types and their guards — see `docs/specs/event-schemas.md`).
+`kafka-client` also has `KafkajsEventConsumer` (skips invalid messages, retries on handler error).
 
 **Frontend** — Expo Router, file-based routing, `(auth)`/`(tabs)` groups. Redux Toolkit with a
 strict services-layer convention: all I/O lives in `src/services/`, split by transport —
