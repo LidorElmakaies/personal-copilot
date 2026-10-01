@@ -14,6 +14,10 @@ Read from `backend/.env` locally (`npx nest start notifications`), or from `devo
   **changing the pair invalidates every stored subscription**; users have to turn notifications on
   again. The service refuses to boot if any `VAPID_*` is unset.
 - **`VAPID_SUBJECT`** — a `mailto:` or `https:` contact sent to the push service with each push.
-  Defaults to a placeholder (`mailto:push@personal-copilot.invalid`) so no real address or host
-  name goes to Google.
+  `backend/.env.example` ships a placeholder (`mailto:push@personal-copilot.invalid`) so no real
+  address or host name goes to Google; it must still be set, there's no in-code default.
+- **`REDIS_URL`** — the Redis holding the `notification-requested` BullMQ queue this service
+  consumes (see `docs/specs/event-schemas.md`). `redis://redis:6379` in Docker
+  (`devops/docker.env`). Redis isn't published to the host, so a local (non-Docker) run needs its
+  own Redis on `localhost:6379`. Required at boot.
 - **`OTEL_EXPORTER_OTLP_ENDPOINT`** — same as every backend app; see root `CLAUDE.md`.

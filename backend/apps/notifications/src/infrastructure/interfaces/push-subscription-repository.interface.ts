@@ -5,9 +5,11 @@ export type NewPushSubscription = Pick<
   'userId' | 'endpoint' | 'p256dh' | 'auth'
 >;
 
-/** Implemented by TypeOrmPushSubscriptionRepository, consumed by PushSubscriptionService. */
+/** Implemented by TypeOrmPushSubscriptionRepository, consumed by PushSubscriptionService and WebPushChannel. */
 export interface IPushSubscriptionRepository {
   /** Inserts, or takes over the row with the same endpoint (new owner and keys). */
   upsertByEndpoint(subscription: NewPushSubscription): Promise<void>;
   deleteByEndpoint(userId: string, endpoint: string): Promise<void>;
+  findByUserId(userId: string): Promise<PushSubscription[]>;
+  deleteById(id: string): Promise<void>;
 }

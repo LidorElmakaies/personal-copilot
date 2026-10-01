@@ -9,8 +9,8 @@ Service, full OTel observability, and a frontend with optional login. The first 
 built in stages from [`docs/plans/shabbat-reminders-calendar/plan.md`](docs/plans/shabbat-reminders-calendar/plan.md)
 (Shabbat times on Home → per-user candle-lighting reminders → a Jewish-calendar tab); read that
 plan and its design pages (`architecture.html`, `mockups.html`) before working on the feature.
-Stage 1 (Shabbat times) is live; stage 2 is in progress (Notifications stores push subscriptions;
-Reminders is still a skeleton). Work the
+Stage 1 (Shabbat times) is live; stage 2 is in progress (Notifications stores push subscriptions
+and delivers `notification-requested` queue jobs; Reminders is still a skeleton). Work the
 plan one task at a time and stop for review after each.
 
 Hosted on the user's personal PC, reachable from their phone via **Tailscale** — `gateway` is the
@@ -28,8 +28,9 @@ repo not checked out on this machine — same NestJS Nest-CLI monorepo shape, sa
 Gateway/Auth Service split with a shared `auth-kernel` lib, same `devops/<service>/docker-
 compose.yml` structure, same `.claude/agents`/`.claude/memory` setup, and — as of this rewrite —
 the same frontend theme/component conventions (see the Architecture section's Frontend paragraph).
-Deliberately simpler where this project's actual shape allows it: no admin/role system (`UserRole`
-has exactly one value), no Gluestack dependency on the frontend (the animated theme pipeline is
+Deliberately simpler where this project's actual shape allows it: no admin features (`UserRole` has
+`'user' | 'admin'`, but the only admin is a one-time seeded account, no feature reads the role, and
+token verification accepts only `'user'` — see `docs/specs/services.md#auth`), no Gluestack dependency on the frontend (the animated theme pipeline is
 ported, the unused Gluestack layer underneath it isn't — see `frontend/README.md`). The current
 look (space/glow/gradient) is a known stepping-stone, not a final design — expect it to be replaced
 by a different, more animated style later.
@@ -51,14 +52,15 @@ every agent in `.claude/agents/` too. Also in [README.md](README.md).
 
 ```
 backend/                 NestJS monorepo — apps/{gateway,auth,calendar,reminders,notifications}
-                          + libs/{auth-kernel,otel,kafka-client,kafka-contracts}
+                          + libs/{auth-kernel,otel,queue-client,queue-contracts}
 frontend/                 Expo/React Native app — login/register (optional, not gated app-wide), a
                           Home tab (clock + Shabbat times), and an auth-gated Account tab;
                           e2e/ holds the containerized Playwright tests
-devops/                   docker-compose.yml (app stack) + observability/ (Grafana/Loki/
-                          Prometheus/Tempo/OTel, joined to the app stack via a shared Docker
-                          network)
-docs/specs/               services.md, event-schemas.md, architecture.md (Mermaid diagrams) —
+devops/                   docker-compose.yml (app stack: services + shared postgres/redis)
+                          + observability/ (Grafana/Loki/Prometheus/Tempo/OTel, joined to
+                          the app stack via a shared Docker network)
+docs/specs/               services.md, event-schemas.md (queues/jobs), notification-flow.md,
+                          architecture.md (Mermaid diagrams) —
                           source of truth for how it's wired
 docs/plans/               staged feature plans + their HTML design pages
 ```
@@ -113,9 +115,19 @@ docs/plans/               staged feature plans + their HTML design pages
   TypeORM connection to its own database (`REMINDERS_DATABASE_URL`) in the shared Postgres,
   created by `devops/postgres`'s one-shot `postgres-init`. No endpoints yet.
 - **notifications** (`backend/apps/notifications`) — internal-only, own database
-  (`NOTIFICATIONS_DATABASE_URL`). Stores browsers' Web Push subscriptions (`push_subscriptions`)
-  and serves the VAPID public key (`VAPID_*` env, see `docs/notifications/environment.md`). User
-  from Gateway's `X-User-Id` via `@app/auth-kernel`'s `@ForwardedUserId()`. Nothing is sent yet.
+  (`NOTIFICATIONS_DATABASE_URL`) plus the BullMQ queue on Redis (`REDIS_URL`, consume-only). Stores browsers'
+  Web Push subscriptions (`push_subscriptions`) and serves the VAPID public key (`VAPID_*` env, see
+  `docs/notifications/environment.md`). User from Gateway's `X-User-Id` via `@app/auth-kernel`'s
+  `@ForwardedUserId()`. Processes `notification-requested` jobs: drops expired ones (required
+  `expiresAt`), then calls `deliver(userId, content, expiresAt, progress)` on each wanted channel
+  (`INotificationChannel`), rethrowing the first error after all have run. `WebPushChannel` looks
+  up the user's *current* devices on every attempt, skips those the job's progress marks done
+  (`webpush:<subscriptionId>`), and sends the rest via `web-push` (`aes128gcm`, the push service
+  never sees the text) with TTL = whole seconds left; each device is marked done once sent, gone
+  (404/410 → row deleted) or permanently failed. Any 429/5xx/network answer → it throws
+  `RetryableDeliveryException` and BullMQ retries the job, skipping done devices — a rare duplicate on
+  one device is accepted. Endpoints are limited to known push-service hosts. See
+  `docs/specs/services.md` and `docs/specs/notification-flow.md`.
 - **frontend** (`frontend/`) — Expo Router app. Login is optional app-wide, not a gate on the whole
   app — `(tabs)` routes are freely reachable while signed out; `(auth)/{login,register}` each add a
   "Continue without logging in" link back to `/` for whoever lands there without wanting to
@@ -144,11 +156,14 @@ docs/plans/               staged feature plans + their HTML design pages
   Home/Account all use; `ConfirmModal` (composite) is the shared
   Yes/No overlay (used today by the `requiresAuth` tab-press guard and Account's logout
   confirmation).
-- **Kafka** runs (`devops/kafka/docker-compose.yml`, topics created by the one-shot `kafka-init`).
-  One topic so far, `notification.requested` (`@app/kafka-contracts`, with a runtime type guard);
-  `@app/kafka-client` has both a publisher and a validating consumer. No service produces or
-  consumes yet — Reminders and Notifications wire it up in plan stage 2. See
-  `docs/specs/event-schemas.md`. Gateway's WS layer (above) is still kept-but-unused plumbing.
+- **Queues** — BullMQ on Redis (`devops/redis/docker-compose.yml`, internal-only, AOF-persisted,
+  `noeviction`, holds nothing but queues). Cross-service queues and job guards in
+  `@app/queue-contracts` (one so far, `notification-requested` — Notifications processes it,
+  nothing publishes it yet; every publisher must enqueue with `notificationRequestedPublishOptions`
+  — dedupe on `notificationId` until `expiresAt`, 8 attempts, backoff from 30 s);
+  `@app/queue-client` has the publisher (dedupe/delay/attempts/backoff) and a validating consumer
+  whose handler gets the job's `progress`/`saveProgress` (kept across retries). See `docs/specs/event-schemas.md`.
+  Gateway's WS layer (above) is still kept-but-unused plumbing.
 
 ## First run
 
@@ -171,6 +186,7 @@ Backend (run from `backend/`):
 npm install
 npx nest start gateway --watch     # or: auth, calendar, reminders, notifications
 npm test                           # jest.config.js — unit + API tests
+REDIS_IT_URL=redis://localhost:6379 npx jest notification-flow.it queue-roundtrip  # opt-in; needs a Redis on the host
 npm run lint
 ```
 
@@ -192,12 +208,16 @@ Full stack: see "First run" above — same two-command sequence (`devops/observa
 ## Architecture
 
 NestJS monorepo, clean/hexagonal layering (API → Application → Infrastructure, plus a `models/`
-domain layer) enforced in every app — see `.claude/agents/backend.md` before writing backend code.
+domain layer and an `entities/` folder for TypeORM table mappings) enforced in every app — see
+`.claude/agents/backend.md` before writing backend code.
 Shared code lives in `backend/libs/`: `auth-kernel` (JWT sign/verify, `JwtAuthGuard`,
 `CurrentUser`), `otel` (generic OTel bootstrap, ported unmodified from `ask-my-crawl`),
-`kafka-client` (generic `IEventPublisher`/`KafkajsEventPublisher`, same origin), `kafka-contracts`
-(this project's own topics, message types and their guards — see `docs/specs/event-schemas.md`).
-`kafka-client` also has `KafkajsEventConsumer` (skips invalid messages, retries on handler error).
+`queue-client` (`IQueuePublisher`/`BullmqQueuePublisher`, `IQueueConsumer`/`BullmqQueueConsumer` —
+malformed job fails without retry, handler error retried while attempts remain, job progress kept
+across retries), `queue-contracts`
+(this project's queue names, job types, their guards and publish options — see
+`docs/specs/event-schemas.md`). Shared infrastructure is one instance each, reused by every
+service that needs it: Postgres (one database per table-owning service), Redis (BullMQ queues).
 
 **Frontend** — Expo Router, file-based routing, `(auth)`/`(tabs)` groups. Redux Toolkit with a
 strict services-layer convention: all I/O lives in `src/services/`, split by transport —

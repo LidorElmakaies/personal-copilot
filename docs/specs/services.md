@@ -34,8 +34,9 @@ tunnel from a Caddy instance on the public internet. HTTP + WebSocket.
   60s/100req) plus a tighter limit on `register`/`login`/`refresh`/`account`
   (`AUTH_THROTTLE_TTL_MS`/`AUTH_THROTTLE_LIMIT`, default 60s/5req) — those are the brute-force
   targets now that Gateway can be reached from the open internet via the cloud path (password
-  guessing, email enumeration, refresh/session abuse). `logout` and `/calendar/*`/`/notifications/*` stay on the global
-  default — it needs a valid refresh token already, so hammering it gains nothing; see
+  guessing, email enumeration, refresh/session abuse). `logout`, `/calendar/*`, and
+  `/notifications/*` stay on the global default (`logout` needs a valid refresh token already, so
+  hammering it gains nothing); see
   `backend/apps/gateway/README.md` for the full reasoning behind the two-tier split. Keyed on
   client IP; `main.ts` sets `app.set('trust proxy', 'loopback')` so that IP is correct behind the
   SSH tunnel without letting a directly-reached connection spoof it — see `architecture.md`.
@@ -81,8 +82,12 @@ changed, and always reissuing gives the endpoint one response shape regardless o
 were updated.
 
 Postgres via TypeORM (`users`, `refresh_tokens`), password_hash = SHA256(`PASSWORD_PEPPER` + salt +
-plaintext). Access tokens: 15-min TTL, `{ sub, role, email }` payload. `UserRole` has exactly one
-value (`'user'`) — no admin/role system in this project.
+plaintext). Access tokens: 15-min TTL, `{ sub, role, email }` payload. `UserRole` is
+`'user' | 'admin'` (`@app/auth-kernel`); `register` always creates `'user'`. The only `'admin'` is
+the one `AdminSeedService` creates once at boot from `ADMIN_EMAIL`/`ADMIN_PASSWORD` (see
+`docs/auth/environment.md`). Nothing grants admin rights yet — and `JsonWebTokenService.verify`
+accepts only `role: 'user'`, so an admin's access token is currently rejected by every
+`JwtAuthGuard` route and the WS handshake.
 
 Refresh tokens are stored as a plain SHA-256 hash (no salt/pepper) — sufficient since a refresh
 token is already a high-entropy random value, not human-guessable like a password, so this only
@@ -119,20 +124,26 @@ See `backend/apps/calendar/README.md` for the non-obvious implementation details
 ## reminders
 
 HTTP, internal-only. Skeleton: boots, connects to its own `reminders` database
-(`REMINDERS_DATABASE_URL`) in the shared Postgres, answers `GET /health`. No endpoints yet — will
-own per-user reminders and the scheduler that publishes due ones to Kafka (see
-`docs/plans/shabbat-reminders-calendar/plan.md`, stage 2).
+(`REMINDERS_DATABASE_URL`) in the shared Postgres, answers `GET /health`. No other endpoints and
+no tables yet.
 
 ## notifications
 
-HTTP, internal-only, its own `notifications` database (`NOTIFICATIONS_DATABASE_URL`). Stores
-browsers' Web Push subscriptions; nothing is sent yet.
+HTTP + BullMQ worker, internal-only, its own `notifications` database
+(`NOTIFICATIONS_DATABASE_URL`, push subscriptions) plus the shared Redis (`REDIS_URL`, its queues).
+Stores browsers' Web Push subscriptions and delivers `notification-requested` jobs to them.
+Publishers decide *what* and *when*; this service decides *how* (one `INotificationChannel`
+adapter per channel — `WebPushChannel` today).
 
 - `GET /notifications/vapid-public-key` → `{ publicKey }`, the server's VAPID public key
   (base64url), which the browser passes to `PushManager.subscribe`.
 - `POST /notifications/subscriptions` — the browser's `PushSubscription.toJSON()` as-is
-  (`{ endpoint, expirationTime, keys: { p256dh, auth } }`) → `204`. `endpoint` must be an `https`
-  URL with a real host name (it's what the sender will POST to), keys base64url. Upsert on
+  (`{ endpoint, expirationTime, keys: { p256dh, auth } }`) → `204`. `endpoint` must be `https`, no
+  explicit port, on a known push-service host or a subdomain of one (`models/push-endpoint-policy.ts`:
+  FCM for Chrome/Brave, Mozilla, Apple, Microsoft) — it's what the sender POSTs to, so the server
+  can't be pointed anywhere else. The host must be plain (`[a-z0-9.-]`) and Node's legacy
+  `url.parse` must see the same host as WHATWG `URL`, since `web-push` dials the legacy one. Keys
+  base64url: `p256dh` exactly 65 bytes (uncompressed P-256), `auth` exactly 16. Upsert on
   `endpoint`: re-registering the same browser moves it to whoever is signed in now.
 - `DELETE /notifications/subscriptions` — `{ endpoint }` → `204`, removed only if it belongs to the
   caller; idempotent.
@@ -142,6 +153,37 @@ browsers' Web Push subscriptions; nothing is sent yet.
 `push_subscriptions` table: `id`, `user_id` (indexed), `endpoint` (unique), `p256dh`, `auth`,
 `created_at`. VAPID keys come from `VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY`/`VAPID_SUBJECT`; the
 service refuses to boot without them (see `docs/notifications/environment.md`).
+
+Delivery (queue `notification-requested`, consume-only — this service publishes nothing; see
+[`notification-flow.md`](notification-flow.md) for the diagram and `event-schemas.md` for the job
+shape and the publish options every publisher uses). One job per notification, retried as a whole;
+the job's progress records which devices are already done, so a retry only tries the rest. A rare
+duplicate on one device is accepted in exchange for never losing a notification to a transient
+push-service error.
+- **Expired → dropped.** `NotificationDeliveryService` checks `expiresAt` on every attempt; an
+  expired job completes without sending anything (so it isn't retried either).
+- **Channels.** It calls `deliver(userId, content, expiresAt, progress)` on every channel in
+  `channels` (every channel when omitted). Every channel runs even if an earlier one throws; the
+  first error is rethrown afterwards, so the job is retried.
+- **Web Push (`WebPushChannel`).** On every attempt it looks up the user's *current* subscriptions,
+  so a device removed or taken over by another user since the job was queued isn't sent to, and one
+  added since is. Devices already marked done in the job's progress (`webpush:<subscriptionId>`)
+  are skipped. A subscription whose host is no longer on the allowlist is deleted, nothing sent.
+  Otherwise the payload `{ notificationId, title, body, url? }` is sent as JSON, encrypted for that
+  browser (RFC 8291, `aes128gcm`) and signed with the VAPID key; the push service never sees the
+  text (proven by `apps/notifications/test/web-push-encryption.spec.ts`). TTL = whole seconds left
+  until `expiresAt`, so the push service drops it rather than show it on a phone that comes online
+  too late.
+- **Push service answer, per device.** Sent → marked done. 404/410 → subscription deleted, marked
+  done. 429, 5xx, a network error (`ECONNREFUSED`, `ETIMEDOUT`, …) or web-push's timeout → left
+  undone. Any other failure (other 4xx, unusable keys) → logged, marked done, not retried. If any
+  device was left undone, the channel throws `RetryableDeliveryException` after trying the rest and
+  BullMQ retries the job (8 attempts, exponential backoff from 30 s — about an hour in total, cut
+  short by `expiresAt`). A failing database call also throws, so it's retried too.
+
+Nothing about a notification is stored beyond its jobs: BullMQ keeps completed jobs for 24 h and
+failed ones for 7 days (inspect with any Redis client against the `bull:notification-requested:*`
+keys).
 
 ## frontend
 
@@ -208,11 +250,18 @@ login/register) and `apps/gateway` (verifies — `JwtAuthGuard` on `/notificatio
 Also `USER_ID_HEADER` + `@ForwardedUserId()`, the internal-service side of Gateway's forwarded user
 id (see Gateway above) — used by `apps/notifications`.
 
-## libs/kafka-contracts / libs/kafka-client
+## libs/queue-contracts / libs/queue-client
 
-`kafka-client`: `IEventPublisher`/`KafkajsEventPublisher` (JSON, keyed) and
-`IEventConsumer`/`KafkajsEventConsumer` (subscribe with a type guard; starts on
-`onApplicationBootstrap`; invalid messages logged and skipped, handler errors retried).
-`kafka-contracts`: this project's topics, consumer groups, and message types with their guards —
-currently `notification.requested`. No service produces or consumes yet (plan stage 2). See
-`event-schemas.md`.
+`queue-client`: `IQueuePublisher`/`BullmqQueuePublisher` (`publish(queue, data, { dedupeId,
+dedupeTtlMs, delayMs, attempts, backoffMs })`, JSON job data, one BullMQ `Queue` per name) and
+`IQueueConsumer`/`BullmqQueueConsumer` (`process(queue, guard, handler, { concurrency })`, the
+handler getting the data plus `JobMeta` — ids, attempt number, and the job's `progress` with
+`saveProgress(patch)`, which is kept across retries; workers
+start on `onApplicationBootstrap` and close on `onModuleDestroy`, finishing in-flight jobs, before
+the publisher's queues close on `onApplicationShutdown`; a job failing the guard fails with `UnrecoverableError`, never
+retried; a handler that throws is retried while the job has attempts left). Both connect via
+`REDIS_URL`; the only files that import `bullmq`.
+`queue-contracts`: this project's cross-service queue names and job types with their guards —
+currently `notification-requested`, processed by Notification Service; nothing publishes it yet.
+Also `notificationRequestedPublishOptions(message)`, the dedupe/retry options every publisher of
+that queue must pass. See `event-schemas.md`.

@@ -26,10 +26,10 @@
       "@app/auth-kernel/*": ["libs/auth-kernel/src/*"],
       "@app/otel": ["libs/otel/src"],
       "@app/otel/*": ["libs/otel/src/*"],
-      "@app/kafka-contracts": ["libs/kafka-contracts/src"],
-      "@app/kafka-contracts/*": ["libs/kafka-contracts/src/*"],
-      "@app/kafka-client": ["libs/kafka-client/src"],
-      "@app/kafka-client/*": ["libs/kafka-client/src/*"]
+      "@app/queue-contracts": ["libs/queue-contracts/src"],
+      "@app/queue-contracts/*": ["libs/queue-contracts/src/*"],
+      "@app/queue-client": ["libs/queue-client/src"],
+      "@app/queue-client/*": ["libs/queue-client/src/*"]
     }
   }
 }

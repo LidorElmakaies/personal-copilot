@@ -103,12 +103,12 @@ ol.steps b{color:var(--ink)}
 
 <div class="wrap">
   <h1>Shabbat, calendar &amp; reminders architecture</h1>
-  <p class="lede">A Calendar Service handles all the calendar calculations. A Reminders Service decides <em>when</em> to notify you and publishes to Kafka. A Notification Service decides <em>how</em> (push today, and email or SMS later with one new adapter each).</p>
+  <p class="lede">A Calendar Service handles all the calendar calculations. A Reminders Service decides <em>when</em> to notify you and enqueues a job on a BullMQ queue (Redis). A Notification Service decides <em>how</em> (push today, and email or SMS later with one new adapter each).</p>
 
   <section>
     <h2>System</h2>
     <div class="diagram">
-      <svg viewBox="0 0 1000 780" role="img" aria-label="Phone calls Gateway. Gateway forwards to Calendar Service and Reminders Service. Reminders asks Calendar for event times and publishes notification.requested to Kafka. Notification Service consumes it and sends through Push, Email or SMS adapters; push reaches the phone.">
+      <svg viewBox="0 0 1000 780" role="img" aria-label="Phone calls Gateway. Gateway forwards to Calendar Service and Reminders Service. Reminders asks Calendar for event times and enqueues a notification-requested job on a Redis (BullMQ) queue. Notification Service processes it and sends through Push, Email or SMS adapters; push reaches the phone.">
         <defs>
           <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--accent)"/></marker>
           <marker id="ahv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--violet)"/></marker>
@@ -194,12 +194,12 @@ ol.steps b{color:var(--ink)}
         <rect x="376" y="530" width="208" height="34" rx="8" fill="var(--soft)" stroke="var(--line)"/>
         <text x="388" y="552" class="t-mono">Postgres: reminders (by userId)</text>
 
-        <!-- Kafka -->
+        <!-- Redis queue -->
         <rect x="680" y="370" width="285" height="84" rx="14" fill="var(--boxFill)" stroke="var(--ink)" stroke-opacity=".45" stroke-width="1.5"/>
-        <text x="698" y="396" class="t-title">Kafka</text>
-        <text x="760" y="396" class="t-sub">(already running)</text>
+        <text x="698" y="396" class="t-title">Redis</text>
+        <text x="752" y="396" class="t-sub">(BullMQ queue)</text>
         <rect x="696" y="408" width="253" height="32" rx="8" fill="var(--violetSoft)" stroke="var(--violet)" stroke-opacity=".6"/>
-        <text x="708" y="429" class="t-mono" style="fill:var(--violet)">notification.requested</text>
+        <text x="708" y="429" class="t-mono" style="fill:var(--violet)">notification-requested</text>
 
         <!-- Notification service -->
         <rect x="680" y="500" width="285" height="250" rx="14" fill="var(--boxFill)" stroke="var(--violet)" stroke-width="1.5" stroke-dasharray="7 5"/>
@@ -217,7 +217,7 @@ ol.steps b{color:var(--ink)}
         <text x="880" y="622" class="t-faint" font-size="12.5" font-weight="600">SMS</text>
         <text x="880" y="638" class="t-mono">future</text>
         <rect x="696" y="660" width="253" height="34" rx="8" fill="var(--soft)" stroke="var(--line)"/>
-        <text x="708" y="682" class="t-mono">Postgres: subscriptions, delivery log</text>
+        <text x="708" y="682" class="t-mono">Postgres: push subscriptions</text>
         <text x="698" y="728" class="t-sub">new channel = one new adapter here</text>
 
         <!-- arrows: phase 1 -->
@@ -235,9 +235,9 @@ ol.steps b{color:var(--ink)}
         <path d="M600 430 C640 430 650 300 690 300" fill="none" stroke="var(--violet)" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#ahv)"/>
         <text x="618" y="352" class="t-sub">event times</text>
         <path d="M600 470 L680 426" fill="none" stroke="var(--violet)" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#ahv)"/>
-        <text x="616" y="474" class="t-sub">publish</text>
+        <text x="616" y="474" class="t-sub">enqueue</text>
         <path d="M822 454 L822 500" fill="none" stroke="var(--violet)" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#ahv)"/>
-        <text x="830" y="482" class="t-sub">consume</text>
+        <text x="830" y="482" class="t-sub">process</text>
         <path d="M736 650 C736 760 180 770 150 452" fill="none" stroke="var(--violet)" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#ahv)"/>
         <text x="200" y="700" class="t-sub">push notification (encrypted, via browser push service)</text>
       </svg>
@@ -271,7 +271,7 @@ ol.steps b{color:var(--ink)}
           <li>Every reminder belongs to one user and needs you to be logged in</li>
           <li>First type: <b>before candle lighting</b>, with the offset you pick (e.g. 1h 30m), repeating every week</li>
           <li>Later: other types (before a holiday, custom date/time) reuse the same table</li>
-          <li>When a reminder is due it publishes an event and stops there. It never knows about push, email or SMS.</li>
+          <li>When a reminder is due it enqueues a job and stops there. It never knows about push, email or SMS.</li>
         </ul>
       </div>
       <div class="card p2">
@@ -279,7 +279,7 @@ ol.steps b{color:var(--ink)}
         <h3>Notification Service</h3>
         <p class="role">How to reach you.</p>
         <ul>
-          <li>Consumes <code>notification.requested</code> from Kafka</li>
+          <li>Processes <code>notification-requested</code> jobs from the queue, sending to each of your devices and retrying the job for any it couldn't reach</li>
           <li>Knows your browser push subscriptions (later: email address, phone number)</li>
           <li>One adapter per channel behind <code>INotificationChannel</code>. Email or SMS is a new adapter, with no change to Reminders.</li>
           <li>Any future service can send you a notification the same way</li>
@@ -319,27 +319,28 @@ offset_min    90          <span class="c">-- 1h 30m</span>
 lat, lon, tz  saved location
 enabled       true
 next_fire_at  2026-10-02 16:34 local</pre>
-        <p style="margin-top:10px"><b style="color:var(--ink)">How it fires:</b> every minute the scheduler picks rows with <code>next_fire_at ≤ now</code>, publishes <code>notification.requested</code>, then asks Calendar for <em>next</em> week's candle lighting and sets <code>next_fire_at</code> = that − 90 min. Change the offset or your location and <code>next_fire_at</code> is recalculated right away.</p>
+        <p style="margin-top:10px"><b style="color:var(--ink)">How it fires:</b> no polling: each enabled reminder has one BullMQ job delayed until <code>next_fire_at</code>. When it runs, Reminders enqueues <code>notification-requested</code>, then asks Calendar for <em>next</em> week's candle lighting, sets <code>next_fire_at</code> = that − 90 min and schedules the next delayed job. Change the offset or your location and the pending job is replaced right away.</p>
       </div>
     </div>
   </section>
 
   <section>
-    <h2>The Kafka message</h2>
+    <h2>The queue job</h2>
     <div class="split">
-      <pre><span class="c">// topic: notification.requested   key: userId</span>
+      <pre><span class="c">// queue: notification-requested   dedupe id: notificationId</span>
 {
-  "notificationId": "7f3c…",      <span class="c">// dedupe on retry</span>
+  "notificationId": "7f3c…",      <span class="c">// job dedupe id</span>
   "userId": "u_123",
   "title": "Shabbat in 1h 30m",
   "body": "Candle lighting at 18:04",
-  "channels": ["push"],           <span class="c">// optional; default = user's prefs</span>
+  "channels": ["webpush"],        <span class="c">// optional; omitted = every channel</span>
   "source": "reminders",
-  "requestedAt": "2026-10-02T13:34:00Z"
+  "requestedAt": "2026-10-02T13:34:00Z",
+  "expiresAt": "2026-10-02T15:04:00Z"       <span class="c">// required; never sent after this</span>
 }</pre>
       <div>
-        <p>This goes in <code>libs/kafka-contracts</code>, which is empty today, so both services share one typed contract.</p>
-        <p>Keying by <code>userId</code> keeps one person's notifications in order. <code>notificationId</code> lets the Notification Service skip a message it already sent if Kafka delivers it twice.</p>
+        <p>This lives in <code>libs/queue-contracts</code>, so both services share one typed contract.</p>
+        <p><code>notificationId</code> is the job's dedupe id until <code>expiresAt</code>, so enqueueing the same notification twice queues it once. Every publisher enqueues it with the same options (<code>notificationRequestedPublishOptions</code>): 8 attempts, backoff doubling from 30 s. The Notification Service sends to each of your devices and records the ones done in the job's progress; if the push service was busy or unreachable for some, the job is retried and only those are tried again. A device can rarely get a notification twice, but a transient error never loses one.</p>
         <p>The message says <em>what</em> to tell you, not <em>where</em>. That's why adding email later is only a change to the Notification Service.</p>
       </div>
     </div>
@@ -385,9 +386,9 @@ next_fire_at  2026-10-02 16:34 local</pre>
     </ol>
     <div class="phase p2">Phase 2 · Reminders + notifications</div>
     <ol class="steps" start="6">
-      <li><b>Kafka contract:</b> <code>notification.requested</code> in <code>libs/kafka-contracts</code>.</li>
-      <li><b>Notification Service:</b> the Kafka consumer, push subscriptions, and the Web Push adapter (encrypted payload).</li>
-      <li><b>Reminders Service:</b> Postgres, CRUD, the scheduler, and publishing to Kafka.</li>
+      <li><b>Queue contract:</b> <code>notification-requested</code> in <code>libs/queue-contracts</code>, BullMQ client in <code>libs/queue-client</code>.</li>
+      <li><b>Notification Service:</b> the queue consumer, push subscriptions, and the Web Push adapter (encrypted payload). Subscriptions are only accepted for known browser push services (Google FCM, Mozilla, Apple, Microsoft), so the server never POSTs anywhere else, and every notification carries an <code>expiresAt</code>: it's skipped if the service only gets to it after that, and the push service drops it if the phone can't be reached before then. Devices the push service couldn't reach are retried with backoff until <code>expiresAt</code>, one job per notification.</li>
+      <li><b>Reminders Service:</b> Postgres, CRUD, the scheduler (BullMQ delayed jobs), and enqueueing notifications.</li>
       <li><b>Frontend:</b> a service worker + "Turn on notifications", the bell button and offset sheet on the Home card, <code>remindersSlice</code>.</li>
     </ol>
   </section>

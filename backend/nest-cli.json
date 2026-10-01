@@ -59,19 +59,19 @@
       "sourceRoot": "libs/otel/src",
       "compilerOptions": { "tsConfigPath": "libs/otel/tsconfig.lib.json" }
     },
-    "kafka-client": {
+    "queue-contracts": {
       "type": "library",
-      "root": "libs/kafka-client",
+      "root": "libs/queue-contracts",
       "entryFile": "index",
-      "sourceRoot": "libs/kafka-client/src",
-      "compilerOptions": { "tsConfigPath": "libs/kafka-client/tsconfig.lib.json" }
+      "sourceRoot": "libs/queue-contracts/src",
+      "compilerOptions": { "tsConfigPath": "libs/queue-contracts/tsconfig.lib.json" }
     },
-    "kafka-contracts": {
+    "queue-client": {
       "type": "library",
-      "root": "libs/kafka-contracts",
+      "root": "libs/queue-client",
       "entryFile": "index",
-      "sourceRoot": "libs/kafka-contracts/src",
-      "compilerOptions": { "tsConfigPath": "libs/kafka-contracts/tsconfig.lib.json" }
+      "sourceRoot": "libs/queue-client/src",
+      "compilerOptions": { "tsConfigPath": "libs/queue-client/tsconfig.lib.json" }
     }
   }
 }

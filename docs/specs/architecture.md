@@ -2,7 +2,7 @@
 
 How the pieces in `docs/specs/services.md` fit together — diagrams plus the compose/build wiring
 that doesn't fit one. See `services.md` for the per-service contract and `event-schemas.md` for the
-Kafka contract.
+queue/job contract.
 
 ## System topology
 
@@ -27,9 +27,9 @@ flowchart LR
             Auth["auth"]
             Calendar["calendar"]
             Reminders["reminders\n(skeleton)"]
-            Notifications["notifications\n(push subscriptions)"]
+            Notifications["notifications\n(Web Push)"]
             Postgres[("postgres\nDBs: personal_copilot,\nreminders, notifications")]
-            Kafka{{"kafka\nnotification.requested\n(no producers yet)"}}
+            Redis[("redis\nBullMQ queue: notification-requested")]
         end
     end
 
@@ -50,6 +50,9 @@ flowchart LR
     Auth --> Postgres
     Reminders --> Postgres
     Notifications --> Postgres
+    Redis -->|"notification-requested jobs\n(progress saved back)"| Notifications
+    Notifications -->|"encrypted push"| PushSvc(["Browser push service\n(FCM for Chrome/Brave)"])
+    PushSvc -.-> Phone
 ```
 
 Only `gateway` and `frontend` are reachable from outside the Docker network. Over Tailscale,
@@ -62,8 +65,10 @@ native builds don't need HTTPS and can call Gateway at the PC's tailnet IP on `:
 from the home machine (see "SSH reverse-tunnel hardening" below) — `gateway` itself is never given
 a public port either way. `auth`, `calendar`, `reminders`, and `notifications` are
 internal-only; `reminders` is a skeleton with its own database and no endpoints yet;
-`notifications` stores browsers' Web Push subscriptions but sends nothing yet. `kafka` has one topic (`notification.requested`, created by `kafka-init`) but no producer or
-consumer yet. Gateway's WS (`/ws`) authenticates connections and can push to a specific
+`notifications` stores browsers' Web Push subscriptions and processes `notification-requested`
+jobs from Redis (BullMQ), sending each to every device the user has through that browser's push
+service, end-to-end encrypted, and retrying the job for devices that weren't reached; nothing publishes
+`notification-requested` yet. Gateway's WS (`/ws`) authenticates connections and can push to a specific
 user (`IRealtimeConnectionService.pushToUser`), but no feature sends anything over it yet either.
 
 Gateway rate-limits globally (`@nestjs/throttler`, `THROTTLE_TTL_MS`/`THROTTLE_LIMIT`) plus a
@@ -148,7 +153,7 @@ sequenceDiagram
 
 `devops/docker-compose.yml` only lists what to `include:` (one `devops/<unit>/docker-compose.yml`
 per service — `gateway`, `auth`, `calendar`, `reminders`, `notifications`, `frontend`, `postgres`,
-`kafka` today) plus the shared `networks:`.
+`redis` today) plus the shared `networks:`.
 Adding a service means a new Dockerfile under `backend/apps/<service>/` (or `frontend/`), a new
 `devops/<service>/docker-compose.yml`, and one more `include:` line — see
 `.claude/agents/devops.md` for the full shape.
@@ -156,8 +161,8 @@ Adding a service means a new Dockerfile under `backend/apps/<service>/` (or `fro
 Restart policy, logging, and `env_file` live once in `devops/common.yml`'s `_defaults` service,
 applied per-service via `extends:` (YAML anchors don't resolve across the split files, so that's not
 an option here). `networks:` stays out of `common.yml` and per-service instead, since the Nest services need
-`[personal-copilot, observability]` (they export telemetry) while `frontend`, `postgres`, and
-`kafka` need just `[personal-copilot]`.
+`[personal-copilot, observability]` (they export telemetry) while `frontend`, `postgres`,
+and `redis` need just `[personal-copilot]`.
 Two `env_file` layers apply in order: `backend/.env` (local-dev defaults, the shared base) then
 `devops/docker.env` (container-network overrides) — later entries win.
 
@@ -188,13 +193,12 @@ plain `:80`). `network_mode: host` so Caddy can reach the SSH tunnel's loopback 
 `GATEWAY_TUNNEL_PORT` feeds `GATEWAY_UPSTREAM=127.0.0.1:<port>`. A persistent `caddy-data` volume
 holds the issued certificate.
 
-**Kafka**: `apache/kafka` image, KRaft mode (no Zookeeper), pinned version, single node. `PLAINTEXT`
-(19092) serves other containers, `PLAINTEXT_HOST` (9092) is published for local debugging (`kcat`,
-etc.). `CLUSTER_ID` is a pinned, arbitrary UUID that must never change once `devops/data/kafka` has
-formatted storage — a regenerated ID on restart mismatches the existing volume and the broker fails
-to start. The broker runs as uid 1000, so `devops/data/kafka` must be owned by 1000 on the host
-(a root-owned folder makes it crash-loop on start). `KAFKA_AUTO_CREATE_TOPICS_ENABLE=false`, so a
-missing topic fails loudly at first use; the one-shot `kafka-init` creates every topic in
-`kafka-contracts/src/topics.ts` (idempotent, `--if-not-exists`) on each `up`. Port 9092 on the host
-is also what the opt-in round-trip test uses (`KAFKA_IT_BROKERS=localhost:9092 npx jest
-kafka-roundtrip`).
+**Redis**: `redis:7.4-alpine`, single node, holds only BullMQ queues (see `event-schemas.md`). Not
+published to the host. AOF (`appendfsync everysec`) with RDB snapshots off, data in
+`devops/data/redis`, so queued and delayed jobs survive a restart. `maxmemory 64mb` with
+`noeviction`, which BullMQ requires: a full Redis rejects new jobs (the publisher gets an error)
+instead of silently evicting queue keys. `notifications` waits on its healthcheck
+(`service_healthy`). The opt-in Redis tests need a Redis of its own on the host
+(`REDIS_IT_URL=redis://localhost:6379 npx jest notification-flow.it queue-roundtrip`), since this one isn't reachable
+from outside Docker.
+

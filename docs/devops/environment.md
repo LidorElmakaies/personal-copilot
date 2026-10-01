@@ -5,13 +5,15 @@ scope — see `docs/specs/architecture.md#compose--build-layout` for the include
 behind this.
 
 - **`backend/.env`** (gitignored) — the same file every backend app also reads for local
-  (non-Docker) dev. Supplied to every backend container as `common.yml`'s base `env_file:`. See
+  (non-Docker) dev. Supplied to every backend container as `common.yml`'s base `env_file:` (`redis` resets it
+  with `env_file: !reset []` — a third-party image has no use for app secrets). See
   [docs/gateway/environment.md](../gateway/environment.md) and
   [docs/auth/environment.md](../auth/environment.md) for what's in it.
 - **`devops/docker.env`** (checked into git — no secrets) — container-network overrides layered on
-  top of `backend/.env` via each service's own `env_file:` list: `KAFKA_BROKERS`, `DATABASE_URL`
-  (auth), `REMINDERS_DATABASE_URL`, `NOTIFICATIONS_DATABASE_URL`, `OTEL_EXPORTER_OTLP_ENDPOINT`, all
-  pointed at Docker service names instead of `localhost`.
+  top of `backend/.env` via each service's own `env_file:` list: `DATABASE_URL`
+  (auth), `REMINDERS_DATABASE_URL`, `NOTIFICATIONS_DATABASE_URL`, `REDIS_URL` (Redis, which also
+  hosts the BullMQ queues), `OTEL_EXPORTER_OTLP_ENDPOINT`, all pointed at Docker service names
+  instead of `localhost`.
 - **`devops/.env`** (gitignored, copy of `devops/.env.example`) — read directly by `docker compose`
   when invoked from `devops/`. `GATEWAY_PUBLIC_URL` (baked into the frontend build — for phone
   access, the HTTPS `:8443` URL `devops/tailscale/serve.sh` prints; see

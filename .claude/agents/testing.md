@@ -9,15 +9,15 @@ real correctness risks right now: a JWT must be signed/verified identically acro
 used refresh token must never be replayable, and Shabbat times must be correct for the user's
 location and local date. As
 features land on top of this scaffold, extend this file's priority list rather than starting from
-scratch — a Kafka producer/consumer, once one exists, needs the same "assert the exact topic and
-payload shape" treatment this file gave the last one.
+scratch — every queue publisher/consumer needs the "assert the exact queue, job shape and options"
+treatment in item 6 below.
 
 ## The test pyramid maps onto the clean-architecture layers
 
 | Layer | What you test | How |
 |---|---|---|
-| **Application** | Use-case logic (`*.service.ts` in `application/`) | Unit tests, interfaces mocked (manual fakes/`jest.fn()`) — no real Kafka/Postgres/HTTP |
-| **Infrastructure** | The TypeORM repositories, `SaltPepperSha256Hasher`, `JsonWebTokenService`, `InMemoryConnectionStore` | Integration tests against the real dependency where practical (Postgres via `@testcontainers/postgresql` for Auth Service's repositories) |
+| **Application** | Use-case logic (`*.service.ts` in `application/`) | Unit tests, interfaces mocked (manual fakes/`jest.fn()`) — no real Redis/Postgres/HTTP |
+| **Infrastructure** | The TypeORM repositories, `BullmqQueuePublisher`/`BullmqQueueConsumer`, `WebPushLibSender`, `SaltPepperSha256Hasher`, `JsonWebTokenService`, `InMemoryConnectionStore` | Integration tests against the real dependency where practical (Postgres via `@testcontainers/postgresql` for Auth Service's repositories; the BullMQ round trip and the full notification flow against a real Redis, opt-in: `REDIS_IT_URL=redis://localhost:6379 npx jest notification-flow.it queue-roundtrip` — the stack's Redis isn't published, so run your own) |
 | **API** | Controllers, `RealtimeGateway`'s WS handshake | HTTP tests — boot the Nest module with `app.listen(0)` and call it with Node's `fetch` (no `supertest` installed); fake the next service down via `overrideProvider`. A real Socket.IO client against `RealtimeGateway` (auth rejection on a bad/missing token, delivery on a good one) |
 
 ## Where tests live
@@ -54,9 +54,22 @@ dependency breaks loading. `backend/libs/testing` doesn't exist yet — create i
 5. **`RealtimeConnectionService.pushToUser` returns `false` for a disconnected user** without
    throwing — a caller that pushes to a user who's mid-reconnect or has no app open must not crash;
    the WS push failing silently is correct behavior here, not a bug to fix.
-6. **Kafka contract conformance.** `KafkajsEventConsumer`'s skip/retry rules are unit-tested; the real broker round trip is opt-in (`KAFKA_IT_BROKERS=localhost:9092 npx jest kafka-roundtrip`, uses a throwaway topic, never a real one). For each producer, assert the exact topic
-   and payload shape published; for each consumer, assert it correctly invokes its use case with a
-   well-formed message and doesn't crash the process on a malformed one.
+6. **Queue contract conformance.** `BullmqQueueConsumer`'s rules are unit-tested (a job failing
+   the guard → `UnrecoverableError`, never retried; a handler throw propagates → retried; saved
+   progress is handed to the next attempt) and so is `BullmqQueuePublisher`'s option mapping; the
+   real-Redis tests are opt-in (`REDIS_IT_URL=redis://localhost:6379 npx jest notification-flow.it
+   queue-roundtrip`, throwaway queue names, never a real one). For each publisher, assert the exact
+   queue, job shape, and options — for `notification-requested`, exactly
+   `notificationRequestedPublishOptions(message)`; for each consumer, assert it registers the right
+   queue and guard and invokes its use case with a well-formed job. For Notifications specifically:
+   expired → nothing sent; a `retry` outcome on any device → `RetryableDeliveryException` after the
+   other devices are tried, and the retry skips devices marked done; `gone` → subscription deleted
+   and marked done; devices are read fresh on each attempt.
+7. **Push payloads stay encrypted.** `apps/notifications/test/web-push-encryption.spec.ts` sends
+   through the real `WebPushLibSender` to a local HTTPS server and asserts `Content-Encoding:
+   aes128gcm`, no readable text in the body or headers, and that only the subscriber's private key
+   decrypts it (needs `openssl` on the PATH for its throwaway cert). Never weaken or skip it; a
+   change to how pushes are sent must keep it passing.
 
 ## Frontend
 

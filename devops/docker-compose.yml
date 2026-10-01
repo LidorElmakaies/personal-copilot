@@ -10,7 +10,7 @@ include:
   - path: notifications/docker-compose.yml
   - path: frontend/docker-compose.yml
   - path: postgres/docker-compose.yml
-  - path: kafka/docker-compose.yml
+  - path: redis/docker-compose.yml
 
 networks:
   personal-copilot:      # internal service-to-service traffic

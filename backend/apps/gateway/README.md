@@ -39,6 +39,6 @@ client set its own `X-Forwarded-For` and dodge the limiter entirely.
 
 Reflects any origin. Safe in both topologies today: the local frontend build calls Gateway
 cross-origin during dev (no cookies/credentialed CORS in play), and the cloud path is same-origin
-by construction (Caddy reverse-proxies `/auth/*` and `/ws*` from the same domain the frontend is
-served on, so the browser never sees this as a cross-origin request at all). Revisit if Gateway is
-ever reached directly, unproxied, from the open internet.
+by construction (Caddy reverse-proxies `/auth/*`, `/calendar/*`, `/notifications/*`, and `/ws*`
+from the same domain the frontend is served on, so the browser never sees this as a cross-origin
+request at all). Revisit if Gateway is ever reached directly, unproxied, from the open internet.

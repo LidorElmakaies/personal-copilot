@@ -6,8 +6,8 @@ import { AuthController } from './api/controllers/auth.controller';
 import { AdminSeedService } from './application/admin-seed.service';
 import { AuthService } from './application/auth.service';
 import { SaltPepperSha256Hasher } from './infrastructure/hashing/salt-pepper-sha256.hasher';
-import { RefreshTokenEntity } from './infrastructure/postgres/entities/refresh-token.entity';
-import { UserEntity } from './infrastructure/postgres/entities/user.entity';
+import { RefreshTokenEntity } from './entities/refresh-token.entity';
+import { UserEntity } from './entities/user.entity';
 import { TypeOrmRefreshTokenRepository } from './infrastructure/postgres/typeorm-refresh-token.repository';
 import { TypeOrmUserRepository } from './infrastructure/postgres/typeorm-user.repository';
 import {

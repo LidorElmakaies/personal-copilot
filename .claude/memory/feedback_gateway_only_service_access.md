@@ -1,6 +1,6 @@
 ---
 name: feedback_gateway_only_service_access
-description: "Hard rule for personal-copilot, carried over from askmycrawl: nothing external ever reaches auth (or any future internal service) directly — only Gateway (frontend excepted, it's a static web export, not a backend service). Internal service-to-service calls (Kafka, and Gateway->Auth HTTP) are unaffected."
+description: "Hard rule for personal-copilot, carried over from askmycrawl: nothing external ever reaches auth (or any future internal service) directly — only Gateway (frontend excepted, it's a static web export, not a backend service). Internal service-to-service calls (BullMQ queues on Redis, and Gateway->Auth HTTP) are unaffected."
 metadata:
   node_type: memory
   type: feedback
@@ -20,7 +20,7 @@ rule it enforces on the frontend's *code* is the mirror image: the frontend only
 the network level the way an unpublished port does for a browser.
 
 **Does not restrict internal service-to-service calls** — Gateway's plain-HTTP call to `auth`, and
-whatever Kafka producer/consumer wiring a future feature adds between internal services, is the
+whatever BullMQ queue publisher/consumer wiring a feature adds between internal services, is the
 normal, already-resolved architecture (see `docs/specs/services.md`), not something this rule
 touches.
 

@@ -1,0 +1,21 @@
+services:
+  redis:
+    extends:
+      file: ../common.yml
+      service: _defaults
+    image: redis:7.4-alpine
+    # Third-party image: drop _defaults' backend/.env (app secrets) — Redis reads none of it.
+    env_file: !reset []
+    # AOF (fsync 1s) only; RDB off; noeviction (BullMQ requires it) — a full Redis fails loudly.
+    command: ["redis-server", "--appendonly", "yes", "--appendfsync", "everysec", "--save", "",
+              "--maxmemory", "64mb", "--maxmemory-policy", "noeviction"]
+    # Not published to the host — only internal services talk to it, per the gateway-only-access rule.
+    volumes:
+      - ../data/redis:/data
+    networks:
+      - personal-copilot
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5

@@ -8,7 +8,6 @@ import type {
   ProxyResponse,
 } from './proxy.types';
 
-// Plain HTTP (not Kafka) — proxied calls need a synchronous request/response.
 export class ServiceHttpClient implements IServiceClient {
   constructor(
     private readonly http: HttpService,

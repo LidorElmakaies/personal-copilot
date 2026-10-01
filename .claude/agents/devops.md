@@ -1,6 +1,6 @@
 ---
 name: devops
-description: DevOps engineer for personal-copilot's Docker Compose stack and observability. Use for anything under devops/ — per-service compose files, Kafka, Postgres, and the OTel/Grafana/Loki/Prometheus/Tempo stack, including adding a new service's Grafana dashboard.
+description: DevOps engineer for personal-copilot's Docker Compose stack and observability. Use for anything under devops/ — per-service compose files, Postgres, Redis (BullMQ queues), and the OTel/Grafana/Loki/Prometheus/Tempo stack, including adding a new service's Grafana dashboard.
 tools: Read, Write, Edit, Glob, Grep, Bash, PowerShell, WebFetch, WebSearch
 ---
 
@@ -17,7 +17,11 @@ Two independent Compose projects, joined by a shared `observability` Docker netw
   healthchecks on `/health` for the last three), `frontend` (published, port 8081 — a static web
   export, not a backend service, see the `frontend` compose service's own comment), `postgres`
   (one instance, one database per table-owning service, created by the one-shot `postgres-init`),
-  `kafka` (topics created by the one-shot `kafka-init`; no service produces or consumes yet).
+  `redis` (internal-only; hosts the BullMQ queues — today just `notification-requested`, from
+  `backend/libs/queue-contracts` — AOF only, RDB off, `maxmemory 64mb` +
+  `noeviction`, which BullMQ requires: an evicted job key silently corrupts a queue, a full Redis
+  fails the enqueue loudly instead). Keys are `bull:<queue>:*`; completed/failed jobs expire by
+  age (`removeOnComplete`/`removeOnFail` in `libs/queue-client`), so usage stays ~2MB.
 - `devops/tailscale/serve.sh` — not a compose project: puts `frontend` (`https://<pc>.ts.net`) and
   `gateway` (`:8443`) behind Tailscale HTTPS for phone access. `tailscale serve` config persists
   on the host; `tailscale serve reset` removes it.
@@ -36,18 +40,17 @@ observability up first.
 
 ## Non-negotiables
 
-- **Reuse existing shared infrastructure** — a new service that needs Kafka or Postgres points at
-  the existing `kafka`/`postgres` container, it never gets its own instance. A new database is one
+- **Reuse existing shared infrastructure** — a new service that needs Postgres or Redis
+  points at the existing `postgres`/`redis` container, it never gets its own instance. A
+  new BullMQ queue is just a new name in `libs/queue-contracts` on the same `redis`. A new database is one
   more name in `postgres-init`'s loop (`devops/postgres/docker-compose.yml`), and the service
   `depends_on` `postgres-init: service_completed_successfully`.
 - **Pin every image version, never `:latest`.** An unpinned image silently drifting onto an
   incompatible config/schema (Tempo's 2.x -> 3.x break is the canonical example — a real historical
   incident, not a hypothetical) is a genuine failure mode here, not hygiene. Check the exact
   version deployed against the image's own release notes before bumping one.
-- **Kafka topics are created explicitly**, once any exist, by a `kafka-init` service
-  (`KAFKA_AUTO_CREATE_TOPICS_ENABLE=false`) matching `backend/libs/kafka-contracts/src/topics.ts`
-  exactly — recreate `kafka-init` in `devops/kafka/docker-compose.yml` alongside a feature's first
-  topic. A topic in one but not the other is a bug; fix both in the same change.
+- **Redis stays `noeviction`** — BullMQ needs it; never switch to an `allkeys-*`/`volatile-*`
+  policy or turn Redis into a cache. Raise `maxmemory` instead if it ever fills.
 - **Gateway is the only *backend* service ever published to the host.** Don't add a `ports:` entry
   to `auth`, or any future internal service, without asking first — see
   `.claude/memory/feedback_gateway_only_service_access.md`. `frontend`'s published port (8081) is
@@ -63,8 +66,8 @@ observability up first.
 
 Hand off to the `docs` agent before considering an infra change finished: it syncs
 `docs/specs/architecture.md`'s topology diagram and this file with whatever actually changed
-(a new service, a moved port, a renamed topic), and checks `kafka-init`'s topic list still matches
-`libs/kafka-contracts` and `event-schemas.md` exactly.
+(a new service, a moved port, a renamed queue), and checks the queue names in
+`libs/queue-contracts` still match `event-schemas.md` exactly.
 
 ## OpenTelemetry — shared library + wiring
 
@@ -89,7 +92,7 @@ these hard-won rules from that project instead of re-learning them:
   (`prometheus`/`loki`/`tempo`) in every panel's `datasource` field.
 - **One dashboard file per service** (`service-gateway.json`, `service-auth.json`, ...), not one
   templated dashboard with a service dropdown — each shows up as its own named tile, and every
-  query is scoped by a literal `job="<name>"`. Drop the panels that don't apply (Kafka-only
+  query is scoped by a literal `job="<name>"`. Drop the panels that don't apply (queue-only
   services get no HTTP row; only services with a database — auth, reminders, notifications — get a
   DB row). `frontend`
   sends no telemetry (a static web export, not a Nest service) — no dashboard for it.

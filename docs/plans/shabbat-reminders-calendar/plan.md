@@ -3,7 +3,7 @@
 Branch: `feature/shabbat-and-calendar`
 Design files in this folder (open in a browser; they're the source of truth for the look and the
 wiring, so read them before starting a task):
-- [`architecture.html`](architecture.html): service diagram, reminder flow, Kafka message,
+- [`architecture.html`](architecture.html): service diagram, reminder flow, queue message,
   endpoints. Also published at https://claude.ai/artifact/Y4Q7eRQ87dEDa3M8DgptPN
 - [`mockups.html`](mockups.html): UI options. Chosen: **H1** "Times under the clock" and **C1**
   "Month grid + day card". Also published at https://claude.ai/artifact/JuiUxtsAeyXPk6SCYPgMLe
@@ -34,9 +34,13 @@ If a design changes, update the HTML file here in the same commit.
   v5 was tried and rejected: its type declarations don't resolve under `nodenext`.
 - **Reminders are per user** (login required, user id from the JWT). The first type is "before
   candle lighting", with a user-picked offset (e.g. 1h 30m), repeating weekly.
-- **Reminders → Kafka → Notifications.** Reminders decides *when* and publishes
-  `notification.requested`. The Notification Service decides *how* (push first; email/SMS later as
-  new adapters, with no change to Reminders).
+- **Reminders → BullMQ (Redis) → Notifications.** Reminders decides *when* and enqueues a
+  `notification-requested` job (deduplicated by `notificationId` until its `expiresAt`). The
+  Notification Service decides *how* (push first; email/SMS later as new adapters, with no change
+  to Reminders). One job per notification; a retry skips the devices the job already reached
+  (saved in its progress). Replaced Kafka (stage 2): per-job retries,
+  dedupe and delayed jobs fit this better, and Redis was already running. Kafka was removed
+  entirely.
 - **Push = Web Push, encrypted, no Expo.** The phone's browser (Chrome or Brave, on the HTTPS
   tailnet site) subscribes; the Notification Service sends through the browser's push service with
   the payload end-to-end encrypted (RFC 8291, `aes128gcm`) using keys only the phone holds. The push
@@ -96,26 +100,34 @@ lighting", and a push notification arrives on the phone at that time every Frida
   the browser needs it to subscribe), `POST /notifications/subscriptions` and
   `DELETE /notifications/subscriptions` (user from the JWT). VAPID keys generated once, kept in
   env (`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`). Gateway `notifications-proxy`.
-- [ ] **2.3 Notification Service: sending.** Kafka consumer, `INotificationChannel` interface,
-  `WebPushChannel` adapter (`web-push` library), a delivery log, skip a `notificationId` already
-  sent, delete a subscription the push service reports gone (404/410).
+- [x] **2.3 Notification Service: sending.** BullMQ consumer for `notification-requested`
+  (`@app/queue-client`, contract in `@app/queue-contracts`, required `expiresAt`, expired jobs
+  skipped), `INotificationChannel` interface, `WebPushChannel` sending to each of the user's
+  devices, the whole job retried with backoff until `expiresAt` for devices not reached yet (job
+  progress records the ones done), `web-push` sender, delete a subscription the push
+  service reports gone (404/410).
   *Proof test:* capture the request sent to the push service and assert
   `Content-Encoding: aes128gcm` and that the reminder text does not appear anywhere in the body or
-  headers. *Check:* publishing a test message by hand shows a notification on the phone.
+  headers. *Check:* enqueueing a test job by hand reaches the real push service (FCM). Seeing it on the phone needs 2.7's service worker, so that
+  check moves to 2.7.
 - [ ] **2.4 Calendar: next candle lighting after a date.** An internal route Reminders uses to
   find the next candle-lighting time for a saved location. Not exposed through Gateway.
 - [ ] **2.5 Reminders Service: storage + API.** `reminders` table (`user_id`, `type`,
   `offset_min`, `lat`, `lon`, `tz`, `enabled`, `next_fire_at`). `GET /reminders`,
   `PUT /reminders/shabbat-candles`, `DELETE /reminders/shabbat-candles`, user from the JWT. Gateway
   `reminders-proxy` with `JwtAuthGuard`.
-- [ ] **2.6 Reminders Service: scheduler.** Every minute: find due rows, publish
-  `notification.requested`, set `next_fire_at` from next week's candle lighting. Recalculate when
-  the offset or location changes.
+- [ ] **2.6 Reminders Service: scheduler.** BullMQ delayed jobs instead of polling: when a
+  reminder is saved (or fires), compute its next fire time from the next candle lighting and
+  enqueue a job delayed until then (dedupe id per reminder + date). At fire time it enqueues
+  `notification-requested` (`expiresAt` = candle lighting) and schedules next week's. Changing the
+  offset or location replaces the pending delayed job. The `reminders` rows stay the source of
+  truth; on startup, reschedule any enabled reminder with no pending job.
   *Tests:* fires once, not twice; survives a restart; offset change moves the next time.
 - [ ] **2.7 Frontend: turn on notifications.** A service worker in the web build (receives the
   push, shows the notification, opens the app on tap), a "Turn on notifications" step after login
   that asks permission and calls `PushManager.subscribe` with the VAPID public key, and sends the
   subscription to 2.2. Web only for now.
+  *Check:* a message published by hand to `notification.requested` shows on the phone.
 - [ ] **2.8 Frontend: bell button + offset sheet.** On the H1 Shabbat section: hours/minutes
   picker, presets (30m, 1h, 1h 30m, 2h, 3h), "fires at HH:MM this week", Save / Turn off.
   Signed out → the existing "log in to use this" prompt. `remindersSlice` + `remindersService`.
@@ -141,6 +153,9 @@ and a day card with that day's times.
 ---
 
 ## Open questions
+
+Smaller bugs, config fixes and ideas found along the way are tracked in
+[`open-issues.md`](open-issues.md).
 
 - **Holiday eves for the reminder** (task 3.5): yes or no?
 - **Location denied:** is the "Location is off" message enough, or do you want a manual city

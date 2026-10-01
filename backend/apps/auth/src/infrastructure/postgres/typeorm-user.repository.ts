@@ -6,7 +6,7 @@ import type {
   CreateUserInput,
   IUserRepository,
 } from '../interfaces/user-repository.interface';
-import { UserEntity } from './entities/user.entity';
+import { UserEntity } from '../../entities/user.entity';
 
 function toDomain(entity: UserEntity): User {
   return {

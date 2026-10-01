@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "../../dist/.tsbuildinfo-queue-client",
+    "outDir": "../../dist/libs/queue-client"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["**/*spec.ts"]
+}

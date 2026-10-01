@@ -53,10 +53,9 @@ a stale reference and must be removed, not left as a footnote. (This is exactly 
 that happens doing a removal by hand across several files — don't trust that a manual edit pass
 caught every mention.) Specifically, each pass should also check:
 
-- **`libs/kafka-contracts/src/topics.ts`**, **`devops/kafka/docker-compose.yml`'s `kafka-init`
-  command**, and **`docs/specs/event-schemas.md`'s topic table** all list the exact same topics.
-  A topic in one but not the others is a bug in the code or the docs — figure out which and fix it,
-  don't just document the mismatch.
+- **`libs/queue-contracts/src/queues.ts`'s `QUEUES`** and **`docs/specs/event-schemas.md`'s queue
+  table** list the exact same queues. A queue in one but not the other is a bug in the code or the
+  docs — figure out which and fix it, don't just document the mismatch.
 - Every service directory under `backend/apps/` has a corresponding section in
   `docs/specs/services.md` and a corresponding node in `docs/specs/architecture.md`'s topology
   diagram — and vice versa (no doc section for a service that no longer exists).
@@ -65,7 +64,7 @@ caught every mention.) Specifically, each pass should also check:
 
 ## Diagrams — Mermaid, in `docs/specs/architecture.md`
 
-- **One system-topology diagram** (`flowchart`): every service, Kafka topic (once any exist), the
+- **One system-topology diagram** (`flowchart`): every service, BullMQ queue / Redis, the
   Postgres instance, any external API a feature integrates with, the frontend, and the Tailscale
   boundary. This is the single "how does it all fit together" page — keep it one diagram, not one
   per service.

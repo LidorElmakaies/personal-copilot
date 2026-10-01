@@ -79,7 +79,7 @@ here (auth + Settings, no scraper/jobs/admin surface).
 Desktop\ask-my-crawl`) — same NestJS Nest-CLI monorepo shape (`apps/` + `libs/`), same clean/
 hexagonal API/Application/Infrastructure layering with string/Symbol DI tokens, same Gateway
 auth-proxy pattern, same per-service `devops/<service>/docker-compose.yml` via `include:`, same
-generic `libs/auth-kernel`/`libs/otel`/`libs/kafka-client` (ported near-verbatim — generic infra,
+generic `libs/auth-kernel`/`libs/otel` (ported near-verbatim — generic infra,
 not project-specific), same Expo Router + Redux Toolkit + services-layer frontend convention, same
 theme/component conventions as of the fifth revision note above, same `.claude/agents` +
 `.claude/memory` setup. Differs deliberately where the project's actual shape differs: `UserRole`
