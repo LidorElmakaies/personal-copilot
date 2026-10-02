@@ -117,6 +117,10 @@ imports it).
   - `parasha` is `null` when a holiday replaces the weekly reading. `holidays` lists what falls on
     that Saturday (holidays, Chol HaMoed, Rosh Chodesh, Chanukah, named Shabbatot), minus eves,
     modern civic days, and Leil Selichot. Names come in English and unvoweled Hebrew.
+- `GET /calendar/candle-lighting/next?lat&lon&tz&after` — internal, for Reminders; Gateway doesn't
+  forward it. The first Friday candle lighting strictly after `after` (ISO with `Z` or an offset,
+  defaults to now): `{ "candleLighting": "2026-10-09T14:55:00.000Z" }`. Same location rules as
+  above. Weeks with no sunset are skipped; `422` only after 26 such weeks in a row.
 - `GET /health`.
 
 See `backend/apps/calendar/README.md` for the non-obvious implementation details.

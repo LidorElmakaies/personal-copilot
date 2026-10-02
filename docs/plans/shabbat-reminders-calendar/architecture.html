@@ -174,7 +174,7 @@ ol.steps b{color:var(--ink)}
         <text x="698" y="110" class="t-sub">all calendar calculation · stateless</text>
         <rect x="696" y="124" width="253" height="46" rx="9" fill="var(--soft)" stroke="var(--line)"/>
         <text x="708" y="143" class="t-lbl">API</text>
-        <text x="708" y="161" class="t-mono">/calendar/shabbat · /month · /events</text>
+        <text x="708" y="161" class="t-mono">/shabbat · /month · /candle-lighting/next</text>
         <rect x="696" y="178" width="253" height="40" rx="9" fill="var(--soft)" stroke="var(--line)"/>
         <text x="708" y="203" class="t-mono">ICalendarCalculator</text>
         <rect x="696" y="226" width="253" height="72" rx="9" fill="var(--accentSoft)" stroke="var(--accent)" stroke-opacity=".6"/>
@@ -362,7 +362,7 @@ next_fire_at  2026-10-02 16:34 local</pre>
       <tbody>
         <tr><td>GET /calendar/shabbat</td><td>open</td><td>Next or current Shabbat: candle lighting, havdalah, parasha, and the holiday if one falls on it</td><td>1</td></tr>
         <tr><td>GET /calendar/month</td><td>open</td><td>Each day of a month: Hebrew date, holidays and fasts, enter and leave times</td><td>1</td></tr>
-        <tr><td>GET /calendar/events</td><td>internal</td><td>Upcoming events in a date range. Reminders uses it to resolve "before candle lighting".</td><td>2</td></tr>
+        <tr><td>GET /calendar/candle-lighting/next</td><td>internal</td><td>The first candle lighting after a given time, for a saved location. Reminders uses it to resolve "before candle lighting".</td><td>2</td></tr>
         <tr><td>GET /reminders</td><td>login</td><td>Your reminders (only yours: user id comes from the token)</td><td>2</td></tr>
         <tr><td>PUT /reminders/shabbat-candles</td><td>login</td><td>Turn on or update: <code>{ offsetMinutes: 90, lat, lon, tz }</code>. One per user, so PUT, not POST.</td><td>2</td></tr>
         <tr><td>DELETE /reminders/shabbat-candles</td><td>login</td><td>Turn it off</td><td>2</td></tr>

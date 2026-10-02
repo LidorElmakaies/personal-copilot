@@ -122,3 +122,69 @@ describe('ShabbatService.current', () => {
     );
   });
 });
+
+describe('ShabbatService.nextCandleLighting', () => {
+  const next = (after: string, calc = fakeCalculator()) =>
+    new ShabbatService(calc).nextCandleLighting(TEL_AVIV, new Date(after));
+
+  it('on Sunday returns the coming Friday', () => {
+    expect(next('2026-09-27T08:00:00Z')).toEqual(
+      new Date('2026-10-02T15:00:00Z'),
+    );
+  });
+
+  it('on Friday before candle lighting returns that Friday', () => {
+    expect(next('2026-10-02T14:59:59Z')).toEqual(
+      new Date('2026-10-02T15:00:00Z'),
+    );
+  });
+
+  it('is strictly after: exactly at candle lighting returns next week', () => {
+    expect(next('2026-10-02T15:00:00Z')).toEqual(
+      new Date('2026-10-09T15:00:00Z'),
+    );
+  });
+
+  it('during Shabbat returns next week, not the one in progress', () => {
+    expect(next('2026-10-03T12:00:00Z')).toEqual(
+      new Date('2026-10-09T15:00:00Z'),
+    );
+  });
+
+  it("uses the user's local date, not UTC, to find the Friday", () => {
+    const calc = fakeCalculator();
+    // Thursday 22:00 in New York is already Friday in UTC.
+    new ShabbatService(calc).nextCandleLighting(
+      NEW_YORK,
+      new Date('2026-10-02T02:00:00Z'),
+    );
+    expect(calc.shabbatFor.mock.calls[0][1]).toEqual({
+      year: 2026,
+      month: 10,
+      day: 2,
+    });
+  });
+
+  it('skips weeks with no sunset', () => {
+    const calc = fakeCalculator();
+    const shabbatFor = jest.fn<ShabbatTimes | null, [unknown, CivilDate]>(
+      (loc, friday) => (friday.day === 2 ? null : calc.shabbatFor(loc, friday)),
+    );
+    const result = new ShabbatService({ shabbatFor }).nextCandleLighting(
+      TEL_AVIV,
+      new Date('2026-09-27T08:00:00Z'),
+    );
+    expect(result).toEqual(new Date('2026-10-09T15:00:00Z'));
+  });
+
+  it('gives up with 422 after half a year without sunset', () => {
+    const shabbatFor = jest.fn(() => null);
+    expect(() =>
+      new ShabbatService({ shabbatFor }).nextCandleLighting(
+        TEL_AVIV,
+        new Date(),
+      ),
+    ).toThrow(UnprocessableEntityException);
+    expect(shabbatFor).toHaveBeenCalledTimes(26);
+  });
+});

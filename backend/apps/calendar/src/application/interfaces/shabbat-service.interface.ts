@@ -10,4 +10,7 @@ export interface ShabbatResult extends ShabbatTimes {
 export interface IShabbatService {
   /** The Shabbat in progress at `now`, otherwise the next one. */
   current(location: GeoLocation, now: Date): ShabbatResult;
+
+  /** The first Friday candle lighting strictly after `after`, skipping weeks with no sunset. */
+  nextCandleLighting(location: GeoLocation, after: Date): Date;
 }
