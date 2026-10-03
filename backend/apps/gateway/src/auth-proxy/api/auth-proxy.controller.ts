@@ -6,7 +6,7 @@ import { authStrictThrottlePolicy } from '../../throttle-policies';
 import type { IAuthProxyService } from '../application/interfaces/auth-proxy-service.interface';
 import { writeProxyResponse } from '../../proxy/write-proxy-response';
 
-// Pure passthrough to Auth Service — no domain decisions here.
+// Pure passthrough to Users Service — no domain decisions here.
 @Controller('auth')
 export class AuthProxyController {
   constructor(

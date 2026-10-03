@@ -1,4 +1,4 @@
-# Auth Service — implementation notes
+# Users Service — implementation notes
 
 The contract (endpoints, token shapes, hashing) lives in
 [`docs/specs/services.md`](../../../docs/specs/services.md#auth). This file is the "why" behind

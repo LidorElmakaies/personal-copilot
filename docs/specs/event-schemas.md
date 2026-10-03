@@ -75,8 +75,7 @@ by `devops/kafka`'s `kafka-init` (auto-create is off). The table below, `KAFKA_T
 
 | Topic | Publisher | Consumers (group) | Notes |
 |---|---|---|---|
-| `auth.user-registered` | Auth *(task 2.7)* | Users (`users`) | |
-| `auth.user-deleted` | Auth *(task 2.7)* | Users (`users`), Reminders (`reminders`), Notifications (`notifications`) | |
+| `users.user-deleted` | Users *(task 2.8)* | Reminders (`reminders`), Notifications (`notifications`) | |
 | `users.user-state` | Users *(task 2.8)* | Reminders (`reminders`) | compacted; tombstone on delete |
 
 Event rules:
@@ -91,27 +90,9 @@ Event rules:
 Adding a topic: add it to `KAFKA_TOPICS` and `kafka-init`, its type + guard under
 `kafka-contracts/src/messages/` (exported from `index.ts`), and a row and section here.
 
-## `auth.user-registered`
+## `users.user-deleted`
 
-A new account. Users creates the person's row with the same id; an existing row is left alone.
-
-```ts
-// libs/kafka-contracts/src/messages/user-registered.ts
-interface UserRegisteredMessage {
-  userId: string;        // Auth's user id = the JWT sub; every service keys its data by it
-  email: string;
-  firstName?: string;    // optional, from the register form; 1–100 chars
-  lastName?: string;
-  phone?: string;        // optional, E.164, e.g. +972501234567
-  registeredAt: string;  // ISO 8601
-}
-```
-
-Auth passes the optional fields on and never stores them.
-
-## `auth.user-deleted`
-
-An account was deleted. Every service deletes what it holds about that user.
+An account was deleted (`DELETE /auth/account`). Every other service deletes what it holds about that user.
 
 ```ts
 interface UserDeletedMessage {
@@ -126,7 +107,7 @@ The user's **full** current state after every change, never a partial update. Th
 compacted (`cleanup.policy=compact`): Kafka keeps at least the latest message per user, so a
 service that starts consuming later still gets every user's current state. When a user is deleted,
 Users publishes a tombstone (a `null` value) so compaction drops them; consumers skip tombstones and
-act on `auth.user-deleted` instead.
+act on `users.user-deleted` instead.
 
 ```ts
 interface UserStateMessage {

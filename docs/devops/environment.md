@@ -8,10 +8,10 @@ behind this.
   (non-Docker) dev. Supplied to every backend container as `common.yml`'s base `env_file:` (`redis` and `kafka` reset it
   with `env_file: !reset []` — a third-party image has no use for app secrets). See
   [docs/gateway/environment.md](../gateway/environment.md) and
-  [docs/auth/environment.md](../auth/environment.md) for what's in it.
+  [docs/users/environment.md](../users/environment.md) for what's in it.
 - **`devops/docker.env`** (checked into git — no secrets) — container-network overrides layered on
   top of `backend/.env` via each service's own `env_file:` list: `DATABASE_URL`
-  (auth), `REMINDERS_DATABASE_URL`, `NOTIFICATIONS_DATABASE_URL`, `REDIS_URL` (Redis, which also
+  (users), `REMINDERS_DATABASE_URL`, `NOTIFICATIONS_DATABASE_URL`, `REDIS_URL` (Redis, which also
   hosts the BullMQ queues), `KAFKA_BROKERS` (events), `OTEL_EXPORTER_OTLP_ENDPOINT`, all pointed at Docker service names
   instead of `localhost`.
 - **`devops/.env`** (gitignored, copy of `devops/.env.example`) — read directly by `docker compose`
@@ -19,7 +19,7 @@ behind this.
   access, the HTTPS `:8443` URL `devops/tailscale/serve.sh` prints; see
   [docs/frontend/environment.md](../frontend/environment.md)), plus `JWT_SECRET`/`PASSWORD_PEPPER`
   passed explicitly into Gateway's `environment:` so they're guaranteed to match `backend/.env`'s
-  copy that Auth Service reads. Not shared with `devops/observability`'s compose project (a
+  copy that the Users Service reads. Not shared with `devops/observability`'s compose project (a
   separate directory/compose project that doesn't need any of this).
 
 Startup order matters: `devops/observability` first (the app stack's `docker-compose.yml`

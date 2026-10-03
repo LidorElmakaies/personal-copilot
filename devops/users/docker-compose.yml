@@ -1,15 +1,15 @@
 services:
-  auth:
+  users:
     extends:
       file: ../common.yml
       service: _defaults
     build:
       context: ../../backend
-      dockerfile: apps/auth/Dockerfile
+      dockerfile: apps/users/Dockerfile
     env_file:
       - ../docker.env
     environment:
-      - OTEL_SERVICE_NAME=auth
+      - OTEL_SERVICE_NAME=users
     # No ports: — internal-only, never published to the host (see
     # .claude/memory/feedback_gateway_only_service_access.md).
     depends_on:

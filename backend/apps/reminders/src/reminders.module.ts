@@ -17,7 +17,7 @@ import { REMINDER_REPOSITORY, REMINDER_SERVICE } from './tokens';
         type: 'postgres' as const,
         url: config.get<string>('REMINDERS_DATABASE_URL'),
         entities: [ReminderEntity],
-        // Same policy as Auth — see backend/apps/auth/README.md's "synchronize: true below production".
+        // Same policy as Users — see backend/apps/users/README.md's "synchronize: true below production".
         synchronize: config.get<string>('NODE_ENV') !== 'production',
       }),
       inject: [ConfigService],

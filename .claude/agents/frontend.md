@@ -96,7 +96,7 @@ when a component genuinely needs something no thunk/selector combination can giv
 - Provider order in `app/_layout.js` is load-bearing (`Provider` → `PersistGate` →
   `ThemeAnimProvider` → `AuthGate`/`RealtimeConnectionManager` → `Stack`) — adding a provider means
   deciding where it sits deliberately, not appending it wherever's convenient.
-- **The frontend only ever talks to Gateway, never Auth Service or any other backend service
+- **The frontend only ever talks to Gateway, never the Users Service or any other backend service
   directly** — see `.claude/memory/feedback_gateway_only_service_access.md`.
 - **This project is a known stepping-stone style** — the user has said the whole look (space/glow/
   gradient) will eventually be replaced by a different, more animated ("3D") style. Don't treat

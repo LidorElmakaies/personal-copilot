@@ -4,7 +4,7 @@ import { AuthTokenService } from './auth-token.service';
 import { JsonWebTokenService } from './jsonwebtoken.service';
 import { AUTH_TOKEN_SERVICE, JWT_SERVICE } from './tokens';
 
-// Auth Service imports this for JWT_SERVICE (signs); Gateway imports it for
+// Users Service imports this for JWT_SERVICE (signs); Gateway imports it for
 // AUTH_TOKEN_SERVICE/JwtAuthGuard (verifies — its HTTP guard and the WS handshake).
 @Module({
   imports: [ConfigModule],

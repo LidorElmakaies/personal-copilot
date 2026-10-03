@@ -1,41 +1,5 @@
 import { isUserDeletedMessage } from './user-deleted';
-import { isUserRegisteredMessage } from './user-registered';
 import { isUserStateMessage } from './user-state';
-
-describe('isUserRegisteredMessage', () => {
-  const valid = {
-    userId: 'u-1',
-    email: 'a@b.c',
-    registeredAt: '2026-10-03T10:00:00.000Z',
-  };
-
-  it('accepts a minimal message and one with every optional field', () => {
-    expect(isUserRegisteredMessage(valid)).toBe(true);
-    expect(
-      isUserRegisteredMessage({
-        ...valid,
-        firstName: 'Lidor',
-        lastName: 'Cohen',
-        phone: '+972501234567',
-      }),
-    ).toBe(true);
-  });
-
-  it.each([
-    ['null', null],
-    ['an array', [valid]],
-    ['missing userId', { ...valid, userId: undefined }],
-    ['empty email', { ...valid, email: '' }],
-    ['an empty first name', { ...valid, firstName: '' }],
-    ['a first name over 100 chars', { ...valid, firstName: 'a'.repeat(101) }],
-    ['a null last name', { ...valid, lastName: null }],
-    ['a local phone number', { ...valid, phone: '0501234567' }],
-    ['a phone with spaces', { ...valid, phone: '+972 50 123 4567' }],
-    ['unparseable registeredAt', { ...valid, registeredAt: 'today' }],
-  ])('rejects %s', (_name, value) => {
-    expect(isUserRegisteredMessage(value)).toBe(false);
-  });
-});
 
 describe('isUserDeletedMessage', () => {
   it('accepts a valid message', () => {
@@ -91,6 +55,10 @@ describe('isUserStateMessage', () => {
     ['a version of 0', { ...valid, version: 0 }],
     ['a fractional version', { ...valid, version: 1.5 }],
     ['a missing field instead of null', { ...valid, phone: undefined }],
+    ['an empty first name', { ...valid, firstName: '' }],
+    ['a last name over 100 chars', { ...valid, lastName: 'a'.repeat(101) }],
+    ['a local phone number', { ...valid, phone: '0501234567' }],
+    ['a phone with spaces', { ...valid, phone: '+972 50 123 4567' }],
     [
       'a latitude out of range',
       { ...valid, location: { ...location, lat: 91 } },

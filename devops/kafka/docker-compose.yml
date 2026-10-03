@@ -54,9 +54,8 @@ services:
           /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:19092 \
             --create --if-not-exists --topic "$$topic" --partitions 3 --replication-factor 1 "$$@"
         }
-        create auth.user-registered
-        create auth.user-deleted
         create users.user-state --config cleanup.policy=compact
+        create users.user-deleted
     restart: "no"
     networks:
       - personal-copilot

@@ -13,7 +13,7 @@ covered below.
 
 Two independent Compose projects, joined by a shared `observability` Docker network:
 - `devops/` — the app stack: `gateway` (the only *backend* service published to the host, port
-  8000), `auth`, `calendar`, `reminders`, `notifications` (internal-only, no published ports,
+  8000), `users`, `calendar`, `reminders`, `notifications` (internal-only, no published ports,
   healthchecks on `/health` for the last three), `frontend` (published, port 8081 — a static web
   export, not a backend service, see the `frontend` compose service's own comment), `postgres`
   (one instance, one database per table-owning service, created by the one-shot `postgres-init`),
@@ -52,7 +52,7 @@ observability up first.
 - **Redis stays `noeviction`** — BullMQ needs it; never switch to an `allkeys-*`/`volatile-*`
   policy or turn Redis into a cache. Raise `maxmemory` instead if it ever fills.
 - **Gateway is the only *backend* service ever published to the host.** Don't add a `ports:` entry
-  to `auth`, or any future internal service, without asking first — see
+  to `users`, or any future internal service, without asking first — see
   `.claude/memory/feedback_gateway_only_service_access.md`. `frontend`'s published port (8081) is
   the one intentional exception — it's a static web export, not a backend service.
 - Grafana is published directly (`3001:3000`, plain admin/admin), unlike `ask-my-crawl`'s

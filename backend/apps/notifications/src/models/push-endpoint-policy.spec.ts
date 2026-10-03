@@ -19,7 +19,7 @@ describe('isAllowedPushEndpoint', () => {
       'a host ending in the name without a dot',
       'https://notfcm.googleapis.com/x',
     ],
-    ['an internal service', 'https://auth:8001/x'],
+    ['an internal service', 'https://users:8001/x'],
     ['not a URL', 'nope'],
   ])('refuses %s', (_name, endpoint) => {
     expect(isAllowedPushEndpoint(endpoint)).toBe(false);

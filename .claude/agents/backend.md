@@ -21,7 +21,7 @@ backend/
   apps/
     gateway/            # the only BACKEND service reachable from outside the Docker network
                         # (published to the host, reachable over Tailscale from your phone).
-                        # src/auth-proxy/: thin pass-through to Auth Service, one hardcoded route
+                        # src/auth-proxy/: thin pass-through to Users Service, one hardcoded route
                         # per operation (not a wildcard) — register/login/refresh/logout/account.
                         # No /me, see JwtPayload's doc comment in @app/auth-kernel for why.
                         # src/realtime/: Socket.IO at /ws, generic connection plumbing — no
@@ -44,7 +44,7 @@ backend/
                         # since email may have changed. Postgres via TypeORM, salt+pepper+SHA-256
                         # hashing. UserRole is 'user' | 'admin'; the only admin is the one-time
                         # AdminSeedService account, and no feature uses the role yet (see
-                        # services.md#auth — verify() currently accepts only 'user').
+                        # services.md#users — verify() currently accepts only 'user').
     calendar/            # HTTP, internal-only, stateless. All calendar math (@hebcal/core v6 behind
                         # ICalendarCalculator). GET /calendar/shabbat. See its README for the
                         # ESM-subpath import and time-zone rules before touching it.
@@ -76,7 +76,7 @@ backend/
 ```
 
 A new queue-driven or HTTP microservice follows the same `api/ → application/ → infrastructure/ +
-models/ + entities/` shape as `auth` — add it under `apps/<name>/`, register it in `backend/nest-cli.json`.
+models/ + entities/` shape as `users` — add it under `apps/<name>/`, register it in `backend/nest-cli.json`.
 
 ## Layering (non-negotiable, per service)
 
@@ -104,10 +104,10 @@ doesn't (e.g. `new BullmqQueueConsumer(config)` in `apps/notifications/src/notif
 ## Non-negotiables
 
 - **Gateway is the only backend service reachable from outside the Docker network.** Nothing
-  external ever reaches Auth Service, or any future internal service, directly. If a design under
+  external ever reaches the Users Service, or any future internal service, directly. If a design under
   consideration would have anything external call one of them directly, stop and ask first. See
   `.claude/memory/feedback_gateway_only_service_access.md`.
-- **The frontend only ever talks to Gateway** — never Auth Service or any other backend service
+- **The frontend only ever talks to Gateway** — never the Users Service or any other backend service
   directly, even though the frontend has its own published port (it's a static web export, not a
   backend service).
 - **A service that owns tables gets its own database** in the shared Postgres: its own
@@ -125,7 +125,7 @@ doesn't (e.g. `new BullmqQueueConsumer(config)` in `apps/notifications/src/notif
 - **OTel bootstrap (`startOtel(...)`) is the literal first statement of every `main.ts`, before any
   other import.** See `libs/otel/src/start-otel.ts`'s file header for why reordering this breaks
   auto-instrumentation silently (missing child spans, not an error).
-- **`JWT_SECRET` and `PASSWORD_PEPPER` must be identical between Auth Service and Gateway (secret)
+- **`JWT_SECRET` and `PASSWORD_PEPPER` must be identical between the Users Service and Gateway (secret)
   / stable across restarts (pepper)** — a mismatched secret makes Gateway reject every otherwise-
   valid token; a changed pepper invalidates every existing password hash.
 - **Internal services never verify JWTs.** A login-only route is guarded in Gateway
@@ -163,7 +163,7 @@ Don't rely on your own judgment for comment density or doc accuracy — that's i
 ```bash
 cd backend
 npm install
-npx nest start gateway --watch     # or: auth, calendar, reminders, notifications
+npx nest start gateway --watch     # or: users, calendar, reminders, notifications
 npm test                           # jest.config.js
 npm run lint
 ```

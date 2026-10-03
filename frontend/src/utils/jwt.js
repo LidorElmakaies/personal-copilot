@@ -13,7 +13,7 @@ export function decodeJwtPayload(token) {
   }
 }
 
-// The server never hands back a `user` object — see docs/specs/services.md#auth.
+// The server never hands back a `user` object — see docs/specs/services.md#users.
 export function getUserFromToken(token) {
   const payload = decodeJwtPayload(token);
   if (!payload?.sub) return null;

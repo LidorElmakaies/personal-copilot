@@ -1,7 +1,7 @@
-# Auth Service environment
+# Users Service environment
 
-Read from `backend/.env` locally (`npx nest start auth`), or from `devops/docker.env` +
-`devops/auth/docker-compose.yml` in Docker. See `backend/.env.example` for the full variable list
+Read from `backend/.env` locally (`npx nest start users`), or from `devops/docker.env` +
+`devops/users/docker-compose.yml` in Docker. See `backend/.env.example` for the full variable list
 with defaults.
 
 - **`PORT`** — deliberately not set in the shared `backend/.env`. Auth defaults to `8001` in its

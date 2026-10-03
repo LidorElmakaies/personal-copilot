@@ -108,7 +108,7 @@ ol.steps b{color:var(--ink)}
   <section>
     <h2>System</h2>
     <div class="diagram">
-      <svg viewBox="0 0 1000 1180" role="img" aria-label="Phone calls Gateway over HTTPS. Gateway forwards to Calendar, Auth, Users, Reminders and Notification services. Auth and Users publish events to Kafka; Users, Reminders and Notifications consume them. Reminders asks Calendar for event times and enqueues a notification-requested job on a Redis (BullMQ) queue. Notification Service processes it and sends a Web Push that reaches the phone.">
+      <svg viewBox="0 0 1000 1180" role="img" aria-label="Phone calls Gateway over HTTPS. Gateway forwards to Calendar, Users, Reminders and Notification services. Users publishes events to Kafka; Reminders and Notifications consume them. Reminders asks Calendar for event times and enqueues a notification-requested job on a Redis (BullMQ) queue. Notification Service processes it and sends a Web Push that reaches the phone.">
         <defs>
           <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--accent)"/></marker>
           <marker id="ahv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--violet)"/></marker>
@@ -161,14 +161,11 @@ ol.steps b{color:var(--ink)}
         <path d="M600 144 L680 144" fill="none" stroke="var(--accent)" stroke-width="2" marker-end="url(#ah)"/>
         <text x="614" y="135" class="t-mono" style="fill:var(--accent)">HTTP</text>
         <path d="M486 354 L486 380" fill="none" stroke="var(--accent)" stroke-width="2" marker-end="url(#ah)"/>
-        <path d="M600 236 C650 236 640 420 680 420" fill="none" stroke="var(--violet)" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#ahv)"/>
         <path d="M360 282 H348 V860 H372" fill="none" stroke="var(--violet)" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#ahv)"/>
         <path d="M600 325 H664 V900 H680" fill="none" stroke="var(--violet)" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#ahv)"/>
         <text x="676" y="586" class="t-sub" transform="rotate(-90 676 586)">subscriptions</text>
         <path d="M486 560 L486 610" fill="none" stroke="var(--violet)" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#ahv)"/>
         <text x="494" y="590" class="t-sub">publish</text>
-        <path d="M822 560 L822 610" fill="none" stroke="var(--violet)" stroke-width="1.8" stroke-dasharray="6 4" marker-start="url(#ahv)" marker-end="url(#ahv)"/>
-        <text x="830" y="590" class="t-sub">publish + consume</text>
         <path d="M486 700 L486 750" fill="none" stroke="var(--violet)" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#ahv)"/>
         <text x="494" y="730" class="t-sub">consume</text>
         <path d="M965 656 H976 V900 H965" fill="none" stroke="var(--violet)" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#ahv)"/>
@@ -212,38 +209,25 @@ ol.steps b{color:var(--ink)}
         <text x="708" y="265" class="t-mono">@hebcal/core · candles, havdalah,</text>
         <text x="708" y="280" class="t-mono">holidays, fasts, zmanim · cache</text>
 
-        <!-- Auth service -->
+        <!-- Users service (was Auth) -->
         <rect x="372" y="380" width="228" height="180" rx="14" fill="var(--boxFill)" stroke="var(--accent)" stroke-width="1.5"/>
-        <text x="390" y="408" class="t-title">Auth Service</text>
-        <text x="390" y="426" class="t-sub">how you log in · credentials only</text>
-        <text x="390" y="450" class="t-sub">• register, login, tokens</text>
-        <text x="390" y="468" class="t-sub">• delete account</text>
-        <text x="390" y="486" class="t-sub">• announces both, never stores</text>
-        <text x="402" y="502" class="t-sub">your name or phone</text>
+        <text x="390" y="408" class="t-title">Users Service</text>
+        <text x="390" y="426" class="t-sub">how you log in + who you are</text>
+        <text x="390" y="450" class="t-sub">• register, login, tokens, delete</text>
+        <text x="390" y="468" class="t-sub">• profile: name, phone, location</text>
+        <text x="390" y="486" class="t-sub">• location: where you last opened</text>
+        <text x="402" y="502" class="t-sub">the app (moved &gt; 5 km)</text>
         <rect x="388" y="514" width="196" height="34" rx="8" fill="var(--soft)" stroke="var(--line)"/>
-        <text x="400" y="536" class="t-mono">Postgres: credentials · outbox</text>
-
-        <!-- Users service -->
-        <rect x="680" y="380" width="285" height="180" rx="14" fill="var(--boxFill)" stroke="var(--violet)" stroke-width="1.5" stroke-dasharray="7 5"/>
-        <text x="698" y="408" class="t-title">Users Service</text>
-        <text x="698" y="426" class="t-sub">who you are · same id as Auth</text>
-        <text x="698" y="450" class="t-sub">• first + last name, phone</text>
-        <text x="698" y="468" class="t-sub">• location: last place the app was</text>
-        <text x="710" y="484" class="t-sub">opened (moved &gt; 5 km)</text>
-        <text x="698" y="502" class="t-sub">• announces your full state</text>
-        <rect x="696" y="514" width="253" height="34" rx="8" fill="var(--soft)" stroke="var(--line)"/>
-        <text x="708" y="536" class="t-mono">Postgres: users · outbox</text>
+        <text x="400" y="536" class="t-mono">users · profiles · outbox</text>
 
         <!-- Kafka -->
         <rect x="360" y="610" width="605" height="90" rx="14" fill="var(--boxFill)" stroke="var(--ink)" stroke-opacity=".45" stroke-width="1.5"/>
         <text x="378" y="636" class="t-title">Kafka</text>
         <text x="428" y="636" class="t-sub">(events · each service reads with its own consumer group)</text>
-        <rect x="376" y="650" width="180" height="34" rx="8" fill="var(--violetSoft)" stroke="var(--violet)" stroke-opacity=".6"/>
-        <text x="388" y="672" class="t-mono" style="fill:var(--violet)">auth.user-registered</text>
-        <rect x="566" y="650" width="170" height="34" rx="8" fill="var(--violetSoft)" stroke="var(--violet)" stroke-opacity=".6"/>
-        <text x="578" y="672" class="t-mono" style="fill:var(--violet)">auth.user-deleted</text>
-        <rect x="746" y="650" width="203" height="34" rx="8" fill="var(--violetSoft)" stroke="var(--violet)" stroke-opacity=".6"/>
-        <text x="758" y="672" class="t-mono" style="fill:var(--violet)">users.user-state · compact</text>
+        <rect x="376" y="650" width="230" height="34" rx="8" fill="var(--violetSoft)" stroke="var(--violet)" stroke-opacity=".6"/>
+        <text x="388" y="672" class="t-mono" style="fill:var(--violet)">users.user-state · compacted</text>
+        <rect x="616" y="650" width="180" height="34" rx="8" fill="var(--violetSoft)" stroke="var(--violet)" stroke-opacity=".6"/>
+        <text x="628" y="672" class="t-mono" style="fill:var(--violet)">users.user-deleted</text>
 
         <!-- Reminders service -->
         <rect x="372" y="750" width="228" height="230" rx="14" fill="var(--boxFill)" stroke="var(--violet)" stroke-width="1.5" stroke-dasharray="7 5"/>
@@ -283,7 +267,7 @@ ol.steps b{color:var(--ink)}
         <rect x="696" y="1030" width="253" height="34" rx="8" fill="var(--soft)" stroke="var(--line)"/>
         <text x="708" y="1052" class="t-mono">Postgres: push subscriptions</text>
         <text x="698" y="1088" class="t-sub">new channel = one new adapter here</text>
-        <text x="698" y="1106" class="t-sub">consumes auth.user-deleted (cleanup)</text>
+        <text x="698" y="1106" class="t-sub">consumes users.user-deleted (cleanup)</text>
       </svg>
     </div>
     <div class="legend">
@@ -308,23 +292,14 @@ ol.steps b{color:var(--ink)}
         </ul>
       </div>
       <div class="card p2">
-        <span class="badge p2">Phase 2</span>
+        <span class="badge p2">Phase 2 · was Auth</span>
         <h3>Users Service</h3>
-        <p class="role">Who you are.</p>
+        <p class="role">How you log in, and who you are.</p>
         <ul>
-          <li>First and last name, phone (all optional), and your location</li>
-          <li>Same id as your Auth account (the token's <code>sub</code>), created when Auth announces a new account, deleted when it announces a deleted one</li>
-          <li>Every change is announced as your full state on <code>users.user-state</code></li>
-        </ul>
-      </div>
-      <div class="card p2">
-        <span class="badge p2">Phase 2 change</span>
-        <h3>Auth Service</h3>
-        <p class="role">How you log in, nothing more.</p>
-        <ul>
-          <li>Its table becomes <code>credentials</code>: email, password hash, role</li>
-          <li>Register also takes an optional name and phone, passes them on in <code>auth.user-registered</code>, and doesn't keep them</li>
-          <li>New: delete account (password required, immediate), announced as <code>auth.user-deleted</code></li>
+          <li>The Auth Service, renamed: register, login, tokens, account as before</li>
+          <li>New <code>profiles</code> table: first and last name, phone (all optional), and your location, keyed by your user id (the token's <code>sub</code>)</li>
+          <li>Account and profile are created in one transaction, so nothing has to be synced</li>
+          <li>Every profile change is announced as your full state on <code>users.user-state</code>; delete account (password required, immediate) on <code>users.user-deleted</code></li>
         </ul>
       </div>
       <div class="card p2">
@@ -420,15 +395,14 @@ version       newer wins, older events ignored</pre>
     <div class="tbl"><table>
       <thead><tr><th>Topic</th><th>Published by</th><th>Carries</th><th>Read by</th></tr></thead>
       <tbody>
-        <tr><td>auth.user-registered</td><td>Auth</td><td><code>userId</code>, <code>email</code>, optional <code>firstName</code>, <code>lastName</code>, <code>phone</code></td><td>Users (creates your row with the same id)</td></tr>
-        <tr><td>auth.user-deleted</td><td>Auth</td><td><code>userId</code></td><td>Users, Reminders, Notifications (each deletes its own data about you)</td></tr>
+        <tr><td>users.user-deleted</td><td>Users</td><td><code>userId</code></td><td>Reminders, Notifications (each deletes its own data about you)</td></tr>
         <tr><td>users.user-state</td><td>Users</td><td>your full state: name, phone, location, <code>version</code>. Keyed by user id, compacted; an empty message when you're deleted.</td><td>Reminders (location). A future SMS channel can start reading it any time.</td></tr>
       </tbody>
     </table></div>
     <div class="callout" style="margin-top:14px">
-      <p><b>No lost events (outbox).</b> Auth and Users save the change and the event in the same database transaction; a small relay publishes saved events to Kafka. A crash in between only delays an event.</p>
+      <p><b>No lost events (outbox).</b> The Users Service saves the change and the event in the same database transaction; a small relay publishes saved events to Kafka. A crash or a Kafka outage only delays an event.</p>
       <p><b>Full state, not changes.</b> Each <code>users.user-state</code> message is the whole picture with a version number, so a duplicate or late message can't undo a newer one. Because the topic is compacted, Kafka keeps at least the latest message per user, so a service that starts listening later still gets everyone.</p>
-      <p><b>Existing accounts</b> get their Users row from a one-time script that publishes <code>auth.user-registered</code> for each of them.</p>
+      <p><b>Existing accounts</b> start without a profile; one is created on their first profile write (name, phone or location).</p>
     </div>
   </section>
 
@@ -455,7 +429,7 @@ version       newer wins, older events ignored</pre>
         <tr><td>GET /notifications/vapid-public-key</td><td>open</td><td>The server's public key the browser needs to subscribe</td><td>2</td></tr>
         <tr><td>POST /notifications/subscriptions</td><td>login</td><td>Register the phone browser's push subscription (the browser's <code>PushSubscription.toJSON()</code>, posted as-is)</td><td>2</td></tr>
         <tr><td>DELETE /notifications/subscriptions</td><td>login</td><td>Forget one browser's subscription: <code>{ endpoint }</code>. Only your own.</td><td>2</td></tr>
-        <tr><td>POST /auth/register</td><td>open</td><td>Now also takes optional <code>firstName</code>, <code>lastName</code>, <code>phone</code> (international format), passed on to Users</td><td>2</td></tr>
+        <tr><td>POST /auth/register</td><td>open</td><td>Now also takes optional <code>firstName</code>, <code>lastName</code>, <code>phone</code> (international format), saved in your profile</td><td>2</td></tr>
         <tr><td>DELETE /auth/account</td><td>open</td><td>Delete your account now: <code>{ email, currentPassword }</code>. Every service deletes its data about you.</td><td>2</td></tr>
         <tr><td>GET /users/me</td><td>login</td><td>Your name, phone and saved location</td><td>2</td></tr>
         <tr><td>PATCH /users/me</td><td>login</td><td>Change name or phone</td><td>2</td></tr>
@@ -481,8 +455,8 @@ version       newer wins, older events ignored</pre>
       <li><b>Notification Service:</b> the queue consumer, push subscriptions, and the Web Push adapter (encrypted payload). Subscriptions are only accepted for known browser push services (Google FCM, Mozilla, Apple, Microsoft), so the server never POSTs anywhere else, and every notification carries an <code>expiresAt</code>: it's skipped if the service only gets to it after that, and the push service drops it if the phone can't be reached before then. Devices the push service couldn't reach are retried with backoff until <code>expiresAt</code>, one job per notification.</li>
       <li><b>Reminders Service:</b> Postgres and the reminder API.</li>
       <li><b>Kafka for events:</b> the broker back, <code>libs/kafka-client</code> with an outbox, contracts for the three topics.</li>
-      <li><b>Auth + Users Service:</b> <code>credentials</code>, account events, delete account; the Users Service with your name, phone and location.</li>
-      <li><b>Reminders and Notifications listen:</b> Reminders keeps your location from <code>users.user-state</code>; both clean up on <code>auth.user-deleted</code>.</li>
+      <li><b>Auth becomes the Users Service:</b> the rename first, then profiles (name, phone, location), delete account, and the two events.</li>
+      <li><b>Reminders and Notifications listen:</b> Reminders keeps your location from <code>users.user-state</code>; both clean up on <code>users.user-deleted</code>.</li>
       <li><b>Frontend account + location:</b> name and phone at register and on the Account tab, delete account, location sent after a real move.</li>
       <li><b>Reminder scheduler:</b> BullMQ delayed jobs, moved when the offset or your location changes.</li>
       <li><b>Frontend reminders:</b> a service worker + "Turn on notifications", the bell button and offset sheet on the Home card, <code>remindersSlice</code>.</li>

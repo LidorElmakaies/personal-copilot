@@ -11,7 +11,7 @@ services:
     environment:
       - OTEL_SERVICE_NAME=gateway
       - JWT_SECRET=${JWT_SECRET}
-      - AUTH_SERVICE_URL=http://auth:8001
+      - USERS_SERVICE_URL=http://users:8001
       - CALENDAR_SERVICE_URL=http://calendar:8002
       - NOTIFICATIONS_SERVICE_URL=http://notifications:8004
       - REMINDERS_SERVICE_URL=http://reminders:8003
@@ -20,7 +20,7 @@ services:
     ports:
       - "8000:8000"
     depends_on:
-      auth:
+      users:
         condition: service_started
       calendar:
         condition: service_healthy

@@ -63,7 +63,7 @@ that HTTPS `:8443` address directly (`GATEWAY_PUBLIC_URL`), not through the loca
 native builds don't need HTTPS and can call Gateway at the PC's tailnet IP on `:8000`; in the cloud path, `frontend`
 (Caddy) instead runs standalone on the VPS and reaches `gateway` only via an SSH reverse tunnel
 from the home machine (see "SSH reverse-tunnel hardening" below) — `gateway` itself is never given
-a public port either way. `auth`, `calendar`, `reminders`, and `notifications` are
+a public port either way. `users`, `calendar`, `reminders`, and `notifications` are
 internal-only; `reminders` is a skeleton with its own database and no endpoints yet;
 `notifications` stores browsers' Web Push subscriptions and processes `notification-requested`
 jobs from Redis (BullMQ), sending each to every device the user has through that browser's push
@@ -152,7 +152,7 @@ sequenceDiagram
 ## Compose & build layout
 
 `devops/docker-compose.yml` only lists what to `include:` (one `devops/<unit>/docker-compose.yml`
-per service — `gateway`, `auth`, `calendar`, `reminders`, `notifications`, `frontend`, `postgres`,
+per service — `gateway`, `users`, `calendar`, `reminders`, `notifications`, `frontend`, `postgres`,
 `redis`, `kafka` today) plus the shared `networks:`.
 Adding a service means a new Dockerfile under `backend/apps/<service>/` (or `frontend/`), a new
 `devops/<service>/docker-compose.yml`, and one more `include:` line — see

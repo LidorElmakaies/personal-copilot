@@ -9,7 +9,7 @@ import { PASSWORD_HASHER, USER_REPOSITORY } from '../tokens';
 import type { IPasswordHasher } from '../infrastructure/interfaces/password-hasher.interface';
 import type { IUserRepository } from '../infrastructure/interfaces/user-repository.interface';
 
-// One-time bootstrap, not a sync — see backend/apps/auth/README.md's "Admin seed" section.
+// One-time bootstrap, not a sync — see backend/apps/users/README.md's "Admin seed" section.
 @Injectable()
 export class AdminSeedService implements OnApplicationBootstrap {
   private readonly logger = new Logger(AdminSeedService.name);

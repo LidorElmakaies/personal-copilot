@@ -1,8 +1,8 @@
 import { URLS } from '../../config/urls';
 import { parseErrorMessage } from './apiError';
 
-// No Redux knowledge — calls Gateway only, never Auth Service directly. No getMe() — see
-// docs/specs/services.md#auth.
+// No Redux knowledge — calls Gateway only, never the Users Service directly. No getMe() — see
+// docs/specs/services.md#users.
 export async function register({ email, password }) {
   const response = await fetch(`${URLS.auth.origin}/auth/register`, {
     method: 'POST',

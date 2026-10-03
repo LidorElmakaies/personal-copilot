@@ -1,6 +1,6 @@
 import { isIsoDate, isNonEmptyString, isRecord } from './validators';
 
-/** `auth.user-deleted`, keyed by `userId`: every service deletes its data about the user. */
+/** `users.user-deleted`, keyed by `userId`: every service deletes its data about the user. */
 export interface UserDeletedMessage {
   userId: string;
   /** ISO 8601. */

@@ -19,7 +19,7 @@ export async function bootProxy(
         ignoreEnvFile: true,
         load: [
           () => ({
-            AUTH_SERVICE_URL: 'x',
+            USERS_SERVICE_URL: 'x',
             CALENDAR_SERVICE_URL: 'x',
             NOTIFICATIONS_SERVICE_URL: 'x',
             REMINDERS_SERVICE_URL: 'x',

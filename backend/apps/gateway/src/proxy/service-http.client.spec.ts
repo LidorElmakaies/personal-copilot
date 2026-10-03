@@ -48,7 +48,7 @@ describe('ServiceHttpClient', () => {
   });
 
   it('forwards a POST body', async () => {
-    const client = new ServiceHttpClient(http, baseUrl, 'auth_service');
+    const client = new ServiceHttpClient(http, baseUrl, 'users_service');
     const res = await client.forward({
       method: 'POST',
       path: '/auth/login',
@@ -80,7 +80,7 @@ describe('ServiceHttpClient', () => {
   });
 
   it('relays a 4xx status and body instead of throwing', async () => {
-    const client = new ServiceHttpClient(http, baseUrl, 'auth_service');
+    const client = new ServiceHttpClient(http, baseUrl, 'users_service');
     const res = await client.forward({ method: 'POST', path: '/fail' });
     expect(res.status).toBe(401);
     expect(res.body).toMatchObject({ url: '/fail' });
@@ -90,12 +90,12 @@ describe('ServiceHttpClient', () => {
     const client = new ServiceHttpClient(
       http,
       'http://127.0.0.1:1',
-      'auth_service',
+      'users_service',
     );
     const res = await client.forward({ method: 'POST', path: '/auth/login' });
     expect(res.status).toBe(502);
     expect(res.body).toMatchObject({
-      error: { code: 'auth_service_unreachable' },
+      error: { code: 'users_service_unreachable' },
     });
   });
 });

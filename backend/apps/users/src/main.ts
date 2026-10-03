@@ -5,15 +5,15 @@ import {
   OtelLogger,
   startOtel,
 } from '@app/otel';
-startOtel('auth');
+startOtel('users');
 
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { AuthModule } from './auth.module';
+import { UsersModule } from './users.module';
 
 async function bootstrap() {
   const logger = new OtelLogger();
-  const app = await NestFactory.create(AuthModule, { logger });
+  const app = await NestFactory.create(UsersModule, { logger });
   app.use(createRequestLoggingMiddleware(logger));
   // Only the Gateway calls this in practice (never the frontend directly), but CORS stays
   // permissive for the Docker Compose dev phase, same rationale as Gateway's own main.ts.
@@ -25,6 +25,6 @@ async function bootstrap() {
   const port = process.env.PORT ?? 8001;
   await app.listen(port);
 
-  console.log(`Auth Service listening on http://localhost:${port}`);
+  console.log(`Users Service listening on http://localhost:${port}`);
 }
 void bootstrap();

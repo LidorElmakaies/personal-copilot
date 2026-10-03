@@ -27,7 +27,7 @@ import {
         type: 'postgres' as const,
         url: config.get<string>('DATABASE_URL'),
         entities: [UserEntity, RefreshTokenEntity],
-        // See backend/apps/auth/README.md's "synchronize: true below production" section.
+        // See backend/apps/users/README.md's "synchronize: true below production" section.
         synchronize: config.get<string>('NODE_ENV') !== 'production',
       }),
       inject: [ConfigService],
@@ -46,4 +46,4 @@ import {
     { provide: PASSWORD_HASHER, useClass: SaltPepperSha256Hasher },
   ],
 })
-export class AuthModule {}
+export class UsersModule {}

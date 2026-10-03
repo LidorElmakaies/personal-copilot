@@ -1,4 +1,4 @@
-// DI injection tokens for the Auth Service app. AUTH_TOKEN_SERVICE/JWT_SERVICE live in
+// DI injection tokens for the Users Service app. AUTH_TOKEN_SERVICE/JWT_SERVICE live in
 // @app/auth-kernel (shared across apps) — not redeclared here.
 export const AUTH_SERVICE = Symbol('IAuthService');
 export const USER_REPOSITORY = Symbol('IUserRepository');

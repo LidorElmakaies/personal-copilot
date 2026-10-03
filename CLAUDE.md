@@ -4,7 +4,7 @@ This file provides guidance to Claude Code when working with code in this reposi
 
 ## What this project is
 
-**personal-copilot**: a NestJS + Expo app — Gateway, a Postgres-backed Auth Service, a Calendar
+**personal-copilot**: a NestJS + Expo app — Gateway, a Postgres-backed Users Service (login + profiles), a Calendar
 Service, full OTel observability, and a frontend with optional login. The first feature is being
 built in stages from [`docs/plans/shabbat-reminders-calendar/plan.md`](docs/plans/shabbat-reminders-calendar/plan.md)
 (Shabbat times on Home → per-user candle-lighting reminders → a Jewish-calendar tab); read that
@@ -25,12 +25,12 @@ Tailscale remains the primary access path either way.
 
 **Deliberately bootstrapped to match a sibling project's conventions** — `ask-my-crawl`, a separate
 repo not checked out on this machine — same NestJS Nest-CLI monorepo shape, same clean/hexagonal layering, same
-Gateway/Auth Service split with a shared `auth-kernel` lib, same `devops/<service>/docker-
+Gateway/auth-service split (here the Users Service) with a shared `auth-kernel` lib, same `devops/<service>/docker-
 compose.yml` structure, same `.claude/agents`/`.claude/memory` setup, and — as of this rewrite —
 the same frontend theme/component conventions (see the Architecture section's Frontend paragraph).
 Deliberately simpler where this project's actual shape allows it: no admin features (`UserRole` has
 `'user' | 'admin'`, but the only admin is a one-time seeded account, no feature reads the role, and
-token verification accepts only `'user'` — see `docs/specs/services.md#auth`), no Gluestack dependency on the frontend (the animated theme pipeline is
+token verification accepts only `'user'` — see `docs/specs/services.md#users`), no Gluestack dependency on the frontend (the animated theme pipeline is
 ported, the unused Gluestack layer underneath it isn't — see `frontend/README.md`). The current
 look (space/glow/gradient) is a known stepping-stone, not a final design — expect it to be replaced
 by a different, more animated style later.
@@ -76,10 +76,10 @@ docs/plans/               staged feature plans + their HTML design pages
   global default since it needs a valid token already, as do `/calendar/*` and
   `/notifications/*`. Four feature modules, with the proxying ones built on one shared forwarder in `src/proxy/`
   (`ServiceHttpClient`, `writeProxyResponse` — `502 <service>_unreachable` when a service is down):
-  - `src/auth-proxy/` — thin pass-through to Auth Service, one hardcoded route per operation (not
+  - `src/auth-proxy/` — thin pass-through to the Users Service, one hardcoded route per operation (not
     a wildcard): `register`, `login`, `refresh`, `logout`, `account` — no guard on any of them
     (that's how you get a token in the first place, and `account` is body-driven the same way, see
-    `apps/auth` below). No `/me` — the access token itself carries
+    `apps/users` below). No `/me` — the access token itself carries
     `{ sub, role, email }`, so there's nothing left for a "who am I" endpoint to return that the
     client can't already decode.
   - `src/calendar-proxy/` — `GET /calendar/shabbat` (forwards only `lat`/`lon`/`tz`), unguarded so
@@ -91,7 +91,7 @@ docs/plans/               staged feature plans + their HTML design pages
     kept for the next feature: `IRealtimeConnectionService.pushToUser(userId, event, payload)` is
     the entry point a feature module injects to reach a user's live connection. Nothing pushes
     anything over it yet.
-- **auth** (`backend/apps/auth`) — HTTP, internal-only (never published to the host — stricter
+- **users** (`backend/apps/users`, the Auth Service until plan task 2.7) — HTTP, internal-only (never published to the host — stricter
   than `ask-my-crawl`'s own Auth Service, which still publishes its port as documented debt; this
   project starts without that exception). `POST /auth/register`, `/auth/login`, `/auth/refresh`,
   `/auth/logout` — none return a `user` object, just tokens. `POST /auth/account`
@@ -185,7 +185,7 @@ docs/plans/               staged feature plans + their HTML design pages
 Backend (run from `backend/`):
 ```bash
 npm install
-npx nest start gateway --watch     # or: auth, calendar, reminders, notifications
+npx nest start gateway --watch     # or: users, calendar, reminders, notifications
 npm test                           # jest.config.js — unit + API tests
 REDIS_IT_URL=redis://localhost:6379 npx jest notification-flow.it queue-roundtrip  # opt-in; needs a Redis on the host
 npm run lint
@@ -246,7 +246,7 @@ the rules to follow when adding one per service.
 
 ## Key constraints to preserve
 
-- **Gateway is the only *backend* service reachable from outside the Docker network** — `auth`,
+- **Gateway is the only *backend* service reachable from outside the Docker network** — `users`,
   and any future internal service, must never get a published port. `frontend` is the one
   intentional exception (a static web export, not a backend service — it calls Gateway for
   everything, same as any other client) — see
@@ -254,7 +254,7 @@ the rules to follow when adding one per service.
 - Backend: Application-layer code depends only on interfaces (its own `application/interfaces/`),
   never a concrete Infrastructure class directly; a domain model (`models/`) is not the same thing
   as an `I<Thing>` interface.
-- **The frontend only ever talks to Gateway, never Auth Service or any other backend service
+- **The frontend only ever talks to Gateway, never the Users Service or any other backend service
   directly** — same hard rule as `ask-my-crawl`, carried over deliberately.
 - `OTEL_EXPORTER_OTLP_ENDPOINT` defaults to the Docker network address (`http://otel-
   collector:4317`) — override to `localhost:4317` for a local (non-Docker) run, or telemetry export

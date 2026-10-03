@@ -1,6 +1,6 @@
 # Services
 
-Five NestJS apps in `backend/apps/` (`gateway`, `auth`, `calendar`, `reminders`, `notifications`),
+Five NestJS apps in `backend/apps/` (`gateway`, `users`, `calendar`, `reminders`, `notifications`),
 shared libs in `backend/libs/`, one frontend. See `architecture.md` for the topology diagram.
 
 ## gateway
@@ -12,9 +12,9 @@ tunnel from a Caddy instance on the public internet. HTTP + WebSocket.
 - `POST /auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout`, `/auth/account` — one
   hardcoded route per operation, not a wildcard proxy; each forwards to the identically-named Auth
   Service route with the body untouched. No guard on any of them (for the first four, that's how
-  you get a token in the first place; `account` is body-driven the same way — see `apps/auth`
+  you get a token in the first place; `account` is body-driven the same way — see `apps/users`
   below). No `GET /me` — there's nothing left for it to return that the
-  client can't already decode from its own access token (see `apps/auth`'s note below).
+  client can't already decode from its own access token (see `apps/users`'s note below).
 - `GET /calendar/shabbat?lat&lon&tz` — forwards exactly those three query params to Calendar
   Service's route of the same name and relays its status/body verbatim (Calendar validates them;
   its `400`s pass straight through). Unguarded, so Home works signed out.
@@ -54,7 +54,9 @@ tunnel from a Caddy instance on the public internet. HTTP + WebSocket.
   (same-origin via Caddy's reverse proxy, so this doesn't come into play there) work either way.
   Revisit if Gateway is ever reachable directly (not proxied) from the open internet.
 
-## auth
+## users
+
+The Auth Service until plan task 2.7, renamed with no behavior change; it will also own profiles (task 2.8).
 
 HTTP, internal-only — never published to the host, only Gateway calls it.
 
@@ -87,7 +89,7 @@ Postgres via TypeORM (`users`, `refresh_tokens`), password_hash = SHA256(`PASSWO
 plaintext). Access tokens: 15-min TTL, `{ sub, role, email }` payload. `UserRole` is
 `'user' | 'admin'` (`@app/auth-kernel`); `register` always creates `'user'`. The only `'admin'` is
 the one `AdminSeedService` creates once at boot from `ADMIN_EMAIL`/`ADMIN_PASSWORD` (see
-`docs/auth/environment.md`). Nothing grants admin rights yet — and `JsonWebTokenService.verify`
+`docs/users/environment.md`). Nothing grants admin rights yet — and `JsonWebTokenService.verify`
 accepts only `role: 'user'`, so an admin's access token is currently rejected by every
 `JwtAuthGuard` route and the WS handshake.
 
@@ -234,11 +236,11 @@ logging in" link (routes to `/`) for whoever lands there without wanting to auth
   on mount and renders `RequireAuthNotice` in that case — both are generic (`src/hooks/`,
   `src/components/composite/`), reusable by any future `requiresAuth` tab, not Account-specific.
   `AccountEditForm` is a tap-to-reveal form for both editable fields at once, wired to Auth
-  Service's `account` endpoint (see `apps/auth` above) via a single `updateAccount` thunk in
+  Service's `account` endpoint (see `apps/users` above) via a single `updateAccount` thunk in
   `authSlice`, with one `Alert` reporting success/failure for the whole request.
 
 Talks only to Gateway (`EXPO_PUBLIC_GATEWAY_ORIGIN`, baked in at build time, required —
-`src/config/urls.js` throws at load if it's unset) — never Auth Service or any other backend
+`src/config/urls.js` throws at load if it's unset) — never the Users Service or any other backend
 service directly.
 
 Themed via a three-layer pipeline (`themeSlice` → `useAppTheme()` → `ThemeAnimContext`) and shared
@@ -263,7 +265,7 @@ acceptable v1.
 
 Shared JWT sign/verify (`IJwtService`/`JsonWebTokenService`, the only class allowed to import
 `jsonwebtoken`), the higher-level `IAuthTokenService`/`AuthTokenService` used by every guard,
-`JwtAuthGuard`, and the `CurrentUser` param decorator. Used by both `apps/auth` (signs, on
+`JwtAuthGuard`, and the `CurrentUser` param decorator. Used by both `apps/users` (signs, on
 login/register) and `apps/gateway` (verifies — `JwtAuthGuard` on `/notifications/subscriptions`).
 Also `USER_ID_HEADER` + `@ForwardedUserId()`, the internal-service side of Gateway's forwarded user
 id (see Gateway above) — used by `apps/notifications`.
@@ -287,7 +289,7 @@ that queue must pass. See `event-schemas.md`.
 ## libs/kafka-contracts / libs/kafka-client
 
 Kafka is for events (a fact any number of services may react to); BullMQ above is for jobs. No
-service uses these yet — Auth and Users start publishing in plan tasks 2.7/2.8.
+service uses these yet — the Users Service starts publishing in plan task 2.8.
 
 `kafka-client` (the only code that imports `kafkajs`, via `KAFKA_BROKERS`):
 `IEventPublisher`/`KafkajsEventPublisher` (`publish(topic, key, message | null)`; `null` is a

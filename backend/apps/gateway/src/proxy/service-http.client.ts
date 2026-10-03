@@ -12,7 +12,7 @@ export class ServiceHttpClient implements IServiceClient {
   constructor(
     private readonly http: HttpService,
     private readonly baseUrl: string,
-    /** Prefix of the 502 error code, e.g. 'auth_service' → 'auth_service_unreachable'. */
+    /** Prefix of the 502 error code, e.g. 'users_service' → 'users_service_unreachable'. */
     private readonly serviceName: string,
   ) {}
 

@@ -8,7 +8,7 @@ import { updateAccount } from '../../store/slices/authSlice';
 import { isValidEmail, PASSWORD_REQUIREMENTS_HINT } from '../../utils/validation';
 
 // Composite component (InputField/GradientButton/Alert). `email` is the lookup key — the edited
-// value only ever goes in newEmail. See docs/specs/services.md#auth.
+// value only ever goes in newEmail. See docs/specs/services.md#users.
 export default function AccountEditForm({ email: originalEmail, onDone }) {
   const dispatch = useDispatch();
   const [emailInput, setEmailInput] = useState(originalEmail ?? '');

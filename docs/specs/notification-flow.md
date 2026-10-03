@@ -9,7 +9,7 @@ service see [services.md](services.md); for the job shapes see [event-schemas.md
 flowchart TD
     subgraph A["1. One-time setup: the person signs up"]
         R1["Phone: register / login"] -->|POST /auth/register| GW1["Gateway"]
-        GW1 --> AUTH["Auth Service<br/>creates user, returns JWT<br/>(sub = userId)"]
+        GW1 --> AUTH["Users Service<br/>creates user, returns JWT<br/>(sub = userId)"]
         AUTH --> R2["Phone: 'Turn on notifications'<br/>(not built yet)"]
         R2 -->|GET /notifications/vapid-public-key| KEY["Notifications: server's public key"]
         KEY --> R3["Browser subscribes with its push service<br/>(Google FCM for Chrome/Brave)<br/>→ endpoint + p256dh + auth keys"]
@@ -39,7 +39,7 @@ flowchart TD
 
 ## 1. One-time setup
 
-1. The person registers or logs in through Gateway; Auth Service returns a JWT whose `sub` is their
+1. The person registers or logs in through Gateway; the Users Service returns a JWT whose `sub` is their
    user id.
 2. The app asks for the server's VAPID public key (open route) and has the browser subscribe with
    its push service. The browser returns an `endpoint` URL plus two keys (`p256dh`, `auth`) that

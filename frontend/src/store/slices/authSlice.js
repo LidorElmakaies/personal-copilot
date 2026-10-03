@@ -2,7 +2,7 @@ import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import * as authService from '../../services/http/authService';
 import { getUserFromToken } from '../../utils/jwt';
 
-// refreshToken is stored but not consumed yet — no refresh thunk exists (see docs/specs/services.md#auth).
+// refreshToken is stored but not consumed yet — no refresh thunk exists (see docs/specs/services.md#users).
 export const registerUser = createAsyncThunk(
   'auth/register',
   async (payload, { rejectWithValue }) => {

@@ -17,7 +17,7 @@ treatment in item 6 below.
 | Layer | What you test | How |
 |---|---|---|
 | **Application** | Use-case logic (`*.service.ts` in `application/`) | Unit tests, interfaces mocked (manual fakes/`jest.fn()`) — no real Redis/Postgres/HTTP |
-| **Infrastructure** | The TypeORM repositories, `BullmqQueuePublisher`/`BullmqQueueConsumer`, `WebPushLibSender`, `SaltPepperSha256Hasher`, `JsonWebTokenService`, `InMemoryConnectionStore` | Integration tests against the real dependency where practical (Postgres via `@testcontainers/postgresql` for Auth Service's repositories; the BullMQ round trip and the full notification flow against a real Redis, opt-in: `REDIS_IT_URL=redis://localhost:6379 npx jest notification-flow.it queue-roundtrip` — the stack's Redis isn't published, so run your own) |
+| **Infrastructure** | The TypeORM repositories, `BullmqQueuePublisher`/`BullmqQueueConsumer`, `WebPushLibSender`, `SaltPepperSha256Hasher`, `JsonWebTokenService`, `InMemoryConnectionStore` | Integration tests against the real dependency where practical (Postgres via `@testcontainers/postgresql` for the Users Service's repositories; the BullMQ round trip and the full notification flow against a real Redis, opt-in: `REDIS_IT_URL=redis://localhost:6379 npx jest notification-flow.it queue-roundtrip` — the stack's Redis isn't published, so run your own) |
 | **API** | Controllers, `RealtimeGateway`'s WS handshake | HTTP tests — boot the Nest module with `app.listen(0)` and call it with Node's `fetch` (no `supertest` installed); fake the next service down via `overrideProvider`. A real Socket.IO client against `RealtimeGateway` (auth rejection on a bad/missing token, delivery on a good one) |
 
 ## Where tests live
@@ -28,13 +28,13 @@ Unit tests colocated `*.spec.ts` next to the file under test. HTTP-level tests i
 picks up every `*.spec.ts` under `apps/` and `libs/` and maps the `@app/*` aliases; it also compiles
 the ESM-only `@hebcal/*` packages for Jest — see `backend/apps/calendar/README.md` if a new ESM-only
 dependency breaks loading. `backend/libs/testing` doesn't exist yet — create it only once a
-*second* app needs the same testcontainers setup (Auth Service needing Postgres is the first).
+*second* app needs the same testcontainers setup (the Users Service needing Postgres is the first).
 
 ## What actually matters here, in priority order
 
-1. **JWT sign/verify round-trips identically across `auth` and `gateway`.** Both import
+1. **JWT sign/verify round-trips identically across `users` and `gateway`.** Both import
    `JsonWebTokenService` from the same `@app/auth-kernel`, but a `JWT_SECRET` mismatch between the
-   two services' actual runtime config is a real deployment failure mode (every token Auth Service
+   two services' actual runtime config is a real deployment failure mode (every token the Users Service
    issues gets rejected by Gateway) that a unit test against one service in isolation can't catch —
    worth at least one test that signs with one `ConfigService`-backed instance and verifies with
    another using the same secret.

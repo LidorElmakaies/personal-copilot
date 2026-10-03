@@ -83,7 +83,7 @@ history that belongs in `docs/specs/`. Rules:
   genuine footgun — something that silently breaks in a non-obvious way if changed (e.g. OTel's
   import-order requirement) — not for general "here's how this fits into the system" explanation.
 - If a comment is explaining *why this design serves the current feature*, one line + a pointer
-  beats a paragraph: `// rotates on use — see docs/specs/services.md#auth`, not four lines
+  beats a paragraph: `// rotates on use — see docs/specs/services.md#users`, not four lines
   re-deriving that fact inline.
 - Never restate what the code already says. A comment earns its place by adding information the
   code can't express on its own (a constraint, a gotcha, a "why not the obvious alternative") — not

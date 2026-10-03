@@ -113,7 +113,7 @@ describe('push subscriptions (notifications)', () => {
   it.each([
     [
       'a plain-http endpoint',
-      { ...subscription, endpoint: 'http://auth:8001/x' },
+      { ...subscription, endpoint: 'http://users:8001/x' },
     ],
     ['an internal host', { ...subscription, endpoint: 'https://auth/x' }],
     [

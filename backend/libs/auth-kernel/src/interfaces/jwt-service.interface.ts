@@ -5,7 +5,7 @@ export type UserRole = 'user' | 'admin';
 export interface JwtPayload {
   sub: string;
   role: UserRole;
-  // No /me lookup — the client decodes this directly. See docs/specs/services.md#auth.
+  // No /me lookup — the client decodes this directly. See docs/specs/services.md#users.
   email: string;
 }
 

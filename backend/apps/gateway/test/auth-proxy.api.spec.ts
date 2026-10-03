@@ -39,7 +39,7 @@ describe('auth-proxy (gateway)', () => {
     },
   );
 
-  it("relays Auth Service's 401 status and error body unchanged", async () => {
+  it("relays Users Service's 401 status and error body unchanged", async () => {
     const error = { statusCode: 401, message: 'Invalid credentials' };
     const booted = await bootProxy(AuthProxyModule, AUTH_SERVICE_CLIENT, {
       status: 401,

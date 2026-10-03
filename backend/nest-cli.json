@@ -17,12 +17,12 @@
       "sourceRoot": "apps/gateway/src",
       "compilerOptions": { "tsConfigPath": "apps/gateway/tsconfig.app.json" }
     },
-    "auth": {
+    "users": {
       "type": "application",
-      "root": "apps/auth",
+      "root": "apps/users",
       "entryFile": "main",
-      "sourceRoot": "apps/auth/src",
-      "compilerOptions": { "tsConfigPath": "apps/auth/tsconfig.app.json" }
+      "sourceRoot": "apps/users/src",
+      "compilerOptions": { "tsConfigPath": "apps/users/tsconfig.app.json" }
     },
     "calendar": {
       "type": "application",

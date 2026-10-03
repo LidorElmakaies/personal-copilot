@@ -9,17 +9,17 @@ metadata:
 
 **Carried over from [[askmycrawl-project]]'s equivalent rule.** "External" means anything outside
 the Docker network: your phone (over Tailscale), a browser, curl, etc. `gateway` is the only
-*backend* service with a published port; `auth` and any future internal service are internal-only
+*backend* service with a published port; `users` and any future internal service are internal-only
 and must stay that way. If a design under consideration would add a published port to any of them,
 stop and ask first.
 
 **`frontend` is the one intentional exception** — it publishes port 8081 (a static Expo web
 export, served by Caddy). It's not a backend service and this rule doesn't restrict it, but the
 rule it enforces on the frontend's *code* is the mirror image: the frontend only ever calls
-`gateway`, never `auth` (or any future backend service) directly, even though nothing stops it at
+`gateway`, never `users` (or any future backend service) directly, even though nothing stops it at
 the network level the way an unpublished port does for a browser.
 
-**Does not restrict internal service-to-service calls** — Gateway's plain-HTTP call to `auth`, and
+**Does not restrict internal service-to-service calls** — Gateway's plain-HTTP call to `users`, and
 whatever BullMQ queue publisher/consumer wiring a feature adds between internal services, is the
 normal, already-resolved architecture (see `docs/specs/services.md`), not something this rule
 touches.
@@ -32,6 +32,6 @@ askmycrawl's Auth Service still exposes `8001:8001` as a known-but-unfixed excep
 started without that exception since there's no legacy reason to carry it.
 
 **How to apply:** when adding anything to `devops/<service>/docker-compose.yml`, don't add a
-`ports:` entry to `auth` or any future internal service without asking first. `frontend`/`gateway`
+`ports:` entry to `users` or any future internal service without asking first. `frontend`/`gateway`
 already have theirs. When adding a frontend feature, check whether it would call a backend service
 other than Gateway directly — surface it and ask before implementing.

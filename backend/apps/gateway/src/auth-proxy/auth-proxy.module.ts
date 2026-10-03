@@ -18,8 +18,8 @@ import { AUTH_PROXY_SERVICE, AUTH_SERVICE_CLIENT } from '../tokens';
         createServiceHttpClient(
           http,
           config,
-          'AUTH_SERVICE_URL',
-          'auth_service',
+          'USERS_SERVICE_URL',
+          'users_service',
         ),
       inject: [HttpService, ConfigService],
     },

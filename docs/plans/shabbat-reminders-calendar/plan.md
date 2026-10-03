@@ -52,13 +52,14 @@ If a design changes, update the HTML file here in the same commit.
   was deleted") goes on a Kafka topic; each service reads it with its own consumer group. Work that
   runs once, possibly delayed or in parallel (`notification-requested`, a reminder's next firing),
   stays a BullMQ job. Kafka was brought back for this in task 2.6.
-- **Users, location and events.** Auth keeps only credentials (its table is `credentials`); a
-  Users Service owns the person: first and last name, phone, location. Both use the same id (Auth's
-  user id, the JWT `sub`). Auth announces `user-registered` and `user-deleted`; Users creates or
-  deletes its row and announces the user's full state on a compacted `users.user-state` topic, so
-  a service that starts listening later still gets everyone's latest state. Services keep their
-  own copy of what they need from it instead of calling Users. Every event is written through an
-  outbox (saved in the same transaction as the change), so none is lost.
+- **Users, location and events.** One Users Service (the Auth Service, renamed) owns both how you
+  log in (`users`, `refresh_tokens`) and who you are (`profiles`: first and last name, phone,
+  location; keyed by the user id, the JWT `sub`). Account and profile are created in one
+  transaction, so there's nothing to keep in sync. It announces the user's full state on a
+  compacted `users.user-state` topic (a service that starts listening later still gets everyone's
+  latest state) and deletions on `users.user-deleted`. Other services keep their own copy of what
+  they need instead of calling it. Every event is written through an outbox (saved in the same
+  transaction as the change), so none is lost.
 - **Location follows the phone.** Signed in, the phone sends its location only when it moved more
   than 5 km or the time zone changed. The server knows where the app was last opened (a web app
   can't read GPS in the background). Two phones in two places: the last update wins. Signed out,
@@ -145,31 +146,31 @@ events" under Decisions.
   `KAFKA_BROKERS`, `kafkajs`, and the build wiring (`tsconfig.json` paths, `nest-cli.json`,
   `jest.config.js`) for the restored `libs/kafka-client` and `libs/kafka-contracts`. Add an outbox
   helper to `kafka-client` (the change and its event saved in one transaction, a relay publishes
-  them). Contracts in `kafka-contracts`: `auth.user-registered`, `auth.user-deleted`, and
-  `users.user-state` (compacted, keyed by user id). Drop the old Kafka `notification-requested`
-  message (it lives in `queue-contracts` now).
+  them). Contracts in `kafka-contracts`: `users.user-state` (compacted, keyed by user id) and
+  `users.user-deleted`. Drop the old Kafka `notification-requested` message (it lives in
+  `queue-contracts` now).
   *Check:* the broker stays up (see 2.0); a round trip through each topic.
-- [ ] **2.7 Auth: credentials + account events.** Rename Auth's `users` table to `credentials`
-  (code too: `CredentialEntity`), with a one-time `ALTER TABLE users RENAME TO credentials` since
-  `synchronize` would create an empty table instead. Outbox; `register` publishes
-  `auth.user-registered` (`userId`, `email`, optional `firstName`, `lastName`, `phone` — accepted at
-  register, passed on in the event, not stored by Auth; phone in international format).
-  `DELETE /auth/account` (`{ email, currentPassword }`, deletes immediately) publishes
-  `auth.user-deleted`; Gateway route for it. A one-time script that publishes
-  `auth.user-registered` for every existing account.
-- [ ] **2.8 Users Service.** New `backend/apps/users`, internal-only, own database. `users` table:
-  `id` (= Auth's user id, the JWT `sub`), `first_name`, `last_name`, `phone`, `lat`, `lon`, `tz`,
-  `location_updated_at`, `version`. Creates the row on `auth.user-registered` (an existing row is
-  left alone), deletes it on `auth.user-deleted`. `GET /users/me`, `PATCH /users/me` (name,
-  phone), `PUT /users/me/location` (`{ lat, lon, tz }`). Every change publishes the full state to
-  `users.user-state` through the outbox; a delete publishes a tombstone. Gateway `users-proxy` with
-  `JwtAuthGuard`.
+- [ ] **2.7 Rename Auth Service → Users Service.** No behavior change: `apps/auth` → `apps/users`,
+  `devops/auth` → `devops/users`, the Docker service, `AUTH_SERVICE_URL` → `USERS_SERVICE_URL`,
+  `docs/auth` → `docs/users`, scripts and docs. Its database stays `personal_copilot` (renaming a
+  database means moving its data); the `users` table keeps its name. Public routes don't change:
+  `/auth/*` stays, Gateway's `auth-proxy` now forwards to the Users Service.
+  *Check:* register, login, refresh, logout and account still work through Gateway.
+- [ ] **2.8 Users Service: profiles + events.** `profiles` table: `user_id` (primary key, the
+  user's id, deleted with the user), `first_name`, `last_name`, `phone` (international format),
+  `lat`, `lon`, `tz`, `location_updated_at`, `version`. `register` takes optional `firstName`,
+  `lastName`, `phone` and creates the profile in the same transaction; an existing account without
+  a profile gets one on its first profile write. `GET /users/me`, `PATCH /users/me` (name, phone),
+  `PUT /users/me/location` (`{ lat, lon, tz }`). `DELETE /auth/account` (`{ email, currentPassword
+  }`, immediate). Outbox: every profile change publishes the full state to `users.user-state`; a
+  delete publishes `users.user-deleted` and a `users.user-state` tombstone. Gateway `users-proxy`
+  (`JwtAuthGuard`) and the new `auth-proxy` route.
 - [ ] **2.9 Reminders: location from events.** Drop `lat`, `lon`, `tz` from `reminders`; `PUT
   /reminders/shabbat-candles` takes only `{ offsetMinutes }`. Keep a `user_locations` copy filled
-  from `users.user-state` (newer `version` wins, older ignored). On `auth.user-deleted`, delete the
+  from `users.user-state` (newer `version` wins, older ignored). On `users.user-deleted`, delete the
   user's reminders and location. A reminder for a user with no location yet is saved but can't be
   scheduled; `GET /reminders` says so.
-- [ ] **2.10 Notifications: clean up on delete.** On `auth.user-deleted`, delete the user's push
+- [ ] **2.10 Notifications: clean up on delete.** On `users.user-deleted`, delete the user's push
   subscriptions.
 - [ ] **2.11 Frontend: account.** Optional first name, last name, phone on the register form; an
   edit-profile section on the Account tab (`GET`/`PATCH /users/me`); a "Delete account" button that

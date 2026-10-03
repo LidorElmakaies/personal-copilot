@@ -1,5 +1,5 @@
 // Handles both this project's { error: { message } } shape and Nest's default HttpException shape
-// ({ message }, a string or an array of validation failures) — Auth Service returns the latter.
+// ({ message }, a string or an array of validation failures) — the Users Service returns the latter.
 export async function parseErrorMessage(response) {
   try {
     const body = await response.json();
