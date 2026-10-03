@@ -153,7 +153,7 @@ sequenceDiagram
 
 `devops/docker-compose.yml` only lists what to `include:` (one `devops/<unit>/docker-compose.yml`
 per service — `gateway`, `auth`, `calendar`, `reminders`, `notifications`, `frontend`, `postgres`,
-`redis` today) plus the shared `networks:`.
+`redis`, `kafka` today) plus the shared `networks:`.
 Adding a service means a new Dockerfile under `backend/apps/<service>/` (or `frontend/`), a new
 `devops/<service>/docker-compose.yml`, and one more `include:` line — see
 `.claude/agents/devops.md` for the full shape.
@@ -162,7 +162,7 @@ Restart policy, logging, and `env_file` live once in `devops/common.yml`'s `_def
 applied per-service via `extends:` (YAML anchors don't resolve across the split files, so that's not
 an option here). `networks:` stays out of `common.yml` and per-service instead, since the Nest services need
 `[personal-copilot, observability]` (they export telemetry) while `frontend`, `postgres`,
-and `redis` need just `[personal-copilot]`.
+`redis` and `kafka` need just `[personal-copilot]`.
 Two `env_file` layers apply in order: `backend/.env` (local-dev defaults, the shared base) then
 `devops/docker.env` (container-network overrides) — later entries win.
 
@@ -201,4 +201,14 @@ instead of silently evicting queue keys. `notifications` waits on its healthchec
 (`service_healthy`). The opt-in Redis tests need a Redis of its own on the host
 (`REDIS_IT_URL=redis://localhost:6379 npx jest notification-flow.it queue-roundtrip`), since this one isn't reachable
 from outside Docker.
+
+**Kafka**: `apache/kafka:4.3.1`, one node in KRaft mode (broker and controller in one, no
+ZooKeeper), holds only events (see `event-schemas.md`). Not published to the host: it has no
+authentication, and a published port would be reachable over Tailscale. One listener,
+`kafka:19092` (`KAFKA_BROKERS` in `docker.env`). Data in `devops/data/kafka`, which must be owned by
+the container's user or the broker crash-loops (plan task 2.0). `CLUSTER_ID` is fixed so the
+existing data directory stays valid across recreations. Auto-create is off: the one-shot
+`kafka-init` creates every topic in `KAFKA_TOPICS` (idempotent, 3 partitions each,
+`users.user-state` compacted). The opt-in round-trip test needs a broker of its own on the host
+(`KAFKA_IT_BROKERS=localhost:9092 npx jest kafka-roundtrip`).
 

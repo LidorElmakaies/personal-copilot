@@ -38,9 +38,9 @@ If a design changes, update the HTML file here in the same commit.
   `notification-requested` job (deduplicated by `notificationId` until its `expiresAt`). The
   Notification Service decides *how* (push first; email/SMS later as new adapters, with no change
   to Reminders). One job per notification; a retry skips the devices the job already reached
-  (saved in its progress). Replaced Kafka (stage 2): per-job retries,
-  dedupe and delayed jobs fit this better, and Redis was already running. Kafka was removed
-  entirely.
+  (saved in its progress). Replaced Kafka for this (task 2.3): per-job retries,
+  dedupe and delayed jobs fit this better, and Redis was already running. Kafka came back later
+  for events only (see below).
 - **Push = Web Push, encrypted, no Expo.** The phone's browser (Chrome or Brave, on the HTTPS
   tailnet site) subscribes; the Notification Service sends through the browser's push service with
   the payload end-to-end encrypted (RFC 8291, `aes128gcm`) using keys only the phone holds. The push
@@ -48,6 +48,23 @@ If a design changes, update the HTML file here in the same commit.
   Our own VAPID key pair identifies the server; nothing goes through Expo. A native-app channel can
   be added later as another adapter.
 - Every new service is internal-only (no published port). Only Gateway is reachable from outside.
+- **Kafka for events, BullMQ for jobs.** A fact that several services may care about ("this user
+  was deleted") goes on a Kafka topic; each service reads it with its own consumer group. Work that
+  runs once, possibly delayed or in parallel (`notification-requested`, a reminder's next firing),
+  stays a BullMQ job. Kafka was brought back for this in task 2.6.
+- **Users, location and events.** Auth keeps only credentials (its table is `credentials`); a
+  Users Service owns the person: first and last name, phone, location. Both use the same id (Auth's
+  user id, the JWT `sub`). Auth announces `user-registered` and `user-deleted`; Users creates or
+  deletes its row and announces the user's full state on a compacted `users.user-state` topic, so
+  a service that starts listening later still gets everyone's latest state. Services keep their
+  own copy of what they need from it instead of calling Users. Every event is written through an
+  outbox (saved in the same transaction as the change), so none is lost.
+- **Location follows the phone.** Signed in, the phone sends its location only when it moved more
+  than 5 km or the time zone changed. The server knows where the app was last opened (a web app
+  can't read GPS in the background). Two phones in two places: the last update wins. Signed out,
+  Home uses the phone's GPS directly, as before.
+- **No "server → open app" channel for this.** The phone is the one that changes the location, so
+  it re-fetches what depends on it. Web Push is for notifications only (every push must show one).
 
 ---
 
@@ -108,8 +125,8 @@ lighting", and a push notification arrives on the phone at that time every Frida
   service reports gone (404/410).
   *Proof test:* capture the request sent to the push service and assert
   `Content-Encoding: aes128gcm` and that the reminder text does not appear anywhere in the body or
-  headers. *Check:* enqueueing a test job by hand reaches the real push service (FCM). Seeing it on the phone needs 2.7's service worker, so that
-  check moves to 2.7.
+  headers. *Check:* enqueueing a test job by hand reaches the real push service (FCM). Seeing it on the phone needs 2.14's service worker, so that
+  check moves to 2.14.
 - [x] **2.4 Calendar: next candle lighting after a date.** An internal route Reminders uses to
   find the next candle-lighting time for a saved location. Not exposed through Gateway.
   `GET /calendar/candle-lighting/next?lat&lon&tz&after` → `{ candleLighting }`, strictly after
@@ -118,23 +135,70 @@ lighting", and a push notification arrives on the phone at that time every Frida
   `offset_min`, `lat`, `lon`, `tz`, `enabled`, `next_fire_at`). `GET /reminders`,
   `PUT /reminders/shabbat-candles`, `DELETE /reminders/shabbat-candles`, user from the JWT. Gateway
   `reminders-proxy` with `JwtAuthGuard`.
-- [ ] **2.6 Reminders Service: scheduler.** BullMQ delayed jobs instead of polling: when a
-  reminder is saved (or fires), compute its next fire time from the next candle lighting and
-  enqueue a job delayed until then (dedupe id per reminder + date). At fire time it enqueues
-  `notification-requested` (`expiresAt` = candle lighting) and schedules next week's. Changing the
-  offset or location replaces the pending delayed job. The `reminders` rows stay the source of
-  truth; on startup, reschedule any enabled reminder with no pending job.
-  *Tests:* fires once, not twice; survives a restart; offset change moves the next time.
-- [ ] **2.7 Frontend: turn on notifications.** A service worker in the web build (receives the
+### Users service and events
+
+A reminder must follow the user when they move, so location moves out of the reminder into a
+per-user record that every service can rely on without calling for it. See "Users, location and
+events" under Decisions.
+
+- [ ] **2.6 Kafka back, for events.** Restore `devops/kafka` (broker + `kafka-init` topics),
+  `KAFKA_BROKERS`, `kafkajs`, and the build wiring (`tsconfig.json` paths, `nest-cli.json`,
+  `jest.config.js`) for the restored `libs/kafka-client` and `libs/kafka-contracts`. Add an outbox
+  helper to `kafka-client` (the change and its event saved in one transaction, a relay publishes
+  them). Contracts in `kafka-contracts`: `auth.user-registered`, `auth.user-deleted`, and
+  `users.user-state` (compacted, keyed by user id). Drop the old Kafka `notification-requested`
+  message (it lives in `queue-contracts` now).
+  *Check:* the broker stays up (see 2.0); a round trip through each topic.
+- [ ] **2.7 Auth: credentials + account events.** Rename Auth's `users` table to `credentials`
+  (code too: `CredentialEntity`), with a one-time `ALTER TABLE users RENAME TO credentials` since
+  `synchronize` would create an empty table instead. Outbox; `register` publishes
+  `auth.user-registered` (`userId`, `email`, optional `firstName`, `lastName`, `phone` — accepted at
+  register, passed on in the event, not stored by Auth; phone in international format).
+  `DELETE /auth/account` (`{ email, currentPassword }`, deletes immediately) publishes
+  `auth.user-deleted`; Gateway route for it. A one-time script that publishes
+  `auth.user-registered` for every existing account.
+- [ ] **2.8 Users Service.** New `backend/apps/users`, internal-only, own database. `users` table:
+  `id` (= Auth's user id, the JWT `sub`), `first_name`, `last_name`, `phone`, `lat`, `lon`, `tz`,
+  `location_updated_at`, `version`. Creates the row on `auth.user-registered` (an existing row is
+  left alone), deletes it on `auth.user-deleted`. `GET /users/me`, `PATCH /users/me` (name,
+  phone), `PUT /users/me/location` (`{ lat, lon, tz }`). Every change publishes the full state to
+  `users.user-state` through the outbox; a delete publishes a tombstone. Gateway `users-proxy` with
+  `JwtAuthGuard`.
+- [ ] **2.9 Reminders: location from events.** Drop `lat`, `lon`, `tz` from `reminders`; `PUT
+  /reminders/shabbat-candles` takes only `{ offsetMinutes }`. Keep a `user_locations` copy filled
+  from `users.user-state` (newer `version` wins, older ignored). On `auth.user-deleted`, delete the
+  user's reminders and location. A reminder for a user with no location yet is saved but can't be
+  scheduled; `GET /reminders` says so.
+- [ ] **2.10 Notifications: clean up on delete.** On `auth.user-deleted`, delete the user's push
+  subscriptions.
+- [ ] **2.11 Frontend: account.** Optional first name, last name, phone on the register form; an
+  edit-profile section on the Account tab (`GET`/`PATCH /users/me`); a "Delete account" button that
+  asks for the password and logs out.
+- [ ] **2.12 Frontend: location sync.** When signed in, send `PUT /users/me/location` only when the
+  phone moved more than 5 km from the last location sent or its time zone changed.
+
+### Candle-lighting reminder
+
+- [ ] **2.13 Reminders Service: scheduler.** BullMQ delayed jobs instead of polling: when a
+  reminder is saved (or fires), compute its next fire time from the next candle lighting at the
+  user's location (Reminders' `user_locations` copy) and enqueue a job delayed until then (dedupe
+  id per reminder + date). At fire time it enqueues `notification-requested` (`expiresAt` = candle
+  lighting) and schedules next week's. Changing the offset, or a `users.user-state` event with a
+  new location, replaces the pending delayed job. The `reminders` rows stay the source of truth;
+  on startup, reschedule any enabled reminder with no pending job.
+  *Tests:* fires once, not twice; survives a restart; offset change moves the next time; a
+  location event moves the next time.
+- [ ] **2.14 Frontend: turn on notifications.** A service worker in the web build (receives the
   push, shows the notification, opens the app on tap), a "Turn on notifications" step after login
   that asks permission and calls `PushManager.subscribe` with the VAPID public key, and sends the
   subscription to 2.2. Web only for now.
-  *Check:* a message published by hand to `notification.requested` shows on the phone.
-- [ ] **2.8 Frontend: bell button + offset sheet.** On the H1 Shabbat section: hours/minutes
-  picker, presets (30m, 1h, 1h 30m, 2h, 3h), "fires at HH:MM this week", Save / Turn off.
-  Signed out → the existing "log in to use this" prompt. `remindersSlice` + `remindersService`.
-- [ ] **2.9 End-to-end check on the phone + docs sync.** Real reminder a few minutes out, received
-  in the phone's browser over `https://<pc>.ts.net`.
+  *Check:* a `notification-requested` job enqueued by hand shows on the phone.
+- [ ] **2.15 Frontend: bell button + offset sheet.** On the H1 Shabbat section: hours/minutes
+  picker, presets (30m, 1h, 1h 30m, 2h, 3h), "fires at HH:MM this week" (the server's
+  `nextFireAt`), Save (sends only the offset) / Turn off. Signed out → the existing "log in to use
+  this" prompt. `remindersSlice` + `remindersService`.
+- [ ] **2.16 End-to-end check on the phone + docs sync.** Real reminder a few minutes out, received
+  in the phone's browser over `https://<pc>.ts.net`; moving the location moves it.
 
 ## Stage 3: Calendar tab
 

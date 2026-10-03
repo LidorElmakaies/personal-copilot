@@ -1,4 +1,4 @@
-# Queue and job schemas
+# Queue, job and event schemas
 
 Services hand work to each other through BullMQ queues on the shared Redis (`REDIS_URL`), via
 `@app/queue-client` (`IQueuePublisher`/`IQueueConsumer`, see [services.md](services.md#libsqueue-contracts--libsqueue-client)).
@@ -63,3 +63,83 @@ Add `delayMs` for a future send. Enqueueing the same notification twice before `
 it once. The Notification Service saves one progress key per device reached,
 `webpush:<subscriptionId>` = `true`; a retry skips those (see
 [services.md](services.md#notifications)).
+
+# Kafka events
+
+Facts any number of services may react to go on Kafka topics, via `@app/kafka-client` (see
+[services.md](services.md#libskafka-contracts--libskafka-client)); work done once stays a BullMQ
+job (above). Every topic is declared in `backend/libs/kafka-contracts/src/topics.ts`
+(`KAFKA_TOPICS`), with its message type and guard under `kafka-contracts/src/messages/`, and created
+by `devops/kafka`'s `kafka-init` (auto-create is off). The table below, `KAFKA_TOPICS` and the
+`kafka-init` list must match exactly.
+
+| Topic | Publisher | Consumers (group) | Notes |
+|---|---|---|---|
+| `auth.user-registered` | Auth *(task 2.7)* | Users (`users`) | |
+| `auth.user-deleted` | Auth *(task 2.7)* | Users (`users`), Reminders (`reminders`), Notifications (`notifications`) | |
+| `users.user-state` | Users *(task 2.8)* | Reminders (`reminders`) | compacted; tombstone on delete |
+
+Event rules:
+- Every message is keyed by `userId`, so one user's events stay in order (one partition per key).
+- Published only through the outbox (`addOutboxEvent` in the same transaction as the change, then
+  `OutboxRelay`): an event is never lost, but can arrive twice. Consumers must be idempotent.
+- A message failing its guard is logged and skipped, never retried. A handler that throws is
+  retried, and blocks that partition until it succeeds.
+- Each consuming service has one group id from `KAFKA_CONSUMER_GROUPS`; a new group starts from the
+  beginning of each topic.
+
+Adding a topic: add it to `KAFKA_TOPICS` and `kafka-init`, its type + guard under
+`kafka-contracts/src/messages/` (exported from `index.ts`), and a row and section here.
+
+## `auth.user-registered`
+
+A new account. Users creates the person's row with the same id; an existing row is left alone.
+
+```ts
+// libs/kafka-contracts/src/messages/user-registered.ts
+interface UserRegisteredMessage {
+  userId: string;        // Auth's user id = the JWT sub; every service keys its data by it
+  email: string;
+  firstName?: string;    // optional, from the register form; 1–100 chars
+  lastName?: string;
+  phone?: string;        // optional, E.164, e.g. +972501234567
+  registeredAt: string;  // ISO 8601
+}
+```
+
+Auth passes the optional fields on and never stores them.
+
+## `auth.user-deleted`
+
+An account was deleted. Every service deletes what it holds about that user.
+
+```ts
+interface UserDeletedMessage {
+  userId: string;
+  deletedAt: string;     // ISO 8601
+}
+```
+
+## `users.user-state`
+
+The user's **full** current state after every change, never a partial update. The topic is
+compacted (`cleanup.policy=compact`): Kafka keeps at least the latest message per user, so a
+service that starts consuming later still gets every user's current state. When a user is deleted,
+Users publishes a tombstone (a `null` value) so compaction drops them; consumers skip tombstones and
+act on `auth.user-deleted` instead.
+
+```ts
+interface UserStateMessage {
+  userId: string;
+  version: number;       // +1 on every change; keep the highest seen, ignore older
+  firstName: string | null;
+  lastName: string | null;
+  phone: string | null;  // E.164
+  location: {            // null until the phone first sends one
+    lat: number;
+    lon: number;
+    tz: string;          // IANA time zone
+    updatedAt: string;   // ISO 8601
+  } | null;
+}
+```

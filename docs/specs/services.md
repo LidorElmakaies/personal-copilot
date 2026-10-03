@@ -283,3 +283,23 @@ retried; a handler that throws is retried while the job has attempts left). Both
 currently `notification-requested`, processed by Notification Service; nothing publishes it yet.
 Also `notificationRequestedPublishOptions(message)`, the dedupe/retry options every publisher of
 that queue must pass. See `event-schemas.md`.
+
+## libs/kafka-contracts / libs/kafka-client
+
+Kafka is for events (a fact any number of services may react to); BullMQ above is for jobs. No
+service uses these yet — Auth and Users start publishing in plan tasks 2.7/2.8.
+
+`kafka-client` (the only code that imports `kafkajs`, via `KAFKA_BROKERS`):
+`IEventPublisher`/`KafkajsEventPublisher` (`publish(topic, key, message | null)`; `null` is a
+tombstone; idempotent producer, one request in flight, so a key's messages keep their order) and
+`IEventConsumer`/`KafkajsEventConsumer` (`subscribe(topic, guard, handler)`, one consumer group per
+service, starts on `onApplicationBootstrap` reading from the beginning for a new group; a message
+failing the guard is logged and skipped, a tombstone skipped silently, a handler that throws is
+retried). The outbox: `addOutboxEvent(manager, topic, key, payload)` saves an event in the caller's
+TypeORM transaction (`outbox_events`, `OutboxEventEntity` — add it to the service's entities), and
+`OutboxRelay` (over `TypeOrmOutboxStore` + the publisher) publishes saved events in order and
+deletes each once Kafka has it — on startup and on `notify()` after a commit, retrying a failure
+with a delay doubling from 1 s to 60 s. No polling. At-least-once: a crash between publish and
+delete re-sends one, so consumers must be idempotent.
+`kafka-contracts`: `KAFKA_TOPICS`, `KAFKA_CONSUMER_GROUPS`, and each message type with its guard.
+See `event-schemas.md`.

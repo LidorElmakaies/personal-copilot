@@ -6,7 +6,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "build:libs": "nest build auth-kernel && nest build otel && nest build queue-contracts && nest build queue-client",
+    "build:libs": "nest build auth-kernel && nest build otel && nest build queue-contracts && nest build queue-client && nest build kafka-contracts && nest build kafka-client",
     "build:gateway": "npm run build:libs && nest build gateway && tsc-alias -p tsconfig.json",
     "build:auth": "npm run build:libs && nest build auth && tsc-alias -p tsconfig.json",
     "build:calendar": "npm run build:libs && nest build calendar && tsc-alias -p tsconfig.json",
@@ -51,6 +51,7 @@
     "class-validator": "^0.15.1",
     "ioredis": "^5.11.1",
     "jsonwebtoken": "^9.0.3",
+    "kafkajs": "^2.2.4",
     "pg": "^8.23.0",
     "pino": "^9.5.0",
     "reflect-metadata": "^0.2.2",

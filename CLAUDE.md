@@ -52,7 +52,8 @@ every agent in `.claude/agents/` too. Also in [README.md](README.md).
 
 ```
 backend/                 NestJS monorepo — apps/{gateway,auth,calendar,reminders,notifications}
-                          + libs/{auth-kernel,otel,queue-client,queue-contracts}
+                          + libs/{auth-kernel,otel,queue-client,queue-contracts,
+                          kafka-client,kafka-contracts}
 frontend/                 Expo/React Native app — login/register (optional, not gated app-wide), a
                           Home tab (clock + Shabbat times), and an auth-gated Account tab;
                           e2e/ holds the containerized Playwright tests
@@ -216,8 +217,12 @@ Shared code lives in `backend/libs/`: `auth-kernel` (JWT sign/verify, `JwtAuthGu
 malformed job fails without retry, handler error retried while attempts remain, job progress kept
 across retries), `queue-contracts`
 (this project's queue names, job types, their guards and publish options — see
-`docs/specs/event-schemas.md`). Shared infrastructure is one instance each, reused by every
-service that needs it: Postgres (one database per table-owning service), Redis (BullMQ queues).
+`docs/specs/event-schemas.md`), `kafka-client` (`IEventPublisher`/`IEventConsumer` over `kafkajs`,
+plus the outbox: `addOutboxEvent` in the change's transaction, `OutboxRelay` publishes),
+`kafka-contracts` (topics, consumer groups, event types and guards). Kafka is for events, BullMQ
+for jobs. Shared infrastructure is one instance each, reused by every service that needs it:
+Postgres (one database per table-owning service), Redis (BullMQ queues), Kafka (events, not
+published to the host).
 
 **Frontend** — Expo Router, file-based routing, `(auth)`/`(tabs)` groups. Redux Toolkit with a
 strict services-layer convention: all I/O lives in `src/services/`, split by transport —

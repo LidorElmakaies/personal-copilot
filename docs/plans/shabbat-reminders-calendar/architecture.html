@@ -103,12 +103,12 @@ ol.steps b{color:var(--ink)}
 
 <div class="wrap">
   <h1>Shabbat, calendar &amp; reminders architecture</h1>
-  <p class="lede">A Calendar Service handles all the calendar calculations. A Reminders Service decides <em>when</em> to notify you and enqueues a job on a BullMQ queue (Redis). A Notification Service decides <em>how</em> (push today, and email or SMS later with one new adapter each).</p>
+  <p class="lede">A Calendar Service handles all the calendar calculations. A Reminders Service decides <em>when</em> to notify you and enqueues a job on a BullMQ queue (Redis). A Notification Service decides <em>how</em> (push today, and email or SMS later with one new adapter each). A Users Service knows <em>who</em> you are and where you last opened the app; it announces changes on Kafka, so other services keep their own copy instead of asking it.</p>
 
   <section>
     <h2>System</h2>
     <div class="diagram">
-      <svg viewBox="0 0 1000 780" role="img" aria-label="Phone calls Gateway. Gateway forwards to Calendar Service and Reminders Service. Reminders asks Calendar for event times and enqueues a notification-requested job on a Redis (BullMQ) queue. Notification Service processes it and sends through Push, Email or SMS adapters; push reaches the phone.">
+      <svg viewBox="0 0 1000 1180" role="img" aria-label="Phone calls Gateway over HTTPS. Gateway forwards to Calendar, Auth, Users, Reminders and Notification services. Auth and Users publish events to Kafka; Users, Reminders and Notifications consume them. Reminders asks Calendar for event times and enqueues a notification-requested job on a Redis (BullMQ) queue. Notification Service processes it and sends a Web Push that reaches the phone.">
         <defs>
           <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--accent)"/></marker>
           <marker id="ahv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--violet)"/></marker>
@@ -122,7 +122,7 @@ ol.steps b{color:var(--ink)}
         <rect x="40" y="96" width="230" height="58" rx="10" fill="var(--amberSoft)" stroke="var(--amber)" stroke-opacity=".6"/>
         <text x="54" y="118" class="t-amb" font-size="13">expo-location</text>
         <text x="54" y="136" class="t-sub">GPS lat / lon + phone time zone</text>
-        <text x="54" y="148" class="t-mono">→ locationSlice (cached)</text>
+        <text x="54" y="148" class="t-mono">signed in: sent if moved &gt; 5 km</text>
 
         <rect x="40" y="166" width="108" height="56" rx="10" fill="var(--soft)" stroke="var(--line)"/>
         <text x="52" y="188" font-weight="600" font-size="12.5">Home (H1)</text>
@@ -132,7 +132,7 @@ ol.steps b{color:var(--ink)}
         <text x="174" y="206" class="t-sub">month + day card</text>
 
         <rect x="40" y="234" width="230" height="52" rx="10" fill="var(--soft)" stroke="var(--line)"/>
-        <text x="54" y="256" font-weight="600" font-size="12.5">calendarSlice · remindersSlice</text>
+        <text x="54" y="256" font-weight="600" font-size="12.5">calendar · reminders · users slices</text>
         <text x="54" y="274" class="t-mono">thunks only</text>
 
         <rect x="40" y="298" width="230" height="52" rx="10" fill="var(--soft)" stroke="var(--line)"/>
@@ -150,30 +150,60 @@ ol.steps b{color:var(--ink)}
         <text x="54" y="442" class="t-sub">when it arrives</text>
 
         <!-- Docker network -->
-        <rect x="340" y="20" width="645" height="745" rx="18" fill="var(--netFill)" stroke="var(--accent)" stroke-opacity=".55" stroke-dasharray="7 5"/>
+        <rect x="335" y="20" width="650" height="1120" rx="18" fill="var(--netFill)" stroke="var(--accent)" stroke-opacity=".55" stroke-dasharray="7 5"/>
         <text x="360" y="44" class="t-lbl">HOME PC · DOCKER NETWORK</text>
 
+        <!-- arrows drawn first, so boxes sit on top of them -->
+        <path d="M270 324 L360 150" fill="none" stroke="var(--accent)" stroke-width="2" marker-end="url(#ah)"/>
+        <rect x="258" y="206" width="94" height="40" rx="6" fill="var(--panel)"/>
+        <text x="266" y="222" class="t-mono" style="fill:var(--accent)">lat, lon, tz</text>
+        <text x="266" y="238" class="t-sub">HTTPS · Tailscale</text>
+        <path d="M600 144 L680 144" fill="none" stroke="var(--accent)" stroke-width="2" marker-end="url(#ah)"/>
+        <text x="614" y="135" class="t-mono" style="fill:var(--accent)">HTTP</text>
+        <path d="M486 354 L486 380" fill="none" stroke="var(--accent)" stroke-width="2" marker-end="url(#ah)"/>
+        <path d="M600 236 C650 236 640 420 680 420" fill="none" stroke="var(--violet)" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#ahv)"/>
+        <path d="M360 282 H348 V860 H372" fill="none" stroke="var(--violet)" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#ahv)"/>
+        <path d="M600 325 H664 V900 H680" fill="none" stroke="var(--violet)" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#ahv)"/>
+        <text x="676" y="586" class="t-sub" transform="rotate(-90 676 586)">subscriptions</text>
+        <path d="M486 560 L486 610" fill="none" stroke="var(--violet)" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#ahv)"/>
+        <text x="494" y="590" class="t-sub">publish</text>
+        <path d="M822 560 L822 610" fill="none" stroke="var(--violet)" stroke-width="1.8" stroke-dasharray="6 4" marker-start="url(#ahv)" marker-end="url(#ahv)"/>
+        <text x="830" y="590" class="t-sub">publish + consume</text>
+        <path d="M486 700 L486 750" fill="none" stroke="var(--violet)" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#ahv)"/>
+        <text x="494" y="730" class="t-sub">consume</text>
+        <path d="M965 656 H976 V900 H965" fill="none" stroke="var(--violet)" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#ahv)"/>
+        <path d="M600 792 L680 792" fill="none" stroke="var(--violet)" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#ahv)"/>
+        <text x="606" y="784" class="t-sub">enqueue</text>
+        <path d="M822 834 L822 870" fill="none" stroke="var(--violet)" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#ahv)"/>
+        <text x="830" y="856" class="t-sub">process</text>
+        <path d="M736 1020 C736 1150 180 1150 150 452" fill="none" stroke="var(--violet)" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#ahv)"/>
+        <text x="200" y="1168" class="t-sub">push notification (encrypted, via browser push service)</text>
+
         <!-- Gateway -->
-        <rect x="360" y="64" width="240" height="250" rx="14" fill="var(--boxFill)" stroke="var(--accent)" stroke-width="1.5"/>
+        <rect x="360" y="64" width="240" height="290" rx="14" fill="var(--boxFill)" stroke="var(--accent)" stroke-width="1.5"/>
         <text x="378" y="92" class="t-title">Gateway</text>
         <text x="378" y="110" class="t-sub">only published backend port</text>
-        <rect x="376" y="124" width="208" height="42" rx="9" fill="var(--accentSoft)" stroke="var(--accent)" stroke-opacity=".6"/>
-        <text x="388" y="143" class="t-acc" font-size="12.5">calendar-proxy</text>
-        <text x="388" y="158" class="t-mono">open, rate-limited</text>
-        <rect x="376" y="174" width="208" height="42" rx="9" fill="var(--violetSoft)" stroke="var(--violet)" stroke-opacity=".6" stroke-dasharray="5 4"/>
-        <text x="388" y="193" class="t-vio" font-size="12.5">reminders-proxy</text>
-        <text x="388" y="208" class="t-mono">JwtAuthGuard: your reminders</text>
-        <rect x="376" y="224" width="208" height="36" rx="9" fill="var(--violetSoft)" stroke="var(--violet)" stroke-opacity=".6" stroke-dasharray="5 4"/>
-        <text x="388" y="247" class="t-vio" font-size="12.5">notifications-proxy (subscriptions)</text>
-        <rect x="376" y="268" width="208" height="32" rx="9" fill="var(--soft)" stroke="var(--line)"/>
-        <text x="388" y="289" font-size="12">auth-proxy · realtime /ws</text>
+        <rect x="376" y="124" width="208" height="40" rx="9" fill="var(--accentSoft)" stroke="var(--accent)" stroke-opacity=".6"/>
+        <text x="388" y="142" class="t-acc" font-size="12.5">calendar-proxy</text>
+        <text x="388" y="157" class="t-mono">open, rate-limited</text>
+        <rect x="376" y="170" width="208" height="40" rx="9" fill="var(--soft)" stroke="var(--line)"/>
+        <text x="388" y="188" font-weight="600" font-size="12.5">auth-proxy</text>
+        <text x="388" y="203" class="t-mono">register, login, account</text>
+        <rect x="376" y="216" width="208" height="40" rx="9" fill="var(--violetSoft)" stroke="var(--violet)" stroke-opacity=".6" stroke-dasharray="5 4"/>
+        <text x="388" y="234" class="t-vio" font-size="12.5">users-proxy</text>
+        <text x="388" y="249" class="t-mono">JwtAuthGuard: you</text>
+        <rect x="376" y="262" width="208" height="40" rx="9" fill="var(--violetSoft)" stroke="var(--violet)" stroke-opacity=".6" stroke-dasharray="5 4"/>
+        <text x="388" y="280" class="t-vio" font-size="12.5">reminders-proxy</text>
+        <text x="388" y="295" class="t-mono">JwtAuthGuard: your reminders</text>
+        <rect x="376" y="308" width="208" height="34" rx="9" fill="var(--violetSoft)" stroke="var(--violet)" stroke-opacity=".6" stroke-dasharray="5 4"/>
+        <text x="388" y="330" class="t-vio" font-size="12">notifications-proxy · /ws</text>
 
         <!-- Calendar service -->
         <rect x="680" y="64" width="285" height="250" rx="14" fill="var(--boxFill)" stroke="var(--accent)" stroke-width="1.5"/>
         <text x="698" y="92" class="t-title">Calendar Service</text>
         <text x="698" y="110" class="t-sub">all calendar calculation · stateless</text>
         <rect x="696" y="124" width="253" height="46" rx="9" fill="var(--soft)" stroke="var(--line)"/>
-        <text x="708" y="143" class="t-lbl">API</text>
+        <text x="708" y="143" class="t-lbl">API · ALSO CALLED BY REMINDERS</text>
         <text x="708" y="161" class="t-mono">/shabbat · /month · /candle-lighting/next</text>
         <rect x="696" y="178" width="253" height="40" rx="9" fill="var(--soft)" stroke="var(--line)"/>
         <text x="708" y="203" class="t-mono">ICalendarCalculator</text>
@@ -182,64 +212,78 @@ ol.steps b{color:var(--ink)}
         <text x="708" y="265" class="t-mono">@hebcal/core · candles, havdalah,</text>
         <text x="708" y="280" class="t-mono">holidays, fasts, zmanim · cache</text>
 
+        <!-- Auth service -->
+        <rect x="372" y="380" width="228" height="180" rx="14" fill="var(--boxFill)" stroke="var(--accent)" stroke-width="1.5"/>
+        <text x="390" y="408" class="t-title">Auth Service</text>
+        <text x="390" y="426" class="t-sub">how you log in · credentials only</text>
+        <text x="390" y="450" class="t-sub">• register, login, tokens</text>
+        <text x="390" y="468" class="t-sub">• delete account</text>
+        <text x="390" y="486" class="t-sub">• announces both, never stores</text>
+        <text x="402" y="502" class="t-sub">your name or phone</text>
+        <rect x="388" y="514" width="196" height="34" rx="8" fill="var(--soft)" stroke="var(--line)"/>
+        <text x="400" y="536" class="t-mono">Postgres: credentials · outbox</text>
+
+        <!-- Users service -->
+        <rect x="680" y="380" width="285" height="180" rx="14" fill="var(--boxFill)" stroke="var(--violet)" stroke-width="1.5" stroke-dasharray="7 5"/>
+        <text x="698" y="408" class="t-title">Users Service</text>
+        <text x="698" y="426" class="t-sub">who you are · same id as Auth</text>
+        <text x="698" y="450" class="t-sub">• first + last name, phone</text>
+        <text x="698" y="468" class="t-sub">• location: last place the app was</text>
+        <text x="710" y="484" class="t-sub">opened (moved &gt; 5 km)</text>
+        <text x="698" y="502" class="t-sub">• announces your full state</text>
+        <rect x="696" y="514" width="253" height="34" rx="8" fill="var(--soft)" stroke="var(--line)"/>
+        <text x="708" y="536" class="t-mono">Postgres: users · outbox</text>
+
+        <!-- Kafka -->
+        <rect x="360" y="610" width="605" height="90" rx="14" fill="var(--boxFill)" stroke="var(--ink)" stroke-opacity=".45" stroke-width="1.5"/>
+        <text x="378" y="636" class="t-title">Kafka</text>
+        <text x="428" y="636" class="t-sub">(events · each service reads with its own consumer group)</text>
+        <rect x="376" y="650" width="180" height="34" rx="8" fill="var(--violetSoft)" stroke="var(--violet)" stroke-opacity=".6"/>
+        <text x="388" y="672" class="t-mono" style="fill:var(--violet)">auth.user-registered</text>
+        <rect x="566" y="650" width="170" height="34" rx="8" fill="var(--violetSoft)" stroke="var(--violet)" stroke-opacity=".6"/>
+        <text x="578" y="672" class="t-mono" style="fill:var(--violet)">auth.user-deleted</text>
+        <rect x="746" y="650" width="203" height="34" rx="8" fill="var(--violetSoft)" stroke="var(--violet)" stroke-opacity=".6"/>
+        <text x="758" y="672" class="t-mono" style="fill:var(--violet)">users.user-state · compact</text>
+
         <!-- Reminders service -->
-        <rect x="360" y="370" width="240" height="210" rx="14" fill="var(--boxFill)" stroke="var(--violet)" stroke-width="1.5" stroke-dasharray="7 5"/>
-        <text x="378" y="398" class="t-title">Reminders Service</text>
-        <text x="378" y="416" class="t-sub">decides WHEN</text>
-        <text x="378" y="442" class="t-sub">• per user: yours only</text>
-        <text x="378" y="460" class="t-sub">• "1h 30m before candle lighting"</text>
-        <text x="392" y="476" class="t-sub">→ asks Calendar for the time</text>
-        <text x="378" y="494" class="t-sub">• scheduler fires, then sets next week</text>
-        <text x="378" y="512" class="t-sub">• publishes, never sends itself</text>
-        <rect x="376" y="530" width="208" height="34" rx="8" fill="var(--soft)" stroke="var(--line)"/>
-        <text x="388" y="552" class="t-mono">Postgres: reminders (by userId)</text>
+        <rect x="372" y="750" width="228" height="230" rx="14" fill="var(--boxFill)" stroke="var(--violet)" stroke-width="1.5" stroke-dasharray="7 5"/>
+        <text x="390" y="778" class="t-title">Reminders Service</text>
+        <text x="390" y="796" class="t-sub">decides WHEN</text>
+        <text x="390" y="820" class="t-sub">• per user: yours only</text>
+        <text x="390" y="838" class="t-sub">• your location: its own copy,</text>
+        <text x="402" y="854" class="t-sub">from users.user-state</text>
+        <text x="390" y="872" class="t-sub">• asks Calendar for the time</text>
+        <text x="390" y="890" class="t-sub">• fires, then sets next week</text>
+        <text x="390" y="908" class="t-sub">• enqueues, never sends itself</text>
+        <rect x="388" y="924" width="196" height="40" rx="8" fill="var(--soft)" stroke="var(--line)"/>
+        <text x="400" y="948" class="t-mono">reminders · user_locations</text>
 
         <!-- Redis queue -->
-        <rect x="680" y="370" width="285" height="84" rx="14" fill="var(--boxFill)" stroke="var(--ink)" stroke-opacity=".45" stroke-width="1.5"/>
-        <text x="698" y="396" class="t-title">Redis</text>
-        <text x="752" y="396" class="t-sub">(BullMQ queue)</text>
-        <rect x="696" y="408" width="253" height="32" rx="8" fill="var(--violetSoft)" stroke="var(--violet)" stroke-opacity=".6"/>
-        <text x="708" y="429" class="t-mono" style="fill:var(--violet)">notification-requested</text>
+        <rect x="680" y="750" width="285" height="84" rx="14" fill="var(--boxFill)" stroke="var(--ink)" stroke-opacity=".45" stroke-width="1.5"/>
+        <text x="698" y="776" class="t-title">Redis</text>
+        <text x="752" y="776" class="t-sub">(BullMQ jobs)</text>
+        <rect x="696" y="788" width="253" height="32" rx="8" fill="var(--violetSoft)" stroke="var(--violet)" stroke-opacity=".6"/>
+        <text x="708" y="809" class="t-mono" style="fill:var(--violet)">notification-requested · reminder</text>
 
         <!-- Notification service -->
-        <rect x="680" y="500" width="285" height="250" rx="14" fill="var(--boxFill)" stroke="var(--violet)" stroke-width="1.5" stroke-dasharray="7 5"/>
-        <text x="698" y="528" class="t-title">Notification Service</text>
-        <text x="698" y="546" class="t-sub">decides HOW · knows your subscriptions</text>
-        <rect x="696" y="558" width="253" height="34" rx="8" fill="var(--soft)" stroke="var(--line)"/>
-        <text x="708" y="580" class="t-mono">INotificationChannel (interface)</text>
-        <rect x="696" y="600" width="80" height="50" rx="8" fill="var(--violetSoft)" stroke="var(--violet)" stroke-opacity=".7"/>
-        <text x="708" y="622" class="t-vio" font-size="12.5">Push</text>
-        <text x="708" y="638" class="t-mono">Web Push</text>
-        <rect x="782" y="600" width="80" height="50" rx="8" fill="none" stroke="var(--faint)" stroke-dasharray="2 3"/>
-        <text x="794" y="622" class="t-faint" font-size="12.5" font-weight="600">Email</text>
-        <text x="794" y="638" class="t-mono">future</text>
-        <rect x="868" y="600" width="80" height="50" rx="8" fill="none" stroke="var(--faint)" stroke-dasharray="2 3"/>
-        <text x="880" y="622" class="t-faint" font-size="12.5" font-weight="600">SMS</text>
-        <text x="880" y="638" class="t-mono">future</text>
-        <rect x="696" y="660" width="253" height="34" rx="8" fill="var(--soft)" stroke="var(--line)"/>
-        <text x="708" y="682" class="t-mono">Postgres: push subscriptions</text>
-        <text x="698" y="728" class="t-sub">new channel = one new adapter here</text>
-
-        <!-- arrows: phase 1 -->
-        <path d="M270 324 L360 150" fill="none" stroke="var(--accent)" stroke-width="2" marker-end="url(#ah)"/>
-        <rect x="258" y="206" width="94" height="40" rx="6" fill="var(--panel)"/>
-        <text x="266" y="222" class="t-mono" style="fill:var(--accent)">lat, lon, tz</text>
-        <text x="266" y="238" class="t-sub">HTTPS · Tailscale</text>
-        <path d="M600 145 L680 145" fill="none" stroke="var(--accent)" stroke-width="2" marker-end="url(#ah)"/>
-        <text x="614" y="136" class="t-mono" style="fill:var(--accent)">HTTP</text>
-
-        <!-- arrows: phase 2 -->
-        <path d="M480 314 L480 370" fill="none" stroke="var(--violet)" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#ahv)"/>
-        <path d="M600 244 C640 244 640 520 680 600" fill="none" stroke="var(--violet)" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#ahv)"/>
-        <text x="612" y="480" class="t-sub" transform="rotate(-78 612 480)">register subscription</text>
-        <path d="M600 430 C640 430 650 300 690 300" fill="none" stroke="var(--violet)" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#ahv)"/>
-        <text x="618" y="352" class="t-sub">event times</text>
-        <path d="M600 470 L680 426" fill="none" stroke="var(--violet)" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#ahv)"/>
-        <text x="616" y="474" class="t-sub">enqueue</text>
-        <path d="M822 454 L822 500" fill="none" stroke="var(--violet)" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#ahv)"/>
-        <text x="830" y="482" class="t-sub">process</text>
-        <path d="M736 650 C736 760 180 770 150 452" fill="none" stroke="var(--violet)" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#ahv)"/>
-        <text x="200" y="700" class="t-sub">push notification (encrypted, via browser push service)</text>
+        <rect x="680" y="870" width="285" height="250" rx="14" fill="var(--boxFill)" stroke="var(--violet)" stroke-width="1.5" stroke-dasharray="7 5"/>
+        <text x="698" y="898" class="t-title">Notification Service</text>
+        <text x="698" y="916" class="t-sub">decides HOW · knows your subscriptions</text>
+        <rect x="696" y="928" width="253" height="34" rx="8" fill="var(--soft)" stroke="var(--line)"/>
+        <text x="708" y="950" class="t-mono">INotificationChannel (interface)</text>
+        <rect x="696" y="970" width="80" height="50" rx="8" fill="var(--violetSoft)" stroke="var(--violet)" stroke-opacity=".7"/>
+        <text x="708" y="992" class="t-vio" font-size="12.5">Push</text>
+        <text x="708" y="1008" class="t-mono">Web Push</text>
+        <rect x="782" y="970" width="80" height="50" rx="8" fill="none" stroke="var(--faint)" stroke-dasharray="2 3"/>
+        <text x="794" y="992" class="t-faint" font-size="12.5" font-weight="600">Email</text>
+        <text x="794" y="1008" class="t-mono">future</text>
+        <rect x="868" y="970" width="80" height="50" rx="8" fill="none" stroke="var(--faint)" stroke-dasharray="2 3"/>
+        <text x="880" y="992" class="t-faint" font-size="12.5" font-weight="600">SMS</text>
+        <text x="880" y="1008" class="t-mono">future</text>
+        <rect x="696" y="1030" width="253" height="34" rx="8" fill="var(--soft)" stroke="var(--line)"/>
+        <text x="708" y="1052" class="t-mono">Postgres: push subscriptions</text>
+        <text x="698" y="1088" class="t-sub">new channel = one new adapter here</text>
+        <text x="698" y="1106" class="t-sub">consumes auth.user-deleted (cleanup)</text>
       </svg>
     </div>
     <div class="legend">
@@ -251,7 +295,7 @@ ol.steps b{color:var(--ink)}
   </section>
 
   <section>
-    <h2>The three services</h2>
+    <h2>The services</h2>
     <div class="cards">
       <div class="card p1">
         <span class="badge p1">Phase 1</span>
@@ -261,6 +305,26 @@ ol.steps b{color:var(--ink)}
           <li>Next Shabbat, month grid, holidays, fasts, daily times</li>
           <li>Stateless: location in, times out. No database.</li>
           <li>Used by the phone (via Gateway) and by Reminders</li>
+        </ul>
+      </div>
+      <div class="card p2">
+        <span class="badge p2">Phase 2</span>
+        <h3>Users Service</h3>
+        <p class="role">Who you are.</p>
+        <ul>
+          <li>First and last name, phone (all optional), and your location</li>
+          <li>Same id as your Auth account (the token's <code>sub</code>), created when Auth announces a new account, deleted when it announces a deleted one</li>
+          <li>Every change is announced as your full state on <code>users.user-state</code></li>
+        </ul>
+      </div>
+      <div class="card p2">
+        <span class="badge p2">Phase 2 change</span>
+        <h3>Auth Service</h3>
+        <p class="role">How you log in, nothing more.</p>
+        <ul>
+          <li>Its table becomes <code>credentials</code>: email, password hash, role</li>
+          <li>Register also takes an optional name and phone, passes them on in <code>auth.user-registered</code>, and doesn't keep them</li>
+          <li>New: delete account (password required, immediate), announced as <code>auth.user-deleted</code></li>
         </ul>
       </div>
       <div class="card p2">
@@ -316,10 +380,14 @@ id            uuid
 user_id       uuid        <span class="c">-- owner, from the JWT</span>
 type          'shabbat_candles'
 offset_min    90          <span class="c">-- 1h 30m</span>
-lat, lon, tz  saved location
 enabled       true
-next_fire_at  2026-10-02 16:34 local</pre>
-        <p style="margin-top:10px"><b style="color:var(--ink)">How it fires:</b> no polling: each enabled reminder has one BullMQ job delayed until <code>next_fire_at</code>. When it runs, Reminders enqueues <code>notification-requested</code>, then asks Calendar for <em>next</em> week's candle lighting, sets <code>next_fire_at</code> = that − 90 min and schedules the next delayed job. Change the offset or your location and the pending job is replaced right away.</p>
+next_fire_at  2026-10-02 16:34 local
+
+<span class="c">-- user_locations (Reminders' own copy, from users.user-state)</span>
+user_id       uuid
+lat, lon, tz  where you last opened the app
+version       newer wins, older events ignored</pre>
+        <p style="margin-top:10px"><b style="color:var(--ink)">How it fires:</b> no polling: each enabled reminder has one BullMQ job delayed until <code>next_fire_at</code>. When it runs, Reminders enqueues <code>notification-requested</code>, then asks Calendar for <em>next</em> week's candle lighting at your location, sets <code>next_fire_at</code> = that − 90 min and schedules the next delayed job. Change the offset, or move more than 5 km, and the pending job is replaced right away.</p>
       </div>
     </div>
   </section>
@@ -347,11 +415,29 @@ next_fire_at  2026-10-02 16:34 local</pre>
   </section>
 
   <section>
+    <h2>Events (Kafka)</h2>
+    <p class="lede" style="margin-bottom:14px"><b>Kafka for events, BullMQ for jobs.</b> An event says something happened, and any number of services may care; each reads it with its own consumer group, at its own pace, and catches up after a restart. A job is work done once, possibly delayed or in parallel: <code>notification-requested</code> and a reminder's next firing stay on BullMQ.</p>
+    <div class="tbl"><table>
+      <thead><tr><th>Topic</th><th>Published by</th><th>Carries</th><th>Read by</th></tr></thead>
+      <tbody>
+        <tr><td>auth.user-registered</td><td>Auth</td><td><code>userId</code>, <code>email</code>, optional <code>firstName</code>, <code>lastName</code>, <code>phone</code></td><td>Users (creates your row with the same id)</td></tr>
+        <tr><td>auth.user-deleted</td><td>Auth</td><td><code>userId</code></td><td>Users, Reminders, Notifications (each deletes its own data about you)</td></tr>
+        <tr><td>users.user-state</td><td>Users</td><td>your full state: name, phone, location, <code>version</code>. Keyed by user id, compacted; an empty message when you're deleted.</td><td>Reminders (location). A future SMS channel can start reading it any time.</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout" style="margin-top:14px">
+      <p><b>No lost events (outbox).</b> Auth and Users save the change and the event in the same database transaction; a small relay publishes saved events to Kafka. A crash in between only delays an event.</p>
+      <p><b>Full state, not changes.</b> Each <code>users.user-state</code> message is the whole picture with a version number, so a duplicate or late message can't undo a newer one. Because the topic is compacted, Kafka keeps at least the latest message per user, so a service that starts listening later still gets everyone.</p>
+      <p><b>Existing accounts</b> get their Users row from a one-time script that publishes <code>auth.user-registered</code> for each of them.</p>
+    </div>
+  </section>
+
+  <section>
     <h2>Your exact location</h2>
     <p class="lede" style="margin-bottom:14px"><code>expo-location</code> gives GPS coordinates, and <code>@hebcal/core</code> calculates from latitude, longitude and time zone directly. The time zone also decides Israel vs. abroad (one day of Yom Tov or two). Candle lighting is 20 minutes before sunset in Israel and 18 abroad; city customs (Jerusalem 40, Haifa 30) become a setting later.</p>
     <div class="callout">
       <p><b>Needs HTTPS in the browser.</b> Phone browsers only allow GPS on HTTPS, so <code>tailscale serve</code> puts the app and Gateway behind a real certificate for the PC's <code>*.ts.net</code> name (<code>devops/tailscale/serve.sh</code>). The native app doesn't need this.</p>
-      <p>Reminders will need your location saved on the server, since they fire while the app is closed. That's stored with the reminder in phase 2, not in phase 1.</p>
+      <p><b>Follows your phone.</b> Reminders fire while the app is closed, so the server keeps your location, in the Users Service. When you're signed in, the phone sends it only if you moved more than 5 km since the last one it sent, or your time zone changed. A web app can't read GPS in the background, so this is where you last opened the app. Two phones in two places: the last update wins. Signed out, Home uses the phone's GPS directly.</p>
     </div>
   </section>
 
@@ -364,11 +450,16 @@ next_fire_at  2026-10-02 16:34 local</pre>
         <tr><td>GET /calendar/month</td><td>open</td><td>Each day of a month: Hebrew date, holidays and fasts, enter and leave times</td><td>1</td></tr>
         <tr><td>GET /calendar/candle-lighting/next</td><td>internal</td><td>The first candle lighting after a given time, for a saved location. Reminders uses it to resolve "before candle lighting".</td><td>2</td></tr>
         <tr><td>GET /reminders</td><td>login</td><td>Your reminders (only yours: user id comes from the token)</td><td>2</td></tr>
-        <tr><td>PUT /reminders/shabbat-candles</td><td>login</td><td>Turn on or update: <code>{ offsetMinutes: 90, lat, lon, tz }</code>. One per user, so PUT, not POST.</td><td>2</td></tr>
+        <tr><td>PUT /reminders/shabbat-candles</td><td>login</td><td>Turn on or update: <code>{ offsetMinutes: 90 }</code>. Uses your saved location. One per user, so PUT, not POST.</td><td>2</td></tr>
         <tr><td>DELETE /reminders/shabbat-candles</td><td>login</td><td>Turn it off</td><td>2</td></tr>
         <tr><td>GET /notifications/vapid-public-key</td><td>open</td><td>The server's public key the browser needs to subscribe</td><td>2</td></tr>
         <tr><td>POST /notifications/subscriptions</td><td>login</td><td>Register the phone browser's push subscription (the browser's <code>PushSubscription.toJSON()</code>, posted as-is)</td><td>2</td></tr>
         <tr><td>DELETE /notifications/subscriptions</td><td>login</td><td>Forget one browser's subscription: <code>{ endpoint }</code>. Only your own.</td><td>2</td></tr>
+        <tr><td>POST /auth/register</td><td>open</td><td>Now also takes optional <code>firstName</code>, <code>lastName</code>, <code>phone</code> (international format), passed on to Users</td><td>2</td></tr>
+        <tr><td>DELETE /auth/account</td><td>open</td><td>Delete your account now: <code>{ email, currentPassword }</code>. Every service deletes its data about you.</td><td>2</td></tr>
+        <tr><td>GET /users/me</td><td>login</td><td>Your name, phone and saved location</td><td>2</td></tr>
+        <tr><td>PATCH /users/me</td><td>login</td><td>Change name or phone</td><td>2</td></tr>
+        <tr><td>PUT /users/me/location</td><td>login</td><td><code>{ lat, lon, tz }</code>, sent by the phone only after a real move</td><td>2</td></tr>
       </tbody>
     </table></div>
     <p class="lede" style="margin-top:14px">"login" routes: Gateway checks the access token and passes only the user id on to the internal service, in an <code>X-User-Id</code> header it sets itself (a client-sent one is never forwarded). Internal services trust that header because only Gateway can reach them, so they never need the JWT secret.</p>
@@ -388,8 +479,13 @@ next_fire_at  2026-10-02 16:34 local</pre>
     <ol class="steps" start="6">
       <li><b>Queue contract:</b> <code>notification-requested</code> in <code>libs/queue-contracts</code>, BullMQ client in <code>libs/queue-client</code>.</li>
       <li><b>Notification Service:</b> the queue consumer, push subscriptions, and the Web Push adapter (encrypted payload). Subscriptions are only accepted for known browser push services (Google FCM, Mozilla, Apple, Microsoft), so the server never POSTs anywhere else, and every notification carries an <code>expiresAt</code>: it's skipped if the service only gets to it after that, and the push service drops it if the phone can't be reached before then. Devices the push service couldn't reach are retried with backoff until <code>expiresAt</code>, one job per notification.</li>
-      <li><b>Reminders Service:</b> Postgres, CRUD, the scheduler (BullMQ delayed jobs), and enqueueing notifications.</li>
-      <li><b>Frontend:</b> a service worker + "Turn on notifications", the bell button and offset sheet on the Home card, <code>remindersSlice</code>.</li>
+      <li><b>Reminders Service:</b> Postgres and the reminder API.</li>
+      <li><b>Kafka for events:</b> the broker back, <code>libs/kafka-client</code> with an outbox, contracts for the three topics.</li>
+      <li><b>Auth + Users Service:</b> <code>credentials</code>, account events, delete account; the Users Service with your name, phone and location.</li>
+      <li><b>Reminders and Notifications listen:</b> Reminders keeps your location from <code>users.user-state</code>; both clean up on <code>auth.user-deleted</code>.</li>
+      <li><b>Frontend account + location:</b> name and phone at register and on the Account tab, delete account, location sent after a real move.</li>
+      <li><b>Reminder scheduler:</b> BullMQ delayed jobs, moved when the offset or your location changes.</li>
+      <li><b>Frontend reminders:</b> a service worker + "Turn on notifications", the bell button and offset sheet on the Home card, <code>remindersSlice</code>.</li>
     </ol>
   </section>
 </div>

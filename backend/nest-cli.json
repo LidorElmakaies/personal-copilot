@@ -72,6 +72,20 @@
       "entryFile": "index",
       "sourceRoot": "libs/queue-client/src",
       "compilerOptions": { "tsConfigPath": "libs/queue-client/tsconfig.lib.json" }
+    },
+    "kafka-contracts": {
+      "type": "library",
+      "root": "libs/kafka-contracts",
+      "entryFile": "index",
+      "sourceRoot": "libs/kafka-contracts/src",
+      "compilerOptions": { "tsConfigPath": "libs/kafka-contracts/tsconfig.lib.json" }
+    },
+    "kafka-client": {
+      "type": "library",
+      "root": "libs/kafka-client",
+      "entryFile": "index",
+      "sourceRoot": "libs/kafka-client/src",
+      "compilerOptions": { "tsConfigPath": "libs/kafka-client/tsconfig.lib.json" }
     }
   }
 }

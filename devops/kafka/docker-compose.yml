@@ -1,0 +1,62 @@
+services:
+  kafka:
+    extends:
+      file: ../common.yml
+      service: _defaults
+    image: apache/kafka:4.3.1
+    hostname: kafka
+    # Third-party image: drop _defaults' backend/.env (app secrets) — Kafka reads none of it.
+    env_file: !reset []
+    environment:
+      - KAFKA_NODE_ID=1
+      - KAFKA_PROCESS_ROLES=broker,controller
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_LISTENERS=CONTROLLER://:29093,PLAINTEXT://:19092
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:19092
+      - KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka:29093
+      - KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+      - CLUSTER_ID=X6c1QY0hRAaVteqbTsjSNw
+      # Single-broker setup — every replication factor must be 1.
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1
+      - KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1
+      - KAFKA_SHARE_COORDINATOR_STATE_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_SHARE_COORDINATOR_STATE_TOPIC_MIN_ISR=1
+      - KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS=0
+      - KAFKA_AUTO_CREATE_TOPICS_ENABLE=false
+      - KAFKA_LOG_DIRS=/var/lib/kafka/data
+    # Not published to the host (unauthenticated) — only internal services talk to it, same as Redis.
+    volumes:
+      - ../data/kafka:/var/lib/kafka/data
+    networks:
+      - personal-copilot
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server kafka:19092 >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 30s
+
+  # One-shot, idempotent: creates every topic in backend/libs/kafka-contracts/src/topics.ts (auto-create
+  # is off). The two lists must match — see docs/specs/event-schemas.md.
+  kafka-init:
+    image: apache/kafka:4.3.1
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        set -e
+        create() {
+          topic="$$1"; shift
+          /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:19092 \
+            --create --if-not-exists --topic "$$topic" --partitions 3 --replication-factor 1 "$$@"
+        }
+        create auth.user-registered
+        create auth.user-deleted
+        create users.user-state --config cleanup.policy=compact
+    restart: "no"
+    networks:
+      - personal-copilot

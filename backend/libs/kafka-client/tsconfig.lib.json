@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "../../dist/.tsbuildinfo-kafka-client",
+    "outDir": "../../dist/libs/kafka-client"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["**/*spec.ts"]
+}
