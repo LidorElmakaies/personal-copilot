@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { PASSWORD_HASHER, USER_REPOSITORY } from '../tokens';
 import type { IPasswordHasher } from '../infrastructure/interfaces/password-hasher.interface';
 import type { IUserRepository } from '../infrastructure/interfaces/user-repository.interface';
+import { EMPTY_PROFILE_DETAILS } from '../models/profile';
 
 // One-time bootstrap, not a sync — see backend/apps/users/README.md's "Admin seed" section.
 @Injectable()
@@ -37,12 +38,15 @@ export class AdminSeedService implements OnApplicationBootstrap {
     }
 
     const { hash, salt } = this.hasher.hash(password);
-    await this.users.create({
-      email: normalizedEmail,
-      passwordHash: hash,
-      passwordSalt: salt,
-      role: 'admin',
-    });
+    await this.users.create(
+      {
+        email: normalizedEmail,
+        passwordHash: hash,
+        passwordSalt: salt,
+        role: 'admin',
+      },
+      EMPTY_PROFILE_DETAILS,
+    );
     this.logger.log(`Seeded admin user ${normalizedEmail}`);
   }
 }

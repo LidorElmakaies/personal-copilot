@@ -3,7 +3,7 @@ export interface HashResult {
   salt: string;
 }
 
-/** Implemented by SaltPepperSha256Hasher, consumed by AuthService. See docs/specs/services.md#auth. */
+/** Implemented by SaltPepperSha256Hasher, consumed by AuthService. See docs/specs/services.md#users. */
 export interface IPasswordHasher {
   /** Generates a new random salt and returns the hash + salt to store. */
   hash(plaintext: string): HashResult;

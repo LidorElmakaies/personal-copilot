@@ -75,8 +75,8 @@ by `devops/kafka`'s `kafka-init` (auto-create is off). The table below, `KAFKA_T
 
 | Topic | Publisher | Consumers (group) | Notes |
 |---|---|---|---|
-| `users.user-deleted` | Users *(task 2.8)* | Reminders (`reminders`), Notifications (`notifications`) | |
-| `users.user-state` | Users *(task 2.8)* | Reminders (`reminders`) | compacted; tombstone on delete |
+| `users.user-deleted` | Users (`DELETE /auth/account`) | Reminders (`reminders`), Notifications (`notifications`) — tasks 2.9, 2.10 | |
+| `users.user-state` | Users (register, `PATCH /users/me`, `PUT /users/me/location`) | Reminders (`reminders`, task 2.9) | compacted; tombstone on delete |
 
 Event rules:
 - Every message is keyed by `userId`, so one user's events stay in order (one partition per key).

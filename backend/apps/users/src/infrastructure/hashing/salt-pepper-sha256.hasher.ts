@@ -6,7 +6,7 @@ import type {
   IPasswordHasher,
 } from '../interfaces/password-hasher.interface';
 
-// Concatenation order must stay fixed between hash() and verify() — see docs/specs/services.md#auth.
+// Concatenation order must stay fixed between hash() and verify() — see docs/specs/services.md#users.
 @Injectable()
 export class SaltPepperSha256Hasher implements IPasswordHasher {
   constructor(private readonly config: ConfigService) {}

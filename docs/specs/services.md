@@ -9,11 +9,13 @@ The only backend service reachable from outside the Docker network — directly 
 (in the cloud/Hetzner deployment — see `architecture.md`'s "System topology") indirectly via an SSH
 tunnel from a Caddy instance on the public internet. HTTP + WebSocket.
 
-- `POST /auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout`, `/auth/account` — one
-  hardcoded route per operation, not a wildcard proxy; each forwards to the identically-named Auth
-  Service route with the body untouched. No guard on any of them (for the first four, that's how
-  you get a token in the first place; `account` is body-driven the same way — see `apps/users`
-  below). No `GET /me` — there's nothing left for it to return that the
+- `POST /auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout`, `/auth/account`,
+  `DELETE /auth/account` — one hardcoded route per operation, not a wildcard proxy; each forwards to
+  the identically-named Users Service route with the body untouched. No guard on any of them (for
+  the first four, that's how you get a token in the first place; `account` is body-driven the same
+  way — see `apps/users` below).
+- `GET /users/me`, `PATCH /users/me`, `PUT /users/me/location` (`JwtAuthGuard`) → Users Service's
+  routes of the same name (`users-proxy`). Body relayed untouched. No `GET /me` — there's nothing left for it to return that the
   client can't already decode from its own access token (see `apps/users`'s note below).
 - `GET /calendar/shabbat?lat&lon&tz` — forwards exactly those three query params to Calendar
   Service's route of the same name and relays its status/body verbatim (Calendar validates them;
@@ -28,16 +30,16 @@ tunnel from a Caddy instance on the public internet. HTTP + WebSocket.
   headers are never passed through, so a client can't supply its own. The internal service reads
   it with `@ForwardedUserId()` (401 if absent) and trusts it because only Gateway can reach it, so
   no internal service needs `JWT_SECRET`.
-- Every proxy module (`auth-proxy`, `calendar-proxy`, `notifications-proxy`, `reminders-proxy`) is built on one shared forwarder in
+- Every proxy module (`auth-proxy`, `users-proxy`, `calendar-proxy`, `notifications-proxy`, `reminders-proxy`) is built on one shared forwarder in
   `src/proxy/`: `ServiceHttpClient` (one instance per internal service, base URL from
   `<SERVICE>_SERVICE_URL`), `writeProxyResponse`, and the `ProxyRequest`/`ProxyResponse` types. An
   unreachable service answers `502 { error: { code: '<service>_unreachable', message } }`.
 - Global rate limiting (`@nestjs/throttler`, `THROTTLE_TTL_MS`/`THROTTLE_LIMIT`, default
-  60s/100req) plus a tighter limit on `register`/`login`/`refresh`/`account`
+  60s/100req) plus a tighter limit on `register`/`login`/`refresh`/`account` (both methods)
   (`AUTH_THROTTLE_TTL_MS`/`AUTH_THROTTLE_LIMIT`, default 60s/5req) — those are the brute-force
   targets now that Gateway can be reached from the open internet via the cloud path (password
   guessing, email enumeration, refresh/session abuse). `logout`, `/calendar/*`,
-  `/notifications/*`, and `/reminders/*` stay on the global default (`logout` needs a valid refresh token already, so
+  `/notifications/*`, `/reminders/*` and `/users/me*` stay on the global default (`logout` needs a valid refresh token already, so
   hammering it gains nothing); see
   `backend/apps/gateway/README.md` for the full reasoning behind the two-tier split. Keyed on
   client IP; `main.ts` sets `app.set('trust proxy', 'loopback')` so that IP is correct behind the
@@ -56,11 +58,14 @@ tunnel from a Caddy instance on the public internet. HTTP + WebSocket.
 
 ## users
 
-The Auth Service until plan task 2.7, renamed with no behavior change; it will also own profiles (task 2.8).
+The Auth Service until plan task 2.7. Owns both how you log in (`users`, `refresh_tokens`) and who
+you are (`profiles`), and publishes profile changes and deletions on Kafka (see "Profiles" below).
 
 HTTP, internal-only — never published to the host, only Gateway calls it.
 
-- `POST /auth/register` — `{ email, password }` → `{ access_token, refresh_token }`.
+- `POST /auth/register` — `{ email, password, firstName?, lastName?, phone? }` →
+  `{ access_token, refresh_token }`. The optional details go into the profile, created in the same
+  transaction as the account.
 - `POST /auth/login` — same shape.
 - `POST /auth/refresh` — `{ refresh_token }` → new `{ access_token, refresh_token }` (rotates; the
   old refresh token is revoked regardless of outcome).
@@ -74,6 +79,26 @@ HTTP, internal-only — never published to the host, only Gateway calls it.
   changed in a single call, and an atomic request structurally rules out a caller ever
   authenticating a second sequential call with an already-stale password, something two separate
   endpoints couldn't guarantee.
+- `DELETE /auth/account` — `{ email, currentPassword }` → `204`. Verified like `login`, then
+  deletes the user, profile and refresh tokens at once and publishes `users.user-deleted` (plus a
+  `users.user-state` tombstone) so every other service deletes its data. Immediate, no undo. An
+  access token issued before keeps passing `JwtAuthGuard` until it expires (≤ 15 min), but every
+  `/users/me` call with it answers `404`.
+- `GET /users/me` → `{ firstName, lastName, phone, location: { lat, lon, tz, updatedAt } | null }`
+  (user from `X-User-Id`). An account from before profiles gets all `null`s.
+- `PATCH /users/me` — any of `{ firstName, lastName, phone }`; only the fields sent change, `null`
+  clears one, none at all → `400`. Names are trimmed, 1–100 chars; `phone` in international format
+  (`+972501234567`). Returns the profile.
+- `PUT /users/me/location` — `{ lat, lon, tz }` → the profile. Sent by the phone only after a real
+  move (task 2.12); `updatedAt` is set here.
+
+**Profiles.** `profiles` table, keyed by `user_id` (the user's id and a foreign key, deleted with
+the user): `first_name`, `last_name`, `phone`, `lat`, `lon`, `tz`, `location_updated_at`,
+`version`. Every write locks the row, bumps `version`, and saves the full state as a
+`users.user-state` event in the same transaction (the outbox, see `libs/kafka-client`), so a change
+is never published without being saved or saved without being published. A missing profile (an
+account from before profiles) is created on its first write. A write for a user that no longer
+exists answers `404` and creates nothing.
 
 None of these return a `user` object — the access token itself carries `{ sub, role, email }`
 (`@app/auth-kernel`'s `JwtPayload`), so there's nothing left for a `GET /me` endpoint to return
@@ -85,7 +110,7 @@ would otherwise keep showing a stale `email` claim until it naturally expired if
 changed, and always reissuing gives the endpoint one response shape regardless of which field(s)
 were updated.
 
-Postgres via TypeORM (`users`, `refresh_tokens`), password_hash = SHA256(`PASSWORD_PEPPER` + salt +
+Postgres via TypeORM (`users`, `refresh_tokens`, `profiles`, `outbox_events`), password_hash = SHA256(`PASSWORD_PEPPER` + salt +
 plaintext). Access tokens: 15-min TTL, `{ sub, role, email }` payload. `UserRole` is
 `'user' | 'admin'` (`@app/auth-kernel`); `register` always creates `'user'`. The only `'admin'` is
 the one `AdminSeedService` creates once at boot from `ADMIN_EMAIL`/`ADMIN_PASSWORD` (see
@@ -288,8 +313,9 @@ that queue must pass. See `event-schemas.md`.
 
 ## libs/kafka-contracts / libs/kafka-client
 
-Kafka is for events (a fact any number of services may react to); BullMQ above is for jobs. No
-service uses these yet — the Users Service starts publishing in plan task 2.8.
+Kafka is for events (a fact any number of services may react to); BullMQ above is for jobs. The
+Users Service publishes (through the outbox); Reminders and Notifications start consuming in plan
+tasks 2.9/2.10.
 
 `kafka-client` (the only code that imports `kafkajs`, via `KAFKA_BROKERS`):
 `IEventPublisher`/`KafkajsEventPublisher` (`publish(topic, key, message | null)`; `null` is a

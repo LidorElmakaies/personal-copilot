@@ -1,6 +1,13 @@
-export interface RegisterInput {
+import type { ProfileDetails } from '../../models/profile';
+
+export interface RegisterInput extends Partial<ProfileDetails> {
   email: string;
   password: string;
+}
+
+export interface DeleteAccountInput {
+  email: string;
+  currentPassword: string;
 }
 
 export interface LoginInput {
@@ -20,7 +27,7 @@ export interface AuthTokens {
   refreshToken: string;
 }
 
-/** Implemented by AuthService, consumed by AuthController. Returns tokens only — see docs/specs/services.md#auth. */
+/** Implemented by AuthService, consumed by AuthController. Returns tokens only — see docs/specs/services.md#users. */
 export interface IAuthService {
   register(input: RegisterInput): Promise<AuthTokens>;
   login(input: LoginInput): Promise<AuthTokens>;
@@ -29,4 +36,6 @@ export interface IAuthService {
   logout(refreshToken: string): Promise<void>;
   /** Body-driven, not JwtAuthGuard-based — currentPassword is the proof of identity. */
   updateAccount(input: UpdateAccountInput): Promise<AuthTokens>;
+  /** Immediate and permanent; every other service is told through `users.user-deleted`. */
+  deleteAccount(input: DeleteAccountInput): Promise<void>;
 }

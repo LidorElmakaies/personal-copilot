@@ -18,6 +18,7 @@ import type { IUserRepository } from '../infrastructure/interfaces/user-reposito
 import type { User } from '../models/user';
 import type {
   AuthTokens,
+  DeleteAccountInput,
   IAuthService,
   LoginInput,
   RegisterInput,
@@ -45,12 +46,19 @@ export class AuthService implements IAuthService {
     }
 
     const { hash, salt } = this.hasher.hash(input.password);
-    const user = await this.users.create({
-      email,
-      passwordHash: hash,
-      passwordSalt: salt,
-      role: 'user',
-    });
+    const user = await this.users.create(
+      {
+        email,
+        passwordHash: hash,
+        passwordSalt: salt,
+        role: 'user',
+      },
+      {
+        firstName: input.firstName ?? null,
+        lastName: input.lastName ?? null,
+        phone: input.phone ?? null,
+      },
+    );
 
     return this.issueTokens(user.id, user.email, user.role);
   }
@@ -74,7 +82,7 @@ export class AuthService implements IAuthService {
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
 
-    // Rotate-on-use — see docs/specs/services.md#auth.
+    // Rotate-on-use — see docs/specs/services.md#users.
     await this.refreshTokens.revoke(stored.id);
     return this.issueTokens(user.id, user.email, user.role);
   }
@@ -117,8 +125,16 @@ export class AuthService implements IAuthService {
       // Not revoking existing refresh tokens on password change — possible future hardening.
     }
 
-    // Always reissue, even on a password-only change — see docs/specs/services.md#auth.
+    // Always reissue, even on a password-only change — see docs/specs/services.md#users.
     return this.issueTokens(user.id, finalEmail, user.role);
+  }
+
+  async deleteAccount(input: DeleteAccountInput): Promise<void> {
+    const user = await this.verifyCredentials(
+      input.email,
+      input.currentPassword,
+    );
+    await this.users.delete(user.id);
   }
 
   private async verifyCredentials(
@@ -158,7 +174,7 @@ export class AuthService implements IAuthService {
     return { accessToken, refreshToken };
   }
 
-  // See docs/specs/services.md#auth for why a plain (unsalted) hash is fine here.
+  // See docs/specs/services.md#users for why a plain (unsalted) hash is fine here.
   private hashRefreshToken(token: string): string {
     return createHash('sha256').update(token).digest('hex');
   }

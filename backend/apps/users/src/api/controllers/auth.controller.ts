@@ -1,12 +1,20 @@
-import { Body, Controller, HttpCode, Inject, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  HttpCode,
+  Inject,
+  Post,
+} from '@nestjs/common';
 import { AUTH_SERVICE } from '../../tokens';
 import type { IAuthService } from '../../application/interfaces/auth-service.interface';
+import { DeleteAccountDto } from '../dto/delete-account.dto';
 import { LoginDto } from '../dto/login.dto';
 import { RefreshTokenDto } from '../dto/refresh-token.dto';
 import { RegisterDto } from '../dto/register.dto';
 import { UpdateAccountDto } from '../dto/update-account.dto';
 
-// No `user` object in any response — see docs/specs/services.md#auth.
+// No `user` object in any response — see docs/specs/services.md#users.
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -18,6 +26,9 @@ export class AuthController {
     const tokens = await this.authService.register({
       email: dto.email,
       password: dto.password,
+      firstName: dto.firstName,
+      lastName: dto.lastName,
+      phone: dto.phone,
     });
     return {
       access_token: tokens.accessToken,
@@ -67,5 +78,14 @@ export class AuthController {
       access_token: tokens.accessToken,
       refresh_token: tokens.refreshToken,
     };
+  }
+
+  @Delete('account')
+  @HttpCode(204)
+  async deleteAccount(@Body() dto: DeleteAccountDto): Promise<void> {
+    await this.authService.deleteAccount({
+      email: dto.email,
+      currentPassword: dto.currentPassword,
+    });
   }
 }

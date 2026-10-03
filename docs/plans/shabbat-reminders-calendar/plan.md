@@ -156,7 +156,7 @@ events" under Decisions.
   database means moving its data); the `users` table keeps its name. Public routes don't change:
   `/auth/*` stays, Gateway's `auth-proxy` now forwards to the Users Service.
   *Check:* register, login, refresh, logout and account still work through Gateway.
-- [ ] **2.8 Users Service: profiles + events.** `profiles` table: `user_id` (primary key, the
+- [x] **2.8 Users Service: profiles + events.** `profiles` table: `user_id` (primary key, the
   user's id, deleted with the user), `first_name`, `last_name`, `phone` (international format),
   `lat`, `lon`, `tz`, `location_updated_at`, `version`. `register` takes optional `firstName`,
   `lastName`, `phone` and creates the profile in the same transaction; an existing account without

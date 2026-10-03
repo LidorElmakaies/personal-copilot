@@ -1,5 +1,5 @@
 // Domain layer — pure data shape, not to be confused with an `I<Thing>` interface. No
-// PublicUser/toPublicUser here: nothing ever hands a User back over HTTP, see docs/specs/services.md#auth.
+// PublicUser/toPublicUser here: nothing ever hands a User back over HTTP, see docs/specs/services.md#users.
 import type { UserRole } from '@app/auth-kernel';
 
 export interface User {

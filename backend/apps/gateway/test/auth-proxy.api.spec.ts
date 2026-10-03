@@ -68,4 +68,26 @@ describe('auth-proxy (gateway)', () => {
     expect(res.status).toBe(204);
     expect(await res.text()).toBe('');
   });
+
+  it('forwards DELETE /auth/account with its body, no token needed', async () => {
+    const booted = await bootProxy(AuthProxyModule, AUTH_SERVICE_CLIENT, {
+      status: 204,
+      body: '',
+    });
+    app = booted.app;
+    const body = { email: 'a@b.c', currentPassword: 'pw' };
+
+    const res = await fetch(`${booted.base}/auth/account`, {
+      method: 'DELETE',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    expect(res.status).toBe(204);
+    expect(booted.forward).toHaveBeenCalledWith({
+      method: 'DELETE',
+      path: '/auth/account',
+      body,
+    });
+  });
 });

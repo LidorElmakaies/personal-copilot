@@ -1,4 +1,4 @@
-import { Body, Controller, Inject, Post, Res } from '@nestjs/common';
+import { Body, Controller, Delete, Inject, Post, Res } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import type { Response } from 'express';
 import { AUTH_PROXY_SERVICE } from '../../tokens';
@@ -62,6 +62,22 @@ export class AuthProxyController {
       res,
       await this.proxy.forward({
         method: 'POST',
+        path: '/auth/account',
+        body,
+      }),
+    );
+  }
+
+  @Throttle(authStrictThrottlePolicy)
+  @Delete('account')
+  async deleteAccount(
+    @Body() body: unknown,
+    @Res() res: Response,
+  ): Promise<void> {
+    writeProxyResponse(
+      res,
+      await this.proxy.forward({
+        method: 'DELETE',
         path: '/auth/account',
         body,
       }),

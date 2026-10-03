@@ -74,14 +74,19 @@ docs/plans/               staged feature plans + their HTML design pages
   `/auth/login`, `/auth/refresh`, `/auth/account`
   (`AUTH_THROTTLE_TTL_MS`/`AUTH_THROTTLE_LIMIT`, default 60s/5req); `/auth/logout` stays on the
   global default since it needs a valid token already, as do `/calendar/*` and
-  `/notifications/*`. Four feature modules, with the proxying ones built on one shared forwarder in `src/proxy/`
+  `/notifications/*`. Six feature modules, with the proxying ones built on one shared forwarder in `src/proxy/`
   (`ServiceHttpClient`, `writeProxyResponse` — `502 <service>_unreachable` when a service is down):
   - `src/auth-proxy/` — thin pass-through to the Users Service, one hardcoded route per operation (not
-    a wildcard): `register`, `login`, `refresh`, `logout`, `account` — no guard on any of them
+    a wildcard): `register`, `login`, `refresh`, `logout`, `account` (`POST` edits, `DELETE`
+    deletes the account) — no guard on any of them
     (that's how you get a token in the first place, and `account` is body-driven the same way, see
     `apps/users` below). No `/me` — the access token itself carries
     `{ sub, role, email }`, so there's nothing left for a "who am I" endpoint to return that the
     client can't already decode.
+  - `src/users-proxy/` — `GET`/`PATCH /users/me`, `PUT /users/me/location` (`JwtAuthGuard`, user
+    id forwarded as `X-User-Id`): the caller's own profile.
+  - `src/reminders-proxy/` — `GET /reminders`, `PUT`/`DELETE /reminders/shabbat-candles`
+    (`JwtAuthGuard`, same forwarding).
   - `src/calendar-proxy/` — `GET /calendar/shabbat` (forwards only `lat`/`lon`/`tz`), unguarded so
     Home works signed out.
   - `src/notifications-proxy/` — `GET /notifications/vapid-public-key` (open),
@@ -101,8 +106,13 @@ docs/plans/               staged feature plans + their HTML design pages
   endpoint rather than two sequential calls, since an atomic single request rules out a caller
   ever authenticating a second call with an already-stale password. Body-driven rather than
   `JwtAuthGuard`-gated, deliberately consistent with this service's existing stateless pattern
-  rather than introducing bearer-token auth for just this one caller. Postgres via
-  TypeORM (`users`, `refresh_tokens`), salt+pepper+SHA-256 password hashing (`PASSWORD_PEPPER`),
+  rather than introducing bearer-token auth for just this one caller. `DELETE /auth/account`
+  (`{email, currentPassword}`) deletes immediately. Profiles: `profiles` (name, phone, location,
+  `version`, keyed by user id) behind `GET`/`PATCH /users/me` and `PUT /users/me/location`; register
+  takes the optional details. Every profile change and every delete is written to `outbox_events`
+  in the same transaction and published to Kafka (`users.user-state`, `users.user-deleted`) by
+  `OutboxRelay`. Postgres via
+  TypeORM (`users`, `refresh_tokens`, `profiles`, `outbox_events`), salt+pepper+SHA-256 password hashing (`PASSWORD_PEPPER`),
   15-min access tokens (`{ sub, role, email }` payload — the client decodes this instead of a
   separate `/me` call) + 30-day rotating refresh tokens (`backend/libs/auth-kernel` for the
   shared JWT sign/verify + guard).
@@ -112,9 +122,12 @@ docs/plans/               staged feature plans + their HTML design pages
   is the user's date in `tz`; Israel rules and 20-min candle lighting when `tz` is
   `Asia/Jerusalem`, else 18 min. See `backend/apps/calendar/README.md` for the ESM-import and
   time-zone gotchas.
-- **reminders** (`backend/apps/reminders`) — internal-only skeleton: OTel, `/health`, and a
-  TypeORM connection to its own database (`REMINDERS_DATABASE_URL`) in the shared Postgres,
-  created by `devops/postgres`'s one-shot `postgres-init`. No endpoints yet.
+- **reminders** (`backend/apps/reminders`) — internal-only, own database
+  (`REMINDERS_DATABASE_URL`, created by `devops/postgres`'s one-shot `postgres-init`). One
+  `reminders` row per user and type (`shabbat_candles` so far): `GET /reminders`,
+  `PUT`/`DELETE /reminders/shabbat-candles` (user from `X-User-Id`). Still stores its own
+  `lat`/`lon`/`tz` and nothing fires yet — plan tasks 2.9 (location from `users.user-state`) and
+  2.13 (scheduler).
 - **notifications** (`backend/apps/notifications`) — internal-only, own database
   (`NOTIFICATIONS_DATABASE_URL`) plus the BullMQ queue on Redis (`REDIS_URL`, consume-only). Stores browsers'
   Web Push subscriptions (`push_subscriptions`) and serves the VAPID public key (`VAPID_*` env, see

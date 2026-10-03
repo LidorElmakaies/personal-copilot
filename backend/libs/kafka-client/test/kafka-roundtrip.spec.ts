@@ -56,7 +56,6 @@ maybe('publisher → broker → consumer (real Kafka)', () => {
     await consumer.onApplicationBootstrap();
 
     publisher = new KafkajsEventPublisher(config, 'it-publisher');
-    await publisher.onModuleInit();
     await publisher.publish(topic, 'user-42', { hello: 'world' });
 
     await expect(received).resolves.toEqual({

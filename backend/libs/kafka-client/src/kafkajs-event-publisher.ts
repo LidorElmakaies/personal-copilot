@@ -1,16 +1,16 @@
-import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Kafka, Producer } from 'kafkajs';
 import type { IEventPublisher } from './event-publisher.interface';
 
 // Raw kafkajs Producer, not @nestjs/microservices' ClientKafka — that's built around request/reply
 // topics, which fire-and-forget `emit` has no use for.
+// Connects on first publish, not at boot, so a service still starts while Kafka is down.
 @Injectable()
-export class KafkajsEventPublisher
-  implements IEventPublisher, OnModuleInit, OnModuleDestroy
-{
+export class KafkajsEventPublisher implements IEventPublisher, OnModuleDestroy {
   private readonly kafka: Kafka;
   private readonly producer: Producer;
+  private connecting: Promise<void> | null = null;
 
   constructor(config: ConfigService, clientId: string) {
     const kafkaBrokers = config.get<string>('KAFKA_BROKERS');
@@ -23,14 +23,13 @@ export class KafkajsEventPublisher
       idempotent: true,
       maxInFlightRequests: 1,
     });
-  }
-
-  async onModuleInit(): Promise<void> {
-    await this.producer.connect();
+    this.producer.on(this.producer.events.DISCONNECT, () => {
+      this.connecting = null;
+    });
   }
 
   async onModuleDestroy(): Promise<void> {
-    await this.producer.disconnect();
+    if (this.connecting) await this.producer.disconnect();
   }
 
   async publish(
@@ -38,11 +37,21 @@ export class KafkajsEventPublisher
     key: string,
     message: object | null,
   ): Promise<void> {
+    await this.ensureConnected();
     await this.producer.send({
       topic,
       messages: [
         { key, value: message === null ? null : JSON.stringify(message) },
       ],
     });
+  }
+
+  /** A failed connect is forgotten, so the next publish (an outbox retry) tries again. */
+  private ensureConnected(): Promise<void> {
+    this.connecting ??= this.producer.connect().catch((err: unknown) => {
+      this.connecting = null;
+      throw err;
+    });
+    return this.connecting;
   }
 }

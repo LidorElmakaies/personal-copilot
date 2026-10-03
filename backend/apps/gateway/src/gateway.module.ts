@@ -7,6 +7,7 @@ import { CalendarProxyModule } from './calendar-proxy/calendar-proxy.module';
 import { NotificationsProxyModule } from './notifications-proxy/notifications-proxy.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { RemindersProxyModule } from './reminders-proxy/reminders-proxy.module';
+import { UsersProxyModule } from './users-proxy/users-proxy.module';
 
 // Composes the self-contained modules below, plus global rate limiting (see main.ts for the
 // trust-proxy config that makes the guard's client IP correct behind Caddy/the SSH tunnel).
@@ -25,6 +26,7 @@ import { RemindersProxyModule } from './reminders-proxy/reminders-proxy.module';
       }),
     }),
     AuthProxyModule,
+    UsersProxyModule,
     CalendarProxyModule,
     NotificationsProxyModule,
     RemindersProxyModule,
