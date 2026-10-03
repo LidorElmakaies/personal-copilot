@@ -21,12 +21,14 @@ tunnel from a Caddy instance on the public internet. HTTP + WebSocket.
 - `GET /notifications/vapid-public-key` (open), `POST /notifications/subscriptions` and
   `DELETE /notifications/subscriptions` (`JwtAuthGuard`) → Notification Service's routes of the same
   name. Body relayed untouched.
+- `GET /reminders`, `PUT /reminders/shabbat-candles`, `DELETE /reminders/shabbat-candles`
+  (`JwtAuthGuard`) → Reminders Service's routes of the same name. Body relayed untouched.
 - **User identity for internal services:** a guarded route forwards only the token's user id, in
   an `X-User-Id` header Gateway sets itself (`USER_ID_HEADER` in `@app/auth-kernel`). Client
   headers are never passed through, so a client can't supply its own. The internal service reads
   it with `@ForwardedUserId()` (401 if absent) and trusts it because only Gateway can reach it, so
   no internal service needs `JWT_SECRET`.
-- Every proxy module (`auth-proxy`, `calendar-proxy`, `notifications-proxy`) is built on one shared forwarder in
+- Every proxy module (`auth-proxy`, `calendar-proxy`, `notifications-proxy`, `reminders-proxy`) is built on one shared forwarder in
   `src/proxy/`: `ServiceHttpClient` (one instance per internal service, base URL from
   `<SERVICE>_SERVICE_URL`), `writeProxyResponse`, and the `ProxyRequest`/`ProxyResponse` types. An
   unreachable service answers `502 { error: { code: '<service>_unreachable', message } }`.
@@ -34,8 +36,8 @@ tunnel from a Caddy instance on the public internet. HTTP + WebSocket.
   60s/100req) plus a tighter limit on `register`/`login`/`refresh`/`account`
   (`AUTH_THROTTLE_TTL_MS`/`AUTH_THROTTLE_LIMIT`, default 60s/5req) — those are the brute-force
   targets now that Gateway can be reached from the open internet via the cloud path (password
-  guessing, email enumeration, refresh/session abuse). `logout`, `/calendar/*`, and
-  `/notifications/*` stay on the global default (`logout` needs a valid refresh token already, so
+  guessing, email enumeration, refresh/session abuse). `logout`, `/calendar/*`,
+  `/notifications/*`, and `/reminders/*` stay on the global default (`logout` needs a valid refresh token already, so
   hammering it gains nothing); see
   `backend/apps/gateway/README.md` for the full reasoning behind the two-tier split. Keyed on
   client IP; `main.ts` sets `app.set('trust proxy', 'loopback')` so that IP is correct behind the
@@ -127,9 +129,21 @@ See `backend/apps/calendar/README.md` for the non-obvious implementation details
 
 ## reminders
 
-HTTP, internal-only. Skeleton: boots, connects to its own `reminders` database
-(`REMINDERS_DATABASE_URL`) in the shared Postgres, answers `GET /health`. No other endpoints and
-no tables yet.
+HTTP, internal-only, its own `reminders` database (`REMINDERS_DATABASE_URL`). User from Gateway's
+`X-User-Id` (`@ForwardedUserId()`, 401 without it). One `reminders` row per user and type
+(`user_id`, `type`, `offset_min`, `lat`, `lon`, `tz`, `enabled`, `next_fire_at`; unique
+`(user_id, type)`). The only type so far is `shabbat_candles`.
+
+- `GET /reminders` → the caller's reminders, enabled or not:
+  `[{ type, offsetMinutes, lat, lon, tz, enabled, nextFireAt }]`.
+- `PUT /reminders/shabbat-candles` — `{ offsetMinutes, lat, lon, tz }` → the saved reminder.
+  Turns it on, or updates it. `offsetMinutes` is a whole number 1–1440; `lat`/`lon` numbers in
+  range; `tz` an IANA zone → `400` otherwise.
+- `DELETE /reminders/shabbat-candles` → `204`. Turns it off but keeps the row, so the settings can
+  prefill the sheet next time. Idempotent.
+- `GET /health`.
+
+Nothing fires yet: `next_fire_at` stays `null` until the scheduler (plan task 2.6) sets it.
 
 ## notifications
 

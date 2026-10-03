@@ -2,8 +2,12 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { HealthController } from './api/controllers/health.controller';
+import { RemindersController } from './api/controllers/reminders.controller';
+import { ReminderService } from './application/reminder.service';
+import { ReminderEntity } from './entities/reminder.entity';
+import { TypeOrmReminderRepository } from './infrastructure/postgres/typeorm-reminder.repository';
+import { REMINDER_REPOSITORY, REMINDER_SERVICE } from './tokens';
 
-// Skeleton (plan task 1.4): boots, connects to its own database, answers /health.
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -12,13 +16,18 @@ import { HealthController } from './api/controllers/health.controller';
       useFactory: (config: ConfigService) => ({
         type: 'postgres' as const,
         url: config.get<string>('REMINDERS_DATABASE_URL'),
-        entities: [],
+        entities: [ReminderEntity],
         // Same policy as Auth — see backend/apps/auth/README.md's "synchronize: true below production".
         synchronize: config.get<string>('NODE_ENV') !== 'production',
       }),
       inject: [ConfigService],
     }),
+    TypeOrmModule.forFeature([ReminderEntity]),
   ],
-  controllers: [HealthController],
+  controllers: [HealthController, RemindersController],
+  providers: [
+    { provide: REMINDER_SERVICE, useClass: ReminderService },
+    { provide: REMINDER_REPOSITORY, useClass: TypeOrmReminderRepository },
+  ],
 })
 export class RemindersModule {}

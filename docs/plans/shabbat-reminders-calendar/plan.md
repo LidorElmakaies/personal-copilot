@@ -114,7 +114,7 @@ lighting", and a push notification arrives on the phone at that time every Frida
   find the next candle-lighting time for a saved location. Not exposed through Gateway.
   `GET /calendar/candle-lighting/next?lat&lon&tz&after` → `{ candleLighting }`, strictly after
   `after`; skips weeks with no sunset.
-- [ ] **2.5 Reminders Service: storage + API.** `reminders` table (`user_id`, `type`,
+- [x] **2.5 Reminders Service: storage + API.** `reminders` table (`user_id`, `type`,
   `offset_min`, `lat`, `lon`, `tz`, `enabled`, `next_fire_at`). `GET /reminders`,
   `PUT /reminders/shabbat-candles`, `DELETE /reminders/shabbat-candles`, user from the JWT. Gateway
   `reminders-proxy` with `JwtAuthGuard`.

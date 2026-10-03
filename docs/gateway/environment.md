@@ -14,8 +14,10 @@ full variable list with defaults.
 - **`CALENDAR_SERVICE_URL`** — proxy target for `/calendar/*`. `http://localhost:8002` locally;
   `http://calendar:8002` in Docker (same `environment:` override as `AUTH_SERVICE_URL`).
 - **`NOTIFICATIONS_SERVICE_URL`** — proxy target for `/notifications/*`. `http://localhost:8004`
-  locally; `http://notifications:8004` in Docker (same override). Gateway fails fast at boot if any
-  service URL is unset.
+  locally; `http://notifications:8004` in Docker (same override).
+- **`REMINDERS_SERVICE_URL`** — proxy target for `/reminders/*`. `http://localhost:8003` locally;
+  `http://reminders:8003` in Docker (same override). Gateway fails fast at boot if any service URL
+  is unset.
 - **`THROTTLE_TTL_MS` / `THROTTLE_LIMIT`** — global rate limit, all routes.
 - **`AUTH_THROTTLE_TTL_MS` / `AUTH_THROTTLE_LIMIT`** — tighter limit specifically on
   `/auth/register`, `/auth/login`, `/auth/refresh`, `/auth/account`.

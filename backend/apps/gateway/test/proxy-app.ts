@@ -22,6 +22,7 @@ export async function bootProxy(
             AUTH_SERVICE_URL: 'x',
             CALENDAR_SERVICE_URL: 'x',
             NOTIFICATIONS_SERVICE_URL: 'x',
+            REMINDERS_SERVICE_URL: 'x',
             JWT_SECRET: TEST_JWT_SECRET,
           }),
         ],

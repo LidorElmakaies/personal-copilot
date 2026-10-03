@@ -1,6 +1,6 @@
 // Shared by every *-proxy module: a request forwarded verbatim to one internal service.
 export interface ProxyRequest {
-  method: 'GET' | 'POST' | 'DELETE';
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE';
   /** The internal service's own path, e.g. '/auth/login'. */
   path: string;
   body?: unknown;

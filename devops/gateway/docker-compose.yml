@@ -14,6 +14,7 @@ services:
       - AUTH_SERVICE_URL=http://auth:8001
       - CALENDAR_SERVICE_URL=http://calendar:8002
       - NOTIFICATIONS_SERVICE_URL=http://notifications:8004
+      - REMINDERS_SERVICE_URL=http://reminders:8003
     # The only service published to the host (see
     # .claude/memory/feedback_gateway_only_service_access.md).
     ports:
@@ -24,6 +25,8 @@ services:
       calendar:
         condition: service_healthy
       notifications:
+        condition: service_healthy
+      reminders:
         condition: service_healthy
     networks:
       - personal-copilot
