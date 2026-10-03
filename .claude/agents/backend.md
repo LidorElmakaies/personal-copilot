@@ -48,7 +48,7 @@ backend/
     calendar/            # HTTP, internal-only, stateless. All calendar math (@hebcal/core v6 behind
                         # ICalendarCalculator). GET /calendar/shabbat. See its README for the
                         # ESM-subpath import and time-zone rules before touching it.
-    reminders/           # Skeleton — /health + its own `reminders` DB (REMINDERS_DATABASE_URL).
+    reminders/           # Per-user reminders (schema `reminders`); reads the location from users.profiles.
     notifications/       # Own `notifications` DB. Push subscriptions + VAPID public key; processes
                         # notification-requested jobs (consume-only; drops expired) → each
                         # INotificationChannel.deliver(userId, content, expiresAt, progress).
@@ -110,10 +110,13 @@ doesn't (e.g. `new BullmqQueueConsumer(config)` in `apps/notifications/src/notif
 - **The frontend only ever talks to Gateway** — never the Users Service or any other backend service
   directly, even though the frontend has its own published port (it's a static web export, not a
   backend service).
-- **A service that owns tables gets its own database** in the shared Postgres: its own
-  `<SERVICE>_DATABASE_URL` (never reuse Auth's `DATABASE_URL`), and its name added to
-  `devops/postgres/docker-compose.yml`'s `postgres-init` loop so the database exists before the
-  service boots.
+- **One database, a schema per service.** Every service uses `DATABASE_URL` and sets its own
+  `schema` in its TypeORM config; add the schema to `devops/postgres/docker-compose.yml`'s
+  `postgres-init`. A service **writes only its own schema**. It may read another service's tables
+  directly through a read-only entity (`@Entity({ schema: '<owner>', synchronize: false })`), kept
+  once in a shared lib per owner — `@app/users-schema` for the Users Service's tables — never
+  create, alter or write them. Per-user tables reference
+  `users.users(id)` with `ON DELETE CASCADE` instead of listening for a delete event.
 - **Shared infra is reused, never duplicated**: one Postgres, one Redis (`devops/redis`,
   internal-only; holds only BullMQ queues).
 - **Queue names live in constants, never inlined as a string literal.** Every queue goes in

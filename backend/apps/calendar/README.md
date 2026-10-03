@@ -27,7 +27,7 @@ the swap never applies.
 ## Server time zone never matters
 
 - The user's "today" comes from `civilDateIn(tz, now)` — the request's `tz`, not the process's.
-- Hebcal reads a `Date`'s *local* Y/M/D fields, so `toHebcalDate` builds dates from local fields
+- Hebcal reads a `Date`'s _local_ Y/M/D fields, so `toHebcalDate` builds dates from local fields
   too; the pair round-trips in any server TZ. A test runs the calculator under UTC+14 to pin this.
 - Returned times are absolute instants (ISO, UTC); the client formats them in its own zone.
 
@@ -35,7 +35,7 @@ the swap never applies.
 
 The calculator searches Friday → Saturday + 3 days for the first Havdalah after Friday, so a
 Shabbat followed by Yom Tov (abroad: up to Monday night) ends at the real Havdalah, not Saturday
-night. `ShabbatService` starts from *last* Friday and only moves to next week once that Havdalah
+night. `ShabbatService` starts from _last_ Friday and only moves to next week once that Havdalah
 has passed — which is what keeps a Sunday inside such a Yom Tov reported as the current Shabbat.
 
 ## Israel vs. abroad from the time zone

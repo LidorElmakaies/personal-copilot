@@ -16,7 +16,7 @@ Two independent Compose projects, joined by a shared `observability` Docker netw
   8000), `users`, `calendar`, `reminders`, `notifications` (internal-only, no published ports,
   healthchecks on `/health` for the last three), `frontend` (published, port 8081 — a static web
   export, not a backend service, see the `frontend` compose service's own comment), `postgres`
-  (one instance, one database per table-owning service, created by the one-shot `postgres-init`),
+  (one instance, one database, a schema per table-owning service, created by the one-shot `postgres-init`),
   `redis` (internal-only; hosts the BullMQ queues — today just `notification-requested`, from
   `backend/libs/queue-contracts` — AOF only, RDB off, `maxmemory 64mb` +
   `noeviction`, which BullMQ requires: an evicted job key silently corrupts a queue, a full Redis

@@ -53,7 +53,7 @@ maybe('publisher → broker → consumer (real Kafka)', () => {
         );
       },
     );
-    await consumer.onApplicationBootstrap();
+    consumer.onApplicationBootstrap(); // starts in the background; fromBeginning catches the message
 
     publisher = new KafkajsEventPublisher(config, 'it-publisher');
     await publisher.publish(topic, 'user-42', { hello: 'world' });

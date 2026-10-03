@@ -8,6 +8,7 @@ import { PushSubscriptionsController } from './api/controllers/push-subscription
 import { NotificationDeliveryService } from './application/notification-delivery.service';
 import { PushSubscriptionService } from './application/push-subscription.service';
 import { PushSubscriptionEntity } from './entities/push-subscription.entity';
+import { UsersUserEntity } from '@app/users-schema';
 import { TypeOrmPushSubscriptionRepository } from './infrastructure/postgres/typeorm-push-subscription.repository';
 import { WebPushLibSender } from './infrastructure/webpush/web-push-lib.sender';
 import { WebPushChannel } from './infrastructure/webpush/web-push.channel';
@@ -29,8 +30,11 @@ import {
       imports: [ConfigModule],
       useFactory: (config: ConfigService) => ({
         type: 'postgres' as const,
-        url: config.get<string>('NOTIFICATIONS_DATABASE_URL'),
-        entities: [PushSubscriptionEntity],
+        url: config.get<string>('DATABASE_URL'),
+        // This service's own schema in the shared database — the only one it writes.
+        schema: 'notifications',
+        // UsersUserEntity maps users.users read-only (synchronize: false), for the foreign key.
+        entities: [PushSubscriptionEntity, UsersUserEntity],
         // Same policy as Users — see backend/apps/users/README.md's "synchronize: true below production".
         synchronize: config.get<string>('NODE_ENV') !== 'production',
       }),

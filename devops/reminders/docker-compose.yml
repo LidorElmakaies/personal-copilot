@@ -18,8 +18,9 @@ services:
       timeout: 3s
       retries: 3
     depends_on:
-      postgres-init:
-        condition: service_completed_successfully
+      # Its tables reference users.users, so the Users Service must have created them first.
+      users:
+        condition: service_healthy
     networks:
       - personal-copilot
       - observability

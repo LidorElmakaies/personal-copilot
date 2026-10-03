@@ -1,10 +1,6 @@
 import type { EntityManager } from 'typeorm';
 import { addOutboxEvent } from '@app/kafka-client';
-import {
-  KAFKA_TOPICS,
-  type UserDeletedMessage,
-  type UserStateMessage,
-} from '@app/kafka-contracts';
+import { KAFKA_TOPICS, type UserStateMessage } from '@app/kafka-contracts';
 import type { Profile } from '../../models/profile';
 
 // Called inside the write's own transaction, so the event commits with it — see OutboxRelay.
@@ -37,16 +33,10 @@ export function addUserStateEvent(
   );
 }
 
-/** `users.user-deleted`, plus a tombstone so compaction drops the user from `users.user-state`. */
-export async function addUserDeletedEvents(
+/** A tombstone, so compaction drops a deleted user from `users.user-state`. */
+export function addUserStateTombstone(
   manager: EntityManager,
   userId: string,
-  deletedAt: Date,
 ): Promise<void> {
-  const message: UserDeletedMessage = {
-    userId,
-    deletedAt: deletedAt.toISOString(),
-  };
-  await addOutboxEvent(manager, KAFKA_TOPICS.USER_DELETED, userId, message);
-  await addOutboxEvent(manager, KAFKA_TOPICS.USER_STATE, userId, null);
+  return addOutboxEvent(manager, KAFKA_TOPICS.USER_STATE, userId, null);
 }

@@ -55,7 +55,6 @@ services:
             --create --if-not-exists --topic "$$topic" --partitions 3 --replication-factor 1 "$$@"
         }
         create users.user-state --config cleanup.policy=compact
-        create users.user-deleted
     restart: "no"
     networks:
       - personal-copilot

@@ -12,9 +12,15 @@ services:
       - OTEL_SERVICE_NAME=users
     # No ports: — internal-only, never published to the host (see
     # .claude/memory/feedback_gateway_only_service_access.md).
+    # Reminders and Notifications wait on this: their tables reference users.users.
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8001/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
     depends_on:
-      postgres:
-        condition: service_healthy
+      postgres-init:
+        condition: service_completed_successfully
     networks:
       - personal-copilot
       - observability

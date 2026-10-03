@@ -2,21 +2,36 @@ import { ValidationPipe, type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { RemindersController } from '../src/api/controllers/reminders.controller';
 import { ReminderService } from '../src/application/reminder.service';
-import { REMINDER_REPOSITORY, REMINDER_SERVICE } from '../src/tokens';
+import {
+  REMINDER_REPOSITORY,
+  REMINDER_SERVICE,
+  USER_LOCATION_READER,
+} from '../src/tokens';
+import type { Coordinates } from '../src/models/user-location';
 import { InMemoryReminderRepository } from './in-memory-reminder.repository';
 
 describe('reminders API (reminders)', () => {
   let app: INestApplication;
   let base: string;
   let repo: InMemoryReminderRepository;
+  /** Stands in for users.profiles: who has sent a location. */
+  let locations: Map<string, Coordinates>;
 
   beforeEach(async () => {
     repo = new InMemoryReminderRepository();
+    locations = new Map();
     const moduleRef = await Test.createTestingModule({
       controllers: [RemindersController],
       providers: [
         { provide: REMINDER_SERVICE, useClass: ReminderService },
         { provide: REMINDER_REPOSITORY, useValue: repo },
+        {
+          provide: USER_LOCATION_READER,
+          useValue: {
+            findByUserId: (id: string) =>
+              Promise.resolve(locations.get(id) ?? null),
+          },
+        },
       ],
     }).compile();
     app = moduleRef.createNestApplication();
@@ -29,12 +44,7 @@ describe('reminders API (reminders)', () => {
 
   afterEach(() => app.close());
 
-  const telAviv = {
-    offsetMinutes: 90,
-    lat: 32.0853,
-    lon: 34.7818,
-    tz: 'Asia/Jerusalem',
-  };
+  const settings = { offsetMinutes: 90 };
   const call = (
     method: 'GET' | 'PUT' | 'DELETE',
     path: string,
@@ -51,6 +61,8 @@ describe('reminders API (reminders)', () => {
     });
   const put = (body: unknown, userId?: string) =>
     call('PUT', '/reminders/shabbat-candles', body, userId);
+  const knowLocation = (userId = 'user-1') =>
+    locations.set(userId, { lat: 32.1782, lon: 34.9076, tz: 'Asia/Jerusalem' });
 
   it('lists nothing for a user without reminders', async () => {
     const res = await call('GET', '/reminders');
@@ -59,29 +71,53 @@ describe('reminders API (reminders)', () => {
   });
 
   it('turns the candle-lighting reminder on and returns it', async () => {
-    const res = await put(telAviv);
+    knowLocation();
+    const res = await put(settings);
 
     expect(res.status).toBe(200);
     const expected = {
       type: 'shabbat_candles',
-      ...telAviv,
+      offsetMinutes: 90,
       enabled: true,
       nextFireAt: null,
+      waitingForLocation: false,
     };
     expect(await res.json()).toEqual(expected);
     expect(await (await call('GET', '/reminders')).json()).toEqual([expected]);
   });
 
-  it('keeps one row per user: a second PUT updates it', async () => {
-    await put(telAviv);
-    const res = await put({ ...telAviv, offsetMinutes: 30, lat: 31.7683 });
+  it('saves a reminder before the location is known, and says it is waiting for one', async () => {
+    expect(await (await put(settings)).json()).toMatchObject({
+      waitingForLocation: true,
+    });
 
-    expect(await res.json()).toMatchObject({ offsetMinutes: 30, lat: 31.7683 });
+    knowLocation();
+    expect(await (await call('GET', '/reminders')).json()).toEqual([
+      expect.objectContaining({ waitingForLocation: false }),
+    ]);
+  });
+
+  it('keeps one row per user: a second PUT updates it', async () => {
+    await put(settings);
+    const res = await put({ offsetMinutes: 30 });
+
+    expect(await res.json()).toMatchObject({ offsetMinutes: 30 });
     expect(repo.rows.size).toBe(1);
   });
 
+  it('ignores a location sent by an older client — it comes from the profile now', async () => {
+    const res = await put({
+      ...settings,
+      lat: 32,
+      lon: 34.8,
+      tz: 'Asia/Jerusalem',
+    });
+    expect(res.status).toBe(200);
+    expect(await res.json()).not.toHaveProperty('lat');
+  });
+
   it('DELETE turns it off but keeps the settings, idempotently', async () => {
-    await put(telAviv);
+    await put(settings);
 
     expect((await call('DELETE', '/reminders/shabbat-candles')).status).toBe(
       204,
@@ -95,9 +131,9 @@ describe('reminders API (reminders)', () => {
   });
 
   it('PUT after DELETE turns it back on', async () => {
-    await put(telAviv);
+    await put(settings);
     await call('DELETE', '/reminders/shabbat-candles');
-    expect(await (await put(telAviv)).json()).toMatchObject({ enabled: true });
+    expect(await (await put(settings)).json()).toMatchObject({ enabled: true });
   });
 
   it('DELETE without a reminder is a 204 no-op', async () => {
@@ -108,7 +144,7 @@ describe('reminders API (reminders)', () => {
   });
 
   it("only ever sees the forwarded user's own reminders", async () => {
-    await put(telAviv, 'user-1');
+    await put(settings, 'user-1');
     await call('DELETE', '/reminders/shabbat-candles', undefined, 'user-2');
 
     expect(
@@ -118,7 +154,7 @@ describe('reminders API (reminders)', () => {
   });
 
   it('ignores a userId or enabled flag in the body', async () => {
-    await put({ ...telAviv, userId: 'attacker', enabled: false });
+    await put({ ...settings, userId: 'attacker', enabled: false });
     expect(repo.rows.get('user-1:shabbat_candles')).toMatchObject({
       userId: 'user-1',
       enabled: true,
@@ -136,7 +172,7 @@ describe('reminders API (reminders)', () => {
       const res = await call(
         method,
         path,
-        method === 'PUT' ? telAviv : undefined,
+        method === 'PUT' ? settings : undefined,
         null,
       );
       expect(res.status).toBe(401);
@@ -146,15 +182,10 @@ describe('reminders API (reminders)', () => {
 
   it.each([
     ['no body', {}],
-    ['a zero offset', { ...telAviv, offsetMinutes: 0 }],
-    ['an offset over a day', { ...telAviv, offsetMinutes: 1441 }],
-    ['a fractional offset', { ...telAviv, offsetMinutes: 1.5 }],
-    ['an offset as a string', { ...telAviv, offsetMinutes: '90' }],
-    ['a latitude out of range', { ...telAviv, lat: 91 }],
-    ['a longitude out of range', { ...telAviv, lon: -181 }],
-    ['a latitude as a string', { ...telAviv, lat: '32.08' }],
-    ['an unknown time zone', { ...telAviv, tz: 'Mars/Olympus' }],
-    ['a missing time zone', { ...telAviv, tz: undefined }],
+    ['a zero offset', { offsetMinutes: 0 }],
+    ['an offset over a day', { offsetMinutes: 1441 }],
+    ['a fractional offset', { offsetMinutes: 1.5 }],
+    ['an offset as a string', { offsetMinutes: '90' }],
   ])('PUT rejects %s with 400', async (_name, body) => {
     expect((await put(body)).status).toBe(400);
     expect(repo.rows.size).toBe(0);

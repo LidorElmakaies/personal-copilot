@@ -14,9 +14,6 @@ const toModel = (r: ReminderEntity): Reminder => ({
   userId: r.userId,
   type: r.type,
   offsetMinutes: r.offsetMinutes,
-  lat: r.lat,
-  lon: r.lon,
-  tz: r.tz,
   enabled: r.enabled,
   nextFireAt: r.nextFireAt,
 });

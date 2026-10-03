@@ -13,7 +13,11 @@ type Route = {
   handler: (message: unknown, meta: MessageMeta) => Promise<void>;
 };
 
+const MIN_RETRY_MS = 1_000;
+const MAX_RETRY_MS = 60_000;
+
 // Starts on onApplicationBootstrap, after every module's onModuleInit has had a chance to subscribe.
+// Connects in the background, retrying, so a service still starts (and serves HTTP) while Kafka is down.
 @Injectable()
 export class KafkajsEventConsumer
   implements IEventConsumer, OnApplicationBootstrap, OnModuleDestroy
@@ -21,6 +25,8 @@ export class KafkajsEventConsumer
   private readonly logger = new Logger(KafkajsEventConsumer.name);
   private readonly consumer: Consumer;
   private readonly routes = new Map<string, Route>();
+  private stopped = false;
+  private retryTimer: NodeJS.Timeout | undefined;
 
   constructor(config: ConfigService, clientId: string, groupId: string) {
     const kafkaBrokers = config.get<string>('KAFKA_BROKERS');
@@ -39,20 +45,38 @@ export class KafkajsEventConsumer
     this.routes.set(topic, { isValid, handler });
   }
 
-  async onApplicationBootstrap(): Promise<void> {
+  onApplicationBootstrap(): void {
     if (this.routes.size === 0) return;
-    await this.consumer.connect();
-    // fromBeginning only applies to a group with no committed offset yet — don't lose what was
-    // published before this service's first start.
-    await this.consumer.subscribe({
-      topics: [...this.routes.keys()],
-      fromBeginning: true,
-    });
-    await this.consumer.run({ eachMessage: (p) => this.dispatch(p) });
+    void this.start(MIN_RETRY_MS);
   }
 
   async onModuleDestroy(): Promise<void> {
+    this.stopped = true;
+    clearTimeout(this.retryTimer);
     await this.consumer.disconnect();
+  }
+
+  private async start(retryMs: number): Promise<void> {
+    try {
+      await this.consumer.connect();
+      // fromBeginning only applies to a group with no committed offset yet — don't lose what was
+      // published before this service's first start.
+      await this.consumer.subscribe({
+        topics: [...this.routes.keys()],
+        fromBeginning: true,
+      });
+      await this.consumer.run({ eachMessage: (p) => this.dispatch(p) });
+    } catch (err) {
+      if (this.stopped) return;
+      this.logger.warn(
+        `Kafka consumer failed to start, retrying in ${retryMs} ms: ${(err as Error).message}`,
+      );
+      await this.consumer.disconnect().catch(() => undefined);
+      this.retryTimer = setTimeout(
+        () => void this.start(Math.min(retryMs * 2, MAX_RETRY_MS)),
+        retryMs,
+      );
+    }
   }
 
   /** Public for tests. Invalid messages resolve (offset commits); handler errors reject (kafkajs retries). */
@@ -66,12 +90,12 @@ export class KafkajsEventConsumer
       offset: message.offset,
     };
 
-    // A tombstone on a compacted topic — the matching delete event is what consumers act on.
+    // A tombstone on a compacted topic: the key's data is gone, nothing to handle.
     if (message.value === null) return;
 
     let value: unknown;
     try {
-      value = JSON.parse(message.value?.toString() ?? '');
+      value = JSON.parse(message.value.toString());
     } catch {
       this.logger.warn(`Skipping non-JSON message on ${topic} @${meta.offset}`);
       return;

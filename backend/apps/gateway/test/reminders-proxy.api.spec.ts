@@ -25,9 +25,6 @@ describe('reminders-proxy (gateway)', () => {
   );
   const settings = {
     offsetMinutes: 90,
-    lat: 32.0853,
-    lon: 34.7818,
-    tz: 'Asia/Jerusalem',
   };
   const routes = [
     ['GET', '/reminders', undefined],
@@ -83,7 +80,7 @@ describe('reminders-proxy (gateway)', () => {
       400,
       {
         statusCode: 400,
-        message: ['tz must be a valid IANA time-zone'],
+        message: ['offsetMinutes must not be greater than 1440'],
         error: 'Bad Request',
       },
     ],

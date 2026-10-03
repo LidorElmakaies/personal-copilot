@@ -66,14 +66,45 @@ describe('KafkajsEventConsumer.dispatch', () => {
     ).rejects.toThrow('push service down');
   });
 
-  it("doesn't connect at all when nothing subscribed", async () => {
+  type Inner = {
+    consumer: {
+      connect: () => Promise<void>;
+      disconnect: () => Promise<void>;
+    };
+  };
+  const inner = (c: KafkajsEventConsumer) => (c as unknown as Inner).consumer;
+
+  it("doesn't connect at all when nothing subscribed", () => {
     const idle = new KafkajsEventConsumer(config, 'test', 'idle-group');
-    const connect = jest.spyOn(
-      (idle as unknown as { consumer: { connect: () => Promise<void> } })
-        .consumer,
-      'connect',
-    );
-    await idle.onApplicationBootstrap();
+    const connect = jest.spyOn(inner(idle), 'connect');
+    idle.onApplicationBootstrap();
     expect(connect).not.toHaveBeenCalled();
+  });
+
+  it("doesn't block startup while Kafka is down, and keeps retrying with a growing delay", async () => {
+    jest.useFakeTimers();
+    try {
+      const connect = jest
+        .spyOn(inner(consumer), 'connect')
+        .mockRejectedValue(new Error('broker down'));
+      jest.spyOn(inner(consumer), 'disconnect').mockResolvedValue();
+
+      expect(consumer.onApplicationBootstrap()).toBeUndefined(); // returns at once
+      await jest.advanceTimersByTimeAsync(0);
+      expect(connect).toHaveBeenCalledTimes(1);
+
+      await jest.advanceTimersByTimeAsync(1_000);
+      expect(connect).toHaveBeenCalledTimes(2);
+      await jest.advanceTimersByTimeAsync(1_999); // next delay is 2 s
+      expect(connect).toHaveBeenCalledTimes(2);
+      await jest.advanceTimersByTimeAsync(1);
+      expect(connect).toHaveBeenCalledTimes(3);
+
+      await consumer.onModuleDestroy();
+      await jest.advanceTimersByTimeAsync(60_000);
+      expect(connect).toHaveBeenCalledTimes(3);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 });

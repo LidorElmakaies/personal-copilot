@@ -53,7 +53,7 @@ every agent in `.claude/agents/` too. Also in [README.md](README.md).
 ```
 backend/                 NestJS monorepo — apps/{gateway,auth,calendar,reminders,notifications}
                           + libs/{auth-kernel,otel,queue-client,queue-contracts,
-                          kafka-client,kafka-contracts}
+                          kafka-client,kafka-contracts,users-schema}
 frontend/                 Expo/React Native app — login/register (optional, not gated app-wide), a
                           Home tab (clock + Shabbat times), and an auth-gated Account tab;
                           e2e/ holds the containerized Playwright tests
@@ -107,12 +107,13 @@ docs/plans/               staged feature plans + their HTML design pages
   ever authenticating a second call with an already-stale password. Body-driven rather than
   `JwtAuthGuard`-gated, deliberately consistent with this service's existing stateless pattern
   rather than introducing bearer-token auth for just this one caller. `DELETE /auth/account`
-  (`{email, currentPassword}`) deletes immediately. Profiles: `profiles` (name, phone, location,
-  `version`, keyed by user id) behind `GET`/`PATCH /users/me` and `PUT /users/me/location`; register
-  takes the optional details. Every profile change and every delete is written to `outbox_events`
-  in the same transaction and published to Kafka (`users.user-state`, `users.user-deleted`) by
-  `OutboxRelay`. Postgres via
-  TypeORM (`users`, `refresh_tokens`, `profiles`, `outbox_events`), salt+pepper+SHA-256 password hashing (`PASSWORD_PEPPER`),
+  (`{email, currentPassword}`) deletes immediately — other services' rows about the user go too,
+  through `ON DELETE CASCADE` foreign keys. Profiles: `profiles` (name, phone, location, `version`,
+  keyed by user id) behind `GET`/`PATCH /users/me` and `PUT /users/me/location`; register takes the
+  optional details. Every profile change (and a tombstone on delete) is written to `outbox_events`
+  in the same transaction and published to Kafka (`users.user-state`) by `OutboxRelay`. Postgres
+  schema `users` via TypeORM (`users`, `refresh_tokens`, `profiles`, `outbox_events`),
+  salt+pepper+SHA-256 password hashing (`PASSWORD_PEPPER`),
   15-min access tokens (`{ sub, role, email }` payload — the client decodes this instead of a
   separate `/me` call) + 30-day rotating refresh tokens (`backend/libs/auth-kernel` for the
   shared JWT sign/verify + guard).
@@ -122,14 +123,13 @@ docs/plans/               staged feature plans + their HTML design pages
   is the user's date in `tz`; Israel rules and 20-min candle lighting when `tz` is
   `Asia/Jerusalem`, else 18 min. See `backend/apps/calendar/README.md` for the ESM-import and
   time-zone gotchas.
-- **reminders** (`backend/apps/reminders`) — internal-only, own database
-  (`REMINDERS_DATABASE_URL`, created by `devops/postgres`'s one-shot `postgres-init`). One
-  `reminders` row per user and type (`shabbat_candles` so far): `GET /reminders`,
-  `PUT`/`DELETE /reminders/shabbat-candles` (user from `X-User-Id`). Still stores its own
-  `lat`/`lon`/`tz` and nothing fires yet — plan tasks 2.9 (location from `users.user-state`) and
-  2.13 (scheduler).
-- **notifications** (`backend/apps/notifications`) — internal-only, own database
-  (`NOTIFICATIONS_DATABASE_URL`) plus the BullMQ queue on Redis (`REDIS_URL`, consume-only). Stores browsers'
+- **reminders** (`backend/apps/reminders`) — internal-only, schema `reminders`. One `reminders`
+  row per user and type (`shabbat_candles` so far; `user_id` → `users.users` `ON DELETE CASCADE`):
+  `GET /reminders`, `PUT`/`DELETE /reminders/shabbat-candles` (user from `X-User-Id`; `PUT` takes
+  only `{ offsetMinutes }`). Reads the user's location straight from `users.profiles` (read-only
+  mapping) — no copy. Nothing fires yet (scheduler: plan task 2.13).
+- **notifications** (`backend/apps/notifications`) — internal-only, schema `notifications`
+  (`push_subscriptions.user_id` → `users.users` `ON DELETE CASCADE`) plus the BullMQ queue on Redis (`REDIS_URL`, consume-only). Stores browsers'
   Web Push subscriptions (`push_subscriptions`) and serves the VAPID public key (`VAPID_*` env, see
   `docs/notifications/environment.md`). User from Gateway's `X-User-Id` via `@app/auth-kernel`'s
   `@ForwardedUserId()`. Processes `notification-requested` jobs: drops expired ones (required
@@ -232,9 +232,11 @@ across retries), `queue-contracts`
 (this project's queue names, job types, their guards and publish options — see
 `docs/specs/event-schemas.md`), `kafka-client` (`IEventPublisher`/`IEventConsumer` over `kafkajs`,
 plus the outbox: `addOutboxEvent` in the change's transaction, `OutboxRelay` publishes),
-`kafka-contracts` (topics, consumer groups, event types and guards). Kafka is for events, BullMQ
+`kafka-contracts` (topics, consumer groups, event types and guards), `users-schema` (read-only
+TypeORM mappings of the Users Service's tables, for other services to read and reference). Kafka is for events, BullMQ
 for jobs. Shared infrastructure is one instance each, reused by every service that needs it:
-Postgres (one database per table-owning service), Redis (BullMQ queues), Kafka (events, not
+Postgres (one database, `personal_copilot`, a schema per table-owning service — a service writes
+only its own schema and may read others' tables), Redis (BullMQ queues), Kafka (events, not
 published to the host).
 
 **Frontend** — Expo Router, file-based routing, `(auth)`/`(tabs)` groups. Redux Toolkit with a

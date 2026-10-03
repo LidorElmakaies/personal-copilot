@@ -13,7 +13,7 @@ import { ProfileEntity } from '../../entities/profile.entity';
 import { RefreshTokenEntity } from '../../entities/refresh-token.entity';
 import { UserEntity } from '../../entities/user.entity';
 import { toProfile } from './typeorm-profile.repository';
-import { addUserDeletedEvents, addUserStateEvent } from './user-events';
+import { addUserStateEvent, addUserStateTombstone } from './user-events';
 
 function toDomain(entity: UserEntity): User {
   return {
@@ -78,12 +78,14 @@ export class TypeOrmUserRepository implements IUserRepository {
   }
 
   async delete(userId: string): Promise<void> {
+    // Other services' rows (reminders, push subscriptions) go too: their user_id foreign keys
+    // are ON DELETE CASCADE.
     const deleted = await this.repo.manager.transaction(async (m) => {
       await m.delete(RefreshTokenEntity, { userId });
       await m.delete(ProfileEntity, { userId });
       const { affected } = await m.delete(UserEntity, { id: userId });
       if (!affected) return false;
-      await addUserDeletedEvents(m, userId, new Date());
+      await addUserStateTombstone(m, userId);
       return true;
     });
     if (deleted) this.relay.notify();

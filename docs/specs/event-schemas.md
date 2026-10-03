@@ -75,8 +75,7 @@ by `devops/kafka`'s `kafka-init` (auto-create is off). The table below, `KAFKA_T
 
 | Topic | Publisher | Consumers (group) | Notes |
 |---|---|---|---|
-| `users.user-deleted` | Users (`DELETE /auth/account`) | Reminders (`reminders`), Notifications (`notifications`) — tasks 2.9, 2.10 | |
-| `users.user-state` | Users (register, `PATCH /users/me`, `PUT /users/me/location`) | Reminders (`reminders`, task 2.9) | compacted; tombstone on delete |
+| `users.user-state` | Users (register, `PATCH /users/me`, `PUT /users/me/location`) | Reminders (`reminders`, from task 2.13: reschedule on a change) | compacted; tombstone on delete |
 
 Event rules:
 - Every message is keyed by `userId`, so one user's events stay in order (one partition per key).
@@ -90,24 +89,14 @@ Event rules:
 Adding a topic: add it to `KAFKA_TOPICS` and `kafka-init`, its type + guard under
 `kafka-contracts/src/messages/` (exported from `index.ts`), and a row and section here.
 
-## `users.user-deleted`
-
-An account was deleted (`DELETE /auth/account`). Every other service deletes what it holds about that user.
-
-```ts
-interface UserDeletedMessage {
-  userId: string;
-  deletedAt: string;     // ISO 8601
-}
-```
-
 ## `users.user-state`
 
 The user's **full** current state after every change, never a partial update. The topic is
 compacted (`cleanup.policy=compact`): Kafka keeps at least the latest message per user, so a
 service that starts consuming later still gets every user's current state. When a user is deleted,
-Users publishes a tombstone (a `null` value) so compaction drops them; consumers skip tombstones and
-act on `users.user-deleted` instead.
+Users publishes a tombstone (a `null` value) so compaction drops them; consumers skip tombstones.
+There's no delete event: other services' per-user rows go with the account through
+`ON DELETE CASCADE` foreign keys (see `architecture.md`'s "Postgres").
 
 ```ts
 interface UserStateMessage {

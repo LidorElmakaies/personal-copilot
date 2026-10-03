@@ -36,6 +36,6 @@ export interface IAuthService {
   logout(refreshToken: string): Promise<void>;
   /** Body-driven, not JwtAuthGuard-based — currentPassword is the proof of identity. */
   updateAccount(input: UpdateAccountInput): Promise<AuthTokens>;
-  /** Immediate and permanent; every other service is told through `users.user-deleted`. */
+  /** Immediate and permanent; other services' rows about the user cascade with it. */
   deleteAccount(input: DeleteAccountInput): Promise<void>;
 }

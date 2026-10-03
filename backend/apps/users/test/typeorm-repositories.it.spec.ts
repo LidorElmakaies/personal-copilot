@@ -144,7 +144,7 @@ maybe('Users Service repositories (real Postgres)', () => {
     expect(relay.notify).not.toHaveBeenCalled();
   });
 
-  it('deletes the user, profile and refresh tokens, and saves the delete event plus a tombstone', async () => {
+  it('deletes the user, profile and refresh tokens, and saves a tombstone', async () => {
     const user = await newUser();
     await ds.getRepository(RefreshTokenEntity).save({
       userId: user.id,
@@ -160,12 +160,7 @@ maybe('Users Service repositories (real Postgres)', () => {
     expect(
       await ds.getRepository(RefreshTokenEntity).countBy({ userId: user.id }),
     ).toBe(0);
-    const [, deleted, tombstone] = await outbox();
-    expect(deleted).toMatchObject({
-      topic: KAFKA_TOPICS.USER_DELETED,
-      key: user.id,
-      payload: { userId: user.id },
-    });
+    const [, tombstone] = await outbox();
     expect(tombstone).toMatchObject({
       topic: KAFKA_TOPICS.USER_STATE,
       key: user.id,

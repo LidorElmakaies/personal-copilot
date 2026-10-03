@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "../../dist/.tsbuildinfo-users-schema",
+    "outDir": "../../dist/libs/users-schema"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["**/*spec.ts"]
+}

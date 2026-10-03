@@ -5,7 +5,6 @@ Read from `backend/.env` locally (`npx nest start reminders`), or from `devops/d
 
 - **`PORT`** — not set in the shared `backend/.env`; defaults to `8003` in `main.ts` (see
   [docs/gateway/environment.md](../gateway/environment.md) for why no app sets `PORT` there).
-- **`REMINDERS_DATABASE_URL`** — this service's own database in the shared Postgres (`reminders`), created by
-  `devops/postgres`'s `postgres-init`. Separate from Auth's `DATABASE_URL` so each service owns
-  its tables.
+- **`DATABASE_URL`** — the shared database (`personal_copilot`); this service uses the `reminders`
+  schema (created by `devops/postgres`'s `postgres-init`) and writes only that.
 - **`OTEL_EXPORTER_OTLP_ENDPOINT`** — same as every backend app; see root `CLAUDE.md`.

@@ -80,8 +80,9 @@ HTTP, internal-only — never published to the host, only Gateway calls it.
   authenticating a second sequential call with an already-stale password, something two separate
   endpoints couldn't guarantee.
 - `DELETE /auth/account` — `{ email, currentPassword }` → `204`. Verified like `login`, then
-  deletes the user, profile and refresh tokens at once and publishes `users.user-deleted` (plus a
-  `users.user-state` tombstone) so every other service deletes its data. Immediate, no undo. An
+  deletes the user, profile and refresh tokens in one transaction — and with them the user's
+  reminders and push subscriptions, whose `user_id` foreign keys are `ON DELETE CASCADE` — and
+  publishes a `users.user-state` tombstone. Immediate, no undo. An
   access token issued before keeps passing `JwtAuthGuard` until it expires (≤ 15 min), but every
   `/users/me` call with it answers `404`.
 - `GET /users/me` → `{ firstName, lastName, phone, location: { lat, lon, tz, updatedAt } | null }`
@@ -156,26 +157,32 @@ See `backend/apps/calendar/README.md` for the non-obvious implementation details
 
 ## reminders
 
-HTTP, internal-only, its own `reminders` database (`REMINDERS_DATABASE_URL`). User from Gateway's
-`X-User-Id` (`@ForwardedUserId()`, 401 without it). One `reminders` row per user and type
-(`user_id`, `type`, `offset_min`, `lat`, `lon`, `tz`, `enabled`, `next_fire_at`; unique
-`(user_id, type)`). The only type so far is `shabbat_candles`.
+HTTP, internal-only, schema `reminders` in the shared database. User from Gateway's `X-User-Id`
+(`@ForwardedUserId()`, 401 without it). One `reminders` row per user and type (`user_id`, `type`,
+`offset_min`, `enabled`, `next_fire_at`; unique `(user_id, type)`); `user_id` references
+`users.users(id)` `ON DELETE CASCADE`, so a deleted account's reminders go with it and a reminder
+can't be saved for a user that doesn't exist. The only type so far is `shabbat_candles`.
 
 - `GET /reminders` → the caller's reminders, enabled or not:
-  `[{ type, offsetMinutes, lat, lon, tz, enabled, nextFireAt }]`.
-- `PUT /reminders/shabbat-candles` — `{ offsetMinutes, lat, lon, tz }` → the saved reminder.
-  Turns it on, or updates it. `offsetMinutes` is a whole number 1–1440; `lat`/`lon` numbers in
-  range; `tz` an IANA zone → `400` otherwise.
+  `[{ type, offsetMinutes, enabled, nextFireAt, waitingForLocation }]`. `waitingForLocation` is
+  `true` until the user's location is known (see below) — the reminder is saved, but can't fire.
+- `PUT /reminders/shabbat-candles` — `{ offsetMinutes }` → the saved reminder. Turns it on, or
+  updates it. `offsetMinutes` is a whole number 1–1440 → `400` otherwise. Any `lat`/`lon`/`tz` sent
+  is ignored: the location comes from the user's profile.
 - `DELETE /reminders/shabbat-candles` → `204`. Turns it off but keeps the row, so the settings can
   prefill the sheet next time. Idempotent.
 - `GET /health`.
 
-Nothing fires yet: `next_fire_at` stays `null` until the scheduler (plan task 2.6) sets it.
+**The user's location** is read straight from the Users Service's `users.profiles` (a read-only
+mapping, `UsersProfileEntity` from `@app/users-schema`) — never copied, never written here. Nothing
+fires yet: `next_fire_at` stays `null` until the scheduler (plan task 2.13) sets it; that task adds
+a `users.user-state` listener to reschedule when the location changes.
 
 ## notifications
 
-HTTP + BullMQ worker, internal-only, its own `notifications` database
-(`NOTIFICATIONS_DATABASE_URL`, push subscriptions) plus the shared Redis (`REDIS_URL`, its queues).
+HTTP + BullMQ worker, internal-only, schema `notifications` in the shared database (push
+subscriptions; `user_id` references `users.users(id)` `ON DELETE CASCADE`) plus the shared Redis
+(`REDIS_URL`, its queues).
 Stores browsers' Web Push subscriptions and delivers `notification-requested` jobs to them.
 Publishers decide *what* and *when*; this service decides *how* (one `INotificationChannel`
 adapter per channel — `WebPushChannel` today).
@@ -311,6 +318,14 @@ currently `notification-requested`, processed by Notification Service; nothing p
 Also `notificationRequestedPublishOptions(message)`, the dedupe/retry options every publisher of
 that queue must pass. See `event-schemas.md`.
 
+## libs/users-schema
+
+The Users Service's tables as other services may see them: read-only TypeORM entities
+(`synchronize: false`, so a service that lists them never creates or alters them) —
+`UsersUserEntity` (`users.users`, id only; the target of other services' `ON DELETE CASCADE`
+foreign keys) and `UsersProfileEntity` (`users.profiles`, location columns; read by Reminders). Only
+the Users Service writes these tables; its own full entities stay in `apps/users`.
+
 ## libs/kafka-contracts / libs/kafka-client
 
 Kafka is for events (a fact any number of services may react to); BullMQ above is for jobs. The
@@ -319,11 +334,13 @@ tasks 2.9/2.10.
 
 `kafka-client` (the only code that imports `kafkajs`, via `KAFKA_BROKERS`):
 `IEventPublisher`/`KafkajsEventPublisher` (`publish(topic, key, message | null)`; `null` is a
-tombstone; idempotent producer, one request in flight, so a key's messages keep their order) and
+tombstone; idempotent producer, one request in flight, so a key's messages keep their order;
+connects on first publish, so a service starts while Kafka is down) and
 `IEventConsumer`/`KafkajsEventConsumer` (`subscribe(topic, guard, handler)`, one consumer group per
-service, starts on `onApplicationBootstrap` reading from the beginning for a new group; a message
-failing the guard is logged and skipped, a tombstone skipped silently, a handler that throws is
-retried). The outbox: `addOutboxEvent(manager, topic, key, payload)` saves an event in the caller's
+service, starts on `onApplicationBootstrap` reading from the beginning for a new
+group, connecting in the background and retrying with a delay doubling from 1 s to 60 s; a message
+failing the guard is logged and skipped, a tombstone skipped silently, a
+handler that throws is retried). The outbox: `addOutboxEvent(manager, topic, key, payload)` saves an event in the caller's
 TypeORM transaction (`outbox_events`, `OutboxEventEntity` — add it to the service's entities), and
 `OutboxRelay` (over `TypeOrmOutboxStore` + the publisher) publishes saved events in order and
 deletes each once Kafka has it — on startup and on `notify()` after a commit, retrying a failure

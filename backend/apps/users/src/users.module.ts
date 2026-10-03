@@ -11,6 +11,7 @@ import {
   type IEventPublisher,
 } from '@app/kafka-client';
 import { AuthController } from './api/controllers/auth.controller';
+import { HealthController } from './api/controllers/health.controller';
 import { UsersController } from './api/controllers/users.controller';
 import { AdminSeedService } from './application/admin-seed.service';
 import { AuthService } from './application/auth.service';
@@ -49,6 +50,8 @@ const ENTITIES = [
       useFactory: (config: ConfigService) => ({
         type: 'postgres' as const,
         url: config.get<string>('DATABASE_URL'),
+        // This service's own schema in the shared database — the only one it writes.
+        schema: 'users',
         entities: ENTITIES,
         // See backend/apps/users/README.md's "synchronize: true below production" section.
         synchronize: config.get<string>('NODE_ENV') !== 'production',
@@ -57,7 +60,7 @@ const ENTITIES = [
     }),
     TypeOrmModule.forFeature(ENTITIES),
   ],
-  controllers: [AuthController, UsersController],
+  controllers: [HealthController, AuthController, UsersController],
   providers: [
     AdminSeedService,
     { provide: AUTH_SERVICE, useClass: AuthService },

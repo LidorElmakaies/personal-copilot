@@ -291,7 +291,7 @@ describe('accounts and profiles (users)', () => {
   });
 
   describe('DELETE /auth/account', () => {
-    it('deletes the account and profile and announces it, with a tombstone', async () => {
+    it('deletes the account and profile and publishes a tombstone', async () => {
       const userId = await register();
 
       const res = await send('DELETE', '/auth/account', {
@@ -302,14 +302,11 @@ describe('accounts and profiles (users)', () => {
       expect(res.status).toBe(204);
       expect(store.users.has(userId)).toBe(false);
       expect(store.profiles.has(userId)).toBe(false);
-      expect(store.events.slice(-2)).toEqual([
-        {
-          topic: KAFKA_TOPICS.USER_DELETED,
-          key: userId,
-          payload: { userId, deletedAt: expect.any(String) as string },
-        },
-        { topic: KAFKA_TOPICS.USER_STATE, key: userId, payload: null },
-      ]);
+      expect(store.events.at(-1)).toEqual({
+        topic: KAFKA_TOPICS.USER_STATE,
+        key: userId,
+        payload: null,
+      });
       expect(
         (
           await send('POST', '/auth/login', {

@@ -86,6 +86,13 @@
       "entryFile": "index",
       "sourceRoot": "libs/kafka-client/src",
       "compilerOptions": { "tsConfigPath": "libs/kafka-client/tsconfig.lib.json" }
+    },
+    "users-schema": {
+      "type": "library",
+      "root": "libs/users-schema",
+      "entryFile": "index",
+      "sourceRoot": "libs/users-schema/src",
+      "compilerOptions": { "tsConfigPath": "libs/users-schema/tsconfig.lib.json" }
     }
   }
 }

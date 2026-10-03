@@ -11,7 +11,7 @@ behind this.
   [docs/users/environment.md](../users/environment.md) for what's in it.
 - **`devops/docker.env`** (checked into git — no secrets) — container-network overrides layered on
   top of `backend/.env` via each service's own `env_file:` list: `DATABASE_URL`
-  (users), `REMINDERS_DATABASE_URL`, `NOTIFICATIONS_DATABASE_URL`, `REDIS_URL` (Redis, which also
+  (every service — one database, a schema each), `REDIS_URL` (Redis, which also
   hosts the BullMQ queues), `KAFKA_BROKERS` (events), `OTEL_EXPORTER_OTLP_ENDPOINT`, all pointed at Docker service names
   instead of `localhost`.
 - **`devops/.env`** (gitignored, copy of `devops/.env.example`) — read directly by `docker compose`

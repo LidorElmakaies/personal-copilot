@@ -48,18 +48,24 @@ If a design changes, update the HTML file here in the same commit.
   Our own VAPID key pair identifies the server; nothing goes through Expo. A native-app channel can
   be added later as another adapter.
 - Every new service is internal-only (no published port). Only Gateway is reachable from outside.
-- **Kafka for events, BullMQ for jobs.** A fact that several services may care about ("this user
-  was deleted") goes on a Kafka topic; each service reads it with its own consumer group. Work that
-  runs once, possibly delayed or in parallel (`notification-requested`, a reminder's next firing),
-  stays a BullMQ job. Kafka was brought back for this in task 2.6.
+- **Kafka for events, BullMQ for jobs.** A fact that services may need to react to ("this user's
+  profile changed") goes on a Kafka topic; each service reads it with its own consumer group. Work
+  that runs once, possibly delayed or in parallel (`notification-requested`, a reminder's next
+  firing), stays a BullMQ job. Kafka was brought back for this in task 2.6.
+- **One database, a schema per service.** Every service uses the one `personal_copilot` database,
+  in its own schema (`users.*`, `reminders.*`, `notifications.*`). A service only ever writes its
+  own schema; it may read another's tables directly (a read-only TypeORM mapping,
+  `synchronize: false`, so it never creates or alters them). Ownership is a convention, not
+  database roles. Replaced one database per service (task 2.10).
 - **Users, location and events.** One Users Service (the Auth Service, renamed) owns both how you
   log in (`users`, `refresh_tokens`) and who you are (`profiles`: first and last name, phone,
   location; keyed by the user id, the JWT `sub`). Account and profile are created in one
-  transaction, so there's nothing to keep in sync. It announces the user's full state on a
-  compacted `users.user-state` topic (a service that starts listening later still gets everyone's
-  latest state) and deletions on `users.user-deleted`. Other services keep their own copy of what
-  they need instead of calling it. Every event is written through an outbox (saved in the same
-  transaction as the change), so none is lost.
+  transaction. Other services read `users.profiles` when they need a location — no copies. Every
+  profile change is announced on a compacted `users.user-state` topic (through an outbox saved in
+  the same transaction, so none is lost), which is how Reminders knows to reschedule.
+- **Deleting an account cascades.** Other services' tables reference `users.users(id)` with
+  `ON DELETE CASCADE`, so deleting the user removes their reminders and push subscriptions in the
+  same transaction. No delete event.
 - **Location follows the phone.** Signed in, the phone sends its location only when it moved more
   than 5 km or the time zone changed. The server knows where the app was last opened (a web app
   can't read GPS in the background). Two phones in two places: the last update wins. Signed out,
@@ -165,13 +171,25 @@ events" under Decisions.
   }`, immediate). Outbox: every profile change publishes the full state to `users.user-state`; a
   delete publishes `users.user-deleted` and a `users.user-state` tombstone. Gateway `users-proxy`
   (`JwtAuthGuard`) and the new `auth-proxy` route.
-- [ ] **2.9 Reminders: location from events.** Drop `lat`, `lon`, `tz` from `reminders`; `PUT
+- [x] **2.9 Reminders: location from events.** Drop `lat`, `lon`, `tz` from `reminders`; `PUT
   /reminders/shabbat-candles` takes only `{ offsetMinutes }`. Keep a `user_locations` copy filled
   from `users.user-state` (newer `version` wins, older ignored). On `users.user-deleted`, delete the
   user's reminders and location. A reminder for a user with no location yet is saved but can't be
   scheduled; `GET /reminders` says so.
-- [ ] **2.10 Notifications: clean up on delete.** On `users.user-deleted`, delete the user's push
-  subscriptions.
+  *Partly undone by 2.10:* with one database, the `user_locations` copy and `users.user-deleted`
+  go away.
+- [x] **2.10 One database, a schema per service.** `devops/postgres`'s `postgres-init` creates the
+  `users`, `reminders` and `notifications` schemas in `personal_copilot` instead of separate
+  databases; every service uses `DATABASE_URL` plus its own `schema` (`REMINDERS_DATABASE_URL` and
+  `NOTIFICATIONS_DATABASE_URL` go away). Everything starts fresh (only test data so far): the old
+  `public` tables and `reminders`/`notifications` databases are dropped by hand.
+  Reminders: drop `user_locations` and its Kafka consumer (the scheduler, 2.13, adds a
+  `users.user-state` listener back just to reschedule), read the location from `users.profiles`
+  for `waitingForLocation`. `reminders.user_id` and `push_subscriptions.user_id` become foreign
+  keys to `users.users(id)` with `ON DELETE CASCADE` (so a reminder can't exist for a deleted
+  user). Drop `users.user-deleted` (topic, contract, outbox event); a delete still publishes the
+  `users.user-state` tombstone.
+  *Check:* deleting an account removes its reminders and push subscriptions.
 - [ ] **2.11 Frontend: account.** Optional first name, last name, phone on the register form; an
   edit-profile section on the Account tab (`GET`/`PATCH /users/me`); a "Delete account" button that
   asks for the password and logs out.
@@ -182,11 +200,12 @@ events" under Decisions.
 
 - [ ] **2.13 Reminders Service: scheduler.** BullMQ delayed jobs instead of polling: when a
   reminder is saved (or fires), compute its next fire time from the next candle lighting at the
-  user's location (Reminders' `user_locations` copy) and enqueue a job delayed until then (dedupe
-  id per reminder + date). At fire time it enqueues `notification-requested` (`expiresAt` = candle
-  lighting) and schedules next week's. Changing the offset, or a `users.user-state` event with a
-  new location, replaces the pending delayed job. The `reminders` rows stay the source of truth;
-  on startup, reschedule any enabled reminder with no pending job.
+  user's location (read from `users.profiles`) and enqueue a job delayed until then (dedupe id per
+  reminder + date). At fire time it enqueues `notification-requested` (`expiresAt` = candle
+  lighting) and schedules next week's. Changing the offset, or a `users.user-state` event (the
+  location may have changed), replaces the pending delayed job. The `reminders` rows stay the
+  source of truth; on startup, reschedule any enabled reminder with no pending job. A job whose
+  reminder is gone (account deleted) does nothing.
   *Tests:* fires once, not twice; survives a restart; offset change moves the next time; a
   location event moves the next time.
 - [ ] **2.14 Frontend: turn on notifications.** A service worker in the web build (receives the

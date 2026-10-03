@@ -33,7 +33,9 @@
       "@app/kafka-contracts": ["libs/kafka-contracts/src"],
       "@app/kafka-contracts/*": ["libs/kafka-contracts/src/*"],
       "@app/kafka-client": ["libs/kafka-client/src"],
-      "@app/kafka-client/*": ["libs/kafka-client/src/*"]
+      "@app/kafka-client/*": ["libs/kafka-client/src/*"],
+      "@app/users-schema": ["libs/users-schema/src"],
+      "@app/users-schema/*": ["libs/users-schema/src/*"]
     }
   }
 }

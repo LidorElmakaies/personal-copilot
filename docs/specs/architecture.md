@@ -64,7 +64,7 @@ native builds don't need HTTPS and can call Gateway at the PC's tailnet IP on `:
 (Caddy) instead runs standalone on the VPS and reaches `gateway` only via an SSH reverse tunnel
 from the home machine (see "SSH reverse-tunnel hardening" below) — `gateway` itself is never given
 a public port either way. `users`, `calendar`, `reminders`, and `notifications` are
-internal-only; `reminders` is a skeleton with its own database and no endpoints yet;
+internal-only; `reminders` stores per-user reminders (nothing fires yet);
 `notifications` stores browsers' Web Push subscriptions and processes `notification-requested`
 jobs from Redis (BullMQ), sending each to every device the user has through that browser's push
 service, end-to-end encrypted, and retrying the job for devices that weren't reached; nothing publishes
@@ -166,12 +166,16 @@ an option here). `networks:` stays out of `common.yml` and per-service instead, 
 Two `env_file` layers apply in order: `backend/.env` (local-dev defaults, the shared base) then
 `devops/docker.env` (container-network overrides) — later entries win.
 
-**Postgres databases**: one Postgres instance, one database per table-owning service —
-`personal_copilot` (auth, `POSTGRES_DB`), `reminders`, `notifications`. `devops/postgres`'s
-`postgres-init` is a one-shot container that creates any missing database on every `up`
-(idempotent); Postgres's own first-boot init scripts can't do this once `devops/data/postgres`
-exists. Services that need a database wait on it with `condition: service_completed_successfully`.
-Adding a database = add its name to `postgres-init`'s loop.
+**Postgres**: one instance, one database (`personal_copilot`, `POSTGRES_DB`), one schema per
+table-owning service — `users`, `reminders`, `notifications`. Every service connects with the same
+`DATABASE_URL` and sets its own `schema`; it writes only that schema and may read another's tables
+through a read-only TypeORM mapping (`synchronize: false`), e.g. Reminders reading
+`users.profiles`. Ownership is a convention, not database roles. Tables that hold per-user data
+reference `users.users(id)` `ON DELETE CASCADE`, so deleting an account removes them in the same
+transaction — which is why `reminders` and `notifications` wait for `users` to be healthy (its
+tables must exist first). `devops/postgres`'s `postgres-init` is a one-shot container that creates
+any missing schema on every `up` (idempotent; Postgres's own first-boot init scripts can't, once
+`devops/data/postgres` exists). Adding a service with tables = add its schema there.
 
 `devops/docker-compose.yml`'s `observability` network is declared `external: true` — the telemetry
 stack (`devops/observability/`) owns it and must already be running, or `docker compose up` here

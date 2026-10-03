@@ -5,9 +5,8 @@ Read from `backend/.env` locally (`npx nest start notifications`), or from `devo
 
 - **`PORT`** — not set in the shared `backend/.env`; defaults to `8004` in `main.ts` (see
   [docs/gateway/environment.md](../gateway/environment.md) for why no app sets `PORT` there).
-- **`NOTIFICATIONS_DATABASE_URL`** — this service's own database in the shared Postgres (`notifications`), created by
-  `devops/postgres`'s `postgres-init`. Separate from Auth's `DATABASE_URL` so each service owns
-  its tables.
+- **`DATABASE_URL`** — the shared database (`personal_copilot`); this service uses the `notifications`
+  schema (created by `devops/postgres`'s `postgres-init`) and writes only that.
 - **`VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY`** — the server's Web Push identity (a P-256 key pair,
   base64url). Generate once with `npx web-push generate-vapid-keys` and keep them in `backend/.env`
   (gitignored; Docker picks it up via `common.yml`). Browsers subscribe against the public key, so

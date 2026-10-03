@@ -103,12 +103,12 @@ ol.steps b{color:var(--ink)}
 
 <div class="wrap">
   <h1>Shabbat, calendar &amp; reminders architecture</h1>
-  <p class="lede">A Calendar Service handles all the calendar calculations. A Reminders Service decides <em>when</em> to notify you and enqueues a job on a BullMQ queue (Redis). A Notification Service decides <em>how</em> (push today, and email or SMS later with one new adapter each). A Users Service knows <em>who</em> you are and where you last opened the app; it announces changes on Kafka, so other services keep their own copy instead of asking it.</p>
+  <p class="lede">A Calendar Service handles all the calendar calculations. A Reminders Service decides <em>when</em> to notify you and enqueues a job on a BullMQ queue (Redis). A Notification Service decides <em>how</em> (push today, and email or SMS later with one new adapter each). A Users Service knows <em>who</em> you are and where you last opened the app; it announces changes on Kafka so others can react. All services share one Postgres database, a schema each: a service writes only its own tables and reads the others directly.</p>
 
   <section>
     <h2>System</h2>
     <div class="diagram">
-      <svg viewBox="0 0 1000 1180" role="img" aria-label="Phone calls Gateway over HTTPS. Gateway forwards to Calendar, Users, Reminders and Notification services. Users publishes events to Kafka; Reminders and Notifications consume them. Reminders asks Calendar for event times and enqueues a notification-requested job on a Redis (BullMQ) queue. Notification Service processes it and sends a Web Push that reaches the phone.">
+      <svg viewBox="0 0 1000 1180" role="img" aria-label="Phone calls Gateway over HTTPS. Gateway forwards to Calendar, Users, Reminders and Notification services. Users publishes profile changes to Kafka; Reminders consumes them. All services share one Postgres database, a schema each. Reminders asks Calendar for event times and enqueues a notification-requested job on a Redis (BullMQ) queue. Notification Service processes it and sends a Web Push that reaches the phone.">
         <defs>
           <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--accent)"/></marker>
           <marker id="ahv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--violet)"/></marker>
@@ -168,7 +168,6 @@ ol.steps b{color:var(--ink)}
         <text x="494" y="590" class="t-sub">publish</text>
         <path d="M486 700 L486 750" fill="none" stroke="var(--violet)" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#ahv)"/>
         <text x="494" y="730" class="t-sub">consume</text>
-        <path d="M965 656 H976 V900 H965" fill="none" stroke="var(--violet)" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#ahv)"/>
         <path d="M600 792 L680 792" fill="none" stroke="var(--violet)" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#ahv)"/>
         <text x="606" y="784" class="t-sub">enqueue</text>
         <path d="M822 834 L822 870" fill="none" stroke="var(--violet)" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#ahv)"/>
@@ -218,7 +217,7 @@ ol.steps b{color:var(--ink)}
         <text x="390" y="486" class="t-sub">• location: where you last opened</text>
         <text x="402" y="502" class="t-sub">the app (moved &gt; 5 km)</text>
         <rect x="388" y="514" width="196" height="34" rx="8" fill="var(--soft)" stroke="var(--line)"/>
-        <text x="400" y="536" class="t-mono">users · profiles · outbox</text>
+        <text x="400" y="536" class="t-mono">schema users · outbox</text>
 
         <!-- Kafka -->
         <rect x="360" y="610" width="605" height="90" rx="14" fill="var(--boxFill)" stroke="var(--ink)" stroke-opacity=".45" stroke-width="1.5"/>
@@ -226,21 +225,19 @@ ol.steps b{color:var(--ink)}
         <text x="428" y="636" class="t-sub">(events · each service reads with its own consumer group)</text>
         <rect x="376" y="650" width="230" height="34" rx="8" fill="var(--violetSoft)" stroke="var(--violet)" stroke-opacity=".6"/>
         <text x="388" y="672" class="t-mono" style="fill:var(--violet)">users.user-state · compacted</text>
-        <rect x="616" y="650" width="180" height="34" rx="8" fill="var(--violetSoft)" stroke="var(--violet)" stroke-opacity=".6"/>
-        <text x="628" y="672" class="t-mono" style="fill:var(--violet)">users.user-deleted</text>
 
         <!-- Reminders service -->
         <rect x="372" y="750" width="228" height="230" rx="14" fill="var(--boxFill)" stroke="var(--violet)" stroke-width="1.5" stroke-dasharray="7 5"/>
         <text x="390" y="778" class="t-title">Reminders Service</text>
         <text x="390" y="796" class="t-sub">decides WHEN</text>
         <text x="390" y="820" class="t-sub">• per user: yours only</text>
-        <text x="390" y="838" class="t-sub">• your location: its own copy,</text>
-        <text x="402" y="854" class="t-sub">from users.user-state</text>
+        <text x="390" y="838" class="t-sub">• reads your location from</text>
+        <text x="402" y="854" class="t-sub">users.profiles; events say when</text>
         <text x="390" y="872" class="t-sub">• asks Calendar for the time</text>
         <text x="390" y="890" class="t-sub">• fires, then sets next week</text>
         <text x="390" y="908" class="t-sub">• enqueues, never sends itself</text>
         <rect x="388" y="924" width="196" height="40" rx="8" fill="var(--soft)" stroke="var(--line)"/>
-        <text x="400" y="948" class="t-mono">reminders · user_locations</text>
+        <text x="400" y="948" class="t-mono">schema reminders · FK → users</text>
 
         <!-- Redis queue -->
         <rect x="680" y="750" width="285" height="84" rx="14" fill="var(--boxFill)" stroke="var(--ink)" stroke-opacity=".45" stroke-width="1.5"/>
@@ -265,9 +262,9 @@ ol.steps b{color:var(--ink)}
         <text x="880" y="992" class="t-faint" font-size="12.5" font-weight="600">SMS</text>
         <text x="880" y="1008" class="t-mono">future</text>
         <rect x="696" y="1030" width="253" height="34" rx="8" fill="var(--soft)" stroke="var(--line)"/>
-        <text x="708" y="1052" class="t-mono">Postgres: push subscriptions</text>
+        <text x="708" y="1052" class="t-mono">schema notifications · FK → users</text>
         <text x="698" y="1088" class="t-sub">new channel = one new adapter here</text>
-        <text x="698" y="1106" class="t-sub">consumes users.user-deleted (cleanup)</text>
+        <text x="698" y="1106" class="t-sub">subscriptions go with your account (FK)</text>
       </svg>
     </div>
     <div class="legend">
@@ -299,7 +296,8 @@ ol.steps b{color:var(--ink)}
           <li>The Auth Service, renamed: register, login, tokens, account as before</li>
           <li>New <code>profiles</code> table: first and last name, phone (all optional), and your location, keyed by your user id (the token's <code>sub</code>)</li>
           <li>Account and profile are created in one transaction, so nothing has to be synced</li>
-          <li>Every profile change is announced as your full state on <code>users.user-state</code>; delete account (password required, immediate) on <code>users.user-deleted</code></li>
+          <li>Every profile change is announced as your full state on <code>users.user-state</code></li>
+          <li>Delete account (password required, immediate): your reminders and push subscriptions go in the same transaction, because their tables reference <code>users.users</code> with <code>ON DELETE CASCADE</code></li>
         </ul>
       </div>
       <div class="card p2">
@@ -358,10 +356,8 @@ offset_min    90          <span class="c">-- 1h 30m</span>
 enabled       true
 next_fire_at  2026-10-02 16:34 local
 
-<span class="c">-- user_locations (Reminders' own copy, from users.user-state)</span>
-user_id       uuid
-lat, lon, tz  where you last opened the app
-version       newer wins, older events ignored</pre>
+<span class="c">-- schema reminders; user_id → users.users(id) ON DELETE CASCADE</span>
+<span class="c">-- your location: read from users.profiles (same database), never copied</span></pre>
         <p style="margin-top:10px"><b style="color:var(--ink)">How it fires:</b> no polling: each enabled reminder has one BullMQ job delayed until <code>next_fire_at</code>. When it runs, Reminders enqueues <code>notification-requested</code>, then asks Calendar for <em>next</em> week's candle lighting at your location, sets <code>next_fire_at</code> = that − 90 min and schedules the next delayed job. Change the offset, or move more than 5 km, and the pending job is replaced right away.</p>
       </div>
     </div>
@@ -395,8 +391,7 @@ version       newer wins, older events ignored</pre>
     <div class="tbl"><table>
       <thead><tr><th>Topic</th><th>Published by</th><th>Carries</th><th>Read by</th></tr></thead>
       <tbody>
-        <tr><td>users.user-deleted</td><td>Users</td><td><code>userId</code></td><td>Reminders, Notifications (each deletes its own data about you)</td></tr>
-        <tr><td>users.user-state</td><td>Users</td><td>your full state: name, phone, location, <code>version</code>. Keyed by user id, compacted; an empty message when you're deleted.</td><td>Reminders (location). A future SMS channel can start reading it any time.</td></tr>
+        <tr><td>users.user-state</td><td>Users</td><td>your full state: name, phone, location, <code>version</code>. Keyed by user id, compacted; an empty message when you're deleted.</td><td>Reminders (from task 2.13: "your profile changed, reschedule"; it reads the location itself from <code>users.profiles</code>).</td></tr>
       </tbody>
     </table></div>
     <div class="callout" style="margin-top:14px">
@@ -456,7 +451,7 @@ version       newer wins, older events ignored</pre>
       <li><b>Reminders Service:</b> Postgres and the reminder API.</li>
       <li><b>Kafka for events:</b> the broker back, <code>libs/kafka-client</code> with an outbox, contracts for the three topics.</li>
       <li><b>Auth becomes the Users Service:</b> the rename first, then profiles (name, phone, location), delete account, and the two events.</li>
-      <li><b>Reminders and Notifications listen:</b> Reminders keeps your location from <code>users.user-state</code>; both clean up on <code>users.user-deleted</code>.</li>
+      <li><b>One database:</b> a schema per service; Reminders reads your location from <code>users.profiles</code>; deleting an account cascades to reminders and push subscriptions.</li>
       <li><b>Frontend account + location:</b> name and phone at register and on the Account tab, delete account, location sent after a real move.</li>
       <li><b>Reminder scheduler:</b> BullMQ delayed jobs, moved when the offset or your location changes.</li>
       <li><b>Frontend reminders:</b> a service worker + "Turn on notifications", the bell button and offset sheet on the Home card, <code>remindersSlice</code>.</li>

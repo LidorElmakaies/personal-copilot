@@ -31,9 +31,6 @@ export class RemindersController {
     return toReminderResponse(
       await this.service.save(userId, 'shabbat_candles', {
         offsetMinutes: dto.offsetMinutes,
-        lat: dto.lat,
-        lon: dto.lon,
-        tz: dto.tz,
       }),
     );
   }

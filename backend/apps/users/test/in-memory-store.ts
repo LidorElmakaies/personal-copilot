@@ -59,14 +59,11 @@ export class InMemoryStore {
     delete: (userId) => {
       if (this.users.delete(userId)) {
         this.profiles.delete(userId);
-        this.events.push(
-          {
-            topic: KAFKA_TOPICS.USER_DELETED,
-            key: userId,
-            payload: { userId, deletedAt: new Date().toISOString() },
-          },
-          { topic: KAFKA_TOPICS.USER_STATE, key: userId, payload: null },
-        );
+        this.events.push({
+          topic: KAFKA_TOPICS.USER_STATE,
+          key: userId,
+          payload: null,
+        });
       }
       return Promise.resolve();
     },

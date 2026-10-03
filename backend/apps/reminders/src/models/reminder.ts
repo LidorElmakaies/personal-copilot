@@ -6,18 +6,17 @@ export interface Reminder {
   userId: string;
   type: ReminderType;
   offsetMinutes: number;
-  lat: number;
-  lon: number;
-  tz: string;
   enabled: boolean;
-  /** Set by the scheduler (plan task 2.6); null until then. */
+  /** Set by the scheduler (plan task 2.13); null until then. */
   nextFireAt: Date | null;
 }
 
-/** What the user picks; the rest is derived. */
+/** What the user picks; the location comes from their profile (see UserLocation). */
 export interface ReminderSettings {
   offsetMinutes: number;
-  lat: number;
-  lon: number;
-  tz: string;
+}
+
+/** A reminder plus whether it can fire yet: it can't until the user's location is known. */
+export interface ReminderStatus extends Reminder {
+  waitingForLocation: boolean;
 }

@@ -21,6 +21,6 @@ export interface IUserRepository {
     passwordSalt: string,
   ): Promise<void>;
   updateEmail(userId: string, email: string): Promise<void>;
-  /** Deletes the user, their profile and refresh tokens, and publishes the deletion — atomically. */
+  /** Deletes the user (cascading to other services' rows about them) and publishes a tombstone — atomically. */
   delete(userId: string): Promise<void>;
 }

@@ -19,8 +19,8 @@ services:
       timeout: 5s
       retries: 5
 
-  # One-shot, idempotent: creates each service's own database if missing. Runs on every `up` —
-  # the data dir already exists, so Postgres's own first-boot init scripts never would.
+  # One-shot, idempotent: creates each service's schema in personal_copilot if missing. Runs on
+  # every `up` — the data dir already exists, so Postgres's own first-boot init scripts never would.
   postgres-init:
     image: postgres:16-alpine
     depends_on:
@@ -30,13 +30,16 @@ services:
       - PGHOST=postgres
       - PGUSER=postgres
       - PGPASSWORD=postgres
+      - PGDATABASE=personal_copilot
     entrypoint: ["sh", "-c"]
     command:
       - |
-        for db in reminders notifications; do
-          psql -tAc "SELECT 1 FROM pg_database WHERE datname = '$$db'" | grep -q 1 \
-            || psql -c "CREATE DATABASE $$db"
-        done
+        set -e
+        psql -v ON_ERROR_STOP=1 <<'SQL'
+        CREATE SCHEMA IF NOT EXISTS users;
+        CREATE SCHEMA IF NOT EXISTS reminders;
+        CREATE SCHEMA IF NOT EXISTS notifications;
+        SQL
     restart: "no"
     networks:
       - personal-copilot

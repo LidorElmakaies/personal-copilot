@@ -1,24 +1,4 @@
-import { isUserDeletedMessage } from './user-deleted';
 import { isUserStateMessage } from './user-state';
-
-describe('isUserDeletedMessage', () => {
-  it('accepts a valid message', () => {
-    expect(
-      isUserDeletedMessage({
-        userId: 'u-1',
-        deletedAt: '2026-10-03T10:00:00.000Z',
-      }),
-    ).toBe(true);
-  });
-
-  it.each([
-    ['null', null],
-    ['missing userId', { deletedAt: '2026-10-03T10:00:00.000Z' }],
-    ['missing deletedAt', { userId: 'u-1' }],
-  ])('rejects %s', (_name, value) => {
-    expect(isUserDeletedMessage(value)).toBe(false);
-  });
-});
 
 describe('isUserStateMessage', () => {
   const location = {
