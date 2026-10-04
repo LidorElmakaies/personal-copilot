@@ -1,15 +1,48 @@
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import Alert from '../base/feedback/Alert';
+import GlowCard from '../base/layout/GlowCard';
 import GradientButton from '../base/buttons/GradientButton';
 import InputField from '../base/form/InputField';
-import { updateAccount } from '../../store/slices/authSlice';
-import { isValidEmail, PASSWORD_REQUIREMENTS_HINT } from '../../utils/validation';
+import Row from '../base/layout/Row';
+import { selectUser, updateAccount } from '../../store/slices/authSlice';
+import {
+  isValidEmail,
+  PASSWORD_REQUIREMENTS_HINT,
+} from '../../utils/validation';
 
-// Composite component (InputField/GradientButton/Alert). `email` is the lookup key — the edited
-// value only ever goes in newEmail. See docs/specs/services.md#users.
-export default function AccountEditForm({ email: originalEmail, onDone }) {
+// Composite component (GlowCard/Row/InputField/GradientButton/Alert) — the signed-in email; Edit
+// opens the email/password form in place.
+export default function AccountCard() {
+  const user = useSelector(selectUser);
+  const [editing, setEditing] = useState(false);
+
+  return (
+    <GlowCard>
+      {editing ? (
+        <EditForm email={user?.email} onDone={() => setEditing(false)} />
+      ) : (
+        <Row
+          title="Account"
+          subtitle={user?.email ?? '—'}
+          right={
+            <GradientButton
+              label="Edit"
+              onPress={() => setEditing(true)}
+              contentStyle={styles.rowButtonContent}
+            />
+          }
+          last
+        />
+      )}
+    </GlowCard>
+  );
+}
+
+// Its own component so the typed values are dropped on Cancel. `email` is the lookup key — the
+// edited value only ever goes in newEmail. See docs/specs/services.md#users.
+function EditForm({ email: originalEmail, onDone }) {
   const dispatch = useDispatch();
   const [emailInput, setEmailInput] = useState(originalEmail ?? '');
   const [newPassword, setNewPassword] = useState('');
@@ -63,7 +96,7 @@ export default function AccountEditForm({ email: originalEmail, onDone }) {
   };
 
   return (
-    <View style={styles.group}>
+    <View style={styles.form}>
       <InputField
         label="Email"
         value={emailInput}
@@ -116,7 +149,8 @@ export default function AccountEditForm({ email: originalEmail, onDone }) {
 }
 
 const styles = StyleSheet.create({
-  group: { gap: 14 },
+  rowButtonContent: { paddingHorizontal: 18, paddingVertical: 9 },
+  form: { gap: 14 },
   actions: { flexDirection: 'row', gap: 12 },
   buttonFlex: { flex: 1 },
   buttonContent: { paddingVertical: 10 },
