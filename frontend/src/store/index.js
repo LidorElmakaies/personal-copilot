@@ -13,6 +13,7 @@ import {
 import authReducer from './slices/authSlice';
 import calendarReducer from './slices/calendarSlice';
 import locationReducer from './slices/locationSlice';
+import notificationsReducer from './slices/notificationsSlice';
 import profileReducer from './slices/profileSlice';
 import themeReducer from './slices/themeSlice';
 import wsReducer from './slices/wsSlice';
@@ -34,6 +35,12 @@ const calendarPersistConfig = {
   whitelist: ['shabbat'],
 };
 
+const notificationsPersistConfig = {
+  key: 'notifications',
+  storage: AsyncStorage,
+  whitelist: ['promptDismissed'], // the rest is read from the browser on every start
+};
+
 const authPersistConfig = {
   key: 'auth',
   storage: AsyncStorage,
@@ -48,6 +55,10 @@ export const store = configureStore({
     location: persistReducer(locationPersistConfig, locationReducer),
     calendar: persistReducer(calendarPersistConfig, calendarReducer),
     profile: profileReducer, // not persisted — fetched when needed (profileSlice)
+    notifications: persistReducer(
+      notificationsPersistConfig,
+      notificationsReducer,
+    ),
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

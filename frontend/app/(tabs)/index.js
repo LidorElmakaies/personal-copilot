@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import AmbientBackground from '../../src/components/composite/AmbientBackground';
+import NotificationsPrompt from '../../src/components/composite/NotificationsPrompt';
 import ShabbatSection from '../../src/components/composite/ShabbatSection';
 import Chip from '../../src/components/base/feedback/Chip';
 import GlowCard from '../../src/components/base/layout/GlowCard';
@@ -94,6 +95,7 @@ export default function HomeScreen() {
           />
         </GlowCard>
       </View>
+      <NotificationsPrompt />
     </AmbientBackground>
   );
 }

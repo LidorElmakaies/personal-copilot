@@ -255,11 +255,11 @@ logging in" link (routes to `/`) for whoever lands there without wanting to auth
   `src/utils/phone.js`, Israel only today) plus a digits-only local number, validated with
   `libphonenumber-js` and sent as E.164; its error shows once the field is left (or on submit).
   Blank optional fields are left out of the request.
-- `(tabs)/account` — a heading and five cards (`src/components/composite/`): `ThemeCard` (light/
-  dark toggle), `AccountCard` (email; edit email/password via `POST /auth/account` — the
+- `(tabs)/account` — a heading and six cards (`src/components/composite/`): `ThemeCard` (light/
+  dark toggle), `NotificationsCard` (see Notifications below), `AccountCard` (email; edit email/password via `POST /auth/account` — the
   `updateAccount` thunk, see `apps/users` above), `ProfileCard` (name and phone; fetches
   `GET /users/me` on mount, saves via `PATCH /users/me`, an emptied field sent as `null`),
-  `LogoutCard` (confirmed in place), `DeleteAccountCard` (asks for the password, then
+  `LogoutCard` (confirmed in place; `authSlice`'s `logOut`), `DeleteAccountCard` (asks for the password, then
   `DELETE /auth/account` via `authSlice`'s `deleteAccount`, which signs out on success). Each card
   holds its row and its edit/confirm form as a private component in the same file, so Cancel drops
   whatever was typed. The cards render only while signed in, so signing out unmounts them — every
@@ -279,6 +279,33 @@ logging in" link (routes to `/`) for whoever lands there without wanting to auth
   zone changed. The server's copy is the reference — there's no local "last sent" record to go
   stale across accounts or devices. One sync runs at a time; a reply that lands after sign-out
   (or a different sign-in) is dropped; a failure is simply retried on the next fix.
+- **Notifications** (web build only — `pushService` reports `'unsupported'` off-web or outside a
+  secure context). `frontend/public/sw.js` is exported to the site root, so its scope is `/`: on
+  `push` it shows the payload's `title`/`body` with `tag` = `notificationId` (a retry duplicate
+  replaces rather than doubles); a tap focuses an open app tab, else opens the payload's `url`; on
+  `pushsubscriptionchange` it re-subscribes with the same key (no token there — the app re-sends
+  it on its next signed-in start). `app/_layout.js`'s `PushSubscriptionManager` dispatches
+  `initNotifications` at start (registers the worker, reads permission and subscription) and, once
+  that's done and while signed in, `syncPushSubscription`: if permission is granted and the browser
+  has a subscription, `POST /notifications/subscriptions` again — covers a rotated subscription
+  and a browser last used by another user (the server upserts on endpoint).
+  - `NotificationsPrompt` (over Home): a one-time "Turn on notifications?" `ConfirmModal`, shown
+    while signed in when permission is `default` or `granted`, this browser isn't subscribed and the
+    prompt hasn't been answered here; either answer sets `promptDismissed`.
+  - `NotificationsCard` (Account): this browser's switch — on, off, blocked (a warning `Alert`
+    pointing to the browser's site settings) or not supported. Re-runs `initNotifications` on
+    mount, to pick up a permission changed in the browser meanwhile.
+  - `enableNotifications` must be dispatched straight from the tap — `requestPermission` is its
+    first await, since browsers only prompt during a user gesture; then VAPID key → `subscribe` →
+    `POST`. `disableNotifications` (this browser only) sends a best-effort `DELETE {endpoint}` and
+    then unsubscribes the browser; if the `DELETE` failed, the push service's 410 makes the server
+    drop the row on the next send.
+  - `authSlice`'s `logOut` (`LogoutCard`) and a successful `deleteAccount` run
+    `disableNotifications` before clearing the session; a session that merely expires (`AuthGate`
+    → `clearAuth`) keeps the subscription, so reminders still arrive while signed out.
+  - `notificationsSlice` (`{ permission, subscribed, ready, busy, error, promptDismissed }`)
+    persists only `promptDismissed`; the rest is read from the browser on every start. It doesn't
+    import `authSlice` (that one imports it), so it reads the token from `getState()`.
 - `profileSlice` (`{ profile, status, error, locationSyncing }`) isn't persisted; it's fetched when
   `ProfileCard` mounts or a sync needs it, and reset on `clearAuth` and a successful
   `deleteAccount` so one user's profile is never shown to the next.
@@ -290,12 +317,15 @@ service directly.
 Themed via a three-layer pipeline (`themeSlice` → `useAppTheme()` → `ThemeAnimContext`) and shared
 components under `src/components/base/` (grouped into `background`/`buttons`/`feedback`/`form`/
 `layout` subfolders by purpose) and `src/components/composite/` (the Account cards above,
-`AmbientBackground`, `ConfirmModal`, `ProfileFields`, `RequireAuthNotice`, `ShabbatSection`) — see `.claude/agents/frontend.md` for the base/composite split, the full
+`AmbientBackground`, `ConfirmModal`, `NotificationsPrompt`, `ProfileFields`, `RequireAuthNotice`,
+`ShabbatSection`) — see `.claude/agents/frontend.md` for the base/composite split, the full
 convention, and why there's no Gluestack layer here.
 
 `src/services/` is split by transport: `http/` (fetch-based calls — `authService`,
-`usersService` for `/users/me*`), `ws/` (`socketService`, a single shared Socket.IO connection), and `device/`
-(`locationService` — `expo-location` permission + position, plus the device's IANA time zone). `wsSlice`'s `connectWebSocket`/
+`usersService` for `/users/me*`, `notificationsService` for `/notifications/*`), `ws/`
+(`socketService`, a single shared Socket.IO connection), and `device/` (`locationService` —
+`expo-location` permission + position, plus the device's IANA time zone; `pushService` — the
+browser's service worker, `Notification` permission and `PushManager`). `wsSlice`'s `connectWebSocket`/
 `disconnectWebSocket` thunks open/close it whenever `authSlice.accessToken` changes
 (`app/_layout.js`'s `RealtimeConnectionManager`) — generic plumbing, same as Gateway's `/ws`; no
 feature listens for a specific event yet. A future feature attaches its own listener via

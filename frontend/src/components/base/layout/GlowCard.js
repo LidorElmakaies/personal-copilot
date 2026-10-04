@@ -15,8 +15,9 @@ function withAlpha(hex, alpha) {
 // Glass Card — see DESIGN.md's Components section. Blur kept light so it doesn't smear
 // AmbientBackground's stars/meteors into a wash instead of a soft glow. Outer/inner split is the
 // same shadow+clip pattern as GradientButton — see .claude/agents/frontend.md's "Bug patterns
-// already hit".
-export default function GlowCard({ children, style }) {
+// already hit". `solid` puts an opaque panel under the glass, for a card drawn over other content
+// (a modal) that must not show through.
+export default function GlowCard({ children, style, solid }) {
   const { isDark, colors } = useAppTheme();
 
   return (
@@ -37,6 +38,14 @@ export default function GlowCard({ children, style }) {
         style={styles.borderGradient}
       >
         <View style={styles.card}>
+          {solid ? (
+            <View
+              style={[
+                StyleSheet.absoluteFill,
+                { backgroundColor: colors.panel },
+              ]}
+            />
+          ) : null}
           <BlurView
             intensity={isDark ? 12 : 18}
             tint={isDark ? 'dark' : 'light'}

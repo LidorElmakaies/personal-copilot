@@ -108,6 +108,11 @@ Conventions and known traps:
 - Location-dependent screens: use `context.grantPermissions(['geolocation'])` +
   `context.setGeolocation({ latitude, longitude })` (or `test.use({ geolocation, permissions })`)
   so results are deterministic; pin the clock with `page.clock` when asserting times.
+- Web Push: headless Chromium has no push service, so app-side flows stub `PushManager`/
+  `Notification` (`tests/notifications.spec.js`); the service worker itself is tested by delivering
+  a push over CDP (`ServiceWorker.deliverPushMessage`, `tests/service-worker.spec.js`). That needs
+  `channel: 'chromium'` — the default headless shell reports notification permission as denied even
+  when granted — and a channel can only be set per file, so keep such tests in their own file.
 
 ## Commands
 

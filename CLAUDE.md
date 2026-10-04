@@ -10,8 +10,8 @@ built in stages from [`docs/plans/shabbat-reminders-calendar/plan.md`](docs/plan
 (Shabbat times on Home → per-user candle-lighting reminders → a Jewish-calendar tab); read that
 plan and its design pages (`architecture.html`, `mockups.html`) before working on the feature.
 Stage 1 (Shabbat times) is live; stage 2 is in progress (Users Service profiles, the frontend's
-profile/delete-account and location sync, Notifications' push delivery and the Reminders
-scheduler are done; the frontend's notification opt-in is next). Work the
+profile/delete-account, location sync and notification opt-in, Notifications' push delivery and
+the Reminders scheduler are done; the bell button + offset sheet is next). Work the
 plan one task at a time and stop for review after each.
 
 Hosted on the user's personal PC, reachable from their phone via **Tailscale** — `gateway` is the
@@ -58,6 +58,7 @@ backend/                 NestJS monorepo — apps/{gateway,users,reminders,notif
                           jewish-calendar}
 frontend/                 Expo/React Native app — login/register (optional, not gated app-wide), a
                           Home tab (clock + Shabbat times), and an auth-gated Account tab;
+                          public/sw.js is the Web Push service worker;
                           e2e/ holds the containerized Playwright tests
 devops/                   docker-compose.yml (app stack: services + shared postgres/redis)
                           + observability/ (Grafana/Loki/Prometheus/Tempo/OTel, joined to
@@ -157,29 +158,36 @@ docs/plans/               staged feature plans + their HTML design pages
   lighting, Havdalah, holiday/parasha label, and a countdown for the device's GPS location (`GET /calendar/shabbat`),
   fetched on first mount, after the GPS fix, after Havdalah passes, and on Retry; last location and
   result persisted for offline), `(tabs)/account`
-  (a heading plus `ThemeCard`, `AccountCard` (edit email/password), `ProfileCard` (name/phone via
-  `GET`/`PATCH /users/me`, fetched on mount), `LogoutCard`, `DeleteAccountCard` (password, then
+  (a heading plus `ThemeCard`, `NotificationsCard` (this browser's push on/off), `AccountCard`
+  (edit email/password), `ProfileCard` (name/phone via
+  `GET`/`PATCH /users/me`, fetched on mount), `LogoutCard` (`logOut`), `DeleteAccountCard` (password, then
   `DELETE /auth/account`, signs out) — each card keeps its form private, and signing out unmounts
   them all so forms reset; the one tab so far opted into `requiresAuth: true`; the shared `CustomTabBar` intercepts a press on it while
   signed out and shows `ConfirmModal` instead of navigating, but a direct hit on the route — deep
   link, web refresh — bypasses that, so the screen itself also calls `useRequireAuth()` on mount and
   renders `RequireAuthNotice` instead — both generic and reusable by any future `requiresAuth` tab,
   not Account-specific). Redux Toolkit, services-layer convention (all I/O in
-  `src/services/`, split by transport — `http/`, `ws/`, and `device/` (location) — called only
+  `src/services/`, split by transport — `http/`, `ws/`, and `device/` (location, browser push) — called only
   from thunks in `src/store/slices/`). Socket.IO
   auto-connects whenever `authSlice.accessToken` changes (`app/_layout.js`'s
   `RealtimeConnectionManager`) — generic plumbing, same as Gateway's `/ws`; nothing listens for a
   specific event yet. While signed in, `LocationSyncManager` (also in `app/_layout.js`) sends a
   fresh GPS fix to `PUT /users/me/location` only if it's > 5 km from the server's saved location
   or the time zone changed (`profileSlice.syncLocation`, see `docs/specs/services.md#frontend`).
+  Notifications (web build only): `frontend/public/sw.js` shows each push (`tag` =
+  `notificationId`) and opens/focuses the app on tap; `PushSubscriptionManager` (`app/_layout.js`)
+  registers it at start and, while signed in, re-posts the browser's subscription to
+  `POST /notifications/subscriptions`; `NotificationsPrompt` asks once over Home after sign-in.
+  Logging out or deleting the account unsubscribes this browser; an expired session doesn't, so
+  reminders keep arriving. See `docs/specs/services.md#frontend`.
   Themed via the three-layer pipeline described in the Architecture section
   below — `GlowCard`/`GradientButton`/`InputField`/`Alert` (`src/components/base/`, split into
   `background`/`buttons`/`feedback`/`form`/`layout` subfolders by purpose — see
   `.claude/agents/frontend.md`) and `AmbientBackground` (`src/components/composite/`) are the
   shared building blocks login/register/
-  Home/Account all use; `SelectField` (base/form) is the dropdown and `ProfileFields` (composite)
+  Home/Account all use; `Switch` (base/form) the toggle; `SelectField` (base/form) is the dropdown and `ProfileFields` (composite)
   the name/phone group shared by register and `ProfileCard`; `ConfirmModal` (composite) is the
-  shared Yes/No overlay (used today by the `requiresAuth` tab-press guard).
+  shared Yes/No overlay (the `requiresAuth` tab-press guard, `NotificationsPrompt`).
 - **Queues** — BullMQ on Redis (`devops/redis/docker-compose.yml`, internal-only, AOF-persisted,
   `noeviction`, holds nothing but queues). Cross-service queues and job guards in
   `@app/queue-contracts` (`notification-requested` — Reminders publishes, Notifications
@@ -254,7 +262,7 @@ published to the host).
 **Frontend** — Expo Router, file-based routing, `(auth)`/`(tabs)` groups. Redux Toolkit with a
 strict services-layer convention: all I/O lives in `src/services/`, split by transport —
 `services/http/` (fetch-based calls), `services/ws/` (the Socket.IO client), and
-`services/device/` (on-device I/O such as `expo-location`) — called only from thunks in
+`services/device/` (on-device I/O such as `expo-location` and the browser's push APIs) — called only from thunks in
 `src/store/slices/`, never inline in a thunk or a component.
 
 Theming is a three-layer pipeline ported from `ask-my-crawl`, minus its Gluestack layer (nothing

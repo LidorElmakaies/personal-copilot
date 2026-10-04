@@ -197,6 +197,25 @@ section.group{margin-top:44px}
 .plan div{border-top:2px solid var(--accent);padding-top:10px}
 .plan h4{margin:0 0 4px;font-size:14px}
 .plan p{margin:0;font-size:13.5px;color:var(--muted)}
+/* notifications opt-in (task 2.14) */
+.phone .dim{position:absolute;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:18px}
+.sheet{width:100%;display:flex;flex-direction:column;gap:10px;background:var(--panel)}
+.bellBadge{width:44px;height:44px;border-radius:14px;background:var(--pendingBg);display:grid;place-items:center}
+.bellBadge svg{width:22px;height:22px;stroke:var(--pending);fill:none;stroke-width:2}
+.sheet h4{margin:0;font-size:17px}
+.sheet p{margin:0;font-size:13px;color:var(--muted)}
+.btns{display:flex;gap:10px;margin-top:6px}
+.btn{flex:1;text-align:center;font:600 13px var(--sans);padding:10px 0;border-radius:12px;border:1px solid var(--cardBorder);color:var(--text)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+.nrow{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.nrow strong{font-size:14px;display:block}
+.nrow small{font-size:11.5px;color:var(--muted);display:block;margin-top:2px}
+.sw{flex:none;width:42px;height:24px;border-radius:12px;background:var(--cardBorder);position:relative}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:var(--panel)}
+.sw.on{background:var(--accent)} .sw.on::after{left:21px}
+.sw.off{opacity:.4}
+.stateLbl{font:700 10.5px var(--mono);color:var(--faint);letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px}
+.hint{font-size:11.5px;color:var(--pending);background:var(--pendingBg);border-radius:10px;padding:8px 10px;margin-top:10px}
 @media (prefers-reduced-motion:no-preference){.day,.pill{transition:background .15s,border-color .15s}}
 </style>
 
@@ -381,6 +400,64 @@ section.group{margin-top:44px}
         <div class="tabbar" data-tab="cal"></div></div>
         <p>Zoomed into one day: a week strip on top, then the day's times (sunrise, sunset, nightfall) as a timeline with a "now" marker, then reminders for that day.</p>
         <ul><li>Toggle flips the strip and headers to Hebrew-first</li><li>Holiday/Shabbat days replace sunset with candle lighting / Havdalah in amber</li></ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= NOTIFICATIONS (task 2.14) ================= -->
+  <section class="group">
+    <div class="groupHead"><h2>Turning on notifications</h2><span>Task 2.14 · web build only · needs a signed-in user</span></div>
+    <div class="row">
+
+      <div class="idea">
+        <div class="ideaLabel"><span class="tag">N1</span><h3>Ask once, right after login</h3></div>
+        <div class="phone"><div class="screen center">
+          <div class="glow">
+            <div class="statusRow"><span class="loc">Tel Aviv</span><span class="chip">Live</span></div>
+            <div class="clock">10:42:18</div>
+            <div class="dates"><span class="dNum">27.9.2026</span><span class="dHeb he">ט״ז תשרי תשפ״ז</span></div>
+            <div class="divider"></div>
+            <div class="split"><div><span class="sub">Candle lighting</span><span class="big candle">18:04</span></div><div><span class="sub">Havdalah</span><span class="big">19:01</span></div></div>
+          </div>
+        </div>
+        <div class="tabbar" data-tab="home"></div>
+        <div class="dim"><div class="glow sheet">
+          <div class="bellBadge"><svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10 21h4"/></svg></div>
+          <h4>Turn on notifications?</h4>
+          <p>Get your candle-lighting reminder on this phone, even when the app is closed.</p>
+          <div class="btns"><span class="btn primary">Turn on</span><span class="btn">Not now</span></div>
+        </div></div></div>
+        <p>After login you land on Home; this sheet opens over it. "Turn on" is the tap the browser needs before it shows its own Allow / Block prompt.</p>
+        <ul>
+          <li>Shown only when this browser isn't subscribed, notifications aren't blocked, and you haven't picked "Not now" on this browser before</li>
+          <li>"Not now" is remembered per browser; the Account card (N2) is the way back</li>
+          <li>Already allowed and subscribed? Nothing is shown; the subscription is quietly re-sent to the server</li>
+        </ul>
+      </div>
+
+      <div class="idea">
+        <div class="ideaLabel"><span class="tag">N2</span><h3>Account tab: Notifications card</h3></div>
+        <div style="display:flex;flex-direction:column;gap:14px;max-width:320px">
+          <div><div class="stateLbl">On</div><div class="glow"><div class="nrow"><div><strong>Notifications</strong><small>Reminders reach this browser</small></div><span class="sw on"></span></div></div></div>
+          <div><div class="stateLbl">Off</div><div class="glow"><div class="nrow"><div><strong>Notifications</strong><small>Turn on to get reminders here</small></div><span class="sw "></span></div></div></div>
+          <div><div class="stateLbl">Blocked</div><div class="glow"><div class="nrow"><div><strong>Notifications</strong><small>Blocked for this site</small></div><span class="sw off"></span></div><div class="hint">Allow notifications for this site in the browser's site settings, then come back.</div></div></div>
+          <div><div class="stateLbl">Not supported</div><div class="glow"><div class="nrow"><div><strong>Notifications</strong><small>This browser can't receive push notifications</small></div><span class="sw off"></span></div></div></div>
+        </div>
+        <p>A card between Theme and Account, same Row + Switch as the Theme card. The switch subscribes or unsubscribes this browser only, not your other devices.</p>
+        <ul>
+          <li>Blocked / not supported: the switch is disabled</li>
+          <li>Log Out also turns this browser's notifications off (removes the subscription), so the next person to sign in here is asked again</li>
+          <li>A session that just expires does <em>not</em> turn them off, so reminders keep arriving while you're signed out</li>
+        </ul>
+      </div>
+
+      <div class="idea">
+        <div class="ideaLabel"><span class="tag">N3</span><h3>The notification itself</h3></div>
+        <div class="glow" style="max-width:320px;display:flex;gap:12px;align-items:flex-start">
+          <div class="bellBadge" style="width:36px;height:36px;border-radius:10px"><svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10 21h4"/></svg></div>
+          <div><strong style="font-size:13.5px">Shabbat candle lighting</strong><div style="font-size:12.5px;color:var(--muted)">Candle lighting is at 17:34 (in 1 h 30 min).</div><div style="font-size:11px;color:var(--faint);margin-top:4px">Personal Copilot · &lt;pc&gt;.ts.net</div></div>
+        </div>
+        <p>Drawn by the phone's system, not the app, so this is only roughly how it looks. Tapping it focuses an open app tab, or opens the app at the notification's <code>url</code> ("/").</p>
       </div>
     </div>
   </section>

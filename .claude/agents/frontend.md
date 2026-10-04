@@ -19,9 +19,11 @@ second one.
 `frontend/` — see root `CLAUDE.md` for the overall stack. This app is currently optional auth
 (login/register, not a whole-app gate) + a Home tab (landing, no session required; clock, dates,
 and Shabbat times for the device's location via `locationSlice` + `calendarSlice` — `GET /calendar/shabbat`, served by Gateway) + an auth-gated
-Account tab (theme, email/password, profile, logout, delete account — one card component each) +
-a background location sync to the Users Service while signed in (`LocationSyncManager` →
-`profileSlice.syncLocation`, see `docs/specs/services.md#frontend`); there is no scraper/jobs/admin surface here — don't port that part of
+Account tab (theme, notifications, email/password, profile, logout, delete account — one card
+component each) + a background location sync to the Users Service while signed in
+(`LocationSyncManager` → `profileSlice.syncLocation`) + Web Push opt-in for the web build
+(`public/sw.js`, `PushSubscriptionManager`, `notificationsSlice` — see
+`docs/specs/services.md#frontend`); there is no scraper/jobs/admin surface here — don't port that part of
 `ask-my-crawl`'s frontend, only its theme/component/services conventions.
 
 A tab opts into requiring a session via `TABS`' `requiresAuth: true` entry in `(tabs)/_layout.js`
@@ -64,17 +66,23 @@ two folders:
   `useAppTheme()`/hooks. Grouped into subfolders by purpose: `background/` (`Meteors`, `Stars` —
   animated background-effect primitives), `buttons/` (`GradientButton`), `feedback/` (`Alert`,
   `Chip` — status/feedback indicators), `form/` (`InputField`, `SelectField`, `Switch` — form input
-  controls), `layout/` (`GlowCard`, `Row` — layout/surface primitives). `SelectField` renders its
+  controls), `layout/` (`GlowCard`, `Row` — layout/surface primitives). Props worth knowing:
+  `Alert`'s `variant` (`error` default, `warning`, `success`); `Switch`'s `disabled` and
+  `accessibilityLabel` (rendered with role `switch`); `GlowCard`'s `solid` (opaque panel under the
+  glass, for a card drawn over other content such as a modal). `SelectField` renders its
   option list in a transparent `Modal` at the box's measured window position (below it, or above
   if there's no room; scrolls past 4 options) — inline, any `overflow:'hidden'` ancestor such as
   `GlowCard` would clip it and later siblings would draw over it.
 - **`composite/`** — built by composing one or more `base` (or other `composite`) components, flat
   (no subfolders). Currently: `AmbientBackground` (from `Meteors`, `Stars`), `ConfirmModal` (from
-  `GlowCard`, `GradientButton`), `ProfileFields` (from `InputField`, `SelectField` — optional
+  `GlowCard` (solid), `GradientButton`; optional `icon`/`title` above the message),
+  `NotificationsPrompt` (from `ConfirmModal` — Home's one-time "Turn on notifications?"),
+  `ProfileFields` (from `InputField`, `SelectField` — optional
   name/phone fields, shared by register and `ProfileCard`), `RequireAuthNotice` (from
   `AmbientBackground` + `GlowCard`, `GradientButton`), `ShabbatSection` (from `GradientButton` —
   Home's Shabbat times; presentational, Home owns the Redux wiring and passes `now`), and the
-  Account tab's cards — `ThemeCard` (`GlowCard`, `Row`, `Switch`), `AccountCard`, `ProfileCard`,
+  Account tab's cards — `ThemeCard` (`GlowCard`, `Row`, `Switch`), `NotificationsCard`
+  (`GlowCard`, `Row`, `Switch`, `Alert`), `AccountCard`, `ProfileCard`,
   `LogoutCard`, `DeleteAccountCard` (`GlowCard`, `Row`, `GradientButton`, plus `InputField`/
   `ProfileFields`/`Alert` as needed). A card owns its own Redux wiring and keeps its edit/confirm
   form as a private component in the same file, so Cancel (unmounting the form) drops whatever was
@@ -89,7 +97,8 @@ component definitions or business logic in a page file.
 
 ## Services layer — where all I/O lives
 
-Every network call (HTTP or WebSocket) and every device API (location) lives in a plain module
+Every network call (HTTP or WebSocket) and every device API (location, the browser's
+service worker/`Notification`/`PushManager`) lives in a plain module
 under `src/services/`, split by transport (`http/`, `ws/`, `device/`) — never inline inside a thunk
 and never inside a component. Services
 know nothing about Redux (no `dispatch`, no reading state); thunks call the service and translate
@@ -102,10 +111,17 @@ when a component genuinely needs something no thunk/selector combination can giv
 - Always use `useAppTheme()` for colors — never hardcode or import `colors.js` directly in a
   screen/component.
 - Don't hand-write to AsyncStorage — redux-persist handles persisted slices (`auth`, `theme`,
-  `location` — `coords` only, `calendar` — `shabbat` only). `ws` and `profile` aren't persisted;
+  `location` — `coords` only, `calendar` — `shabbat` only, `notifications` — `promptDismissed`
+  only). `ws` and `profile` aren't persisted;
   `profile` is reset on `clearAuth`/`deleteAccount` so one user's profile never reaches the next.
+- `enableNotifications` must be dispatched synchronously from the tap handler —
+  `Notification.requestPermission()` only prompts inside a user gesture, so it's the thunk's first
+  await; don't put another await (or a confirm step) in front of it.
+- `notificationsSlice` must not import `authSlice` (`authSlice`'s `logOut`/`deleteAccount` import
+  it — a cycle); it reads the token via `getState()`.
 - Provider order in `app/_layout.js` is load-bearing (`Provider` → `PersistGate` →
-  `ThemeAnimProvider` → `AuthGate`/`RealtimeConnectionManager`/`LocationSyncManager` → `Stack`) — adding a provider means
+  `ThemeAnimProvider` → `AuthGate`/`RealtimeConnectionManager`/`LocationSyncManager`/
+  `PushSubscriptionManager` → `Stack`) — adding a provider means
   deciding where it sits deliberately, not appending it wherever's convenient.
 - **The frontend only ever talks to Gateway, never the Users Service or any other backend service
   directly** — see `.claude/memory/feedback_gateway_only_service_access.md`.

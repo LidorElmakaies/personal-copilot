@@ -3,6 +3,7 @@ import AccountCard from '../../src/components/composite/AccountCard';
 import AmbientBackground from '../../src/components/composite/AmbientBackground';
 import DeleteAccountCard from '../../src/components/composite/DeleteAccountCard';
 import LogoutCard from '../../src/components/composite/LogoutCard';
+import NotificationsCard from '../../src/components/composite/NotificationsCard';
 import ProfileCard from '../../src/components/composite/ProfileCard';
 import RequireAuthNotice from '../../src/components/composite/RequireAuthNotice';
 import ThemeCard from '../../src/components/composite/ThemeCard';
@@ -32,6 +33,7 @@ export default function AccountScreen() {
       >
         <Text style={[styles.heading, { color: colors.text }]}>Account</Text>
         <ThemeCard />
+        <NotificationsCard />
         <AccountCard />
         <ProfileCard />
         <LogoutCard />

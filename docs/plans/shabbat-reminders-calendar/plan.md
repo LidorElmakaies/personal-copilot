@@ -204,7 +204,7 @@ events" under Decisions.
 
 ### Candle-lighting reminder
 
-- [ ] **2.13 Reminders Service: scheduler.** BullMQ delayed jobs instead of polling: when a
+- [x] **2.13 Reminders Service: scheduler.** BullMQ delayed jobs instead of polling: when a
   reminder is saved (or fires), compute its next fire time from the next candle lighting at the
   user's location (read from `users.profiles`) and enqueue a job delayed until then (dedupe id per
   reminder + date). At fire time it enqueues `notification-requested` (`expiresAt` = candle
@@ -231,16 +231,17 @@ events" under Decisions.
 Goal: a new Calendar tab with a month grid (Gregorian + Hebrew dates, dots for holidays and fasts)
 and a day card with that day's times.
 
-- [ ] **3.1 Calendar: month endpoint.** `GET /calendar/month?year&month&lat&lon&tz`: every day's
-  Hebrew date, holidays/fasts, and enter/leave times where they apply. Tests for an Israel month
-  and an abroad month (two-day Yom Tov).
-- [ ] **3.2 Gateway route** for 3.1 (open, rate-limited).
-- [ ] **3.3 Frontend: Calendar tab + month grid.** New `(tabs)/calendar`, both dates per cell,
+- [ ] **3.1 Calendar: month endpoint.** `GET /calendar/month?year&month&lat&lon&tz` in Gateway's
+  calendar module (`src/calendar/`, `@app/jewish-calendar` in-process — no separate service to
+  route to; open, rate-limited like `/calendar/shabbat`): every day's Hebrew date, holidays/fasts,
+  and enter/leave times where they apply. Tests for an Israel month and an abroad month (two-day
+  Yom Tov). (Absorbs the old "3.2 Gateway route".)
+- [ ] **3.2 Frontend: Calendar tab + month grid.** New `(tabs)/calendar`, both dates per cell,
   holiday/fast dots, month arrows, today highlighted.
-- [ ] **3.4 Frontend: day card.** Tapping a day shows its name (English + Hebrew) and times.
-- [ ] **3.5 Holiday-eve reminders (if wanted).** An "Include holidays" switch on the reminder
+- [ ] **3.3 Frontend: day card.** Tapping a day shows its name (English + Hebrew) and times.
+- [ ] **3.4 Holiday-eve reminders (if wanted).** An "Include holidays" switch on the reminder
   sheet, so it also fires before candle lighting on the eve of a holiday.
-- [ ] **3.6 Docs sync.**
+- [ ] **3.5 Docs sync.**
 
 ---
 
@@ -249,6 +250,6 @@ and a day card with that day's times.
 Smaller bugs, config fixes and ideas found along the way are tracked in
 [`open-issues.md`](open-issues.md).
 
-- **Holiday eves for the reminder** (task 3.5): yes or no?
+- **Holiday eves for the reminder** (task 3.4): yes or no?
 - **Location denied:** is the "Location is off" message enough, or do you want a manual city
   picker as a fallback?

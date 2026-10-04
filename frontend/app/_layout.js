@@ -5,6 +5,10 @@ import { PersistGate } from 'redux-persist/integration/react';
 import { ThemeAnimProvider } from '../src/context/ThemeAnimContext';
 import { persistor, store } from '../src/store';
 import { clearAuth } from '../src/store/slices/authSlice';
+import {
+  initNotifications,
+  syncPushSubscription,
+} from '../src/store/slices/notificationsSlice';
 import { syncLocation } from '../src/store/slices/profileSlice';
 import {
   connectWebSocket,
@@ -37,6 +41,24 @@ function LocationSyncManager() {
   useEffect(() => {
     if (accessToken && coords && status === 'ready') dispatch(syncLocation());
   }, [accessToken, coords, status, dispatch]);
+
+  return null;
+}
+
+// Registers the service worker at start; while signed in, re-sends this browser's push subscription
+// (it may have rotated, or belong to whoever signed in here before) — see notificationsSlice.
+function PushSubscriptionManager() {
+  const dispatch = useDispatch();
+  const { accessToken } = useSelector((state) => state.auth);
+  const ready = useSelector((state) => state.notifications.ready);
+
+  useEffect(() => {
+    dispatch(initNotifications());
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (accessToken && ready) dispatch(syncPushSubscription());
+  }, [accessToken, ready, dispatch]);
 
   return null;
 }
@@ -81,6 +103,7 @@ export default function RootLayout() {
           <AuthGate />
           <RealtimeConnectionManager />
           <LocationSyncManager />
+          <PushSubscriptionManager />
           <Stack screenOptions={{ headerShown: false }} />
         </ThemeAnimProvider>
       </PersistGate>

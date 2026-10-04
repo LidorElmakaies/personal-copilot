@@ -2,7 +2,7 @@
 
 Expo/React Native app — optional login/register (the app doesn't gate itself on a session), a Home
 tab (clock, dates, and Shabbat times for the device's location), and an auth-gated Account tab
-(theme, email/password, profile, logout, delete account). See the root
+(theme, notifications, email/password, profile, logout, delete account). See the root
 [CLAUDE.md](../CLAUDE.md) for architecture, [.claude/agents/frontend.md](../.claude/agents/frontend.md)
 for the conventions to follow when changing anything here.
 
@@ -28,12 +28,12 @@ later — keep it internally consistent until then rather than treating it as a 
 `background/` — `Meteors`, `Stars`; `buttons/` — `GradientButton`; `feedback/` — `Alert`, `Chip`;
 `form/` — `InputField`, `SelectField`, `Switch`; `layout/` — `GlowCard`, `Row`) and `composite/`
 (built from one or more base/composite components — `AmbientBackground`, `ConfirmModal`,
-`ProfileFields`, `RequireAuthNotice`, `ShabbatSection`, and the Account tab's `ThemeCard`,
-`AccountCard`, `ProfileCard`, `LogoutCard`, `DeleteAccountCard`). See `.claude/agents/frontend.md` for the classification rule when adding one.
+`NotificationsPrompt`, `ProfileFields`, `RequireAuthNotice`, `ShabbatSection`, and the Account
+tab's `ThemeCard`, `NotificationsCard`, `AccountCard`, `ProfileCard`, `LogoutCard`, `DeleteAccountCard`). See `.claude/agents/frontend.md` for the classification rule when adding one.
 
 Same Redux Toolkit + services-layer + Expo Router conventions otherwise: all I/O lives in
 `src/services/`, split by transport — `services/http/` (fetch-based calls), `services/ws/` (the
-Socket.IO client), and `services/device/` (on-device I/O: `expo-location`) — called only from
+Socket.IO client), and `services/device/` (on-device I/O: `expo-location`, the browser's push APIs) — called only from
 thunks in `src/store/slices/`, never inline in a component.
 
 ## Location (`expo-location`)
@@ -42,6 +42,13 @@ thunks in `src/store/slices/`, never inline in a component.
 only foreground location is used. On web, the browser's geolocation API requires HTTPS (or
 `localhost`) — that's why phone access goes through `tailscale serve` (root README, "Phone
 access").
+
+## Notifications (Web Push, web build only)
+
+`public/sw.js` is the service worker; `expo export` copies `public/` to the export root, so it's
+served at `/sw.js` with scope `/`. It needs a secure context like GPS does — on the phone that's
+the `tailscale serve` HTTPS URL. Native builds report notifications as unsupported. Flow and state
+rules: `docs/specs/services.md#frontend` and `docs/specs/notification-flow.md`.
 
 ## Phone numbers (`libphonenumber-js`)
 

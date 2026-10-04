@@ -3,9 +3,14 @@ import { Animated, StyleSheet, TouchableOpacity } from 'react-native';
 import { useAppTheme } from '../../../hooks/useAppTheme';
 
 // Reusable boolean toggle — track + sliding knob, knob picks up the accent color + glow when on.
-// Drives the theme row in Settings today; generic for any future on/off setting. See DESIGN.md's
-// "Components" section.
-export default function Switch({ value, onValueChange, style }) {
+// See DESIGN.md's "Components" section.
+export default function Switch({
+  value,
+  onValueChange,
+  disabled,
+  accessibilityLabel,
+  style,
+}) {
   const { colors } = useAppTheme();
   const anim = useRef(new Animated.Value(value ? 1 : 0)).current;
 
@@ -34,7 +39,16 @@ export default function Switch({ value, onValueChange, style }) {
     <TouchableOpacity
       activeOpacity={0.85}
       onPress={() => onValueChange(!value)}
-      style={[styles.track, { backgroundColor: colors.panel }, style]}
+      disabled={disabled}
+      accessibilityRole="switch"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ checked: !!value, disabled: !!disabled }}
+      style={[
+        styles.track,
+        { backgroundColor: colors.panel },
+        disabled && styles.disabled,
+        style,
+      ]}
     >
       <Animated.View
         style={[
@@ -59,6 +73,7 @@ export default function Switch({ value, onValueChange, style }) {
 
 const styles = StyleSheet.create({
   track: { width: 46, height: 26, borderRadius: 20, justifyContent: 'center' },
+  disabled: { opacity: 0.4 },
   knob: {
     position: 'absolute',
     width: 20,

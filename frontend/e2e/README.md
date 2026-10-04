@@ -12,7 +12,11 @@ docker compose -f devops/playwright/docker-compose.yml run --rm e2e node scripts
 ```
 
 `tests/location-sync.spec.js` mocks Gateway entirely and signs in by seeding a fake unexpired token
-into `localStorage` (`persist:auth`), so it needs no real account.
+into `localStorage` (`persist:auth`), so it needs no real account. `tests/notifications.spec.js`
+does the same and also stubs the browser's `PushManager`/`Notification` (headless Chromium has no
+push service). `tests/service-worker.spec.js` runs the real `sw.js` and delivers a push over CDP;
+it sets `channel: 'chromium'` for its file, since the default headless shell reports notification
+permission as denied.
 
 Output lands in this folder (gitignored): `screenshots/` (explicit captures), `test-results/`
 (per-test screenshot, plus trace/video on failure), `playwright-report/` (HTML report).

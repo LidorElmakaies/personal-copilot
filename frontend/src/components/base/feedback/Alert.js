@@ -1,29 +1,35 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { useAppTheme } from '../../../hooks/useAppTheme';
 
-// Base component — success/error message box, no dismiss/timeout logic.
+// Base component — error/warning/success message box, no dismiss/timeout logic.
 export default function Alert({ variant = 'error', children, style }) {
   const { colors } = useAppTheme();
-  const isError = variant === 'error';
+  const palette = {
+    error: {
+      bg: colors.errorBg,
+      border: colors.errorBorder,
+      text: colors.error,
+    },
+    warning: {
+      bg: colors.pendingBg,
+      border: colors.pendingBg,
+      text: colors.pending,
+    },
+    success: {
+      bg: colors.successBg,
+      border: colors.success,
+      text: colors.success,
+    },
+  }[variant];
   return (
     <View
       style={[
         styles.box,
-        {
-          backgroundColor: isError ? colors.errorBg : colors.successBg,
-          borderColor: isError ? colors.errorBorder : colors.success,
-        },
+        { backgroundColor: palette.bg, borderColor: palette.border },
         style,
       ]}
     >
-      <Text
-        style={[
-          styles.text,
-          { color: isError ? colors.error : colors.success },
-        ]}
-      >
-        {children}
-      </Text>
+      <Text style={[styles.text, { color: palette.text }]}>{children}</Text>
     </View>
   );
 }

@@ -16,6 +16,9 @@ export const URLS = {
   users: {
     origin: BASE_URL,
   },
+  notifications: {
+    origin: BASE_URL,
+  },
   ws: {
     origin: BASE_URL,
     path: '/ws',

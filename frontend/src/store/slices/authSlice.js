@@ -1,6 +1,7 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import * as authService from '../../services/http/authService';
 import { getUserFromToken } from '../../utils/jwt';
+import { disableNotifications } from './notificationsSlice';
 
 // refreshToken is stored but not consumed yet — no refresh thunk exists (see docs/specs/services.md#users).
 export const registerUser = createAsyncThunk(
@@ -37,14 +38,26 @@ export const updateAccount = createAsyncThunk(
 );
 
 // Doesn't touch status/error — the caller shows its own result; success signs the user out.
+// The server's subscription rows go with the account; this browser's subscription is dropped too.
 export const deleteAccount = createAsyncThunk(
   'auth/deleteAccount',
-  async (payload, { rejectWithValue }) => {
+  async (payload, { dispatch, rejectWithValue }) => {
     try {
-      return await authService.deleteAccount(payload);
+      await authService.deleteAccount(payload);
     } catch (err) {
       return rejectWithValue(err.message);
     }
+    await dispatch(disableNotifications());
+  },
+);
+
+// An explicit log-out turns this browser's notifications off first (needs the token); a session
+// that merely expires (AuthGate → clearAuth) keeps them, so reminders still arrive signed out.
+export const logOut = createAsyncThunk(
+  'auth/logOut',
+  async (_, { dispatch }) => {
+    await dispatch(disableNotifications());
+    dispatch(clearAuth());
   },
 );
 

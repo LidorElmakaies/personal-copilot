@@ -5,7 +5,7 @@ import GlowCard from '../base/layout/GlowCard';
 import GradientButton from '../base/buttons/GradientButton';
 import Row from '../base/layout/Row';
 import { useAppTheme } from '../../hooks/useAppTheme';
-import { clearAuth } from '../../store/slices/authSlice';
+import { logOut } from '../../store/slices/authSlice';
 
 // Composite component (GlowCard/Row/GradientButton) — Log Out, confirmed in place.
 export default function LogoutCard() {
@@ -13,9 +13,9 @@ export default function LogoutCard() {
   const { colors } = useAppTheme();
   const [confirming, setConfirming] = useState(false);
 
-  // Clearing authSlice is enough — AuthGate and RealtimeConnectionManager (app/_layout.js) each
-  // react to accessToken going null on their own; no manual navigation/disconnect needed here.
-  const logout = () => dispatch(clearAuth());
+  // logOut turns this browser's notifications off, then clears authSlice — AuthGate and
+  // RealtimeConnectionManager (app/_layout.js) react to accessToken going null on their own.
+  const logout = () => dispatch(logOut());
 
   return (
     <GlowCard>

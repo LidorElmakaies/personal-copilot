@@ -2,15 +2,15 @@
 
 How a person ends up with a Shabbat reminder on their phone: first they sign up and turn on
 notifications (once), then every reminder travels a BullMQ queue → Notification Service → the
-browser's push service → the phone. Dashed boxes are not built yet. For the exact rules of each
-service see [services.md](services.md); for the job shapes see [event-schemas.md](event-schemas.md).
+browser's push service → the phone. Web build only. For the exact rules of each service see
+[services.md](services.md); for the job shapes see [event-schemas.md](event-schemas.md).
 
 ```mermaid
 flowchart TD
     subgraph A["1. One-time setup: the person signs up"]
         R1["Phone: register / login"] -->|POST /auth/register| GW1["Gateway"]
         GW1 --> AUTH["Users Service<br/>creates user, returns JWT<br/>(sub = userId)"]
-        AUTH --> R2["Phone: 'Turn on notifications'<br/>(not built yet)"]
+        AUTH --> R2["Phone: 'Turn on notifications?' over Home<br/>or Account → Notifications;<br/>browser asks permission"]
         R2 -->|GET /notifications/vapid-public-key| KEY["Notifications: server's public key"]
         KEY --> R3["Browser subscribes with its push service<br/>(Google FCM for Chrome/Brave)<br/>→ endpoint + p256dh + auth keys"]
         R3 -->|"POST /notifications/subscriptions<br/>+ Bearer JWT"| GW2["Gateway: JwtAuthGuard<br/>adds X-User-Id"]
@@ -18,7 +18,7 @@ flowchart TD
     end
 
     subgraph B["2. Every Friday: the reminder fires"]
-        REM["Reminders Service<br/>(not built yet)<br/>'1h 30m before candle lighting'"] -->|"enqueue notification-requested<br/>dedupe id = notificationId<br/>8 attempts, backoff from 30s"| Q1[["Redis: notification-requested"]]
+        REM["Reminders Service: reminder-due job<br/>at candle lighting − offset"] -->|"enqueue notification-requested<br/>dedupe id = notificationId<br/>8 attempts, backoff from 30s"| Q1[["Redis: notification-requested"]]
         Q1 --> ND{"NotificationDeliveryService:<br/>expiresAt passed?"}
         ND -->|yes| DROP["drop (too late)"]
         ND -->|no| WP["WebPushChannel:<br/>user's devices right now,<br/>minus those already done"]
@@ -30,28 +30,32 @@ flowchart TD
         FCM -->|404/410 gone| DEL["delete that subscription"]
         FCM -->|"429 / 5xx / no response"| RETRY["retry the whole job later;<br/>done devices are skipped"]
         RETRY --> Q1
-        FCM --> PH["Phone: service worker decrypts<br/>and shows the notification<br/>(not built yet)"]
+        FCM --> PH["Phone: browser decrypts,<br/>service worker (sw.js) shows it;<br/>tap focuses or opens the app"]
     end
-
-    classDef todo stroke-dasharray: 5 5
-    class R2,REM,PH todo
 ```
 
 ## 1. One-time setup
 
 1. The person registers or logs in through Gateway; the Users Service returns a JWT whose `sub` is their
    user id.
-2. The app asks for the server's VAPID public key (open route) and has the browser subscribe with
-   its push service. The browser returns an `endpoint` URL plus two keys (`p256dh`, `auth`) that
-   only it can decrypt with.
+2. Signed in, the app offers "Turn on notifications?" once over Home (or the Notifications card on
+   Account, any time). On "Turn on" the browser asks for permission; once granted, the app asks for
+   the server's VAPID public key (open route) and has the browser subscribe with its push service.
+   The browser returns an `endpoint` URL plus two keys (`p256dh`, `auth`) that only it can decrypt
+   with.
 3. The app posts that subscription with its JWT. Gateway verifies the token and forwards only the
    user id, as `X-User-Id`; Notification Service stores the endpoint and keys against that user
    (only known push-service hosts are accepted).
+4. Afterwards, whenever the app starts signed in or someone signs in, it re-posts the browser's
+   current subscription (upsert on endpoint), so a rotated subscription or one last used by another
+   account ends up under the right user. Turning the card off, logging out or deleting the account
+   deletes this browser's subscription and unsubscribes it; a session that merely expires keeps
+   it, so reminders keep arriving.
 
 ## 2. Every reminder
 
-1. Reminders enqueues one `notification-requested` job (`notificationId`, `userId`, title, body,
-   `expiresAt`, …) with `notificationRequestedPublishOptions`: deduplicated on `notificationId`
+1. Reminders' `reminder-due` job runs at candle lighting − the user's offset and enqueues one
+   `notification-requested` job (`notificationId`, `userId`, title, body, `expiresAt`, …) with `notificationRequestedPublishOptions`: deduplicated on `notificationId`
    until `expiresAt`, up to 8 attempts with backoff doubling from 30 s.
 2. Notification Service drops the job if `expiresAt` has passed (e.g. it was down past candle
    lighting). Otherwise `WebPushChannel` looks up the user's devices *as they are now* and skips
@@ -69,11 +73,13 @@ flowchart TD
    removed or now signed in as someone else. A device can therefore, rarely, get the same
    notification twice (the push went out but the answer was lost); it never silently misses one to
    a transient error. Nothing about the notification is stored beyond its BullMQ job.
-6. The push service forwards the ciphertext to the phone, whose service worker decrypts it and
-   shows the notification.
+6. The push service forwards the ciphertext to the phone; the browser decrypts it and hands it to
+   the app's service worker (`frontend/public/sw.js`), which shows it with `tag` = `notificationId`
+   (a retry duplicate replaces the first rather than showing twice). A tap focuses an open app tab,
+   else opens the payload's `url`.
 
-Until the Reminders publisher exists, step 1 can be done by hand from `devops/` (replace the user
-id with a registered user's `sub`):
+To send one by hand (e.g. to test a device), from `devops/` (replace the user id with a registered
+user's `sub`):
 
 ```bash
 docker compose exec notifications node -e "
