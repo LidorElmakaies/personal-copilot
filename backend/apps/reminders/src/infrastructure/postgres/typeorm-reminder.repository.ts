@@ -25,8 +25,21 @@ export class TypeOrmReminderRepository implements IReminderRepository {
     private readonly repo: Repository<ReminderEntity>,
   ) {}
 
+  async findById(id: string): Promise<Reminder | null> {
+    const row = await this.repo.findOneBy({ id });
+    return row ? toModel(row) : null;
+  }
+
   async findByUserId(userId: string): Promise<Reminder[]> {
     return (await this.repo.findBy({ userId })).map(toModel);
+  }
+
+  async findEnabled(): Promise<Reminder[]> {
+    return (await this.repo.findBy({ enabled: true })).map(toModel);
+  }
+
+  async setNextFireAt(id: string, nextFireAt: Date | null): Promise<void> {
+    await this.repo.update({ id }, { nextFireAt });
   }
 
   async upsertEnabled(

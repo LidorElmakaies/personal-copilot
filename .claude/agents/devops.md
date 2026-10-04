@@ -13,8 +13,8 @@ covered below.
 
 Two independent Compose projects, joined by a shared `observability` Docker network:
 - `devops/` — the app stack: `gateway` (the only *backend* service published to the host, port
-  8000), `users`, `calendar`, `reminders`, `notifications` (internal-only, no published ports,
-  healthchecks on `/health` for the last three), `frontend` (published, port 8081 — a static web
+  8000), `users`, `reminders`, `notifications` (internal-only, no published ports,
+  healthchecks on `/health`), `frontend` (published, port 8081 — a static web
   export, not a backend service, see the `frontend` compose service's own comment), `postgres`
   (one instance, one database, a schema per table-owning service, created by the one-shot `postgres-init`),
   `redis` (internal-only; hosts the BullMQ queues — today just `notification-requested`, from

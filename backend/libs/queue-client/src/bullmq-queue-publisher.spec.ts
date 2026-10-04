@@ -19,6 +19,7 @@ describe('BullmqQueuePublisher.publish', () => {
       'q',
       { a: 1 },
       {
+        jobId: 'r-1_1700000000000',
         dedupeId: 'n-1',
         dedupeTtlMs: 5000,
         delayMs: 60_000,
@@ -30,6 +31,7 @@ describe('BullmqQueuePublisher.publish', () => {
       'q',
       { a: 1 },
       expect.objectContaining({
+        jobId: 'r-1_1700000000000',
         deduplication: { id: 'n-1', ttl: 5000 },
         delay: 60_000,
         attempts: 4,

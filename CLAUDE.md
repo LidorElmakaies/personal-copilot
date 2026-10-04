@@ -4,14 +4,14 @@ This file provides guidance to Claude Code when working with code in this reposi
 
 ## What this project is
 
-**personal-copilot**: a NestJS + Expo app — Gateway, a Postgres-backed Users Service (login + profiles), a Calendar
-Service, full OTel observability, and a frontend with optional login. The first feature is being
+**personal-copilot**: a NestJS + Expo app — Gateway, a Postgres-backed Users Service (login + profiles), a Reminders
+Service (candle-lighting reminders), a Notification Service (Web Push), full OTel observability, and a frontend with optional login. The first feature is being
 built in stages from [`docs/plans/shabbat-reminders-calendar/plan.md`](docs/plans/shabbat-reminders-calendar/plan.md)
 (Shabbat times on Home → per-user candle-lighting reminders → a Jewish-calendar tab); read that
 plan and its design pages (`architecture.html`, `mockups.html`) before working on the feature.
 Stage 1 (Shabbat times) is live; stage 2 is in progress (Users Service profiles, the frontend's
-profile/delete-account and location sync, and Notifications' push delivery are done; the
-Reminders scheduler is next). Work the
+profile/delete-account and location sync, Notifications' push delivery and the Reminders
+scheduler are done; the frontend's notification opt-in is next). Work the
 plan one task at a time and stop for review after each.
 
 Hosted on the user's personal PC, reachable from their phone via **Tailscale** — `gateway` is the
@@ -52,9 +52,10 @@ every agent in `.claude/agents/` too. Also in [README.md](README.md).
 ## Repo layout
 
 ```
-backend/                 NestJS monorepo — apps/{gateway,users,calendar,reminders,notifications}
+backend/                 NestJS monorepo — apps/{gateway,users,reminders,notifications}
                           + libs/{auth-kernel,otel,queue-client,queue-contracts,
-                          kafka-client,kafka-contracts,users-schema}
+                          kafka-client,kafka-contracts,users-schema,
+                          jewish-calendar}
 frontend/                 Expo/React Native app — login/register (optional, not gated app-wide), a
                           Home tab (clock + Shabbat times), and an auth-gated Account tab;
                           e2e/ holds the containerized Playwright tests
@@ -88,8 +89,6 @@ docs/plans/               staged feature plans + their HTML design pages
     id forwarded as `X-User-Id`): the caller's own profile.
   - `src/reminders-proxy/` — `GET /reminders`, `PUT`/`DELETE /reminders/shabbat-candles`
     (`JwtAuthGuard`, same forwarding).
-  - `src/calendar-proxy/` — `GET /calendar/shabbat` (forwards only `lat`/`lon`/`tz`), unguarded so
-    Home works signed out.
   - `src/notifications-proxy/` — `GET /notifications/vapid-public-key` (open),
     `POST`/`DELETE /notifications/subscriptions` (`JwtAuthGuard`; forwards the user id to
     Notifications in an `X-User-Id` header Gateway sets itself — see `docs/specs/services.md`).
@@ -118,17 +117,21 @@ docs/plans/               staged feature plans + their HTML design pages
   15-min access tokens (`{ sub, role, email }` payload — the client decodes this instead of a
   separate `/me` call) + 30-day rotating refresh tokens (`backend/libs/auth-kernel` for the
   shared JWT sign/verify + guard).
-- **calendar** (`backend/apps/calendar`) — HTTP, internal-only, stateless. `GET /calendar/shabbat?
-  lat&lon&tz` → the Shabbat in progress, else the next one, for that location: `{ candleLighting,
-  havdalah, parasha, holidays, isNow }`. `@hebcal/core` v6 behind `ICalendarCalculator`; "today"
-  is the user's date in `tz`; Israel rules and 20-min candle lighting when `tz` is
-  `Asia/Jerusalem`, else 18 min. See `backend/apps/calendar/README.md` for the ESM-import and
-  time-zone gotchas.
 - **reminders** (`backend/apps/reminders`) — internal-only, schema `reminders`. One `reminders`
   row per user and type (`shabbat_candles` so far; `user_id` → `users.users` `ON DELETE CASCADE`):
   `GET /reminders`, `PUT`/`DELETE /reminders/shabbat-candles` (user from `X-User-Id`; `PUT` takes
   only `{ offsetMinutes }`). Reads the user's location straight from `users.profiles` (read-only
-  mapping) — no copy. Nothing fires yet (scheduler: plan task 2.13).
+  mapping) — no copy. Candle-lighting maths is the in-process `@app/jewish-calendar` lib
+  (`@hebcal/core` v6; "today" is the user's date in `tz`; Israel rules and 20-min candle lighting
+  when `tz` is `Asia/Jerusalem`, else 18 min — see its README for the ESM-import and time-zone
+  gotchas; Jerusalem and Petach Tikva 40 / Haifa, Tzfat and Zikhron Ya'akov 30, by distance from the
+  city center); there's
+  no Calendar Service — Gateway serves Home's `GET /calendar/shabbat` from the same lib.
+  `ReminderScheduler` keeps one delayed `reminder-due` job per enabled
+  reminder at candle lighting − offset; when it runs it publishes `notification-requested` and queues next
+  week's. Reschedules on save, on `users.user-state` (Kafka), after firing, and in a sweep at
+  startup and every 15 min that makes Redis match the database — see
+  `docs/specs/event-schemas.md#reminder-due`.
 - **notifications** (`backend/apps/notifications`) — internal-only, schema `notifications`
   (`push_subscriptions.user_id` → `users.users` `ON DELETE CASCADE`) plus the BullMQ queue on Redis (`REDIS_URL`, consume-only). Stores browsers'
   Web Push subscriptions (`push_subscriptions`) and serves the VAPID public key (`VAPID_*` env, see
@@ -151,9 +154,9 @@ docs/plans/               staged feature plans + their HTML design pages
   Gregorian and Hebrew/Jewish date (`@hebcal/hdate`, see `frontend/README.md` for why not `Intl`),
   a live/disconnected connection chip read straight from `wsSlice.status` — always "Disconnected"
   while signed out, since the socket only opens with a token — and `ShabbatSection`: candle
-  lighting, Havdalah, holiday/parasha label, and a countdown for the device's GPS location, fetched
-  on first mount, after the GPS fix, after Havdalah passes, and on Retry; last location and result
-  persisted for offline), `(tabs)/account`
+  lighting, Havdalah, holiday/parasha label, and a countdown for the device's GPS location (`GET /calendar/shabbat`),
+  fetched on first mount, after the GPS fix, after Havdalah passes, and on Retry; last location and
+  result persisted for offline), `(tabs)/account`
   (a heading plus `ThemeCard`, `AccountCard` (edit email/password), `ProfileCard` (name/phone via
   `GET`/`PATCH /users/me`, fetched on mount), `LogoutCard`, `DeleteAccountCard` (password, then
   `DELETE /auth/account`, signs out) — each card keeps its form private, and signing out unmounts
@@ -179,8 +182,8 @@ docs/plans/               staged feature plans + their HTML design pages
   shared Yes/No overlay (used today by the `requiresAuth` tab-press guard).
 - **Queues** — BullMQ on Redis (`devops/redis/docker-compose.yml`, internal-only, AOF-persisted,
   `noeviction`, holds nothing but queues). Cross-service queues and job guards in
-  `@app/queue-contracts` (one so far, `notification-requested` — Notifications processes it,
-  nothing publishes it yet; every publisher must enqueue with `notificationRequestedPublishOptions`
+  `@app/queue-contracts` (`notification-requested` — Reminders publishes, Notifications
+  processes; and `reminder-due`, Reminders' own delayed jobs; every publisher of `notification-requested` must enqueue with `notificationRequestedPublishOptions`
   — dedupe on `notificationId` until `expiresAt`, 8 attempts, backoff from 30 s);
   `@app/queue-client` has the publisher (dedupe/delay/attempts/backoff) and a validating consumer
   whose handler gets the job's `progress`/`saveProgress` (kept across retries). See `docs/specs/event-schemas.md`.
@@ -207,7 +210,7 @@ docs/plans/               staged feature plans + their HTML design pages
 Backend (run from `backend/`):
 ```bash
 npm install
-npx nest start gateway --watch     # or: users, calendar, reminders, notifications
+npx nest start gateway --watch     # or: users, reminders, notifications
 npm test                           # jest.config.js — unit + API tests
 REDIS_IT_URL=redis://localhost:6379 npx jest notification-flow.it queue-roundtrip  # opt-in; needs a Redis on the host
 npm run lint
@@ -241,7 +244,7 @@ across retries), `queue-contracts`
 (this project's queue names, job types, their guards and publish options — see
 `docs/specs/event-schemas.md`), `kafka-client` (`IEventPublisher`/`IEventConsumer` over `kafkajs`,
 plus the outbox: `addOutboxEvent` in the change's transaction, `OutboxRelay` publishes),
-`kafka-contracts` (topics, consumer groups, event types and guards), `users-schema` (read-only
+`kafka-contracts` (topics, consumer groups, event types and guards), `jewish-calendar` (Shabbat/candle-lighting maths over `@hebcal/core`), `users-schema` (read-only
 TypeORM mappings of the Users Service's tables, for other services to read and reference). Kafka is for events, BullMQ
 for jobs. Shared infrastructure is one instance each, reused by every service that needs it:
 Postgres (one database, `personal_copilot`, a schema per table-owning service — a service writes

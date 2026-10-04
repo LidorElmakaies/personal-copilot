@@ -20,15 +20,21 @@ If a design changes, update the HTML file here in the same commit.
 
 ## Decisions already made
 
-- **Exact location**, not a fixed city: the phone reads GPS via `expo-location` and sends
-  `lat`, `lon`, `tz` with each request.
-- **All calendar calculation is on the server**, in one Calendar Service using `@hebcal/core`. This
-  isn't about CPU; the calculation is cheap either way. One implementation keeps the Home clock,
-  the calendar, and reminders in agreement, and reminders need server-side times anyway.
+- **Exact location**, not a fixed city: the phone reads GPS via `expo-location` (and, signed in,
+  syncs it to the server for reminders — see "Location follows the phone" below).
+- **All calendar calculation is on the server, in one library.** `@app/jewish-calendar`
+  (`@hebcal/core`) holds every rule; Gateway serves Home's `GET /calendar/shabbat` from it directly
+  (the one Gateway route that isn't a proxy) and the Reminders scheduler uses it in-process. One
+  implementation keeps Home, the calendar and reminders in agreement, and a rule changes in one
+  place. (It replaced a separate Calendar Service; computing on the phone was tried and dropped —
+  it meant keeping the rules in two codebases.) Stage 3's `/calendar/month` goes in Gateway's
+  calendar module too.
 - **Israel vs. abroad** comes from the time zone (`Asia/Jerusalem`). Candle lighting is **20 minutes
-  before sunset in Israel, 18 abroad** (set explicitly in `ShabbatService`; `@hebcal/core` would
-  otherwise silently swap 18→20 in Israel). City customs (Jerusalem 40, Haifa 30) become a setting
-  later.
+  before sunset in Israel, 18 abroad** (set explicitly; `@hebcal/core` would otherwise silently
+  swap 18→20 in Israel). **City customs by location:** Jerusalem and Petach Tikva 40, Haifa, Tzfat
+  and Zikhron Ya'akov 30 (per OU Israel / MyZmanim — Hebcal's own list misses Petach Tikva and
+  Tzfat), matched by distance from the city center (`israel-city-customs.ts`). A per-user minutes
+  setting may come later for communities that differ.
 - **`@hebcal/core` v6** (ESM-only). Imported via its `@hebcal/core/dist/esm/index` subpath so the
   CommonJS backend can `require()` it on Node 22; Jest compiles it to CJS (`backend/jest.config.js`).
   v5 was tried and rejected: its type declarations don't resolve under `nodenext`.

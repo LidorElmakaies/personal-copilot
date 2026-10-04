@@ -94,6 +94,31 @@ maybe('publisher → Redis → consumer (real BullMQ)', () => {
     expect(at[0] - sent).toBeGreaterThanOrEqual(1400);
   }, 20_000);
 
+  it('runs a job id once, even when added again after it finished', async () => {
+    const queue = `it-${randomUUID()}`;
+    const seen: number[] = [];
+    start(queue, (m) => Promise.resolve(void seen.push(m.n)));
+    await publisher.publish(queue, { n: 1 }, { jobId: 'same' });
+    await publisher.publish(queue, { n: 2 }, { jobId: 'same' });
+    await until(() => seen.length === 1);
+    await publisher.publish(queue, { n: 3 }, { jobId: 'same' });
+    await new Promise((r) => setTimeout(r, 500));
+    expect(seen).toEqual([1]);
+  });
+
+  it('removes a delayed job before it runs', async () => {
+    const queue = `it-${randomUUID()}`;
+    const seen: number[] = [];
+    start(queue, (m) => Promise.resolve(void seen.push(m.n)));
+    await publisher.publish(queue, { n: 1 }, { jobId: 'old', delayMs: 800 });
+    await publisher.publish(queue, { n: 2 }, { jobId: 'new', delayMs: 800 });
+    await publisher.remove(queue, 'old');
+    await publisher.remove(queue, 'never-added');
+    await until(() => seen.length === 1);
+    await new Promise((r) => setTimeout(r, 500));
+    expect(seen).toEqual([2]);
+  }, 20_000);
+
   it('keeps saved progress across retries', async () => {
     const queue = `it-${randomUUID()}`;
     const seenOnAttempt: Record<string, unknown>[] = [];

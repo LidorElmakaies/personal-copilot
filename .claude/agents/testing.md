@@ -23,10 +23,10 @@ treatment in item 6 below.
 ## Where tests live
 
 Unit tests colocated `*.spec.ts` next to the file under test. HTTP-level tests in each app's
-`test/*.spec.ts` (e.g. `apps/calendar/test/shabbat.api.spec.ts`; Gateway's
+`test/*.spec.ts` (e.g. `apps/gateway/test/calendar.api.spec.ts`; Gateway's
 `test/proxy-app.ts` boots any proxy module with its service client faked). `backend/jest.config.js`
 picks up every `*.spec.ts` under `apps/` and `libs/` and maps the `@app/*` aliases; it also compiles
-the ESM-only `@hebcal/*` packages for Jest — see `backend/apps/calendar/README.md` if a new ESM-only
+the ESM-only `@hebcal/*` packages for Jest — see `backend/libs/jewish-calendar/README.md` if a new ESM-only
 dependency breaks loading. `backend/libs/testing` doesn't exist yet — create it only once a
 *second* app needs the same testcontainers setup (the Users Service needing Postgres is the first).
 
@@ -42,10 +42,9 @@ dependency breaks loading. `backend/libs/testing` doesn't exist yet — create i
    whether the rotation that follows succeeds — assert the *old* token is unusable in an
    immediately-following `refresh` call, not just that a new token pair comes back.
 3. **Gateway's proxies forward faithfully.** A pass-through route relays the internal service's
-   status and body unchanged, including a 4xx error shape, and forwards only what it should (e.g.
-   `calendar-proxy` passes just `lat`/`lon`/`tz`). A guarded route forwards the token's user id as
+   status and body unchanged, including a 4xx error shape, and forwards only what it should. A guarded route forwards the token's user id as
    `X-User-Id` and never a client-sent one. Covered today by `src/proxy/` and
-   `test/{auth,users,calendar,reminders,notifications}-proxy.api.spec.ts`; a new proxy module gets the same.
+   `test/{auth,users,reminders,notifications}-proxy.api.spec.ts`; a new proxy module gets the same.
 4. **Shabbat times are right for the user, not the server.** Pin real `@hebcal/core` output for
    known weeks (regular week, holiday Shabbat, Yom Tov after Shabbat abroad, no-sunset location),
    keep the "server TZ doesn't matter" test, and keep `ShabbatService`'s next-vs-current cases

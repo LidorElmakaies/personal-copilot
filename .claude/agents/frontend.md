@@ -18,7 +18,7 @@ second one.
 
 `frontend/` — see root `CLAUDE.md` for the overall stack. This app is currently optional auth
 (login/register, not a whole-app gate) + a Home tab (landing, no session required; clock, dates,
-and Shabbat times for the device's location via `locationSlice` + `calendarSlice`) + an auth-gated
+and Shabbat times for the device's location via `locationSlice` + `calendarSlice` — `GET /calendar/shabbat`, served by Gateway) + an auth-gated
 Account tab (theme, email/password, profile, logout, delete account — one card component each) +
 a background location sync to the Users Service while signed in (`LocationSyncManager` →
 `profileSlice.syncLocation`, see `docs/specs/services.md#frontend`); there is no scraper/jobs/admin surface here — don't port that part of

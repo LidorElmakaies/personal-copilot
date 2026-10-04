@@ -9,13 +9,16 @@ provisioning — BullMQ creates them on first use. The table below must list exa
 
 | Queue | Declared in | Publishers | Processed by | Job options |
 |---|---|---|---|---|
-| `notification-requested` | `queue-contracts` (`QUEUES.NOTIFICATION_REQUESTED`) | reminders *(not yet)* | Notification Service (`NotificationRequestedConsumer`, concurrency 5) | `notificationRequestedPublishOptions(message)`: `dedupeId = notificationId`, `dedupeTtlMs` = time until `expiresAt`, 8 attempts, exponential backoff from 30 s |
+| `notification-requested` | `queue-contracts` (`QUEUES.NOTIFICATION_REQUESTED`) | Reminders Service (`ReminderScheduler.fire`) | Notification Service (`NotificationRequestedConsumer`, concurrency 5) | `notificationRequestedPublishOptions(message)`: `dedupeId = notificationId`, `dedupeTtlMs` = time until `expiresAt`, 8 attempts, exponential backoff from 30 s |
+| `reminder-due` | `queue-contracts` (`QUEUES.REMINDER_DUE`) | Reminders Service (`ReminderScheduler`) | Reminders Service (`ReminderDueConsumer`, concurrency 1) | `reminderDuePublishOptions(message)`: `jobId = <reminderId>_<fireAt ms>` (`reminderDueJobId`), `delayMs` = time until `fireAt` (0 if passed), 8 attempts, exponential backoff from 30 s |
 
 Job rules (both sides of `@app/queue-client`):
 - Job data is JSON. A job that fails its queue's type guard is failed with BullMQ's
   `UnrecoverableError` — never retried.
 - A handler that throws is retried while the job has attempts left; `attempts` (default 1 = no
   retry) and `backoffMs` (first retry delay, doubling) are set by the **publisher**, per job.
+- `jobId`: the job's own id (no `:`). Adding an id that already exists — waiting, delayed, or
+  finished and still kept — is a no-op; `remove(queue, jobId)` drops a waiting or delayed one.
 - `dedupeId`: a second job with the same id is dropped while the first exists, or for
   `dedupeTtlMs` if given. `delayMs` runs the job later instead of now (a delayed job).
 - Job progress: the handler gets the job's `progress` (what earlier attempts saved) and
@@ -113,3 +116,26 @@ interface UserStateMessage {
   } | null;
 }
 ```
+
+## `reminder-due`
+
+One reminder's next firing, as a delayed job. Published and processed only by the Reminders
+Service; the `reminders` row stays the source of truth.
+
+```ts
+// libs/queue-contracts/src/messages/reminder-due.ts
+interface ReminderDueMessage {
+  reminderId: string;
+  fireAt: string;          // ISO 8601: candle lighting − offset; must still equal the row's next_fire_at
+  candleLighting: string;  // ISO 8601: the notification's expiresAt
+}
+```
+
+- The job id is per reminder and fire time, so scheduling the same firing twice (a restart, a
+  repeated profile event) adds it once. When the time moves (new offset, new location), the old
+  job is removed and a new one added.
+- When it runs: nothing if the reminder is gone (account deleted), off, or its `next_fire_at` no
+  longer equals `fireAt` (moved since). Otherwise it publishes `notification-requested`
+  (`notificationId = reminder-<reminderId>-<candleLighting ms>`, `expiresAt` = candle lighting;
+  skipped if candle lighting already passed) and queues the following week's job. A retry repeats
+  both safely — each is deduplicated.

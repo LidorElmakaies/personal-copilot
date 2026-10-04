@@ -24,13 +24,6 @@
       "sourceRoot": "apps/users/src",
       "compilerOptions": { "tsConfigPath": "apps/users/tsconfig.app.json" }
     },
-    "calendar": {
-      "type": "application",
-      "root": "apps/calendar",
-      "entryFile": "main",
-      "sourceRoot": "apps/calendar/src",
-      "compilerOptions": { "tsConfigPath": "apps/calendar/tsconfig.app.json" }
-    },
     "reminders": {
       "type": "application",
       "root": "apps/reminders",
@@ -93,6 +86,13 @@
       "entryFile": "index",
       "sourceRoot": "libs/users-schema/src",
       "compilerOptions": { "tsConfigPath": "libs/users-schema/tsconfig.lib.json" }
+    },
+    "jewish-calendar": {
+      "type": "library",
+      "root": "libs/jewish-calendar",
+      "entryFile": "index",
+      "sourceRoot": "libs/jewish-calendar/src",
+      "compilerOptions": { "tsConfigPath": "libs/jewish-calendar/tsconfig.lib.json" }
     }
   }
 }

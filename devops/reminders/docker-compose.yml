@@ -21,6 +21,9 @@ services:
       # Its tables reference users.users, so the Users Service must have created them first.
       users:
         condition: service_healthy
+      # The delayed reminder jobs live in Redis.
+      redis:
+        condition: service_healthy
     networks:
       - personal-copilot
       - observability

@@ -3,7 +3,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AuthProxyModule } from './auth-proxy/auth-proxy.module';
-import { CalendarProxyModule } from './calendar-proxy/calendar-proxy.module';
+import { CalendarModule } from './calendar/calendar.module';
 import { NotificationsProxyModule } from './notifications-proxy/notifications-proxy.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { RemindersProxyModule } from './reminders-proxy/reminders-proxy.module';
@@ -27,9 +27,9 @@ import { UsersProxyModule } from './users-proxy/users-proxy.module';
     }),
     AuthProxyModule,
     UsersProxyModule,
-    CalendarProxyModule,
     NotificationsProxyModule,
     RemindersProxyModule,
+    CalendarModule,
     RealtimeModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

@@ -1,6 +1,6 @@
 # Services
 
-Five NestJS apps in `backend/apps/` (`gateway`, `users`, `calendar`, `reminders`, `notifications`),
+Four NestJS apps in `backend/apps/` (`gateway`, `users`, `reminders`, `notifications`),
 shared libs in `backend/libs/`, one frontend. See `architecture.md` for the topology diagram.
 
 ## gateway
@@ -17,9 +17,17 @@ tunnel from a Caddy instance on the public internet. HTTP + WebSocket.
 - `GET /users/me`, `PATCH /users/me`, `PUT /users/me/location` (`JwtAuthGuard`) → Users Service's
   routes of the same name (`users-proxy`). Body relayed untouched. No `GET /me` — there's nothing left for it to return that the
   client can't already decode from its own access token (see `apps/users`'s note below).
-- `GET /calendar/shabbat?lat&lon&tz` — forwards exactly those three query params to Calendar
-  Service's route of the same name and relays its status/body verbatim (Calendar validates them;
-  its `400`s pass straight through). Unguarded, so Home works signed out.
+- `GET /calendar/shabbat?lat&lon&tz` — **served by Gateway itself, not proxied** (`src/calendar/`):
+  the Shabbat in progress, otherwise the next one, for that location, computed in-process with
+  [`@app/jewish-calendar`](#libsjewish-calendar). The one Gateway route with logic of its own — the
+  maths is the shared lib, so there's nothing for another service to add. Unguarded, so Home works
+  signed out.
+  ```json
+  { "candleLighting": "2026-10-02T15:04:00.000Z", "havdalah": "2026-10-03T16:00:00.000Z",
+    "parasha": null, "holidays": [{ "en": "Shmini Atzeret", "he": "שמיני עצרת" }], "isNow": false }
+  ```
+  `lat`/`lon` validated as coordinates, `tz` as an IANA time zone → `400` otherwise. `422` where
+  there's no sunset to count from (e.g. polar summer).
 - `GET /notifications/vapid-public-key` (open), `POST /notifications/subscriptions` and
   `DELETE /notifications/subscriptions` (`JwtAuthGuard`) → Notification Service's routes of the same
   name. Body relayed untouched.
@@ -30,7 +38,7 @@ tunnel from a Caddy instance on the public internet. HTTP + WebSocket.
   headers are never passed through, so a client can't supply its own. The internal service reads
   it with `@ForwardedUserId()` (401 if absent) and trusts it because only Gateway can reach it, so
   no internal service needs `JWT_SECRET`.
-- Every proxy module (`auth-proxy`, `users-proxy`, `calendar-proxy`, `notifications-proxy`, `reminders-proxy`) is built on one shared forwarder in
+- Every proxy module (`auth-proxy`, `users-proxy`, `notifications-proxy`, `reminders-proxy`) is built on one shared forwarder in
   `src/proxy/`: `ServiceHttpClient` (one instance per internal service, base URL from
   `<SERVICE>_SERVICE_URL`), `writeProxyResponse`, and the `ProxyRequest`/`ProxyResponse` types. An
   unreachable service answers `502 { error: { code: '<service>_unreachable', message } }`.
@@ -124,37 +132,6 @@ token is already a high-entropy random value, not human-guessable like a passwor
 guards against a raw DB leak, not brute force. `refresh` always revokes the used token first, then
 issues a new pair, so a stolen-and-replayed refresh token only ever works once.
 
-## calendar
-
-HTTP, internal-only, stateless (no database). Every calendar calculation lives here, using
-`@hebcal/core` behind `ICalendarCalculator` (`HebcalCalendarCalculator` is the only file that
-imports it).
-
-- `GET /calendar/shabbat?lat&lon&tz` — the Shabbat in progress at request time, otherwise the next
-  one, for the user's location:
-  ```json
-  { "candleLighting": "2026-10-02T15:04:00.000Z", "havdalah": "2026-10-03T16:00:00.000Z",
-    "parasha": null, "holidays": [{ "en": "Shmini Atzeret", "he": "שמיני עצרת" }], "isNow": false }
-  ```
-  - `lat`/`lon` validated as coordinates, `tz` as an IANA time zone → `400` otherwise. `422` where
-    there's no sunset to count from (e.g. polar summer).
-  - "Today" is the user's local date in `tz`, never the server's. The Shabbat that started last
-    Friday is returned while it's still running — including through a Yom Tov directly after it
-    (abroad, `havdalah` can be Sunday or Monday night).
-  - Israel vs. abroad rules (one- vs. two-day Yom Tov) follow `tz === 'Asia/Jerusalem'`. Candle
-    lighting is 20 minutes before sunset in Israel, 18 abroad; Havdalah is Hebcal's default (sun
-    8.5° below the horizon).
-  - `parasha` is `null` when a holiday replaces the weekly reading. `holidays` lists what falls on
-    that Saturday (holidays, Chol HaMoed, Rosh Chodesh, Chanukah, named Shabbatot), minus eves,
-    modern civic days, and Leil Selichot. Names come in English and unvoweled Hebrew.
-- `GET /calendar/candle-lighting/next?lat&lon&tz&after` — internal, for Reminders; Gateway doesn't
-  forward it. The first Friday candle lighting strictly after `after` (ISO with `Z` or an offset,
-  defaults to now): `{ "candleLighting": "2026-10-09T14:55:00.000Z" }`. Same location rules as
-  above. Weeks with no sunset are skipped; `422` only after 26 such weeks in a row.
-- `GET /health`.
-
-See `backend/apps/calendar/README.md` for the non-obvious implementation details.
-
 ## reminders
 
 HTTP, internal-only, schema `reminders` in the shared database. User from Gateway's `X-User-Id`
@@ -174,9 +151,19 @@ can't be saved for a user that doesn't exist. The only type so far is `shabbat_c
 - `GET /health`.
 
 **The user's location** is read straight from the Users Service's `users.profiles` (a read-only
-mapping, `UsersProfileEntity` from `@app/users-schema`) — never copied, never written here. Nothing
-fires yet: `next_fire_at` stays `null` until the scheduler (plan task 2.13) sets it; that task adds
-a `users.user-state` listener to reschedule when the location changes.
+mapping, `UsersProfileEntity` from `@app/users-schema`) — never copied, never written here.
+
+**Scheduling** (`ReminderScheduler`): an enabled reminder with a location has `next_fire_at` =
+the next candle lighting at that location (`@app/jewish-calendar`, in-process) minus the offset,
+and one delayed `reminder-due` job for exactly that time (see
+[event-schemas.md](event-schemas.md#reminder-due)). It's recomputed on `PUT` (the setting is saved
+even if Redis is down), on every `users.user-state` message for the user (Kafka group
+`reminders` — the location may have moved), after each firing, and — as the safety net — for every
+enabled reminder at startup and every 15 minutes (`ReminderSweeper`), so any failure above (e.g. Redis
+down) is fixed by the next sweep. A firing whose time already passed is skipped to next week —
+except one that was still pending (the service was down), which fires late as long as candle
+lighting is ahead. `DELETE` drops the job; off, no location → `next_fire_at` `null`. Needs
+`REDIS_URL`, `KAFKA_BROKERS`.
 
 ## notifications
 
@@ -251,7 +238,8 @@ logging in" link (routes to `/`) for whoever lands there without wanting to auth
   only opens with a token). Under the clock, `ShabbatSection` shows the current/next Shabbat for
   the device's location: a label (holiday or parasha, or "Shabbat Shalom" while it's in progress),
   candle lighting and Havdalah with their dates, and a countdown to whichever comes next. "In
-  progress" and the countdown are computed from the device clock against the two returned times.
+  progress" and the countdown are computed from the device clock against the two returned times
+  (`GET /calendar/shabbat`, served by Gateway).
   - When it fetches: on Home's first mount (`locate()` for a fresh GPS fix; the persisted
     last-known location is used meanwhile), when the fix arrives, when Havdalah passes (next
     Shabbat, same location), and on Retry. Switching tabs or returning from the background doesn't
@@ -306,7 +294,7 @@ components under `src/components/base/` (grouped into `background`/`buttons`/`fe
 convention, and why there's no Gluestack layer here.
 
 `src/services/` is split by transport: `http/` (fetch-based calls — `authService`,
-`calendarService`, `usersService` for `/users/me*`), `ws/` (`socketService`, a single shared Socket.IO connection), and `device/`
+`usersService` for `/users/me*`), `ws/` (`socketService`, a single shared Socket.IO connection), and `device/`
 (`locationService` — `expo-location` permission + position, plus the device's IANA time zone). `wsSlice`'s `connectWebSocket`/
 `disconnectWebSocket` thunks open/close it whenever `authSlice.accessToken` changes
 (`app/_layout.js`'s `RealtimeConnectionManager`) — generic plumbing, same as Gateway's `/ws`; no
@@ -339,9 +327,35 @@ the publisher's queues close on `onApplicationShutdown`; a job failing the guard
 retried; a handler that throws is retried while the job has attempts left). Both connect via
 `REDIS_URL`; the only files that import `bullmq`.
 `queue-contracts`: this project's cross-service queue names and job types with their guards —
-currently `notification-requested`, processed by Notification Service; nothing publishes it yet.
+`notification-requested` (Reminders → Notification Service) and `reminder-due` (Reminders' own
+delayed jobs).
 Also `notificationRequestedPublishOptions(message)`, the dedupe/retry options every publisher of
 that queue must pass. See `event-schemas.md`.
+
+## libs/jewish-calendar
+
+All of the project's Jewish-calendar maths, in one place (it was a separate Calendar Service).
+`@hebcal/core` v6 behind `ICalendarCalculator` (`HebcalCalendarCalculator` is the only file that
+imports it); `ShabbatCalendar` (`IShabbatCalendar`) is the entry point, pure and synchronous.
+Used in-process by Gateway (`GET /calendar/shabbat`, Home) and the Reminders scheduler — so Home
+and reminders always agree, and a rule changes in one place.
+
+- `current(location, now)` — the Shabbat in progress at `now`, otherwise the next one: candle
+  lighting, Havdalah, parasha, holidays, `isNow`. The Shabbat that started last Friday is returned
+  while it's still running — including through a Yom Tov directly after it (abroad, `havdalah` can
+  be Sunday or Monday night). `parasha` is `null` when a holiday replaces the weekly reading;
+  `holidays` lists what falls on that Saturday, minus eves, modern civic days and Leil Selichot.
+  Names come in English and unvoweled Hebrew.
+- `nextCandleLighting(location, after)` — the first Friday candle lighting strictly after `after`.
+  Weeks with no sunset are skipped; throws `UnprocessableEntityException` (`422`) only after 26
+  such weeks in a row (or from `current` when this week has none).
+- Rules, for both: "today" is the user's local date in `timeZone`, never the server's. Israel vs.
+  abroad (one- vs. two-day Yom Tov) follows `timeZone === 'Asia/Jerusalem'`. Candle lighting is
+  20 min before sunset in Israel — 40 in Jerusalem and Petach Tikva, 30 in Haifa, Tzfat and Zikhron Ya'akov (OU Israel / MyZmanim), matched by distance from the city center — and 18 abroad (`israel-city-customs.ts`; the radius is approximate, so a town
+  right next to a city can count as it). Havdalah is Hebcal's default (sun 8.5° below the horizon).
+
+See `backend/libs/jewish-calendar/README.md` for the non-obvious implementation details (ESM-only
+import, server time zone, finding Havdalah).
 
 ## libs/users-schema
 

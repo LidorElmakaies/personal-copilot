@@ -1,4 +1,6 @@
 export interface PublishOptions {
+  /** The job's own id (no `:`): adding an id that already exists, even finished and kept, is a no-op. */
+  jobId?: string;
   /** A second job with the same id is dropped while the first exists / within `dedupeTtlMs`. */
   dedupeId?: string;
   /** How long the dedupe id blocks repeats; omitted = until the job completes or fails. */
@@ -18,4 +20,6 @@ export interface IQueuePublisher {
     data: T,
     options?: PublishOptions,
   ): Promise<void>;
+  /** Removes a waiting or delayed job by its `jobId`; a missing or running job is left alone. */
+  remove(queue: string, jobId: string): Promise<void>;
 }

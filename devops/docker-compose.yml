@@ -5,7 +5,6 @@
 include:
   - path: gateway/docker-compose.yml
   - path: users/docker-compose.yml
-  - path: calendar/docker-compose.yml
   - path: reminders/docker-compose.yml
   - path: notifications/docker-compose.yml
   - path: frontend/docker-compose.yml

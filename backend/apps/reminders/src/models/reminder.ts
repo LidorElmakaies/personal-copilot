@@ -7,7 +7,7 @@ export interface Reminder {
   type: ReminderType;
   offsetMinutes: number;
   enabled: boolean;
-  /** Set by the scheduler (plan task 2.13); null until then. */
+  /** When it fires next (candle lighting − offset); null while off or without a location. */
   nextFireAt: Date | null;
 }
 

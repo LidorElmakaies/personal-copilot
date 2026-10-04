@@ -12,7 +12,6 @@ services:
       - OTEL_SERVICE_NAME=gateway
       - JWT_SECRET=${JWT_SECRET}
       - USERS_SERVICE_URL=http://users:8001
-      - CALENDAR_SERVICE_URL=http://calendar:8002
       - NOTIFICATIONS_SERVICE_URL=http://notifications:8004
       - REMINDERS_SERVICE_URL=http://reminders:8003
     # The only service published to the host (see
@@ -21,8 +20,6 @@ services:
       - "8000:8000"
     depends_on:
       users:
-        condition: service_healthy
-      calendar:
         condition: service_healthy
       notifications:
         condition: service_healthy

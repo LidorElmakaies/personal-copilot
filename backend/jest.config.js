@@ -20,9 +20,9 @@ module.exports = {
   },
   transformIgnorePatterns: [`/node_modules/(?!(${esmOnly.join('|')})/)`],
   moduleNameMapper: {
-    '^@app/(auth-kernel|otel|queue-contracts|queue-client|kafka-contracts|kafka-client|users-schema)$':
+    '^@app/(auth-kernel|otel|queue-contracts|queue-client|kafka-contracts|kafka-client|users-schema|jewish-calendar)$':
       '<rootDir>/libs/$1/src',
-    '^@app/(auth-kernel|otel|queue-contracts|queue-client|kafka-contracts|kafka-client|users-schema)/(.*)$':
+    '^@app/(auth-kernel|otel|queue-contracts|queue-client|kafka-contracts|kafka-client|users-schema|jewish-calendar)/(.*)$':
       '<rootDir>/libs/$1/src/$2',
   },
 };

@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "../../dist/.tsbuildinfo-jewish-calendar",
+    "outDir": "../../dist/libs/jewish-calendar"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["**/*spec.ts"]
+}

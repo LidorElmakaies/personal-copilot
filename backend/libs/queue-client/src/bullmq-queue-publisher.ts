@@ -30,6 +30,7 @@ export class BullmqQueuePublisher
     options: PublishOptions = {},
   ): Promise<void> {
     await this.queue(queue).add(queue, data, {
+      jobId: options.jobId,
       deduplication: options.dedupeId
         ? { id: options.dedupeId, ttl: options.dedupeTtlMs }
         : undefined,
@@ -41,6 +42,10 @@ export class BullmqQueuePublisher
       removeOnComplete: { age: KEEP_COMPLETED_S },
       removeOnFail: { age: KEEP_FAILED_S },
     });
+  }
+
+  async remove(queue: string, jobId: string): Promise<void> {
+    await this.queue(queue).remove(jobId);
   }
 
   // After onModuleDestroy, i.e. once every Worker has finished its in-flight job (which may still publish).

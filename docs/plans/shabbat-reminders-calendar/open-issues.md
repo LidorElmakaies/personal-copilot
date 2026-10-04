@@ -52,7 +52,7 @@ The plan's own open questions (holiday eves, location denied) stay in [`plan.md`
 - [ ] **`.claude/agents/testing.md` claims** Auth's repositories are tested with
   `@testcontainers/postgresql` — that package isn't installed and no such tests exist.
 - [ ] **Pre-existing type error:** `tsc` reports two errors in
-  `apps/calendar/src/application/shabbat.service.spec.ts` (lines ~108, 112); Jest still passes.
+  `libs/jewish-calendar/src/shabbat-calendar.spec.ts` (lines ~108, 112); Jest still passes.
 
 ## Docs
 

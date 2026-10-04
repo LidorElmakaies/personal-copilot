@@ -6,16 +6,14 @@ full variable list with defaults.
 
 - **`PORT`** — deliberately not set in the shared `backend/.env`. Gateway defaults to `8000` in its
   own `main.ts` when unset. Every backend app shares that same file and defaults to its own port
-  (users `8001`, calendar `8002`, reminders `8003`, notifications `8004`) — setting `PORT` in the
+  (users `8001`, reminders `8003`, notifications `8004`) — setting `PORT` in the
   shared file would force them all onto the same port and break the proxies. Docker gets `8000` published via `devops/gateway/docker-compose.yml`'s `ports:`.
 - **`USERS_SERVICE_URL`** — internal-only proxy target for `/auth/*`. `http://localhost:8001`
   locally; `http://users:8001` in Docker (set via `devops/gateway/docker-compose.yml`'s
   `environment:`, since it needs the Docker network hostname, not `docker.env`'s shared value).
-- **`CALENDAR_SERVICE_URL`** — proxy target for `/calendar/*`. `http://localhost:8002` locally;
-  `http://calendar:8002` in Docker (same `environment:` override as `USERS_SERVICE_URL`).
 - **`NOTIFICATIONS_SERVICE_URL`** — proxy target for `/notifications/*`. `http://localhost:8004`
   locally; `http://notifications:8004` in Docker (same override).
-- **`REMINDERS_SERVICE_URL`** — proxy target for `/reminders/*`. `http://localhost:8003` locally;
+- **`REMINDERS_SERVICE_URL`** — proxy target for `/reminders/*` and `/calendar/*`. `http://localhost:8003` locally;
   `http://reminders:8003` in Docker (same override). Gateway fails fast at boot if any service URL
   is unset.
 - **`THROTTLE_TTL_MS` / `THROTTLE_LIMIT`** — global rate limit, all routes.

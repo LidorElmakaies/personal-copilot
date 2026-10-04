@@ -4,9 +4,11 @@ import { RemindersController } from '../src/api/controllers/reminders.controller
 import { ReminderService } from '../src/application/reminder.service';
 import {
   REMINDER_REPOSITORY,
+  REMINDER_SCHEDULER,
   REMINDER_SERVICE,
   USER_LOCATION_READER,
 } from '../src/tokens';
+import type { Reminder } from '../src/models/reminder';
 import type { Coordinates } from '../src/models/user-location';
 import { InMemoryReminderRepository } from './in-memory-reminder.repository';
 
@@ -25,6 +27,14 @@ describe('reminders API (reminders)', () => {
       providers: [
         { provide: REMINDER_SERVICE, useClass: ReminderService },
         { provide: REMINDER_REPOSITORY, useValue: repo },
+        {
+          // Scheduling has its own spec (reminder-scheduler.spec.ts); here it changes nothing.
+          provide: REMINDER_SCHEDULER,
+          useValue: {
+            schedule: (r: Reminder) => Promise.resolve(r),
+            cancel: () => Promise.resolve(),
+          },
+        },
         {
           provide: USER_LOCATION_READER,
           useValue: {

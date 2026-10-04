@@ -29,7 +29,6 @@ backend/
                         # IRealtimeConnectionService.pushToUser entry point a future one uses.
                         # src/users-proxy/, src/reminders-proxy/: /users/me*, /reminders*
                         # (JwtAuthGuard, user id forwarded as X-User-Id).
-                        # src/calendar-proxy/: GET /calendar/shabbat → Calendar Service.
                         # src/notifications-proxy/: vapid-public-key (open) + subscriptions
                         # (JwtAuthGuard, user id forwarded as X-User-Id — see services.md).
                         # src/proxy/: the one shared forwarder every *-proxy module uses
@@ -37,6 +36,8 @@ backend/
                         # gets a new *-proxy module on top of it, never its own HTTP client copy.
                         # Thin pass-through everywhere — never business logic. A new feature's
                         # HTTP surface gets its own self-contained module here, same shape.
+                        # The one exception: src/calendar/ serves GET /calendar/shabbat itself,
+                        # computed with @app/jewish-calendar (shared maths, nothing to proxy to).
     users/               # HTTP, internal-only (never published to the host — only Gateway calls
                         # it). Schema `users`. Profiles (/users/me*, user id from X-User-Id),
                         # every change written to outbox_events and published to Kafka
@@ -49,10 +50,10 @@ backend/
                         # hashing. UserRole is 'user' | 'admin'; the only admin is the one-time
                         # AdminSeedService account, and no feature uses the role yet (see
                         # services.md#users — verify() currently accepts only 'user').
-    calendar/            # HTTP, internal-only, stateless. All calendar math (@hebcal/core v6 behind
-                        # ICalendarCalculator). GET /calendar/shabbat. See its README for the
-                        # ESM-subpath import and time-zone rules before touching it.
     reminders/           # Per-user reminders (schema `reminders`); reads the location from users.profiles.
+                        # Schedules them as delayed reminder-due jobs (ReminderScheduler + a 15-min
+                        # ReminderSweeper); next candle lighting from @app/jewish-calendar,
+                        # in-process. No Calendar Service — Gateway serves Home's Shabbat times.
     notifications/       # Schema `notifications`. Push subscriptions + VAPID public key; processes
                         # notification-requested jobs (consume-only; drops expired) → each
                         # INotificationChannel.deliver(userId, content, expiresAt, progress).
@@ -170,7 +171,7 @@ Don't rely on your own judgment for comment density or doc accuracy — that's i
 ```bash
 cd backend
 npm install
-npx nest start gateway --watch     # or: users, calendar, reminders, notifications
+npx nest start gateway --watch     # or: users, reminders, notifications
 npm test                           # jest.config.js
 npm run lint
 ```

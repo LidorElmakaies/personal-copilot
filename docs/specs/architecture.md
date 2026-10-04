@@ -21,15 +21,14 @@ flowchart LR
 
     subgraph Home["Home PC"]
         TsServe["tailscale serve\nHTTPS :443 / :8443"]
-        Gateway["gateway\n:8000"]
+        Gateway["gateway\n:8000\n(+ /calendar/shabbat, @app/jewish-calendar)"]
         FrontendLocal["frontend\n:8081 (Caddy, local mode)"]
         subgraph Docker["Docker network: personal-copilot"]
             Users["users"]
-            Calendar["calendar"]
-            Reminders["reminders\n(no scheduler yet)"]
+            Reminders["reminders\n(scheduler, @app/jewish-calendar)"]
             Notifications["notifications\n(Web Push)"]
             Postgres[("postgres\nDB personal_copilot, schemas:\nusers, reminders, notifications")]
-            Redis[("redis\nBullMQ queue: notification-requested")]
+            Redis[("redis\nBullMQ queues: notification-requested,\nreminder-due")]
             Kafka[("kafka\ntopic: users.user-state")]
         end
     end
@@ -46,12 +45,13 @@ flowchart LR
     CaddyCloud -->|"/auth/*, /calendar/*, /users/*, /reminders*, /notifications/*, /ws* via SSH reverse tunnel"| Gateway
 
     Gateway -->|"HTTP (+ X-User-Id on /users/me*)"| Users
-    Gateway -->|HTTP| Calendar
     Gateway -->|"HTTP + X-User-Id"| Reminders
     Gateway -->|"HTTP + X-User-Id"| Notifications
     Users --> Postgres
     Users -->|"outbox: users.user-state"| Kafka
     Reminders -->|"own schema + reads users.profiles"| Postgres
+    Kafka -->|"users.user-state"| Reminders
+    Reminders <-->|"reminder-due jobs;\nnotification-requested"| Redis
     Notifications --> Postgres
     Redis -->|"notification-requested jobs\n(progress saved back)"| Notifications
     Notifications -->|"encrypted push"| PushSvc(["Browser push service\n(FCM for Chrome/Brave)"])
@@ -66,13 +66,15 @@ that HTTPS `:8443` address directly (`GATEWAY_PUBLIC_URL`), not through the loca
 native builds don't need HTTPS and can call Gateway at the PC's tailnet IP on `:8000`; in the cloud path, `frontend`
 (Caddy) instead runs standalone on the VPS and reaches `gateway` only via an SSH reverse tunnel
 from the home machine (see "SSH reverse-tunnel hardening" below) — `gateway` itself is never given
-a public port either way. `users`, `calendar`, `reminders`, and `notifications` are
+a public port either way. `users`, `reminders`, and `notifications` are
 internal-only; `users` publishes every profile change to Kafka (`users.user-state`, through
-its outbox — no consumer yet); `reminders` stores per-user reminders (nothing fires yet);
+its outbox; Reminders consumes it); `reminders` stores per-user reminders and fires them as delayed
+BullMQ jobs, publishing `notification-requested`. All calendar maths is the in-process
+`@app/jewish-calendar` library, used by Reminders and by Gateway, which serves Home's
+`GET /calendar/shabbat` itself (its one non-proxy route);
 `notifications` stores browsers' Web Push subscriptions and processes `notification-requested`
 jobs from Redis (BullMQ), sending each to every device the user has through that browser's push
-service, end-to-end encrypted, and retrying the job for devices that weren't reached; nothing publishes
-`notification-requested` yet. Gateway's WS (`/ws`) authenticates connections and can push to a specific
+service, end-to-end encrypted, and retrying the job for devices that weren't reached. Gateway's WS (`/ws`) authenticates connections and can push to a specific
 user (`IRealtimeConnectionService.pushToUser`), but no feature sends anything over it yet either.
 
 Gateway rate-limits globally (`@nestjs/throttler`, `THROTTLE_TTL_MS`/`THROTTLE_LIMIT`) plus a
@@ -138,17 +140,14 @@ sequenceDiagram
     participant App as Frontend (Home)
     participant GPS as Device location
     participant Gateway
-    participant Cal as calendar
 
     User->>App: open app
     App->>GPS: request permission + position (locate)
     App->>Gateway: GET /calendar/shabbat?lat&lon&tz (last known location, if cached)
     GPS-->>App: { latitude, longitude } + device time zone
     App->>Gateway: GET /calendar/shabbat?lat&lon&tz
-    Gateway->>Cal: forward lat/lon/tz (HTTP)
-    Cal->>Cal: local date in tz → Friday → @hebcal/core
-    Cal-->>Gateway: { candleLighting, havdalah, parasha, holidays, isNow }
-    Gateway-->>App: relay verbatim
+    Gateway->>Gateway: @app/jewish-calendar: local date in tz → Friday → city custom → @hebcal/core
+    Gateway-->>App: { candleLighting, havdalah, parasha, holidays, isNow }
     App->>App: countdown + "in progress" from the device clock
     Note over App: after Havdalah passes → fetch again for next Shabbat
 ```
@@ -185,7 +184,7 @@ sequenceDiagram
 ## Compose & build layout
 
 `devops/docker-compose.yml` only lists what to `include:` (one `devops/<unit>/docker-compose.yml`
-per service — `gateway`, `users`, `calendar`, `reminders`, `notifications`, `frontend`, `postgres`,
+per service — `gateway`, `users`, `reminders`, `notifications`, `frontend`, `postgres`,
 `redis`, `kafka` today) plus the shared `networks:`.
 Adding a service means a new Dockerfile under `backend/apps/<service>/` (or `frontend/`), a new
 `devops/<service>/docker-compose.yml`, and one more `include:` line — see

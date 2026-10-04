@@ -34,16 +34,16 @@ describe('ServiceHttpClient', () => {
   afterAll(() => new Promise<void>((resolve) => server.close(() => resolve())));
 
   it('forwards a GET with its query string', async () => {
-    const client = new ServiceHttpClient(http, baseUrl, 'calendar_service');
+    const client = new ServiceHttpClient(http, baseUrl, 'reminders_service');
     const res = await client.forward({
       method: 'GET',
-      path: '/calendar/shabbat',
-      query: { lat: '32.1', tz: 'Asia/Jerusalem' },
+      path: '/reminders',
+      query: { type: 'shabbat_candles', tz: 'Asia/Jerusalem' },
     });
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
       method: 'GET',
-      url: '/calendar/shabbat?lat=32.1&tz=Asia%2FJerusalem',
+      url: '/reminders?type=shabbat_candles&tz=Asia%2FJerusalem',
     });
   });
 

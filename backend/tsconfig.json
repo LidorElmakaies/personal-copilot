@@ -35,7 +35,9 @@
       "@app/kafka-client": ["libs/kafka-client/src"],
       "@app/kafka-client/*": ["libs/kafka-client/src/*"],
       "@app/users-schema": ["libs/users-schema/src"],
-      "@app/users-schema/*": ["libs/users-schema/src/*"]
+      "@app/users-schema/*": ["libs/users-schema/src/*"],
+      "@app/jewish-calendar": ["libs/jewish-calendar/src"],
+      "@app/jewish-calendar/*": ["libs/jewish-calendar/src/*"]
     }
   }
 }
