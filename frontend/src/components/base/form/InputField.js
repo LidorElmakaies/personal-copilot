@@ -38,6 +38,7 @@ export default function InputField({
   glow,
   style,
   inputStyle,
+  onBlur,
 }) {
   const { colors } = useAppTheme();
   const [focused, setFocused] = useState(false);
@@ -89,7 +90,10 @@ export default function InputField({
           multiline={multiline}
           maxLength={maxLength}
           onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
+          onBlur={() => {
+            setFocused(false);
+            onBlur?.();
+          }}
           style={[
             styles.input,
             isPassword && styles.inputWithToggle,

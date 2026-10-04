@@ -13,6 +13,7 @@ import {
 import authReducer from './slices/authSlice';
 import calendarReducer from './slices/calendarSlice';
 import locationReducer from './slices/locationSlice';
+import profileReducer from './slices/profileSlice';
 import themeReducer from './slices/themeSlice';
 import wsReducer from './slices/wsSlice';
 
@@ -46,6 +47,7 @@ export const store = configureStore({
     ws: wsReducer, // ephemeral — connection status shouldn't survive a reload
     location: persistReducer(locationPersistConfig, locationReducer),
     calendar: persistReducer(calendarPersistConfig, calendarReducer),
+    profile: profileReducer, // not persisted — refetched on the Account tab
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

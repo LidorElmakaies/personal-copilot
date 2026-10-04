@@ -13,6 +13,9 @@ export const URLS = {
   calendar: {
     origin: BASE_URL,
   },
+  users: {
+    origin: BASE_URL,
+  },
   ws: {
     origin: BASE_URL,
     path: '/ws',

@@ -12,8 +12,14 @@ import AmbientBackground from '../../src/components/composite/AmbientBackground'
 import GlowCard from '../../src/components/base/layout/GlowCard';
 import GradientButton from '../../src/components/base/buttons/GradientButton';
 import InputField from '../../src/components/base/form/InputField';
+import ProfileFields from '../../src/components/composite/ProfileFields';
 import { useAppTheme } from '../../src/hooks/useAppTheme';
 import { clearAuthError, registerUser } from '../../src/store/slices/authSlice';
+import {
+  DEFAULT_PHONE_COUNTRY,
+  phoneError,
+  toE164,
+} from '../../src/utils/phone';
 import {
   isValidEmail,
   PASSWORD_REQUIREMENTS_HINT,
@@ -23,6 +29,12 @@ import {
 export default function RegisterScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [details, setDetails] = useState({
+    firstName: '',
+    lastName: '',
+    country: DEFAULT_PHONE_COUNTRY,
+    phone: '',
+  });
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const dispatch = useDispatch();
   const router = useRouter();
@@ -38,12 +50,24 @@ export default function RegisterScreen() {
       ? PASSWORD_REQUIREMENTS_HINT
       : null;
   const canSubmit =
-    email.trim().length > 0 && isValidEmail(email) && password.length >= 8;
+    email.trim().length > 0 &&
+    isValidEmail(email) &&
+    password.length >= 8 &&
+    !phoneError(details.country, details.phone);
 
   const handleSubmit = () => {
     setSubmitAttempted(true);
     if (!canSubmit) return;
-    dispatch(registerUser({ email: email.trim(), password }));
+    // Blank optional fields are left out (undefined), not sent empty.
+    dispatch(
+      registerUser({
+        email: email.trim(),
+        password,
+        firstName: details.firstName.trim() || undefined,
+        lastName: details.lastName.trim() || undefined,
+        phone: toE164(details.country, details.phone) ?? undefined,
+      }),
+    );
   };
 
   return (
@@ -83,6 +107,14 @@ export default function RegisterScreen() {
                   : PASSWORD_REQUIREMENTS_HINT
               }
               error={submitAttempted ? passwordError : null}
+            />
+            <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>
+              Optional
+            </Text>
+            <ProfileFields
+              value={details}
+              onChange={setDetails}
+              showErrors={submitAttempted}
             />
           </View>
 
@@ -148,6 +180,13 @@ const styles = StyleSheet.create({
   heading: { fontSize: 26, fontWeight: '800', letterSpacing: 0.5 },
   subheading: { fontSize: 14 },
   fields: { gap: 16, marginBottom: 16 },
+  sectionLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginTop: 4,
+  },
   submit: { marginTop: 0 },
   feedback: { borderWidth: 1, borderRadius: 16, padding: 16, gap: 8 },
   feedbackTitle: { fontSize: 14, fontWeight: '700', letterSpacing: 0.5 },

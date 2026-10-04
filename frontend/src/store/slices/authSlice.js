@@ -36,6 +36,25 @@ export const updateAccount = createAsyncThunk(
   },
 );
 
+// Doesn't touch status/error — the caller shows its own result; success signs the user out.
+export const deleteAccount = createAsyncThunk(
+  'auth/deleteAccount',
+  async (payload, { rejectWithValue }) => {
+    try {
+      return await authService.deleteAccount(payload);
+    } catch (err) {
+      return rejectWithValue(err.message);
+    }
+  },
+);
+
+function signOut(state) {
+  state.accessToken = null;
+  state.refreshToken = null;
+  state.status = 'idle';
+  state.error = null;
+}
+
 const authSlice = createSlice({
   name: 'auth',
   initialState: {
@@ -46,12 +65,7 @@ const authSlice = createSlice({
     error: null,
   },
   reducers: {
-    clearAuth(state) {
-      state.accessToken = null;
-      state.refreshToken = null;
-      state.status = 'idle';
-      state.error = null;
-    },
+    clearAuth: signOut,
     clearAuthError(state) {
       state.error = null;
     },
@@ -81,7 +95,8 @@ const authSlice = createSlice({
       // Reuses handleFulfilled — updateAccount returns the same token-pair shape as login/register.
       .addCase(updateAccount.pending, handlePending)
       .addCase(updateAccount.fulfilled, handleFulfilled)
-      .addCase(updateAccount.rejected, handleRejected);
+      .addCase(updateAccount.rejected, handleRejected)
+      .addCase(deleteAccount.fulfilled, signOut);
   },
 });
 

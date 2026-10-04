@@ -1,16 +1,19 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import AccountEditForm from '../../src/components/composite/AccountEditForm';
 import AmbientBackground from '../../src/components/composite/AmbientBackground';
+import DeleteAccountForm from '../../src/components/composite/DeleteAccountForm';
 import GlowCard from '../../src/components/base/layout/GlowCard';
 import GradientButton from '../../src/components/base/buttons/GradientButton';
+import ProfileEditForm from '../../src/components/composite/ProfileEditForm';
 import RequireAuthNotice from '../../src/components/composite/RequireAuthNotice';
 import Row from '../../src/components/base/layout/Row';
 import Switch from '../../src/components/base/form/Switch';
 import { useAppTheme } from '../../src/hooks/useAppTheme';
 import { useRequireAuth } from '../../src/hooks/useRequireAuth';
 import { clearAuth, selectUser } from '../../src/store/slices/authSlice';
+import { fetchProfile } from '../../src/store/slices/profileSlice';
 import { setThemeMode } from '../../src/store/slices/themeSlice';
 
 export default function AccountScreen() {
@@ -18,9 +21,28 @@ export default function AccountScreen() {
   const isAuthenticated = useRequireAuth();
   const { mode } = useSelector((state) => state.theme);
   const user = useSelector(selectUser);
+  const {
+    profile,
+    status: profileStatus,
+    error: profileError,
+  } = useSelector((state) => state.profile);
   const { isDark, colors, colorMode } = useAppTheme();
   const [confirmingLogout, setConfirmingLogout] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
+  const [showProfileForm, setShowProfileForm] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+
+  // The tab stays mounted across sign-outs — start the next session with every form closed.
+  useEffect(() => {
+    if (isAuthenticated) {
+      dispatch(fetchProfile());
+      return;
+    }
+    setConfirmingLogout(false);
+    setShowEditForm(false);
+    setShowProfileForm(false);
+    setConfirmingDelete(false);
+  }, [isAuthenticated, dispatch]);
 
   const toggleTheme = (nextIsDark) =>
     dispatch(setThemeMode(nextIsDark ? 'dark' : 'light'));
@@ -83,6 +105,37 @@ export default function AccountScreen() {
         </GlowCard>
 
         <GlowCard>
+          {showProfileForm ? (
+            <ProfileEditForm
+              profile={profile}
+              onDone={() => setShowProfileForm(false)}
+            />
+          ) : (
+            <Row
+              title="Profile"
+              subtitle={profileSubtitle(profile, profileStatus, profileError)}
+              right={
+                profileStatus === 'failed' ? (
+                  <GradientButton
+                    label="Retry"
+                    onPress={() => dispatch(fetchProfile())}
+                    contentStyle={styles.rowButtonContent}
+                  />
+                ) : (
+                  <GradientButton
+                    label="Edit"
+                    onPress={() => setShowProfileForm(true)}
+                    disabled={!profile}
+                    contentStyle={styles.rowButtonContent}
+                  />
+                )
+              }
+              last
+            />
+          )}
+        </GlowCard>
+
+        <GlowCard>
           {confirmingLogout ? (
             <View style={styles.confirmGroup}>
               <Text style={[styles.confirmText, { color: colors.text }]}>
@@ -120,9 +173,41 @@ export default function AccountScreen() {
             />
           )}
         </GlowCard>
+
+        <GlowCard>
+          {confirmingDelete ? (
+            <DeleteAccountForm
+              email={user?.email}
+              onCancel={() => setConfirmingDelete(false)}
+            />
+          ) : (
+            <Row
+              title="Delete account"
+              subtitle="Permanently remove your account and data"
+              right={
+                <GradientButton
+                  label="Delete"
+                  onPress={() => setConfirmingDelete(true)}
+                  variant="danger"
+                  contentStyle={styles.rowButtonContent}
+                />
+              }
+              last
+            />
+          )}
+        </GlowCard>
       </ScrollView>
     </AmbientBackground>
   );
+}
+
+function profileSubtitle(profile, status, error) {
+  if (!profile) {
+    return status === 'failed' ? `Couldn't load: ${error}` : 'Loading…';
+  }
+  const name = [profile.firstName, profile.lastName].filter(Boolean).join(' ');
+  const parts = [name, profile.phone].filter(Boolean);
+  return parts.length > 0 ? parts.join(' · ') : 'No name or phone yet';
 }
 
 const styles = StyleSheet.create({
