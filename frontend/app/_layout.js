@@ -5,6 +5,7 @@ import { PersistGate } from 'redux-persist/integration/react';
 import { ThemeAnimProvider } from '../src/context/ThemeAnimContext';
 import { persistor, store } from '../src/store';
 import { clearAuth } from '../src/store/slices/authSlice';
+import { syncLocation } from '../src/store/slices/profileSlice';
 import {
   connectWebSocket,
   disconnectWebSocket,
@@ -23,6 +24,19 @@ function RealtimeConnectionManager() {
       dispatch(disconnectWebSocket());
     }
   }, [accessToken, dispatch]);
+
+  return null;
+}
+
+// Fresh GPS fix (not the cached one) while signed in → syncLocation; see docs/specs/services.md#frontend.
+function LocationSyncManager() {
+  const dispatch = useDispatch();
+  const { accessToken } = useSelector((state) => state.auth);
+  const { coords, status } = useSelector((state) => state.location);
+
+  useEffect(() => {
+    if (accessToken && coords && status === 'ready') dispatch(syncLocation());
+  }, [accessToken, coords, status, dispatch]);
 
   return null;
 }
@@ -66,6 +80,7 @@ export default function RootLayout() {
         <ThemeAnimProvider>
           <AuthGate />
           <RealtimeConnectionManager />
+          <LocationSyncManager />
           <Stack screenOptions={{ headerShown: false }} />
         </ThemeAnimProvider>
       </PersistGate>

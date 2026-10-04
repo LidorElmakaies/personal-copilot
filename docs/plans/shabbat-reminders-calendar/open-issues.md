@@ -56,7 +56,7 @@ The plan's own open questions (holiday eves, location denied) stay in [`plan.md`
 
 ## Docs
 
-- [ ] **`CLAUDE.md`'s "First run" never mentions the `VAPID_*` keys** in `backend/.env`; the
+- [x] **`CLAUDE.md`'s "First run" never mentions the `VAPID_*` keys** in `backend/.env`; the
   Notification Service refuses to start without them.
 
 ## Product ideas / small decisions

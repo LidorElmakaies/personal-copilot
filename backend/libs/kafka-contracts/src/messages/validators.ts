@@ -15,5 +15,8 @@ export const isPhone = (v: unknown): v is string =>
 
 export const NAME_MAX_LENGTH = 100;
 
+/** English or Hebrew letters only, single spaces between words — the frontend filters to the same. */
+export const NAME_PATTERN = /^[A-Za-zא-ת]+(?: [A-Za-zא-ת]+)*$/;
+
 export const isName = (v: unknown): v is string =>
   isNonEmptyString(v) && v.length <= NAME_MAX_LENGTH;

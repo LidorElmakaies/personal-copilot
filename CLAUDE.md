@@ -9,8 +9,9 @@ Service, full OTel observability, and a frontend with optional login. The first 
 built in stages from [`docs/plans/shabbat-reminders-calendar/plan.md`](docs/plans/shabbat-reminders-calendar/plan.md)
 (Shabbat times on Home → per-user candle-lighting reminders → a Jewish-calendar tab); read that
 plan and its design pages (`architecture.html`, `mockups.html`) before working on the feature.
-Stage 1 (Shabbat times) is live; stage 2 is in progress (Notifications stores push subscriptions
-and delivers `notification-requested` queue jobs; Reminders is still a skeleton). Work the
+Stage 1 (Shabbat times) is live; stage 2 is in progress (Users Service profiles, the frontend's
+profile/delete-account and location sync, and Notifications' push delivery are done; the
+Reminders scheduler is next). Work the
 plan one task at a time and stop for review after each.
 
 Hosted on the user's personal PC, reachable from their phone via **Tailscale** — `gateway` is the
@@ -51,7 +52,7 @@ every agent in `.claude/agents/` too. Also in [README.md](README.md).
 ## Repo layout
 
 ```
-backend/                 NestJS monorepo — apps/{gateway,auth,calendar,reminders,notifications}
+backend/                 NestJS monorepo — apps/{gateway,users,calendar,reminders,notifications}
                           + libs/{auth-kernel,otel,queue-client,queue-contracts,
                           kafka-client,kafka-contracts,users-schema}
 frontend/                 Expo/React Native app — login/register (optional, not gated app-wide), a
@@ -96,7 +97,7 @@ docs/plans/               staged feature plans + their HTML design pages
     kept for the next feature: `IRealtimeConnectionService.pushToUser(userId, event, payload)` is
     the entry point a feature module injects to reach a user's live connection. Nothing pushes
     anything over it yet.
-- **users** (`backend/apps/users`, the Auth Service until plan task 2.7) — HTTP, internal-only (never published to the host — stricter
+- **users** (`backend/apps/users`) — HTTP, internal-only (never published to the host — stricter
   than `ask-my-crawl`'s own Auth Service, which still publishes its port as documented debt; this
   project starts without that exception). `POST /auth/register`, `/auth/login`, `/auth/refresh`,
   `/auth/logout` — none return a `user` object, just tokens. `POST /auth/account`
@@ -145,15 +146,18 @@ docs/plans/               staged feature plans + their HTML design pages
 - **frontend** (`frontend/`) — Expo Router app. Login is optional app-wide, not a gate on the whole
   app — `(tabs)` routes are freely reachable while signed out; `(auth)/{login,register}` each add a
   "Continue without logging in" link back to `/` for whoever lands there without wanting to
-  authenticate. `(tabs)/index` (Home — the landing tab, no session required: live clock, today's
+  authenticate; register also takes an optional first/last name (English or Hebrew letters only) and phone (country
+  dropdown + local digits, validated with `libphonenumber-js`, sent as E.164). `(tabs)/index` (Home — the landing tab, no session required: live clock, today's
   Gregorian and Hebrew/Jewish date (`@hebcal/hdate`, see `frontend/README.md` for why not `Intl`),
   a live/disconnected connection chip read straight from `wsSlice.status` — always "Disconnected"
   while signed out, since the socket only opens with a token — and `ShabbatSection`: candle
   lighting, Havdalah, holiday/parasha label, and a countdown for the device's GPS location, fetched
   on first mount, after the GPS fix, after Havdalah passes, and on Retry; last location and result
   persisted for offline), `(tabs)/account`
-  (theme toggle, logged-in account, edit email/password via `AccountEditForm`, logout — the one tab
-  so far opted into `requiresAuth: true`; the shared `CustomTabBar` intercepts a press on it while
+  (a heading plus `ThemeCard`, `AccountCard` (edit email/password), `ProfileCard` (name/phone via
+  `GET`/`PATCH /users/me`, fetched on mount), `LogoutCard`, `DeleteAccountCard` (password, then
+  `DELETE /auth/account`, signs out) — each card keeps its form private, and signing out unmounts
+  them all so forms reset; the one tab so far opted into `requiresAuth: true`; the shared `CustomTabBar` intercepts a press on it while
   signed out and shows `ConfirmModal` instead of navigating, but a direct hit on the route — deep
   link, web refresh — bypasses that, so the screen itself also calls `useRequireAuth()` on mount and
   renders `RequireAuthNotice` instead — both generic and reusable by any future `requiresAuth` tab,
@@ -162,14 +166,17 @@ docs/plans/               staged feature plans + their HTML design pages
   from thunks in `src/store/slices/`). Socket.IO
   auto-connects whenever `authSlice.accessToken` changes (`app/_layout.js`'s
   `RealtimeConnectionManager`) — generic plumbing, same as Gateway's `/ws`; nothing listens for a
-  specific event yet. Themed via the three-layer pipeline described in the Architecture section
+  specific event yet. While signed in, `LocationSyncManager` (also in `app/_layout.js`) sends a
+  fresh GPS fix to `PUT /users/me/location` only if it's > 5 km from the server's saved location
+  or the time zone changed (`profileSlice.syncLocation`, see `docs/specs/services.md#frontend`).
+  Themed via the three-layer pipeline described in the Architecture section
   below — `GlowCard`/`GradientButton`/`InputField`/`Alert` (`src/components/base/`, split into
   `background`/`buttons`/`feedback`/`form`/`layout` subfolders by purpose — see
   `.claude/agents/frontend.md`) and `AmbientBackground` (`src/components/composite/`) are the
   shared building blocks login/register/
-  Home/Account all use; `ConfirmModal` (composite) is the shared
-  Yes/No overlay (used today by the `requiresAuth` tab-press guard and Account's logout
-  confirmation).
+  Home/Account all use; `SelectField` (base/form) is the dropdown and `ProfileFields` (composite)
+  the name/phone group shared by register and `ProfileCard`; `ConfirmModal` (composite) is the
+  shared Yes/No overlay (used today by the `requiresAuth` tab-press guard).
 - **Queues** — BullMQ on Redis (`devops/redis/docker-compose.yml`, internal-only, AOF-persisted,
   `noeviction`, holds nothing but queues). Cross-service queues and job guards in
   `@app/queue-contracts` (one so far, `notification-requested` — Notifications processes it,
@@ -185,7 +192,9 @@ docs/plans/               staged feature plans + their HTML design pages
    `devops/docker-compose.yml` references its network as `external: true`).
 2. `cd devops && cp .env.example .env` and set real random `JWT_SECRET`/`PASSWORD_PEPPER`.
    `GATEWAY_PUBLIC_URL`: `http://localhost:8000` for use on this PC only, or the HTTPS tailnet URL
-   from step 4 for your phone.
+   from step 4 for your phone. Also `cp backend/.env.example backend/.env` (every container reads
+   it): same `JWT_SECRET`/`PASSWORD_PEPPER`, and `VAPID_*` keys from `npx web-push
+   generate-vapid-keys` — without them Notifications won't boot, so Gateway (which waits for it to be healthy) won't either.
 3. `docker compose up -d --build`.
 4. Phone access: run `devops/tailscale/serve.sh` once (see README's "Phone access (Tailscale
    HTTPS)" for the one-time Tailscale setup), put the Gateway URL it prints into `GATEWAY_PUBLIC_URL`,

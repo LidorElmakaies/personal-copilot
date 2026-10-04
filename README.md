@@ -6,7 +6,9 @@ Home screen, with optional login. Per-user reminders and a Jewish-calendar tab a
 [the plan](docs/plans/shabbat-reminders-calendar/plan.md).
 
 See [CLAUDE.md](CLAUDE.md) for architecture, setup, and how this repo is organized —
-[docs/specs/](docs/specs/) for the service/event contracts.
+[docs/specs/](docs/specs/) for the service/event contracts. To start the stack, follow CLAUDE.md's
+"First run": it needs both `devops/.env` and `backend/.env`, including `VAPID_*` keys (the stack
+won't boot without them).
 
 ## Phone access (Tailscale HTTPS)
 

@@ -11,6 +11,15 @@ export async function getProfile(token) {
   return response.json();
 }
 
+export async function setLocation(token, { lat, lon, tz }) {
+  const response = await authorizedFetch(
+    `${URLS.users.origin}/users/me/location`,
+    token,
+    { method: 'PUT', body: JSON.stringify({ lat, lon, tz }) },
+  );
+  return response.json();
+}
+
 // Only the fields present change; null clears one.
 export async function updateProfile(token, { firstName, lastName, phone }) {
   const response = await authorizedFetch(

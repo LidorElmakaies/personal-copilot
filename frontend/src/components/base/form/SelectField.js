@@ -19,15 +19,9 @@ const MIN_LIST_WIDTH = 220;
 const GAP = 4; // between the box and the list
 const EDGE = 8; // keep the list this far from the screen edges
 
-/**
- * Shared dropdown — looks like InputField; the list of `options` ({ value, label, shortLabel? })
- * opens right under the box (above it if there's no room below) and scrolls past 4 options. The
- * closed box shows `shortLabel` when given (e.g. "🇮🇱 +972"), the list the full `label`.
- *
- * The list sits in a transparent Modal at the box's measured window position rather than inline:
- * inline it would be clipped by any ancestor with overflow:'hidden' (GlowCard) and drawn under
- * later siblings. The Modal's invisible backdrop only catches a tap outside to close it.
- */
+// Dropdown styled like InputField. `options`: { value, label, shortLabel? } — the closed box shows
+// shortLabel. The list lives in a transparent Modal at the box's measured position: rendered
+// inline, an overflow:'hidden' ancestor (GlowCard) clips it. See .claude/agents/frontend.md.
 export default function SelectField({
   label,
   value,

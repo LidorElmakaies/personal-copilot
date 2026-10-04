@@ -47,7 +47,7 @@ export const store = configureStore({
     ws: wsReducer, // ephemeral — connection status shouldn't survive a reload
     location: persistReducer(locationPersistConfig, locationReducer),
     calendar: persistReducer(calendarPersistConfig, calendarReducer),
-    profile: profileReducer, // not persisted — refetched on the Account tab
+    profile: profileReducer, // not persisted — fetched when needed (profileSlice)
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

@@ -24,12 +24,13 @@ flowchart LR
         Gateway["gateway\n:8000"]
         FrontendLocal["frontend\n:8081 (Caddy, local mode)"]
         subgraph Docker["Docker network: personal-copilot"]
-            Auth["auth"]
+            Users["users"]
             Calendar["calendar"]
-            Reminders["reminders\n(skeleton)"]
+            Reminders["reminders\n(no scheduler yet)"]
             Notifications["notifications\n(Web Push)"]
-            Postgres[("postgres\nDBs: personal_copilot,\nreminders, notifications")]
+            Postgres[("postgres\nDB personal_copilot, schemas:\nusers, reminders, notifications")]
             Redis[("redis\nBullMQ queue: notification-requested")]
+            Kafka[("kafka\ntopic: users.user-state")]
         end
     end
 
@@ -42,13 +43,15 @@ flowchart LR
     TsServe -->|":8443 → :8000 (REST + WS)"| Gateway
 
     Browser -->|HTTPS| CaddyCloud
-    CaddyCloud -->|"/auth/*, /calendar/*, /notifications/*, /ws* via SSH reverse tunnel"| Gateway
+    CaddyCloud -->|"/auth/*, /calendar/*, /users/*, /reminders*, /notifications/*, /ws* via SSH reverse tunnel"| Gateway
 
-    Gateway -->|HTTP| Auth
+    Gateway -->|"HTTP (+ X-User-Id on /users/me*)"| Users
     Gateway -->|HTTP| Calendar
+    Gateway -->|"HTTP + X-User-Id"| Reminders
     Gateway -->|"HTTP + X-User-Id"| Notifications
-    Auth --> Postgres
-    Reminders --> Postgres
+    Users --> Postgres
+    Users -->|"outbox: users.user-state"| Kafka
+    Reminders -->|"own schema + reads users.profiles"| Postgres
     Notifications --> Postgres
     Redis -->|"notification-requested jobs\n(progress saved back)"| Notifications
     Notifications -->|"encrypted push"| PushSvc(["Browser push service\n(FCM for Chrome/Brave)"])
@@ -64,7 +67,8 @@ native builds don't need HTTPS and can call Gateway at the PC's tailnet IP on `:
 (Caddy) instead runs standalone on the VPS and reaches `gateway` only via an SSH reverse tunnel
 from the home machine (see "SSH reverse-tunnel hardening" below) — `gateway` itself is never given
 a public port either way. `users`, `calendar`, `reminders`, and `notifications` are
-internal-only; `reminders` stores per-user reminders (nothing fires yet);
+internal-only; `users` publishes every profile change to Kafka (`users.user-state`, through
+its outbox — no consumer yet); `reminders` stores per-user reminders (nothing fires yet);
 `notifications` stores browsers' Web Push subscriptions and processes `notification-requested`
 jobs from Redis (BullMQ), sending each to every device the user has through that browser's push
 service, end-to-end encrypted, and retrying the job for devices that weren't reached; nothing publishes
@@ -114,14 +118,14 @@ sequenceDiagram
     actor User
     participant Frontend
     participant Gateway
-    participant Auth as auth
+    participant Users as users
     participant DB as Postgres
 
     User->>Frontend: submit email + password
     Frontend->>Gateway: POST /auth/login
-    Gateway->>Auth: forward (HTTP)
-    Auth->>DB: look up user, verify password hash
-    Auth-->>Gateway: { access_token, refresh_token }
+    Gateway->>Users: forward (HTTP)
+    Users->>DB: look up user, verify password hash
+    Users-->>Gateway: { access_token, refresh_token }
     Gateway-->>Frontend: relay verbatim
     Frontend->>Frontend: decode access_token → user
 ```
@@ -147,6 +151,35 @@ sequenceDiagram
     Gateway-->>App: relay verbatim
     App->>App: countdown + "in progress" from the device clock
     Note over App: after Havdalah passes → fetch again for next Shabbat
+```
+
+## Flow: location sync (signed in)
+
+```mermaid
+sequenceDiagram
+    participant GPS as Device location
+    participant App as Frontend (LocationSyncManager)
+    participant Gateway
+    participant Users as users
+    participant DB as Postgres
+    participant Kafka
+
+    GPS-->>App: fresh fix (location.status = 'ready')
+    opt profile not loaded yet
+        App->>Gateway: GET /users/me
+        Gateway->>Users: forward + X-User-Id
+        Users-->>App: profile (incl. saved location)
+    end
+    App->>App: moved > 5 km or time zone changed?
+    alt yes
+        App->>Gateway: PUT /users/me/location { lat, lon, tz }
+        Gateway->>Users: forward + X-User-Id
+        Users->>DB: update profile + outbox row (one transaction)
+        Users-->>App: updated profile
+        Users--)Kafka: OutboxRelay publishes users.user-state
+    else no
+        Note over App: nothing sent
+    end
 ```
 
 ## Compose & build layout

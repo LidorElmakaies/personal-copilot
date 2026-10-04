@@ -148,7 +148,7 @@ A reminder must follow the user when they move, so location moves out of the rem
 per-user record that every service can rely on without calling for it. See "Users, location and
 events" under Decisions.
 
-- [ ] **2.6 Kafka back, for events.** Restore `devops/kafka` (broker + `kafka-init` topics),
+- [x] **2.6 Kafka back, for events.** Restore `devops/kafka` (broker + `kafka-init` topics),
   `KAFKA_BROKERS`, `kafkajs`, and the build wiring (`tsconfig.json` paths, `nest-cli.json`,
   `jest.config.js`) for the restored `libs/kafka-client` and `libs/kafka-contracts`. Add an outbox
   helper to `kafka-client` (the change and its event saved in one transaction, a relay publishes
@@ -156,7 +156,7 @@ events" under Decisions.
   `users.user-deleted`. Drop the old Kafka `notification-requested` message (it lives in
   `queue-contracts` now).
   *Check:* the broker stays up (see 2.0); a round trip through each topic.
-- [ ] **2.7 Rename Auth Service → Users Service.** No behavior change: `apps/auth` → `apps/users`,
+- [x] **2.7 Rename Auth Service → Users Service.** No behavior change: `apps/auth` → `apps/users`,
   `devops/auth` → `devops/users`, the Docker service, `AUTH_SERVICE_URL` → `USERS_SERVICE_URL`,
   `docs/auth` → `docs/users`, scripts and docs. Its database stays `personal_copilot` (renaming a
   database means moving its data); the `users` table keeps its name. Public routes don't change:
@@ -190,10 +190,10 @@ events" under Decisions.
   user). Drop `users.user-deleted` (topic, contract, outbox event); a delete still publishes the
   `users.user-state` tombstone.
   *Check:* deleting an account removes its reminders and push subscriptions.
-- [ ] **2.11 Frontend: account.** Optional first name, last name, phone on the register form; an
+- [x] **2.11 Frontend: account.** Optional first name, last name, phone on the register form; an
   edit-profile section on the Account tab (`GET`/`PATCH /users/me`); a "Delete account" button that
   asks for the password and logs out.
-- [ ] **2.12 Frontend: location sync.** When signed in, send `PUT /users/me/location` only when the
+- [x] **2.12 Frontend: location sync.** When signed in, send `PUT /users/me/location` only when the
   phone moved more than 5 km from the last location sent or its time zone changed.
 
 ### Candle-lighting reminder

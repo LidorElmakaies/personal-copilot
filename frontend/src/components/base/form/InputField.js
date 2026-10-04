@@ -9,16 +9,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../../../hooks/useAppTheme';
 
-/**
- * Shared, reusable text input — label + input + optional hint/error/char-count, themed via
- * useAppTheme(). Use this everywhere a labeled input is needed instead of hand-rolling a
- * TextInput per screen.
- *
- * `isPassword` adds a show/hide toggle instead of a plain `secureTextEntry` field. `glow` adds a
- * focus-glow shadow (off by default). `hint` renders a muted caption under the label; `maxLength`
- * + `showCharCount` render a "n/max" counter next to it. `inputStyle` sizes the input itself;
- * `style` sizes the outer wrapper.
- */
+// Labeled text input. `isPassword` adds a show/hide toggle, `glow` a focus shadow, `maxLength` +
+// `showCharCount` an "n/max" counter; `inputStyle` sizes the input, `style` the outer wrapper.
 export default function InputField({
   label,
   value,

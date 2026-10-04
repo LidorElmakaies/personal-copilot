@@ -18,6 +18,15 @@
 	handle /calendar/* {
 		reverse_proxy {$GATEWAY_UPSTREAM:gateway:8000}
 	}
+	handle /users/* {
+		reverse_proxy {$GATEWAY_UPSTREAM:gateway:8000}
+	}
+	handle /reminders {
+		reverse_proxy {$GATEWAY_UPSTREAM:gateway:8000}
+	}
+	handle /reminders/* {
+		reverse_proxy {$GATEWAY_UPSTREAM:gateway:8000}
+	}
 	handle /notifications/* {
 		reverse_proxy {$GATEWAY_UPSTREAM:gateway:8000}
 	}

@@ -115,6 +115,15 @@ describe('accounts and profiles (users)', () => {
       ]);
     });
 
+    it.each([
+      ['a Hebrew name', 'לידור', 'כהן'],
+      ['two-word names', 'Bar Lev', 'בר לב'],
+    ])('accepts %s', async (_name, firstName, lastName) => {
+      const userId = await register({ firstName, lastName });
+      const res = await send('GET', '/users/me', undefined, userId);
+      expect(await res.json()).toMatchObject({ firstName, lastName });
+    });
+
     it('works with just email and password', async () => {
       const userId = await register();
       expect(store.profiles.get(userId)).toMatchObject({
@@ -128,6 +137,12 @@ describe('accounts and profiles (users)', () => {
       ['a local phone number', { phone: '0501234567' }],
       ['an empty first name', { firstName: '   ' }],
       ['a last name over 100 chars', { lastName: 'a'.repeat(101) }],
+      ['a digit in a name', { firstName: 'Lidor1' }],
+      ['a hyphen in a name', { lastName: 'Bar-Lev' }],
+      ['an accented letter', { firstName: 'José' }],
+      ['Hebrew niqqud', { firstName: 'שָׁלוֹם' }],
+      ['an Arabic name', { firstName: 'علي' }],
+      ['a double space', { lastName: 'Bar  Lev' }],
     ])('rejects %s with 400 and creates nothing', async (_name, details) => {
       const res = await send('POST', '/auth/register', {
         email: 'a@example.com',

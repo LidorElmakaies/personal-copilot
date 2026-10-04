@@ -9,8 +9,17 @@ import {
   Length,
   Matches,
 } from 'class-validator';
-import { NAME_MAX_LENGTH, PHONE_E164 } from '@app/kafka-contracts';
+import {
+  NAME_MAX_LENGTH,
+  NAME_PATTERN,
+  PHONE_E164,
+} from '@app/kafka-contracts';
 import type { Profile } from '../../models/profile';
+
+const NAME_RULE = {
+  message:
+    '$property may contain only English or Hebrew letters and single spaces',
+};
 
 const trim = ({ value }: TransformFnParams): unknown =>
   typeof value === 'string' ? value.trim() : value;
@@ -21,12 +30,14 @@ export class ProfileDetailsDto {
   @Transform(trim)
   @IsString()
   @Length(1, NAME_MAX_LENGTH)
+  @Matches(NAME_PATTERN, NAME_RULE)
   firstName?: string | null;
 
   @IsOptional()
   @Transform(trim)
   @IsString()
   @Length(1, NAME_MAX_LENGTH)
+  @Matches(NAME_PATTERN, NAME_RULE)
   lastName?: string | null;
 
   @IsOptional()

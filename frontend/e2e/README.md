@@ -11,6 +11,9 @@ docker compose -f devops/playwright/docker-compose.yml run --rm e2e npx playwrig
 docker compose -f devops/playwright/docker-compose.yml run --rm e2e node scripts/screenshot.js / home
 ```
 
+`tests/location-sync.spec.js` mocks Gateway entirely and signs in by seeding a fake unexpired token
+into `localStorage` (`persist:auth`), so it needs no real account.
+
 Output lands in this folder (gitignored): `screenshots/` (explicit captures), `test-results/`
 (per-test screenshot, plus trace/video on failure), `playwright-report/` (HTML report).
 

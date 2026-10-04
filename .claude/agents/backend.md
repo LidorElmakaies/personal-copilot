@@ -1,6 +1,6 @@
 ---
 name: backend
-description: Backend engineer for personal-copilot's NestJS services. Use for implementing or modifying anything under backend/ — Gateway, Auth, Calendar, Reminders, Notifications, plus whatever new service a feature adds. Enforces the clean/hexagonal API/Application/Infrastructure layering.
+description: Backend engineer for personal-copilot's NestJS services. Use for implementing or modifying anything under backend/ — Gateway, Users, Calendar, Reminders, Notifications, plus whatever new service a feature adds. Enforces the clean/hexagonal API/Application/Infrastructure layering.
 tools: Read, Write, Edit, Glob, Grep, Bash, PowerShell, WebFetch, WebSearch
 ---
 
@@ -27,6 +27,8 @@ backend/
                         # src/realtime/: Socket.IO at /ws, generic connection plumbing — no
                         # feature pushes anything over it yet, see services.md#gateway for the
                         # IRealtimeConnectionService.pushToUser entry point a future one uses.
+                        # src/users-proxy/, src/reminders-proxy/: /users/me*, /reminders*
+                        # (JwtAuthGuard, user id forwarded as X-User-Id).
                         # src/calendar-proxy/: GET /calendar/shabbat → Calendar Service.
                         # src/notifications-proxy/: vapid-public-key (open) + subscriptions
                         # (JwtAuthGuard, user id forwarded as X-User-Id — see services.md).
@@ -35,8 +37,10 @@ backend/
                         # gets a new *-proxy module on top of it, never its own HTTP client copy.
                         # Thin pass-through everywhere — never business logic. A new feature's
                         # HTTP surface gets its own self-contained module here, same shape.
-    auth/                # HTTP, internal-only (never published to the host — only Gateway calls
-                        # it). register/login/refresh/logout/account — none return a `user`
+    users/               # HTTP, internal-only (never published to the host — only Gateway calls
+                        # it). Schema `users`. Profiles (/users/me*, user id from X-User-Id),
+                        # every change written to outbox_events and published to Kafka
+                        # (users.user-state). register/login/refresh/logout/account — none return a `user`
                         # object, just tokens (the access token itself carries
                         # { sub, role, email }). account (one endpoint, both newEmail/newPassword
                         # optional, at least one required) is body-driven (current password
@@ -49,7 +53,7 @@ backend/
                         # ICalendarCalculator). GET /calendar/shabbat. See its README for the
                         # ESM-subpath import and time-zone rules before touching it.
     reminders/           # Per-user reminders (schema `reminders`); reads the location from users.profiles.
-    notifications/       # Own `notifications` DB. Push subscriptions + VAPID public key; processes
+    notifications/       # Schema `notifications`. Push subscriptions + VAPID public key; processes
                         # notification-requested jobs (consume-only; drops expired) → each
                         # INotificationChannel.deliver(userId, content, expiresAt, progress).
                         # WebPushChannel sends to the user's current devices, skipping those the
@@ -59,7 +63,7 @@ backend/
                         # User id from Gateway's X-User-Id header (@ForwardedUserId()), never a JWT.
   libs/
     auth-kernel/          # generic JWT sign/verify (the only class allowed to import
-                        # `jsonwebtoken`), JwtAuthGuard, CurrentUser decorator — shared by auth
+                        # `jsonwebtoken`), JwtAuthGuard, CurrentUser decorator — shared by users
                         # (signs) and gateway (verifies). Plus USER_ID_HEADER/@ForwardedUserId():
                         # how an internal service reads the user Gateway already authenticated.
     otel/                # generic OTel bootstrap — ported near-verbatim from ask-my-crawl, no

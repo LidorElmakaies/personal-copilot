@@ -1,7 +1,8 @@
 # frontend
 
 Expo/React Native app — optional login/register (the app doesn't gate itself on a session), a Home
-tab (clock, dates, and Shabbat times for the device's location), and an auth-gated Account tab. See the root
+tab (clock, dates, and Shabbat times for the device's location), and an auth-gated Account tab
+(theme, email/password, profile, logout, delete account). See the root
 [CLAUDE.md](../CLAUDE.md) for architecture, [.claude/agents/frontend.md](../.claude/agents/frontend.md)
 for the conventions to follow when changing anything here.
 
@@ -25,9 +26,10 @@ later — keep it internally consistent until then rather than treating it as a 
 
 `src/components/` splits into `base/` (primitives, grouped into subfolders by purpose:
 `background/` — `Meteors`, `Stars`; `buttons/` — `GradientButton`; `feedback/` — `Alert`, `Chip`;
-`form/` — `InputField`, `Switch`; `layout/` — `GlowCard`, `Row`) and `composite/` (built from one
-or more base/composite components — `AccountEditForm`, `AmbientBackground`, `ConfirmModal`,
-`RequireAuthNotice`, `ShabbatSection`). See `.claude/agents/frontend.md` for the classification rule when adding one.
+`form/` — `InputField`, `SelectField`, `Switch`; `layout/` — `GlowCard`, `Row`) and `composite/`
+(built from one or more base/composite components — `AmbientBackground`, `ConfirmModal`,
+`ProfileFields`, `RequireAuthNotice`, `ShabbatSection`, and the Account tab's `ThemeCard`,
+`AccountCard`, `ProfileCard`, `LogoutCard`, `DeleteAccountCard`). See `.claude/agents/frontend.md` for the classification rule when adding one.
 
 Same Redux Toolkit + services-layer + Expo Router conventions otherwise: all I/O lives in
 `src/services/`, split by transport — `services/http/` (fetch-based calls), `services/ws/` (the
@@ -40,6 +42,13 @@ thunks in `src/store/slices/`, never inline in a component.
 only foreground location is used. On web, the browser's geolocation API requires HTTPS (or
 `localhost`) — that's why phone access goes through `tailscale serve` (root README, "Phone
 access").
+
+## Phone numbers (`libphonenumber-js`)
+
+The optional phone field (register, Account → Profile) is a country dropdown plus local digits;
+`src/utils/phone.js` validates them with `libphonenumber-js` and converts to/from the E.164 form
+the Users Service stores. Supported countries are `PHONE_COUNTRIES` — adding one is just a new
+entry, the library already knows every numbering plan.
 
 ## Hebrew date (`@hebcal/hdate`)
 
@@ -59,7 +68,7 @@ native substitution) — see `docs/specs/architecture.md#system-topology` for th
 - **Local/Tailscale** (default, no env overrides): `SITE_ADDRESS` is bare `:80` — a hostless
   address disables Caddy's automatic HTTPS entirely, since there's no domain to request a cert for.
   `GATEWAY_UPSTREAM` defaults to `gateway:8000` (Docker network DNS), but the `/auth/*`,
-  `/calendar/*`, `/ws*` reverse-proxy blocks go unused in this mode — the browser calls Gateway's
+  `/calendar/*`, `/users/*`, `/reminders*`, `/notifications/*`, `/ws*` reverse-proxy blocks go unused in this mode — the browser calls Gateway's
   own Tailscale HTTPS URL directly, baked into the build at `GATEWAY_PUBLIC_URL`. HTTPS itself comes
   from `tailscale serve` in front of this container, not from Caddy.
 - **Cloud/Hetzner**: `docker-compose.cloud.yml` overrides `SITE_ADDRESS` to a real domain, which

@@ -19,7 +19,9 @@ second one.
 `frontend/` — see root `CLAUDE.md` for the overall stack. This app is currently optional auth
 (login/register, not a whole-app gate) + a Home tab (landing, no session required; clock, dates,
 and Shabbat times for the device's location via `locationSlice` + `calendarSlice`) + an auth-gated
-Account tab; there is no scraper/jobs/admin surface here — don't port that part of
+Account tab (theme, email/password, profile, logout, delete account — one card component each) +
+a background location sync to the Users Service while signed in (`LocationSyncManager` →
+`profileSlice.syncLocation`, see `docs/specs/services.md#frontend`); there is no scraper/jobs/admin surface here — don't port that part of
 `ask-my-crawl`'s frontend, only its theme/component/services conventions.
 
 A tab opts into requiring a session via `TABS`' `requiresAuth: true` entry in `(tabs)/_layout.js`
@@ -61,14 +63,22 @@ two folders:
   use React Native primitives, Reanimated, `expo-blur`/`expo-linear-gradient`, and
   `useAppTheme()`/hooks. Grouped into subfolders by purpose: `background/` (`Meteors`, `Stars` —
   animated background-effect primitives), `buttons/` (`GradientButton`), `feedback/` (`Alert`,
-  `Chip` — status/feedback indicators), `form/` (`InputField`, `Switch` — form input controls),
-  `layout/` (`GlowCard`, `Row` — layout/surface primitives).
+  `Chip` — status/feedback indicators), `form/` (`InputField`, `SelectField`, `Switch` — form input
+  controls), `layout/` (`GlowCard`, `Row` — layout/surface primitives). `SelectField` renders its
+  option list in a transparent `Modal` at the box's measured window position (below it, or above
+  if there's no room; scrolls past 4 options) — inline, any `overflow:'hidden'` ancestor such as
+  `GlowCard` would clip it and later siblings would draw over it.
 - **`composite/`** — built by composing one or more `base` (or other `composite`) components, flat
-  (no subfolders). Currently: `AccountEditForm` (from `Alert`, `GradientButton`, `InputField`),
-  `AmbientBackground` (from `Meteors`, `Stars`), `ConfirmModal` (from `GlowCard`,
-  `GradientButton`), `RequireAuthNotice` (from `AmbientBackground` + `GlowCard`, `GradientButton`),
-  `ShabbatSection` (from `GradientButton` — Home's Shabbat times; presentational, Home owns the
-  Redux wiring and passes `now`).
+  (no subfolders). Currently: `AmbientBackground` (from `Meteors`, `Stars`), `ConfirmModal` (from
+  `GlowCard`, `GradientButton`), `ProfileFields` (from `InputField`, `SelectField` — optional
+  name/phone fields, shared by register and `ProfileCard`), `RequireAuthNotice` (from
+  `AmbientBackground` + `GlowCard`, `GradientButton`), `ShabbatSection` (from `GradientButton` —
+  Home's Shabbat times; presentational, Home owns the Redux wiring and passes `now`), and the
+  Account tab's cards — `ThemeCard` (`GlowCard`, `Row`, `Switch`), `AccountCard`, `ProfileCard`,
+  `LogoutCard`, `DeleteAccountCard` (`GlowCard`, `Row`, `GradientButton`, plus `InputField`/
+  `ProfileFields`/`Alert` as needed). A card owns its own Redux wiring and keeps its edit/confirm
+  form as a private component in the same file, so Cancel (unmounting the form) drops whatever was
+  typed — follow that shape for the next card rather than lifting form state into the page.
 
 Use these instead of hand-rolling a `TextInput`/card/button/background/confirm-dialog/message-box
 per screen. If a UI pattern is about to appear a second time, extract it to a component before a
@@ -92,9 +102,10 @@ when a component genuinely needs something no thunk/selector combination can giv
 - Always use `useAppTheme()` for colors — never hardcode or import `colors.js` directly in a
   screen/component.
 - Don't hand-write to AsyncStorage — redux-persist handles persisted slices (`auth`, `theme`,
-  `location` — `coords` only, `calendar` — `shabbat` only).
+  `location` — `coords` only, `calendar` — `shabbat` only). `ws` and `profile` aren't persisted;
+  `profile` is reset on `clearAuth`/`deleteAccount` so one user's profile never reaches the next.
 - Provider order in `app/_layout.js` is load-bearing (`Provider` → `PersistGate` →
-  `ThemeAnimProvider` → `AuthGate`/`RealtimeConnectionManager` → `Stack`) — adding a provider means
+  `ThemeAnimProvider` → `AuthGate`/`RealtimeConnectionManager`/`LocationSyncManager` → `Stack`) — adding a provider means
   deciding where it sits deliberately, not appending it wherever's convenient.
 - **The frontend only ever talks to Gateway, never the Users Service or any other backend service
   directly** — see `.claude/memory/feedback_gateway_only_service_access.md`.

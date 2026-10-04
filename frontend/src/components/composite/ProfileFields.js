@@ -11,11 +11,8 @@ const COUNTRY_OPTIONS = PHONE_COUNTRIES.map((c) => ({
   shortLabel: `${c.flag} ${c.dialCode}`,
 }));
 
-// Composite component (InputField/SelectField) — the optional first name / last name / phone
-// fields, shared by register and the Account tab's profile editor. `value` is { firstName,
-// lastName, country, phone } with `phone` the local digits; see utils/phone.js for toE164.
-// Names accept letters only and the phone digits only — anything else never reaches the field.
-// The phone error shows once the field is left (or on `showErrors`), not on every keystroke.
+// Composite component (InputField/SelectField) — optional name/phone fields for register and
+// ProfileCard. `value`: { firstName, lastName, country, phone (local digits — utils/phone.js) }.
 export default function ProfileFields({ value, onChange, showErrors = false }) {
   const [phoneTouched, setPhoneTouched] = useState(false);
   const set = (field, clean) => (text) =>

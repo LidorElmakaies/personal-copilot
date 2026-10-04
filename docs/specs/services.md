@@ -58,8 +58,7 @@ tunnel from a Caddy instance on the public internet. HTTP + WebSocket.
 
 ## users
 
-The Auth Service until plan task 2.7. Owns both how you log in (`users`, `refresh_tokens`) and who
-you are (`profiles`), and publishes profile changes and deletions on Kafka (see "Profiles" below).
+Owns both how you log in (`users`, `refresh_tokens`) and who you are (`profiles`), and publishes profile changes and deletions on Kafka (see "Profiles" below).
 
 HTTP, internal-only — never published to the host, only Gateway calls it.
 
@@ -75,7 +74,7 @@ HTTP, internal-only — never published to the host, only Gateway calls it.
   password, then applies whichever of `newEmail`/`newPassword` is present in one atomic update
   (`newEmail` uniqueness-checked, `409 Conflict`, same as `register`; `newPassword` hashed the same
   way as at registration). Throws `400 Bad Request` if neither field is set. One endpoint covering
-  both fields rather than two — the frontend's combined edit form submits whichever field(s)
+  both fields rather than two — the frontend's `AccountCard` form submits whichever field(s)
   changed in a single call, and an atomic request structurally rules out a caller ever
   authenticating a second sequential call with an already-stale password, something two separate
   endpoints couldn't guarantee.
@@ -88,10 +87,11 @@ HTTP, internal-only — never published to the host, only Gateway calls it.
 - `GET /users/me` → `{ firstName, lastName, phone, location: { lat, lon, tz, updatedAt } | null }`
   (user from `X-User-Id`). An account from before profiles gets all `null`s.
 - `PATCH /users/me` — any of `{ firstName, lastName, phone }`; only the fields sent change, `null`
-  clears one, none at all → `400`. Names are trimmed, 1–100 chars; `phone` in international format
+  clears one, none at all → `400`. Names are trimmed, 1–100 chars, English or Hebrew letters only with single spaces between words
+  (`NAME_PATTERN` in `@app/kafka-contracts`, also applied by register); `phone` in international format
   (`+972501234567`). Returns the profile.
-- `PUT /users/me/location` — `{ lat, lon, tz }` → the profile. Sent by the phone only after a real
-  move (task 2.12); `updatedAt` is set here.
+- `PUT /users/me/location` — `{ lat, lon, tz }` → the profile. The frontend sends it only after a move
+  of more than 5 km or a time-zone change (see [frontend](#frontend)); `updatedAt` is set here.
 
 **Profiles.** `profiles` table, keyed by `user_id` (the user's id and a foreign key, deleted with
 the user): `first_name`, `last_name`, `phone`, `lat`, `lon`, `tz`, `location_updated_at`,
@@ -260,16 +260,40 @@ logging in" link (routes to `/`) for whoever lands there without wanting to auth
     from the device) and `calendarSlice` persists the last `shabbat` response, so Home still shows
     times offline. Location refused → "Location is off" + Retry (or, with a cached result, a
     "using your last known location" note).
-- `(tabs)/account` (theme toggle, logged-in account, edit account email/password, logout) — the
-  one tab opted into `requiresAuth: true` (`(tabs)/_layout.js`'s `TABS`). `CustomTabBar` intercepts
-  a press on a `requiresAuth` tab while signed out and shows `ConfirmModal` ("Log in to view
-  Account?") instead of navigating; a direct hit on the route (deep link, web refresh, reopening
-  the app on this tab) bypasses that entirely, so `AccountScreen` also calls `useRequireAuth()`
-  on mount and renders `RequireAuthNotice` in that case — both are generic (`src/hooks/`,
-  `src/components/composite/`), reusable by any future `requiresAuth` tab, not Account-specific.
-  `AccountEditForm` is a tap-to-reveal form for both editable fields at once, wired to Auth
-  Service's `account` endpoint (see `apps/users` above) via a single `updateAccount` thunk in
-  `authSlice`, with one `Alert` reporting success/failure for the whole request.
+- `(auth)/register` — email and password, plus optional first name, last name and phone
+  (`ProfileFields`, shared with `ProfileCard`). Names accept English and Hebrew letters only, with
+  single spaces between words — `sanitizeName` in `src/utils/validation.js` drops anything else
+  (digits, punctuation, niqqud, other alphabets) as it's typed; the Users Service enforces the same. Phone is a country dropdown (`PHONE_COUNTRIES` in
+  `src/utils/phone.js`, Israel only today) plus a digits-only local number, validated with
+  `libphonenumber-js` and sent as E.164; its error shows once the field is left (or on submit).
+  Blank optional fields are left out of the request.
+- `(tabs)/account` — a heading and five cards (`src/components/composite/`): `ThemeCard` (light/
+  dark toggle), `AccountCard` (email; edit email/password via `POST /auth/account` — the
+  `updateAccount` thunk, see `apps/users` above), `ProfileCard` (name and phone; fetches
+  `GET /users/me` on mount, saves via `PATCH /users/me`, an emptied field sent as `null`),
+  `LogoutCard` (confirmed in place), `DeleteAccountCard` (asks for the password, then
+  `DELETE /auth/account` via `authSlice`'s `deleteAccount`, which signs out on success). Each card
+  holds its row and its edit/confirm form as a private component in the same file, so Cancel drops
+  whatever was typed. The cards render only while signed in, so signing out unmounts them — every
+  form starts closed for the next session. Account is the one tab opted into
+  `requiresAuth: true` (`(tabs)/_layout.js`'s `TABS`). `CustomTabBar` intercepts a press on a
+  `requiresAuth` tab while signed out and shows `ConfirmModal` ("Log in to view Account?") instead
+  of navigating; a direct hit on the route (deep link, web refresh, reopening the app on this tab)
+  bypasses that entirely, so `AccountScreen` also calls `useRequireAuth()` on mount and renders
+  `RequireAuthNotice` in that case — both are generic (`src/hooks/`, `src/components/composite/`),
+  reusable by any future `requiresAuth` tab, not Account-specific.
+- **Location sync** — `app/_layout.js`'s `LocationSyncManager` dispatches `profileSlice`'s
+  `syncLocation` whenever the user is signed in and `locationSlice.status` is `'ready'` (a fresh
+  GPS fix this session — the persisted last-known `coords` alone never trigger it).
+  `syncLocation` compares the fix with the location the server already has (`GET /users/me`'s
+  `location`, fetched first if the profile isn't loaded) and sends `PUT /users/me/location` only if
+  the device moved more than `LOCATION_SYNC_MIN_KM` (5, haversine in `src/utils/geo.js`) or its time
+  zone changed. The server's copy is the reference — there's no local "last sent" record to go
+  stale across accounts or devices. One sync runs at a time; a reply that lands after sign-out
+  (or a different sign-in) is dropped; a failure is simply retried on the next fix.
+- `profileSlice` (`{ profile, status, error, locationSyncing }`) isn't persisted; it's fetched when
+  `ProfileCard` mounts or a sync needs it, and reset on `clearAuth` and a successful
+  `deleteAccount` so one user's profile is never shown to the next.
 
 Talks only to Gateway (`EXPO_PUBLIC_GATEWAY_ORIGIN`, baked in at build time, required —
 `src/config/urls.js` throws at load if it's unset) — never the Users Service or any other backend
@@ -277,12 +301,12 @@ service directly.
 
 Themed via a three-layer pipeline (`themeSlice` → `useAppTheme()` → `ThemeAnimContext`) and shared
 components under `src/components/base/` (grouped into `background`/`buttons`/`feedback`/`form`/
-`layout` subfolders by purpose) and `src/components/composite/` (`AccountEditForm`, `AmbientBackground`,
-`ConfirmModal`, `RequireAuthNotice`, `ShabbatSection`) — see `.claude/agents/frontend.md` for the base/composite split, the full
+`layout` subfolders by purpose) and `src/components/composite/` (the Account cards above,
+`AmbientBackground`, `ConfirmModal`, `ProfileFields`, `RequireAuthNotice`, `ShabbatSection`) — see `.claude/agents/frontend.md` for the base/composite split, the full
 convention, and why there's no Gluestack layer here.
 
 `src/services/` is split by transport: `http/` (fetch-based calls — `authService`,
-`calendarService`), `ws/` (`socketService`, a single shared Socket.IO connection), and `device/`
+`calendarService`, `usersService` for `/users/me*`), `ws/` (`socketService`, a single shared Socket.IO connection), and `device/`
 (`locationService` — `expo-location` permission + position, plus the device's IANA time zone). `wsSlice`'s `connectWebSocket`/
 `disconnectWebSocket` thunks open/close it whenever `authSlice.accessToken` changes
 (`app/_layout.js`'s `RealtimeConnectionManager`) — generic plumbing, same as Gateway's `/ws`; no
@@ -298,9 +322,10 @@ acceptable v1.
 Shared JWT sign/verify (`IJwtService`/`JsonWebTokenService`, the only class allowed to import
 `jsonwebtoken`), the higher-level `IAuthTokenService`/`AuthTokenService` used by every guard,
 `JwtAuthGuard`, and the `CurrentUser` param decorator. Used by both `apps/users` (signs, on
-login/register) and `apps/gateway` (verifies — `JwtAuthGuard` on `/notifications/subscriptions`).
-Also `USER_ID_HEADER` + `@ForwardedUserId()`, the internal-service side of Gateway's forwarded user
-id (see Gateway above) — used by `apps/notifications`.
+login/register) and `apps/gateway` (verifies — `JwtAuthGuard` on `/users/me*`, `/reminders*`,
+`/notifications/subscriptions`). Also `USER_ID_HEADER` + `@ForwardedUserId()`, the
+internal-service side of Gateway's forwarded user id (see Gateway above) — used by `apps/users`,
+`apps/reminders` and `apps/notifications`.
 
 ## libs/queue-contracts / libs/queue-client
 
