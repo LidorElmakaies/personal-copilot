@@ -37,6 +37,14 @@ Set the printed Gateway URL as `GATEWAY_PUBLIC_URL` in `devops/.env`, rebuild th
 (`cd devops && docker compose up -d --build frontend`), and open `https://<pc>.ts.net` on your
 phone. `tailscale serve` settings survive reboots; `tailscale serve reset` removes them.
 
+**Reminders on the phone** arrive as Web Push notifications, even with the screen locked and the
+browser in the background: sign in, then tap "Turn on" (or the Account tab's Notifications switch)
+and allow. If nothing arrives on the phone while the PC gets it, the message reached Google's push
+service and the phone held it back. In Android's settings, allow the browser's notifications and
+set its battery use to Unrestricted. Swiping the browser out of recent apps can force-stop it on
+some phones, and a stopped app gets nothing until it's opened again. Chrome is the most reliable
+browser for this; Brave works once those settings allow it.
+
 ## Git rule for Claude and every agent
 
 **Never stage or commit anything unless the user explicitly says so** ("stage this", "commit

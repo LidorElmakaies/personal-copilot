@@ -78,6 +78,15 @@ If a design changes, update the HTML file here in the same commit.
   Home uses the phone's GPS directly, as before.
 - **No "server → open app" channel for this.** The phone is the one that changes the location, so
   it re-fetches what depends on it. Web Push is for notifications only (every push must show one).
+- **Versions, the Android app and ntfy** (added before stage 3, tasks 2.17–2.26). The frontend
+  has a semver version and Android `versionCode`, bumped by one script that tags git; each backend
+  service reports its version, build commit and start time on `/health`, and an Admin tab (admin
+  accounts only) shows them all with up/down status. The phone gets a real Android app (APK),
+  built in Docker and signed with one key kept outside git, published to a registry at
+  `https://<pc>.ts.net/apk/`; the app checks it on start and offers updates. The APK can't use
+  Web Push (browser-only), so its reminders go through a self-hosted **ntfy** server on the
+  tailnet and the ntfy Android app — a second Notification Service channel, no Reminders change,
+  no Google account. Web Push stays for the browser.
 
 ---
 
@@ -117,7 +126,9 @@ with a countdown. The Reminders and Notification services exist and run, but do 
 ## Stage 2: Candle-lighting reminder
 
 Goal: on the Home card, a bell button lets a logged-in user pick "remind me X before candle
-lighting", and a push notification arrives on the phone at that time every Friday.
+lighting", and a push notification arrives on the phone at that time every Friday. Then (2.17 on):
+versions, an admin status view, and an installable Android app that updates itself from the home
+network and gets its reminders through ntfy.
 
 - [x] **2.0 Fix Kafka.** `devops/data/kafka` is owned by root, so the broker crash-loops. Give it to
   the container's user (one `sudo chown`, run by the user) and confirm the broker stays up.
@@ -214,7 +225,7 @@ events" under Decisions.
   reminder is gone (account deleted) does nothing.
   *Tests:* fires once, not twice; survives a restart; offset change moves the next time; a
   location event moves the next time.
-- [ ] **2.14 Frontend: turn on notifications.** A service worker in the web build (receives the
+- [x] **2.14 Frontend: turn on notifications.** A service worker in the web build (receives the
   push, shows the notification, opens the app on tap), a "Turn on notifications" step after login
   that asks permission and calls `PushManager.subscribe` with the VAPID public key, and sends the
   subscription to 2.2. Web only for now.
@@ -223,8 +234,98 @@ events" under Decisions.
   picker, presets (30m, 1h, 1h 30m, 2h, 3h), "fires at HH:MM this week" (the server's
   `nextFireAt`), Save (sends only the offset) / Turn off. Signed out → the existing "log in to use
   this" prompt. `remindersSlice` + `remindersService`.
-- [ ] **2.16 End-to-end check on the phone + docs sync.** Real reminder a few minutes out, received
+- [x] **2.16 End-to-end check on the phone + docs sync.** Real reminder a few minutes out, received
   in the phone's browser over `https://<pc>.ts.net`; moving the location moves it.
+
+### Versions, admin status, Android app
+
+Added after 2.16, before stage 3: version numbers, an admin view of the backend, an installable
+Android app (APK) with updates from the home network, and reminders on that app through a
+self-hosted ntfy server. See "Versions, the Android app and ntfy" under Decisions.
+
+- [ ] **2.17 Admin sign-in + sessions that end cleanly.** Today the seeded admin can log in but
+  Gateway rejects every `role: 'admin'` token (`auth-kernel` accepts only `'user'`), so the app
+  gets stuck "signed in" with every call failing (found while testing 2.14). `auth-kernel`: verify
+  `'user'` and `'admin'`; `JwtAuthGuard` lets both through (the admin also uses the app as a
+  normal user), a new `AdminGuard` only `'admin'`. Frontend: `selectUser` exposes the role; any
+  `401` from a signed-in call signs out with "Your session ended — please log in again" (also
+  covers an expired or otherwise rejected token).
+  *Tests:* an admin token passes `JwtAuthGuard` and `AdminGuard`, a user token fails
+  `AdminGuard` with `403`; in the browser, a rejected token signs out with the message.
+- [ ] **2.18 Versions.** The frontend has a semver version (`frontend/app.json` `version`, plus
+  Android's `versionCode`, which only goes up), bumped by one script
+  (`scripts/release.sh <x.y.z>`) that also tags git (`app-v<x.y.z>`). The Account tab shows
+  "Version 1.2.0 (abc1234)" (build commit baked in at build time). Every backend service reports
+  `{ status, version, commit, startedAt }` on `GET /health`: `version` from `backend/package.json`,
+  `commit` baked into its image at build time (a build arg), so a stale container is visible.
+  *Check:* rebuild one service, its `/health` shows the new commit and start time.
+- [ ] **2.19 Admin: system status.** Gateway `GET /admin/status` (`AdminGuard`): asks every
+  backend service's `/health` (its own, Users, Reminders, Notifications — the list from Gateway's
+  config) in parallel with a short timeout and returns `[{ service, status: 'up' | 'down', version,
+  commit, startedAt, latencyMs }]`; a service that doesn't answer is `down`, not an error.
+  Frontend: an **Admin** tab, only for admins (a `requiresRole: 'admin'` tab, hidden for
+  everyone else, and the same mount-time check as Account), listing each service with an up/down
+  chip, version, commit, uptime and latency, plus the app's own version; refresh on open and by
+  pull/tap. **New UI → HTML mockup first.**
+  *Check:* stop the Reminders container — it shows `down` within one refresh; start it — `up`
+  with a new start time.
+- [ ] **2.20 Android app (APK) builder.** `app.json` gets the Android identity
+  (`android.package`, `versionCode`, permissions: location, notifications). A Docker image
+  (`devops/android/`: JDK 17, Android SDK, Node 22 — nothing installed on the host) runs
+  `expo prebuild --platform android` and Gradle `assembleRelease`, with
+  `EXPO_PUBLIC_GATEWAY_ORIGIN` = the tailnet Gateway URL. Signed with one release keystore,
+  generated once into `devops/data/android/` (git-ignored — **back it up**: an APK signed with a
+  different key can't update the installed one). One command: `devops/android/build-apk.sh` →
+  `personal-copilot-<version>.apk`. Web-only code (`sw.js`, Web Push) stays web-only; on the APK
+  the Notifications card says "coming with 2.25" until then.
+  *Check:* the APK installs on the phone (Tailscale on), logs in, shows Shabbat times from GPS,
+  and the reminder sheet saves.
+- [ ] **2.21 APK registry on the tailnet.** `https://<pc>.ts.net/apk/`, served by the frontend's
+  Caddy from a persistent folder (`devops/data/apk/`, mounted, so it survives frontend rebuilds —
+  no new port). Holds every published APK, `latest.json` (`{ version, versionCode, url, sha256,
+  notes, publishedAt }`) and a plain download page listing versions, newest first, with their
+  notes. `devops/android/publish-apk.sh` (or a flag on `build-apk.sh`) copies the APK in and
+  rewrites `latest.json` and the page. **The page is new UI → HTML mockup first.**
+  *Check:* the page opens on the phone, downloads the newest APK and installs it; an older one is
+  still listed.
+- [ ] **2.22 In-app update prompt (APK only).** On start and when the app comes back to the
+  foreground, the APK fetches `/apk/latest.json`; if its `versionCode` is newer than the installed
+  one (`expo-application`), a prompt: "Version 1.3.0 is available · What's new · Update / Later".
+  Update opens the APK's URL, Android downloads it and asks to install (the first time it asks to
+  allow installs from that browser). "Later" waits for the next version. The web build never
+  shows it (it's always the newest). **New UI → mockup first.**
+  *Check:* install 1.0.0, publish 1.0.1 — the prompt shows; Update installs over it keeping the
+  login; 1.0.1 shows no prompt.
+- [ ] **2.23 ntfy server.** `devops/ntfy/` (the official `binwiederhier/ntfy` image): cache and
+  auth on disk under `devops/data/ntfy/`, `auth-default-access: deny-all` (nothing readable or
+  writable without a token), an admin user for the Notification Service. The phone's ntfy app has
+  to reach it, so `tailscale serve` publishes it on `https://<pc>.ts.net:8445` — tailnet only,
+  like the frontend; the second deliberate exception to "only Gateway is reachable" (a push
+  server, not an API — **needs your OK**, see Open questions).
+  *Check:* the ntfy app on the phone subscribes to a test topic with a token and gets a message
+  `curl`ed from the PC; without a token it's refused.
+- [ ] **2.24 Notification Service: ntfy channel.** `ntfy_topics` table (`user_id` → `users.users`
+  `ON DELETE CASCADE`, a random unguessable `topic`, created per user on first use) and a
+  read-only ntfy token per user for that topic only (via ntfy's admin API).
+  `POST /notifications/ntfy` (JWT, through Gateway) → `{ server, topic, token }`, creating them
+  if needed; `DELETE` removes them and revokes the token. `NtfyChannel implements
+  INotificationChannel` (channel `'ntfy'` in `queue-contracts`): publishes title, body and a click
+  link back into the app (`personalcopilot://`, the app's scheme) to the user's topic; per-job
+  progress and retries like `WebPushChannel`. Reminders doesn't change (it already omits
+  `channels`, meaning every channel the user has).
+  *Tests:* the channel publishes to the right topic with the token; a deleted account's topic and
+  token go. *Check:* a hand-enqueued `notification-requested` shows in the ntfy app.
+- [ ] **2.25 APK: turn on notifications (ntfy).** On the APK, the Notifications card and the
+  after-login prompt use ntfy instead of Web Push: "Turn on" calls `POST /notifications/ntfy`, then
+  opens the ntfy app's subscribe link for that server, topic and token (or, if the ntfy app isn't
+  installed, explains and links to it on F-Droid / Google Play). Tapping a notification in the
+  ntfy app opens our app. Off → `DELETE`. **Changed UI → update the 2.14 mockup first.**
+  *Check:* a reminder fired by hand (`fire-reminder-soon.sh`) arrives with the phone locked and
+  our app closed; tapping it opens the app.
+- [ ] **2.26 End-to-end on the phone + docs sync.** Install the APK from the registry, update it
+  once through the in-app prompt, receive a real reminder through ntfy with the phone locked, and
+  see every service up (and one stopped as down) on the Admin tab. Docs: `CLAUDE.md` (it says
+  "no admin features" today), `docs/specs/*`, READMEs, the agents' files.
 
 ## Stage 3: Calendar tab
 
@@ -250,6 +351,15 @@ and a day card with that day's times.
 Smaller bugs, config fixes and ideas found along the way are tracked in
 [`open-issues.md`](open-issues.md).
 
+- **ntfy reachable from the phone** (task 2.23): OK to publish ntfy on its own tailnet port
+  (`:8445`, tailnet only) — a second exception, like the frontend, to "only Gateway is reachable"?
+  The alternative, proxying ntfy's long-lived connections through Gateway, is possible but adds
+  load and code to Gateway for no privacy gain on a tailnet.
+- **ntfy delivery on Android:** without Google, the ntfy app keeps its own connection open (a
+  small, permanent "ntfy" notification and some battery). Acceptable? (ntfy can also use Firebase
+  for instant delivery, which would bring Google back in.)
+- **Release key backup:** where do you want the APK signing key backed up? Losing it means
+  uninstalling the app (and signing in again) to install any newer version.
 - **Holiday eves for the reminder** (task 3.4): yes or no?
 - **Location denied:** is the "Location is off" message enough, or do you want a manual city
   picker as a fallback?

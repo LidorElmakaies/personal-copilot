@@ -9,11 +9,9 @@ Service (candle-lighting reminders), a Notification Service (Web Push), full OTe
 built in stages from [`docs/plans/shabbat-reminders-calendar/plan.md`](docs/plans/shabbat-reminders-calendar/plan.md)
 (Shabbat times on Home → per-user candle-lighting reminders → a Jewish-calendar tab); read that
 plan and its design pages (`architecture.html`, `mockups.html`) before working on the feature.
-Stage 1 (Shabbat times) is live; stage 2 is in progress (Users Service profiles, the frontend's
-profile/delete-account, location sync and notification opt-in, Notifications' push delivery, the
-Reminders scheduler and Home's reminder bell + offset sheet are done; the end-to-end check on the
-phone is next). Work the
-plan one task at a time and stop for review after each.
+Stages 1 (Shabbat times) and 2 (per-user candle-lighting reminders, checked end to end on the
+phone) are done; stage 3 (the Calendar tab, starting with `GET /calendar/month` in Gateway) is
+next. Work the plan one task at a time and stop for review after each.
 
 Hosted on the user's personal PC, reachable from their phone via **Tailscale** — `gateway` is the
 only backend service published to the host (`frontend` also has its own published port — it's a
