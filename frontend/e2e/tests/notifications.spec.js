@@ -91,6 +91,21 @@ async function stubBrowserPush(page, { permission = 'default', answer = 'granted
   );
 }
 
+// This browser's persisted "notifications were turned off here" (notificationsSlice.optedOut).
+async function seedOptedOut(page) {
+  const persisted = JSON.stringify({
+    optedOut: 'true',
+    promptDismissed: 'true',
+    _persist: JSON.stringify({ version: -1, rehydrated: true }),
+  });
+  await page.addInitScript((value) => {
+    if (!sessionStorage.getItem('e2e-opted-out-seeded')) {
+      sessionStorage.setItem('e2e-opted-out-seeded', '1');
+      localStorage.setItem('persist:notifications', value);
+    }
+  }, persisted);
+}
+
 const browserSubscription = (page) =>
   page.evaluate(() => localStorage.getItem('e2e-push-subscription'));
 
@@ -218,6 +233,35 @@ test.describe('signed in, this browser already subscribed', () => {
 
     await expect(page.getByText('You need to log in to view your account.')).toBeVisible();
     expect(calls.deletes).toEqual([{ body: { endpoint: SUBSCRIPTION.endpoint }, auth: `Bearer ${token}` }]);
+    expect(await browserSubscription(page)).toBeNull();
+  });
+});
+
+test.describe('signed in, the browser allows notifications, no subscription (e.g. site blocked, then allowed again)', () => {
+  test('subscribes on start and sends it; no prompt, the switch shows on', async ({ page }) => {
+    const token = await signIn(page);
+    await stubBrowserPush(page, { permission: 'granted', existing: null });
+    const calls = await mockGateway(page);
+    const post = page.waitForResponse(isSubscriptionCall('POST'));
+    await page.goto('/account');
+    await post;
+
+    await expect(page.getByText('Reminders reach this browser')).toBeVisible();
+    await expect(page.getByText('Turn on notifications?')).toBeHidden();
+    expect(calls.posts[0]).toEqual({ body: SUBSCRIPTION, auth: `Bearer ${token}` });
+    expect(await browserSubscription(page)).not.toBeNull();
+  });
+
+  test('turned off here before: stays off', async ({ page }) => {
+    await signIn(page);
+    await seedOptedOut(page);
+    await stubBrowserPush(page, { permission: 'granted', existing: null });
+    const calls = await mockGateway(page);
+    await page.goto('/account');
+    await settle(page);
+
+    await expect(page.getByText('Turn on to get reminders here')).toBeVisible();
+    expect(calls.posts).toEqual([]);
     expect(await browserSubscription(page)).toBeNull();
   });
 });

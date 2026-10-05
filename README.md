@@ -2,7 +2,8 @@
 
 A personal NestJS + Expo app, self-hosted on a home PC and used from a phone over Tailscale.
 Today it shows Shabbat times (candle lighting, Havdalah, countdown) for the phone's location on the
-Home screen, with optional login. Per-user reminders and a Jewish-calendar tab are next — see
+Home screen, with optional login; signed in, you can set a weekly candle-lighting reminder,
+delivered as a Web Push notification. A Jewish-calendar tab is next — see
 [the plan](docs/plans/shabbat-reminders-calendar/plan.md).
 
 See [CLAUDE.md](CLAUDE.md) for architecture, setup, and how this repo is organized —

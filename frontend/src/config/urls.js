@@ -19,6 +19,9 @@ export const URLS = {
   notifications: {
     origin: BASE_URL,
   },
+  reminders: {
+    origin: BASE_URL,
+  },
   ws: {
     origin: BASE_URL,
     path: '/ws',

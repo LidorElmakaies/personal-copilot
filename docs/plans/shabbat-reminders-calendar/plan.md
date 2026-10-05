@@ -219,7 +219,7 @@ events" under Decisions.
   that asks permission and calls `PushManager.subscribe` with the VAPID public key, and sends the
   subscription to 2.2. Web only for now.
   *Check:* a `notification-requested` job enqueued by hand shows on the phone.
-- [ ] **2.15 Frontend: bell button + offset sheet.** On the H1 Shabbat section: hours/minutes
+- [x] **2.15 Frontend: bell button + offset sheet.** On the H1 Shabbat section: hours/minutes
   picker, presets (30m, 1h, 1h 30m, 2h, 3h), "fires at HH:MM this week" (the server's
   `nextFireAt`), Save (sends only the offset) / Turn off. Signed out → the existing "log in to use
   this" prompt. `remindersSlice` + `remindersService`.

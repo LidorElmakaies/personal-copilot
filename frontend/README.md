@@ -1,7 +1,8 @@
 # frontend
 
 Expo/React Native app — optional login/register (the app doesn't gate itself on a session), a Home
-tab (clock, dates, and Shabbat times for the device's location), and an auth-gated Account tab
+tab (clock, dates, Shabbat times for the device's location, and a candle-lighting reminder bell),
+and an auth-gated Account tab
 (theme, notifications, email/password, profile, logout, delete account). See the root
 [CLAUDE.md](../CLAUDE.md) for architecture, [.claude/agents/frontend.md](../.claude/agents/frontend.md)
 for the conventions to follow when changing anything here.
@@ -25,9 +26,10 @@ gradient) is a known stepping-stone, expected to be replaced by a different, mor
 later — keep it internally consistent until then rather than treating it as a fixed brand.
 
 `src/components/` splits into `base/` (primitives, grouped into subfolders by purpose:
-`background/` — `Meteors`, `Stars`; `buttons/` — `GradientButton`; `feedback/` — `Alert`, `Chip`;
-`form/` — `InputField`, `SelectField`, `Switch`; `layout/` — `GlowCard`, `Row`) and `composite/`
-(built from one or more base/composite components — `AmbientBackground`, `ConfirmModal`,
+`background/` — `Meteors`, `Stars`; `buttons/` — `GradientButton`, `PillButton`; `feedback/` —
+`Alert`, `Chip`; `form/` — `InputField`, `SelectField`, `Stepper`, `Switch`; `layout/` —
+`BottomSheet`, `GlowCard`, `Row`) and `composite/` (built from one or more base/composite
+components — `AmbientBackground`, `CandleReminder`, `ConfirmModal`,
 `NotificationsPrompt`, `ProfileFields`, `RequireAuthNotice`, `ShabbatSection`, and the Account
 tab's `ThemeCard`, `NotificationsCard`, `AccountCard`, `ProfileCard`, `LogoutCard`, `DeleteAccountCard`). See `.claude/agents/frontend.md` for the classification rule when adding one.
 

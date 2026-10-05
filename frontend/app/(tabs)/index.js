@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import AmbientBackground from '../../src/components/composite/AmbientBackground';
+import CandleReminder from '../../src/components/composite/CandleReminder';
 import NotificationsPrompt from '../../src/components/composite/NotificationsPrompt';
 import ShabbatSection from '../../src/components/composite/ShabbatSection';
 import Chip from '../../src/components/base/feedback/Chip';
@@ -92,6 +93,14 @@ export default function HomeScreen() {
             locationStatus={location.status}
             loadFailed={calendar.status === 'failed'}
             onRetry={() => dispatch(locate())}
+            footer={
+              calendar.shabbat ? (
+                <CandleReminder
+                  candleLighting={new Date(calendar.shabbat.candleLighting)}
+                  now={now}
+                />
+              ) : null
+            }
           />
         </GlowCard>
       </View>

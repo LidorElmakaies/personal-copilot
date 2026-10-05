@@ -248,6 +248,20 @@ logging in" link (routes to `/`) for whoever lands there without wanting to auth
     from the device) and `calendarSlice` persists the last `shabbat` response, so Home still shows
     times offline. Location refused → "Location is off" + Retry (or, with a cached result, a
     "using your last known location" note).
+  - **Candle-lighting reminder** — `CandleReminder`, passed as `ShabbatSection`'s `footer` (shown
+    only while there are times): a bell pill reading "Remind me before candle lighting", or, while
+    on, "Reminder · 1h 30m before" (amber). Signed out, it shows `ConfirmModal` ("Log in to set a
+    reminder?", Yes → `/login`). Signed in, it opens a `BottomSheet` whose private form starts on
+    the saved offset (else 90 min): hours 0–23 and minutes in steps of 5 (`Stepper`), presets 30m /
+    1h / 1h 30m / 2h / 3h, and "Every Friday · fires at HH:MM this week" — the server's
+    `nextFireAt` while the saved offset is shown ("on Fri 9 Oct" instead of "this week" once it's
+    past this week's candle lighting), otherwise an estimate from Home's candle lighting
+    ("first one next week" if that's already past); "We'll schedule it once we know your location"
+    when the server reports `waitingForLocation`. If this browser isn't subscribed to push, a nudge
+    says the reminder won't arrive here, with a Turn on link (`enableNotifications`) unless
+    notifications are blocked or unsupported. Save (`PUT /reminders/shabbat-candles`, only
+    `{ offsetMinutes }`) and Turn off (`DELETE`, shown only while on) close the sheet on success; a
+    failure keeps it open with an `Alert`. Closing the sheet drops an unsaved offset.
 - `(auth)/register` — email and password, plus optional first name, last name and phone
   (`ProfileFields`, shared with `ProfileCard`). Names accept English and Hebrew letters only, with
   single spaces between words — `sanitizeName` in `src/utils/validation.js` drops anything else
@@ -286,12 +300,17 @@ logging in" link (routes to `/`) for whoever lands there without wanting to auth
   `pushsubscriptionchange` it re-subscribes with the same key (no token there — the app re-sends
   it on its next signed-in start). `app/_layout.js`'s `PushSubscriptionManager` dispatches
   `initNotifications` at start (registers the worker, reads permission and subscription) and, once
-  that's done and while signed in, `syncPushSubscription`: if permission is granted and the browser
-  has a subscription, `POST /notifications/subscriptions` again — covers a rotated subscription
-  and a browser last used by another user (the server upserts on endpoint).
+  that's done and while signed in, `syncPushSubscription`. That syncs when the browser allows
+  notifications and they weren't turned off here (`optedOut`): if the browser has no subscription
+  (the browser drops it when the site is blocked, and allowing it again doesn't restore it) it
+  subscribes without a prompt; then it `POST`s the subscription to `/notifications/subscriptions` —
+  covers a rotated subscription and a browser last used by another user (the server upserts on
+  endpoint). `watchNotificationPermission` (via `navigator.permissions`) re-runs init + sync when
+  the site's permission changes while the app is open, so re-allowing needs no reload.
   - `NotificationsPrompt` (over Home): a one-time "Turn on notifications?" `ConfirmModal`, shown
-    while signed in when permission is `default` or `granted`, this browser isn't subscribed and the
-    prompt hasn't been answered here; either answer sets `promptDismissed`.
+    while signed in when this browser isn't subscribed, the prompt hasn't been answered here, and
+    permission is `default` — or `granted` but `optedOut` (otherwise the sync subscribes by
+    itself). Either answer sets `promptDismissed`; "Not now" also sets `optedOut`.
   - `NotificationsCard` (Account): this browser's switch — on, off, blocked (a warning `Alert`
     pointing to the browser's site settings) or not supported. Re-runs `initNotifications` on
     mount, to pick up a permission changed in the browser meanwhile.
@@ -301,14 +320,21 @@ logging in" link (routes to `/`) for whoever lands there without wanting to auth
     then unsubscribes the browser; if the `DELETE` failed, the push service's 410 makes the server
     drop the row on the next send.
   - `authSlice`'s `logOut` (`LogoutCard`) and a successful `deleteAccount` run
-    `disableNotifications` before clearing the session; a session that merely expires (`AuthGate`
+    `disableNotifications({ loggingOut: true })` before clearing the session (it also re-arms the
+    prompt, so the next person here is asked); a session that merely expires (`AuthGate`
     → `clearAuth`) keeps the subscription, so reminders still arrive while signed out.
-  - `notificationsSlice` (`{ permission, subscribed, ready, busy, error, promptDismissed }`)
-    persists only `promptDismissed`; the rest is read from the browser on every start. It doesn't
-    import `authSlice` (that one imports it), so it reads the token from `getState()`.
+  - `notificationsSlice` (`{ permission, subscribed, ready, busy, error, promptDismissed,
+    optedOut }`) persists only `promptDismissed` and `optedOut` (set by turning the switch off,
+    "Not now" or log-out; cleared by a successful enable); the rest is read from the browser on
+    every start. It doesn't import `authSlice` (that one imports it), so it reads the token from
+    `getState()`.
 - `profileSlice` (`{ profile, status, error, locationSyncing }`) isn't persisted; it's fetched when
   `ProfileCard` mounts or a sync needs it, and reset on `clearAuth` and a successful
   `deleteAccount` so one user's profile is never shown to the next.
+- `remindersSlice` (`{ candles, saving, error }` — `candles` is the `shabbat_candles` reminder or
+  `null`) isn't persisted either; `CandleReminder` fetches `GET /reminders` whenever an access
+  token appears, and it's reset on `clearAuth` and a successful `deleteAccount`. Turning off keeps
+  the offset (the server does too), so the sheet reopens on it.
 
 Talks only to Gateway (`EXPO_PUBLIC_GATEWAY_ORIGIN`, baked in at build time, required —
 `src/config/urls.js` throws at load if it's unset) — never the Users Service or any other backend
@@ -317,12 +343,13 @@ service directly.
 Themed via a three-layer pipeline (`themeSlice` → `useAppTheme()` → `ThemeAnimContext`) and shared
 components under `src/components/base/` (grouped into `background`/`buttons`/`feedback`/`form`/
 `layout` subfolders by purpose) and `src/components/composite/` (the Account cards above,
-`AmbientBackground`, `ConfirmModal`, `NotificationsPrompt`, `ProfileFields`, `RequireAuthNotice`,
-`ShabbatSection`) — see `.claude/agents/frontend.md` for the base/composite split, the full
+`AmbientBackground`, `CandleReminder`, `ConfirmModal`, `NotificationsPrompt`, `ProfileFields`,
+`RequireAuthNotice`, `ShabbatSection`) — see `.claude/agents/frontend.md` for the base/composite split, the full
 convention, and why there's no Gluestack layer here.
 
 `src/services/` is split by transport: `http/` (fetch-based calls — `authService`,
-`usersService` for `/users/me*`, `notificationsService` for `/notifications/*`), `ws/`
+`usersService` for `/users/me*`, `remindersService` for `/reminders*`, `notificationsService` for
+`/notifications/*`), `ws/`
 (`socketService`, a single shared Socket.IO connection), and `device/` (`locationService` —
 `expo-location` permission + position, plus the device's IANA time zone; `pushService` — the
 browser's service worker, `Notification` permission and `PushManager`). `wsSlice`'s `connectWebSocket`/

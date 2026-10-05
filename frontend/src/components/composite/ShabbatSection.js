@@ -22,12 +22,14 @@ function countdownParts(from, to) {
 }
 
 // Home's H1 design (docs/plans/shabbat-reminders-calendar/mockups.html); presentational, Home owns Redux.
+// `footer` renders under the times (Home's reminder bell), only while there are times to show.
 export default function ShabbatSection({
   shabbat,
   now,
   locationStatus,
   loadFailed,
   onRetry,
+  footer,
 }) {
   const { colors } = useAppTheme();
 
@@ -113,6 +115,7 @@ export default function ShabbatSection({
         until {targetName}
         {usingLastKnown ? ' · using your last known location' : ''}
       </Text>
+      {footer}
     </View>
   );
 }

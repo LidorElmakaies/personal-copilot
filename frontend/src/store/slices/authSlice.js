@@ -47,7 +47,7 @@ export const deleteAccount = createAsyncThunk(
     } catch (err) {
       return rejectWithValue(err.message);
     }
-    await dispatch(disableNotifications());
+    await dispatch(disableNotifications({ loggingOut: true }));
   },
 );
 
@@ -56,7 +56,7 @@ export const deleteAccount = createAsyncThunk(
 export const logOut = createAsyncThunk(
   'auth/logOut',
   async (_, { dispatch }) => {
-    await dispatch(disableNotifications());
+    await dispatch(disableNotifications({ loggingOut: true }));
     dispatch(clearAuth());
   },
 );

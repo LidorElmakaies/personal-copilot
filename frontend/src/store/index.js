@@ -15,6 +15,7 @@ import calendarReducer from './slices/calendarSlice';
 import locationReducer from './slices/locationSlice';
 import notificationsReducer from './slices/notificationsSlice';
 import profileReducer from './slices/profileSlice';
+import remindersReducer from './slices/remindersSlice';
 import themeReducer from './slices/themeSlice';
 import wsReducer from './slices/wsSlice';
 
@@ -38,7 +39,7 @@ const calendarPersistConfig = {
 const notificationsPersistConfig = {
   key: 'notifications',
   storage: AsyncStorage,
-  whitelist: ['promptDismissed'], // the rest is read from the browser on every start
+  whitelist: ['promptDismissed', 'optedOut'], // the rest is read from the browser on every start
 };
 
 const authPersistConfig = {
@@ -55,6 +56,7 @@ export const store = configureStore({
     location: persistReducer(locationPersistConfig, locationReducer),
     calendar: persistReducer(calendarPersistConfig, calendarReducer),
     profile: profileReducer, // not persisted — fetched when needed (profileSlice)
+    reminders: remindersReducer, // not persisted — fetched on sign-in (CandleReminder)
     notifications: persistReducer(
       notificationsPersistConfig,
       notificationsReducer,

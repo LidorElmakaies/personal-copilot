@@ -181,6 +181,41 @@ sequenceDiagram
     end
 ```
 
+## Flow: setting the candle-lighting reminder (signed in)
+
+Delivery once it fires: `docs/specs/notification-flow.md`.
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant App as Frontend (Home, CandleReminder)
+    participant Gateway
+    participant Rem as reminders
+    participant DB as Postgres
+    participant Redis
+
+    App->>Gateway: GET /reminders (whenever a token appears)
+    Gateway->>Rem: forward + X-User-Id
+    Rem-->>App: [{ type, offsetMinutes, enabled, nextFireAt, waitingForLocation }]
+    User->>App: bell → sheet → pick offset → Save
+    App->>Gateway: PUT /reminders/shabbat-candles { offsetMinutes }
+    Gateway->>Rem: forward + X-User-Id
+    Rem->>DB: upsert reminder (enabled)
+    Rem->>DB: read location (users.profiles)
+    alt location known
+        Rem->>Redis: replace delayed reminder-due job (candle lighting − offset)
+        Rem->>DB: save nextFireAt
+    end
+    Rem-->>App: reminder (nextFireAt, or waitingForLocation)
+    App->>App: bell turns amber, sheet closes
+    opt Turn off
+        App->>Gateway: DELETE /reminders/shabbat-candles
+        Gateway->>Rem: forward + X-User-Id
+        Rem->>DB: disable (offset kept)
+        Rem->>Redis: remove pending job (best effort)
+    end
+```
+
 ## Compose & build layout
 
 `devops/docker-compose.yml` only lists what to `include:` (one `devops/<unit>/docker-compose.yml`

@@ -216,6 +216,26 @@ section.group{margin-top:44px}
 .sw.off{opacity:.4}
 .stateLbl{font:700 10.5px var(--mono);color:var(--faint);letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px}
 .hint{font-size:11.5px;color:var(--pending);background:var(--pendingBg);border-radius:10px;padding:8px 10px;margin-top:10px}
+/* candle-lighting reminder (task 2.15) */
+.bellBtn{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:14px;padding:9px 12px;border-radius:999px;border:1px solid var(--cardBorder);font-size:12.5px;font-weight:600;color:var(--accent)}
+.bellBtn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2}
+.bellBtn.set{background:var(--pendingBg);border-color:transparent;color:var(--pending)}
+.phone .sheetWrap{position:absolute;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:flex-end}
+.bottomSheet{width:100%;background:var(--panel);border-radius:22px 22px 0 0;border-top:1px solid var(--cardBorder);padding:10px 16px 18px;display:flex;flex-direction:column;gap:12px}
+.grab{width:38px;height:4px;border-radius:2px;background:var(--cardBorder);margin:0 auto 2px}
+.bottomSheet h4{margin:0;font-size:15px}
+.steppers{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stepper{display:flex;align-items:center;justify-content:space-between;border:1px solid var(--cardBorderSoft);background:var(--card);border-radius:14px;padding:8px}
+.stepper b{font:700 24px var(--mono);font-variant-numeric:tabular-nums;display:block;text-align:center}
+.stepper small{display:block;text-align:center;font-size:10px;color:var(--faint);text-transform:uppercase;letter-spacing:.06em}
+.stepBtn{width:30px;height:30px;border-radius:10px;display:grid;place-items:center;background:var(--accentSoft);color:var(--accent);font:700 17px var(--sans)}
+.presetRow{display:flex;gap:6px;flex-wrap:wrap}
+.preset{font:600 11.5px var(--sans);padding:6px 10px;border-radius:999px;border:1px solid var(--cardBorder);color:var(--muted)}
+.preset.on{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+.fires{font-size:12.5px;color:var(--muted);text-align:center}
+.fires b{font-family:var(--mono);color:var(--candle)}
+.nudge{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:11.5px;color:var(--pending);background:var(--pendingBg);border-radius:10px;padding:8px 10px}
+.nudge .link{font-weight:700;white-space:nowrap}
 @media (prefers-reduced-motion:no-preference){.day,.pill{transition:background .15s,border-color .15s}}
 </style>
 
@@ -458,6 +478,112 @@ section.group{margin-top:44px}
           <div><strong style="font-size:13.5px">Shabbat candle lighting</strong><div style="font-size:12.5px;color:var(--muted)">Candle lighting is at 17:34 (in 1 h 30 min).</div><div style="font-size:11px;color:var(--faint);margin-top:4px">Personal Copilot · &lt;pc&gt;.ts.net</div></div>
         </div>
         <p>Drawn by the phone's system, not the app, so this is only roughly how it looks. Tapping it focuses an open app tab, or opens the app at the notification's <code>url</code> ("/").</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= REMINDER (task 2.15) ================= -->
+  <section class="group">
+    <div class="groupHead"><h2>Candle-lighting reminder</h2><span>Task 2.15 · bell button on H1 + offset sheet</span></div>
+    <div class="row">
+
+      <div class="idea">
+        <div class="ideaLabel"><span class="tag">R1</span><h3>Bell button under the countdown</h3></div>
+        <div class="phone"><div class="screen center">
+          <div class="glow">
+            <div class="statusRow"><span class="loc"></span><span class="chip">Live</span></div>
+            <div class="clock">10:42:18</div>
+            <div class="dates"><span class="dNum">27.9.2026</span><span class="dHeb he">ט״ז תשרי תשפ״ז</span></div>
+            <div class="divider"></div>
+            <div class="lbl" style="text-align:center">Shabbat · Shemini Atzeret</div>
+            <div class="split" style="margin-top:10px">
+              <div><span class="sub">Candle lighting</span><span class="big candle">18:04</span><span class="sub">Fri 2 Oct</span></div>
+              <div><span class="sub">Havdalah</span><span class="big">19:01</span><span class="sub">Sat 3 Oct</span></div>
+            </div>
+            <div class="countdown"><div class="cd"><b>4</b><span>days</span></div><div class="cd"><b>07</b><span>hrs</span></div><div class="cd"><b>22</b><span>min</span></div></div>
+            <div class="bellBtn"><svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10 21h4"/></svg>Remind me before candle lighting</div>
+          </div>
+        </div>
+        <div class="tabbar" data-tab="home"></div></div>
+        <p>A pill button at the bottom of the Shabbat section. With a reminder on, it turns amber and says what's set:</p>
+        <div class="glow" style="max-width:320px;padding:12px 16px"><div class="bellBtn set" style="margin-top:0"><svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10 21h4"/></svg>Reminder · 1h 30m before</div></div>
+        <ul>
+          <li>Shown whenever Shabbat times are shown (also during Shabbat: it sets next week's)</li>
+          <li>Signed out: tapping it opens the same kind of prompt as the Account tab, "Log in to set a reminder?" (Yes → login)</li>
+        </ul>
+      </div>
+
+      <div class="idea">
+        <div class="ideaLabel"><span class="tag">R2</span><h3>Offset sheet</h3></div>
+        <div class="phone"><div class="screen center">
+          <div class="glow">
+            <div class="statusRow"><span class="loc"></span><span class="chip">Live</span></div>
+            <div class="clock">10:42:18</div>
+            <div class="dates"><span class="dNum">27.9.2026</span><span class="dHeb he">ט״ז תשרי תשפ״ז</span></div>
+            <div class="divider"></div>
+            <div class="lbl" style="text-align:center">Shabbat · Shemini Atzeret</div>
+            <div class="split" style="margin-top:10px">
+              <div><span class="sub">Candle lighting</span><span class="big candle">18:04</span><span class="sub">Fri 2 Oct</span></div>
+              <div><span class="sub">Havdalah</span><span class="big">19:01</span><span class="sub">Sat 3 Oct</span></div>
+            </div>
+            <div class="countdown"><div class="cd"><b>4</b><span>days</span></div><div class="cd"><b>07</b><span>hrs</span></div><div class="cd"><b>22</b><span>min</span></div></div>
+            <div class="bellBtn set"><svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10 21h4"/></svg>Reminder · 1h 30m before</div>
+          </div>
+        </div>
+        <div class="tabbar" data-tab="home"></div><div class="sheetWrap"><div class="bottomSheet">
+          <div class="grab"></div>
+          <h4>Remind me before candle lighting</h4>
+          <div class="steppers">
+            <div class="stepper"><span class="stepBtn">−</span><div><b>1</b><small>hours</small></div><span class="stepBtn">+</span></div>
+            <div class="stepper"><span class="stepBtn">−</span><div><b>30</b><small>min</small></div><span class="stepBtn">+</span></div>
+          </div>
+          <div class="presetRow"><span class="preset">30m</span><span class="preset">1h</span><span class="preset on">1h 30m</span><span class="preset">2h</span><span class="preset">3h</span></div>
+          <div class="fires">Every Friday · fires at <b>16:34</b> this week</div>
+          
+          <div class="btns" style="margin-top:0"><span class="btn">Turn off</span><span class="btn primary">Save</span></div>
+        </div></div></div>
+        <p>Slides up from the bottom. − / + steppers for hours (0–23) and minutes (steps of 5), plus presets; a preset sets both steppers.</p>
+        <ul>
+          <li>Opens on your saved offset (kept even while the reminder is off); 1h 30m the first time</li>
+          <li>"Fires at" is the server's time once saved. While you change the offset it's worked out from the times on Home, and says "next week" if this week's time has already passed</li>
+          <li>Save sends only the offset. "Turn off" appears only while it's on. Tap outside to close without saving</li>
+        </ul>
+      </div>
+
+      <div class="idea">
+        <div class="ideaLabel"><span class="tag">R3</span><h3>When this browser can't get it</h3></div>
+        <div class="phone"><div class="screen center">
+          <div class="glow">
+            <div class="statusRow"><span class="loc"></span><span class="chip">Live</span></div>
+            <div class="clock">10:42:18</div>
+            <div class="dates"><span class="dNum">27.9.2026</span><span class="dHeb he">ט״ז תשרי תשפ״ז</span></div>
+            <div class="divider"></div>
+            <div class="lbl" style="text-align:center">Shabbat · Shemini Atzeret</div>
+            <div class="split" style="margin-top:10px">
+              <div><span class="sub">Candle lighting</span><span class="big candle">18:04</span><span class="sub">Fri 2 Oct</span></div>
+              <div><span class="sub">Havdalah</span><span class="big">19:01</span><span class="sub">Sat 3 Oct</span></div>
+            </div>
+            <div class="countdown"><div class="cd"><b>4</b><span>days</span></div><div class="cd"><b>07</b><span>hrs</span></div><div class="cd"><b>22</b><span>min</span></div></div>
+            <div class="bellBtn"><svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10 21h4"/></svg>Remind me before candle lighting</div>
+          </div>
+        </div>
+        <div class="tabbar" data-tab="home"></div><div class="sheetWrap"><div class="bottomSheet">
+          <div class="grab"></div>
+          <h4>Remind me before candle lighting</h4>
+          <div class="steppers">
+            <div class="stepper"><span class="stepBtn">−</span><div><b>1</b><small>hours</small></div><span class="stepBtn">+</span></div>
+            <div class="stepper"><span class="stepBtn">−</span><div><b>30</b><small>min</small></div><span class="stepBtn">+</span></div>
+          </div>
+          <div class="presetRow"><span class="preset">30m</span><span class="preset">1h</span><span class="preset on">1h 30m</span><span class="preset">2h</span><span class="preset">3h</span></div>
+          <div class="fires">Every Friday · fires at <b>16:34</b> this week</div>
+          <div class="nudge"><span>Notifications are off on this browser, so the reminder won&rsquo;t reach you here.</span><span class="link">Turn on</span></div>
+          <div class="btns" style="margin-top:0"><span class="btn primary">Save</span></div>
+        </div></div></div>
+        <p>If this browser isn't subscribed to notifications, the sheet says so, with a "Turn on" link (same as the Account switch). You can still save: your other subscribed devices will get it.</p>
+        <ul>
+          <li>Blocked in browser settings: the line says that instead, with no link</li>
+          <li>No location on the server yet: "We'll schedule it once we know your location" in place of the fire time</li>
+        </ul>
       </div>
     </div>
   </section>

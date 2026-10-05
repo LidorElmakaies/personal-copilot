@@ -2,36 +2,59 @@ import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import * as pushService from '../../services/device/pushService';
 import * as notificationsService from '../../services/http/notificationsService';
 
+// Signed in, the browser allows notifications and they weren't turned off here (`optedOut`):
+// make sure this browser has a subscription (no prompt — permission is already granted; the
+// browser drops the subscription when the site is blocked, and allowing it again doesn't restore
+// it) and that the server has it under the current user (it may have rotated, or belong to
+// whoever signed in here before; the server upserts on endpoint). Resolves with whether this
+// browser is subscribed.
+async function ensureSubscribed(getState) {
+  const { auth, notifications } = getState();
+  let subscription = await pushService.getSubscription();
+  if (!auth.accessToken) return !!subscription;
+  if (!subscription) {
+    if (notifications.optedOut) return false;
+    const key = await notificationsService.getVapidPublicKey();
+    subscription = await pushService.subscribe(key);
+  }
+  await notificationsService
+    .saveSubscription(auth.accessToken, subscription)
+    .catch(() => {}); // re-sent on the next start anyway
+  return true;
+}
+
 // Registers the service worker and reads this browser's state. Safe to re-run — the Account card
-// does on mount, to pick up a permission changed in the browser's settings meanwhile.
+// does on mount, and watchNotificationPermission on every permission change.
 export const initNotifications = createAsyncThunk(
   'notifications/init',
   async () => {
     try {
       await pushService.registerServiceWorker();
       const permission = pushService.getPermission();
-      const subscription =
-        permission === 'granted' ? await pushService.getSubscription() : null;
-      return { permission, subscribed: !!subscription };
+      if (permission !== 'granted') return { permission, subscribed: false };
+      return {
+        permission,
+        subscribed: !!(await pushService.getSubscription()),
+      };
     } catch {
-      return { permission: 'unsupported', subscribed: false };
+      return { permission: pushService.getPermission(), subscribed: false };
     }
   },
 );
 
-// On sign-in and app start: re-sends this browser's subscription, so the server has the current
-// one (the browser may have rotated it) under the current user. Background — failures are ignored.
+// Re-reads the browser's state, then syncs, whenever the site's permission changes while the app
+// is open. A plain thunk: returns the stop function to the caller (an effect cleanup).
+export const watchNotificationPermission = () => (dispatch) =>
+  pushService.watchPermission(async () => {
+    await dispatch(initNotifications());
+    dispatch(syncPushSubscription());
+  });
+
+// ensureSubscribed — on start and sign-in (PushSubscriptionManager) and on a permission change.
+// Background — failures are ignored.
 export const syncPushSubscription = createAsyncThunk(
   'notifications/sync',
-  async (_, { getState }) => {
-    const subscription = await pushService.getSubscription();
-    if (!subscription) return false;
-    await notificationsService.saveSubscription(
-      getState().auth.accessToken,
-      subscription,
-    );
-    return true;
-  },
+  async (_, { getState }) => ensureSubscribed(getState),
   {
     condition: (_, { getState }) => {
       const { auth, notifications } = getState();
@@ -60,11 +83,12 @@ export const enableNotifications = createAsyncThunk(
   },
 );
 
-// This browser only. The server delete is best effort: if it fails, the push service answers 410
-// for the dropped subscription and the server deletes it then.
+// This browser only, and it stays off here (`optedOut`). The server delete is best effort: if it
+// fails, the push service answers 410 for the dropped subscription and the server deletes it then.
+// `{ loggingOut: true }` also re-arms the after-login prompt, so the next person here is asked.
 export const disableNotifications = createAsyncThunk(
   'notifications/disable',
-  async (_, { getState, rejectWithValue }) => {
+  async (_options, { getState, rejectWithValue }) => {
     const subscription = await pushService.getSubscription().catch(() => null);
     if (!subscription) return;
     const token = getState().auth.accessToken;
@@ -90,10 +114,16 @@ const notificationsSlice = createSlice({
     busy: false, // enable/disable in flight
     error: null,
     promptDismissed: false, // persisted: the after-login prompt was answered on this browser
+    optedOut: false, // persisted: turned off here (switch, "Not now" or log-out); blocks auto-subscribe
   },
   reducers: {
     dismissNotificationsPrompt(state) {
       state.promptDismissed = true;
+    },
+    // "Not now": also stays off here even if the browser allows notifications.
+    declineNotificationsPrompt(state) {
+      state.promptDismissed = true;
+      state.optedOut = true;
     },
   },
   extraReducers: (builder) => {
@@ -117,6 +147,7 @@ const notificationsSlice = createSlice({
       .addCase(enableNotifications.fulfilled, (state, action) => {
         state.busy = false;
         applyState(state, action);
+        if (state.subscribed) state.optedOut = false;
       })
       .addCase(enableNotifications.rejected, (state, action) => {
         state.busy = false;
@@ -127,9 +158,11 @@ const notificationsSlice = createSlice({
         state.busy = true;
         state.error = null;
       })
-      .addCase(disableNotifications.fulfilled, (state) => {
+      .addCase(disableNotifications.fulfilled, (state, action) => {
         state.busy = false;
         state.subscribed = false;
+        state.optedOut = true;
+        if (action.meta.arg?.loggingOut) state.promptDismissed = false;
       })
       .addCase(disableNotifications.rejected, (state, action) => {
         state.busy = false;
@@ -138,5 +171,6 @@ const notificationsSlice = createSlice({
   },
 });
 
-export const { dismissNotificationsPrompt } = notificationsSlice.actions;
+export const { dismissNotificationsPrompt, declineNotificationsPrompt } =
+  notificationsSlice.actions;
 export default notificationsSlice.reducer;

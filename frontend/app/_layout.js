@@ -8,6 +8,7 @@ import { clearAuth } from '../src/store/slices/authSlice';
 import {
   initNotifications,
   syncPushSubscription,
+  watchNotificationPermission,
 } from '../src/store/slices/notificationsSlice';
 import { syncLocation } from '../src/store/slices/profileSlice';
 import {
@@ -54,6 +55,7 @@ function PushSubscriptionManager() {
 
   useEffect(() => {
     dispatch(initNotifications());
+    return dispatch(watchNotificationPermission());
   }, [dispatch]);
 
   useEffect(() => {

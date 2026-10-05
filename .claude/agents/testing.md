@@ -108,6 +108,11 @@ Conventions and known traps:
 - Location-dependent screens: use `context.grantPermissions(['geolocation'])` +
   `context.setGeolocation({ latitude, longitude })` (or `test.use({ geolocation, permissions })`)
   so results are deterministic; pin the clock with `page.clock` when asserting times.
+- A frozen clock (`page.clock.setFixedTime`) also freezes JS animations — a `BottomSheet` never
+  slides in. For a screen with one, `page.clock.install({ time })` then `page.clock.resume()`: a
+  fixed start that keeps running (`tests/reminders.spec.js`). Even then the slide-in lags behind
+  real time, so wait for the sheet to stop moving (poll its handle's `boundingBox()`) before
+  dragging it; touch drags go through CDP `Input.dispatchTouchEvent`.
 - Web Push: headless Chromium has no push service, so app-side flows stub `PushManager`/
   `Notification` (`tests/notifications.spec.js`); the service worker itself is tested by delivering
   a push over CDP (`ServiceWorker.deliverPushMessage`, `tests/service-worker.spec.js`). That needs

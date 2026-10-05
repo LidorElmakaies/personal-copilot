@@ -4,25 +4,27 @@ import { useDispatch, useSelector } from 'react-redux';
 import ConfirmModal from './ConfirmModal';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import {
+  declineNotificationsPrompt,
   dismissNotificationsPrompt,
   enableNotifications,
 } from '../../store/slices/notificationsSlice';
 
 // Composite component (ConfirmModal) — the one-time "Turn on notifications?" sheet (mockup N1).
-// Shown while signed in when this browser can subscribe, isn't subscribed, and hasn't answered it
-// before; either answer is remembered, the Account tab's NotificationsCard is the way back.
+// Shown while signed in when this browser isn't subscribed and hasn't answered it before, and the
+// browser hasn't decided yet — or allows notifications but they were turned off here. Either
+// answer is remembered ("Not now" also keeps them off here); NotificationsCard is the way back.
 export default function NotificationsPrompt() {
   const dispatch = useDispatch();
   const { colors } = useAppTheme();
   const accessToken = useSelector((state) => state.auth.accessToken);
-  const { ready, permission, subscribed, promptDismissed } = useSelector(
-    (state) => state.notifications,
-  );
+  const { ready, permission, subscribed, promptDismissed, optedOut } =
+    useSelector((state) => state.notifications);
 
   const visible =
     !!accessToken &&
     ready &&
-    (permission === 'default' || permission === 'granted') &&
+    // Allowed and not turned off here: the app subscribes on its own, nothing to ask.
+    (permission === 'default' || (permission === 'granted' && optedOut)) &&
     !subscribed &&
     !promptDismissed;
 
@@ -49,7 +51,7 @@ export default function NotificationsPrompt() {
       confirmLabel="Turn on"
       cancelLabel="Not now"
       onConfirm={turnOn}
-      onCancel={() => dispatch(dismissNotificationsPrompt())}
+      onCancel={() => dispatch(declineNotificationsPrompt())}
     />
   );
 }

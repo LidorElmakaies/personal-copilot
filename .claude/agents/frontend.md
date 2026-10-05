@@ -18,7 +18,9 @@ second one.
 
 `frontend/` — see root `CLAUDE.md` for the overall stack. This app is currently optional auth
 (login/register, not a whole-app gate) + a Home tab (landing, no session required; clock, dates,
-and Shabbat times for the device's location via `locationSlice` + `calendarSlice` — `GET /calendar/shabbat`, served by Gateway) + an auth-gated
+and Shabbat times for the device's location via `locationSlice` + `calendarSlice` — `GET /calendar/shabbat`, served by Gateway;
+under them the candle-lighting reminder bell + offset sheet, `CandleReminder` + `remindersSlice` —
+`/reminders*`) + an auth-gated
 Account tab (theme, notifications, email/password, profile, logout, delete account — one card
 component each) + a background location sync to the Users Service while signed in
 (`LocationSyncManager` → `profileSlice.syncLocation`) + Web Push opt-in for the web build
@@ -64,12 +66,17 @@ two folders:
 - **`base/`** — primitives that don't import any other component from `src/components/`; they only
   use React Native primitives, Reanimated, `expo-blur`/`expo-linear-gradient`, and
   `useAppTheme()`/hooks. Grouped into subfolders by purpose: `background/` (`Meteors`, `Stars` —
-  animated background-effect primitives), `buttons/` (`GradientButton`), `feedback/` (`Alert`,
-  `Chip` — status/feedback indicators), `form/` (`InputField`, `SelectField`, `Switch` — form input
-  controls), `layout/` (`GlowCard`, `Row` — layout/surface primitives). Props worth knowing:
+  animated background-effect primitives), `buttons/` (`GradientButton`, `PillButton`), `feedback/`
+  (`Alert`, `Chip` — status/feedback indicators), `form/` (`InputField`, `SelectField`, `Stepper`,
+  `Switch` — form input controls), `layout/` (`BottomSheet`, `GlowCard`, `Row` — layout/surface
+  primitives). Props worth knowing:
   `Alert`'s `variant` (`error` default, `warning`, `success`); `Switch`'s `disabled` and
   `accessibilityLabel` (rendered with role `switch`); `GlowCard`'s `solid` (opaque panel under the
-  glass, for a card drawn over other content such as a modal). `SelectField` renders its
+  glass, for a card drawn over other content such as a modal); `PillButton`'s `tone` (`accent`
+  default, `muted`, `pending` — amber, something is set, `selected` — the chosen option in a group)
+  and `icon` (a render function given the text color); `Stepper`'s `min`/`max`/`step`/`unit` (− value
+  +, clamped; an off-grid value moves to the next grid point); `BottomSheet`'s `visible`/`onClose`
+  (a `Modal` whose backdrop fades while the panel slides up in JS; drag the panel down — from anywhere on it, past ~⅓ of its height or a quick flick, via `PanResponder` — or tap the backdrop to slide it away and close). `SelectField` renders its
   option list in a transparent `Modal` at the box's measured window position (below it, or above
   if there's no room; scrolls past 4 options) — inline, any `overflow:'hidden'` ancestor such as
   `GlowCard` would clip it and later siblings would draw over it.
@@ -80,7 +87,10 @@ two folders:
   `ProfileFields` (from `InputField`, `SelectField` — optional
   name/phone fields, shared by register and `ProfileCard`), `RequireAuthNotice` (from
   `AmbientBackground` + `GlowCard`, `GradientButton`), `ShabbatSection` (from `GradientButton` —
-  Home's Shabbat times; presentational, Home owns the Redux wiring and passes `now`), and the
+  Home's Shabbat times; presentational, Home owns the Redux wiring and passes `now`, plus a
+  `footer` shown only while there are times), `CandleReminder` (from `PillButton`, `BottomSheet`,
+  `Stepper`, `GradientButton`, `Alert`, `ConfirmModal` — Home's reminder bell, passed as
+  `ShabbatSection`'s `footer`; owns its Redux wiring, the sheet's form is private), and the
   Account tab's cards — `ThemeCard` (`GlowCard`, `Row`, `Switch`), `NotificationsCard`
   (`GlowCard`, `Row`, `Switch`, `Alert`), `AccountCard`, `ProfileCard`,
   `LogoutCard`, `DeleteAccountCard` (`GlowCard`, `Row`, `GradientButton`, plus `InputField`/
@@ -112,8 +122,8 @@ when a component genuinely needs something no thunk/selector combination can giv
   screen/component.
 - Don't hand-write to AsyncStorage — redux-persist handles persisted slices (`auth`, `theme`,
   `location` — `coords` only, `calendar` — `shabbat` only, `notifications` — `promptDismissed`
-  only). `ws` and `profile` aren't persisted;
-  `profile` is reset on `clearAuth`/`deleteAccount` so one user's profile never reaches the next.
+  and `optedOut` only). `ws`, `profile` and `reminders` aren't persisted; `profile` and `reminders` are reset on
+  `clearAuth`/`deleteAccount` so one user's data never reaches the next.
 - `enableNotifications` must be dispatched synchronously from the tap handler —
   `Notification.requestPermission()` only prompts inside a user gesture, so it's the thunk's first
   await; don't put another await (or a confirm step) in front of it.
@@ -145,7 +155,7 @@ project has repeatedly had bugs that only showed up once actually measured or in
 - **Browser tests and screenshots** run in the pinned Playwright container —
   `docker compose -f devops/playwright/docker-compose.yml run --rm e2e` from the repo root; specs in
   `frontend/e2e/tests/`, one per screen/flow. See `.claude/agents/testing.md` for conventions
-  (fixed GPS via `geolocation`/`permissions`, frozen clock via `page.clock`, mocked API via
+  (fixed GPS via `geolocation`/`permissions`, pinned clock via `page.clock`, mocked API via
   `page.route`, waiting out RN-web JS animations before a screenshot). Look at every screenshot you
   take before reporting a UI change done.
 - **On the phone**: Expo Go over Tailscale (`docs/frontend/environment.md`) for native behavior

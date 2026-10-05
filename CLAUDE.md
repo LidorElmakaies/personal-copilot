@@ -10,8 +10,9 @@ built in stages from [`docs/plans/shabbat-reminders-calendar/plan.md`](docs/plan
 (Shabbat times on Home → per-user candle-lighting reminders → a Jewish-calendar tab); read that
 plan and its design pages (`architecture.html`, `mockups.html`) before working on the feature.
 Stage 1 (Shabbat times) is live; stage 2 is in progress (Users Service profiles, the frontend's
-profile/delete-account, location sync and notification opt-in, Notifications' push delivery and
-the Reminders scheduler are done; the bell button + offset sheet is next). Work the
+profile/delete-account, location sync and notification opt-in, Notifications' push delivery, the
+Reminders scheduler and Home's reminder bell + offset sheet are done; the end-to-end check on the
+phone is next). Work the
 plan one task at a time and stop for review after each.
 
 Hosted on the user's personal PC, reachable from their phone via **Tailscale** — `gateway` is the
@@ -57,7 +58,8 @@ backend/                 NestJS monorepo — apps/{gateway,users,reminders,notif
                           kafka-client,kafka-contracts,users-schema,
                           jewish-calendar}
 frontend/                 Expo/React Native app — login/register (optional, not gated app-wide), a
-                          Home tab (clock + Shabbat times), and an auth-gated Account tab;
+                          Home tab (clock + Shabbat times + candle-lighting reminder), and an
+                          auth-gated Account tab;
                           public/sw.js is the Web Push service worker;
                           e2e/ holds the containerized Playwright tests
 devops/                   docker-compose.yml (app stack: services + shared postgres/redis)
@@ -157,7 +159,10 @@ docs/plans/               staged feature plans + their HTML design pages
   while signed out, since the socket only opens with a token — and `ShabbatSection`: candle
   lighting, Havdalah, holiday/parasha label, and a countdown for the device's GPS location (`GET /calendar/shabbat`),
   fetched on first mount, after the GPS fix, after Havdalah passes, and on Retry; last location and
-  result persisted for offline), `(tabs)/account`
+  result persisted for offline; under the times, `CandleReminder`'s bell opens a bottom sheet to
+  set/change/turn off the candle-lighting reminder's offset via `GET /reminders` and
+  `PUT`/`DELETE /reminders/shabbat-candles` (`remindersSlice`, not persisted, reset on sign-out) —
+  signed out, the bell asks to log in instead), `(tabs)/account`
   (a heading plus `ThemeCard`, `NotificationsCard` (this browser's push on/off), `AccountCard`
   (edit email/password), `ProfileCard` (name/phone via
   `GET`/`PATCH /users/me`, fetched on mount), `LogoutCard` (`logOut`), `DeleteAccountCard` (password, then
@@ -187,7 +192,9 @@ docs/plans/               staged feature plans + their HTML design pages
   shared building blocks login/register/
   Home/Account all use; `Switch` (base/form) the toggle; `SelectField` (base/form) is the dropdown and `ProfileFields` (composite)
   the name/phone group shared by register and `ProfileCard`; `ConfirmModal` (composite) is the
-  shared Yes/No overlay (the `requiresAuth` tab-press guard, `NotificationsPrompt`).
+  shared Yes/No overlay (the `requiresAuth` tab-press guard, `NotificationsPrompt`, the signed-out
+  reminder bell); `PillButton` (base/buttons), `Stepper` (base/form) and `BottomSheet` (base/layout)
+  build `CandleReminder`.
 - **Queues** — BullMQ on Redis (`devops/redis/docker-compose.yml`, internal-only, AOF-persisted,
   `noeviction`, holds nothing but queues). Cross-service queues and job guards in
   `@app/queue-contracts` (`notification-requested` — Reminders publishes, Notifications

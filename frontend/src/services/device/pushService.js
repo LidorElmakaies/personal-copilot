@@ -25,6 +25,26 @@ export async function registerServiceWorker() {
   await navigator.serviceWorker.register(SW_URL, { scope: '/' });
 }
 
+// Calls onChange when the user changes this site's notification permission in the browser's
+// settings while the app is open. Returns a function that stops watching.
+export function watchPermission(onChange) {
+  if (!isSupported() || !navigator.permissions?.query) return () => {};
+  let status;
+  let stopped = false;
+  navigator.permissions
+    .query({ name: 'notifications' })
+    .then((s) => {
+      if (stopped) return;
+      status = s;
+      status.onchange = onChange;
+    })
+    .catch(() => {});
+  return () => {
+    stopped = true;
+    if (status) status.onchange = null;
+  };
+}
+
 // Must be the first await of a tap handler — browsers only show the prompt during a user gesture.
 export function requestPermission() {
   return Notification.requestPermission();

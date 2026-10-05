@@ -16,7 +16,11 @@ into `localStorage` (`persist:auth`), so it needs no real account. `tests/notifi
 does the same and also stubs the browser's `PushManager`/`Notification` (headless Chromium has no
 push service). `tests/service-worker.spec.js` runs the real `sw.js` and delivers a push over CDP;
 it sets `channel: 'chromium'` for its file, since the default headless shell reports notification
-permission as denied.
+permission as denied. `tests/notification-permission.spec.js` (also `channel: 'chromium'`) grants
+the real permission mid-test to check the app re-subscribes when a blocked site is allowed again.
+`tests/reminders.spec.js` mocks Gateway and seeds a token the same way; it
+starts the clock at a fixed time with `page.clock.install` + `resume` rather than freezing it with
+`setFixedTime`, since a frozen clock also stops the bottom sheet's JS slide-in animation.
 
 Output lands in this folder (gitignored): `screenshots/` (explicit captures), `test-results/`
 (per-test screenshot, plus trace/video on failure), `playwright-report/` (HTML report).
