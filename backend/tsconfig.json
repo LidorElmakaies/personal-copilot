@@ -37,7 +37,9 @@
       "@app/users-schema": ["libs/users-schema/src"],
       "@app/users-schema/*": ["libs/users-schema/src/*"],
       "@app/jewish-calendar": ["libs/jewish-calendar/src"],
-      "@app/jewish-calendar/*": ["libs/jewish-calendar/src/*"]
+      "@app/jewish-calendar/*": ["libs/jewish-calendar/src/*"],
+      "@app/build-info": ["libs/build-info/src"],
+      "@app/build-info/*": ["libs/build-info/src/*"]
     }
   }
 }

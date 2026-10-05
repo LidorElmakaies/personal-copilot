@@ -6,6 +6,9 @@ services:
     build:
       context: ../../backend
       dockerfile: apps/users/Dockerfile
+      # Just the version folder, for the image's version info (not the whole repo).
+      additional_contexts:
+        version: ../../version
     env_file:
       - ../docker.env
     environment:

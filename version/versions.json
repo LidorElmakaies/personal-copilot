@@ -1,0 +1,8 @@
+{
+  "app": "0.1.0",
+  "frontend": "0.1.0",
+  "gateway": "0.1.0",
+  "users": "0.1.0",
+  "reminders": "0.1.0",
+  "notifications": "0.1.0"
+}

@@ -7,6 +7,7 @@ import NotificationsCard from '../../src/components/composite/NotificationsCard'
 import ProfileCard from '../../src/components/composite/ProfileCard';
 import RequireAuthNotice from '../../src/components/composite/RequireAuthNotice';
 import ThemeCard from '../../src/components/composite/ThemeCard';
+import VersionInfo from '../../src/components/base/feedback/VersionInfo';
 import { useAppTheme } from '../../src/hooks/useAppTheme';
 import { useRequireAuth } from '../../src/hooks/useRequireAuth';
 
@@ -38,6 +39,7 @@ export default function AccountScreen() {
         <ProfileCard />
         <LogoutCard />
         <DeleteAccountCard />
+        <VersionInfo />
       </ScrollView>
     </AmbientBackground>
   );

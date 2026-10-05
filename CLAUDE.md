@@ -11,7 +11,7 @@ built in stages from [`docs/plans/shabbat-reminders-calendar/plan.md`](docs/plan
 plan and its design pages (`architecture.html`, `mockups.html`) before working on the feature.
 Stage 1 (Shabbat times) and stage 2's candle-lighting reminder (checked end to end on the phone)
 are done; stage 2's second part (versions, admin status, Android app + ntfy) is in progress —
-admin sign-in is done, versions (2.18) are next; stage 3 (the Calendar tab) follows. Work the plan one task at a time and stop for review after each.
+admin sign-in and versions are done, admin status (2.19) is next; stage 3 (the Calendar tab) follows. Work the plan one task at a time and stop for review after each.
 
 Hosted on the user's personal PC, reachable from their phone via **Tailscale** — `gateway` is the
 only backend service published to the host (`frontend` also has its own published port — it's a
@@ -48,13 +48,32 @@ explicitly says so** — e.g. "stage this", "commit this". Finishing a task, tic
 "ok, go ahead" is not permission. Leave changes unstaged so the user reviews the diff. Applies to
 every agent in `.claude/agents/` too. Also in [README.md](README.md).
 
+## Versions (ask before bumping)
+
+Every version lives in [`version/versions.json`](version/versions.json): `app` (the whole project,
+grows with every change) and one per deployable component (`frontend`, `gateway`, `users`,
+`reminders`, `notifications`). Semver `MAJOR.MINOR.PATCH`: major = breaks or changes how the app
+works, minor = a feature or an important API/route change, patch = a small fix; bumping one part
+resets the parts to its right. Test builds while fixing are `-test.N` (`1.3.0-test.1`, `-test.2`, …);
+the release drops it (`1.3.0`). Bump only with `scripts/version.sh` — it applies those rules and
+bumps `app` the same way; it never touches git (it prints the tag to add after the commit).
+
+**After every change, ask the user which components to bump and how, with a suggestion** (e.g.
+"Gateway: minor (new route), frontend: patch — app → minor?"). Never bump without the answer.
+A change to a shared `backend/libs/` library bumps each service that uses it. Changes to docs,
+plans, tests or agent files only don't bump anything; a `devops/` change that alters how a service
+runs is a patch for that service. Each backend image bakes in only its own version and its build
+time, reported on its internal `/health` (Users, Reminders, Notifications; Gateway has no `/health`
+and its public routes never expose versions); the frontend image bakes in the app and frontend
+versions and shows them on the Account tab. Applies to every agent in `.claude/agents/` too.
+
 ## Repo layout
 
 ```
 backend/                 NestJS monorepo — apps/{gateway,users,reminders,notifications}
                           + libs/{auth-kernel,otel,queue-client,queue-contracts,
                           kafka-client,kafka-contracts,users-schema,
-                          jewish-calendar}
+                          jewish-calendar,build-info}
 frontend/                 Expo/React Native app — login/register (optional, not gated app-wide), a
                           Home tab (clock + Shabbat times + candle-lighting reminder), and an
                           auth-gated Account tab;
@@ -67,6 +86,8 @@ docs/specs/               services.md, event-schemas.md (queues/jobs), notificat
                           architecture.md (Mermaid diagrams) —
                           source of truth for how it's wired
 docs/plans/               staged feature plans + their HTML design pages
+version/versions.json     every version (app + one per component) — see "Versions" above
+scripts/version.sh        the only way to bump them
 ```
 
 ## What's implemented
@@ -165,7 +186,7 @@ docs/plans/               staged feature plans + their HTML design pages
   (a heading plus `ThemeCard`, `NotificationsCard` (this browser's push on/off), `AccountCard`
   (edit email/password), `ProfileCard` (name/phone via
   `GET`/`PATCH /users/me`, fetched on mount), `LogoutCard` (`logOut`), `DeleteAccountCard` (password, then
-  `DELETE /auth/account`, signs out) — each card keeps its form private, and signing out unmounts
+  `DELETE /auth/account`, signs out), then `VersionInfo` (app/frontend version, build time) — each card keeps its form private, and signing out unmounts
   them all so forms reset; the one tab so far opted into `requiresAuth: true`; the shared `CustomTabBar` intercepts a press on it while
   signed out and shows `ConfirmModal` instead of navigating, but a direct hit on the route — deep
   link, web refresh — bypasses that, so the screen itself also calls `useRequireAuth()` on mount and
@@ -261,7 +282,8 @@ across retries), `queue-contracts`
 (this project's queue names, job types, their guards and publish options — see
 `docs/specs/event-schemas.md`), `kafka-client` (`IEventPublisher`/`IEventConsumer` over `kafkajs`,
 plus the outbox: `addOutboxEvent` in the change's transaction, `OutboxRelay` publishes),
-`kafka-contracts` (topics, consumer groups, event types and guards), `jewish-calendar` (Shabbat/candle-lighting maths over `@hebcal/core`), `users-schema` (read-only
+`kafka-contracts` (topics, consumer groups, event types and guards), `jewish-calendar` (Shabbat/candle-lighting maths over `@hebcal/core`), `build-info`
+(`buildInfo(service)` — the version/build time/start time internal services' `/health` returns), `users-schema` (read-only
 TypeORM mappings of the Users Service's tables, for other services to read and reference). Kafka is for events, BullMQ
 for jobs. Shared infrastructure is one instance each, reused by every service that needs it:
 Postgres (one database, `personal_copilot`, a schema per table-owning service — a service writes

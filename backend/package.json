@@ -6,7 +6,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "build:libs": "nest build auth-kernel && nest build otel && nest build queue-contracts && nest build queue-client && nest build kafka-contracts && nest build kafka-client && nest build users-schema && nest build jewish-calendar",
+    "build:libs": "nest build auth-kernel && nest build otel && nest build queue-contracts && nest build queue-client && nest build kafka-contracts && nest build kafka-client && nest build users-schema && nest build jewish-calendar && nest build build-info",
     "build:gateway": "npm run build:libs && nest build gateway && tsc-alias -p tsconfig.json",
     "build:users": "npm run build:libs && nest build users && tsc-alias -p tsconfig.json",
     "build:reminders": "npm run build:libs && nest build reminders && tsc-alias -p tsconfig.json",

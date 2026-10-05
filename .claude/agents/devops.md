@@ -17,11 +17,12 @@ Two independent Compose projects, joined by a shared `observability` Docker netw
   healthchecks on `/health`), `frontend` (published, port 8081 — a static web
   export, not a backend service, see the `frontend` compose service's own comment), `postgres`
   (one instance, one database, a schema per table-owning service, created by the one-shot `postgres-init`),
-  `redis` (internal-only; hosts the BullMQ queues — today just `notification-requested`, from
-  `backend/libs/queue-contracts` — AOF only, RDB off, `maxmemory 64mb` +
+  `redis` (internal-only; hosts the BullMQ queues — `notification-requested` and `reminder-due`,
+  from `backend/libs/queue-contracts` — AOF only, RDB off, `maxmemory 64mb` +
   `noeviction`, which BullMQ requires: an evicted job key silently corrupts a queue, a full Redis
   fails the enqueue loudly instead). Keys are `bull:<queue>:*`; completed/failed jobs expire by
   age (`removeOnComplete`/`removeOnFail` in `libs/queue-client`), so usage stays ~2MB.
+  `kafka` (internal-only, one KRaft node; topics created by the one-shot `kafka-init`).
 - `devops/tailscale/serve.sh` — not a compose project: puts `frontend` (`https://<pc>.ts.net`) and
   `gateway` (`:8443`) behind Tailscale HTTPS for phone access. `tailscale serve` config persists
   on the host; `tailscale serve reset` removes it.
@@ -59,6 +60,11 @@ observability up first.
   JWT-gated admin-only proxy — a deliberate simplification since this stack sits behind Tailscale
   for a single user. Revisit (add real auth) before this project ever has more than one user or
   leaves the Tailnet.
+- **Every image's `build:` gets `additional_contexts: version: ../../version`** — the four backend
+  services, `frontend`, and `devops/frontend/docker-compose.cloud.yml`; a new image too. Its
+  Dockerfile reads the repo's `version/versions.json` from that context (a backend image keeps only
+  its own entry, so another service's bump doesn't rebuild it). Standalone `docker build` needs
+  `--build-context version=../version`. See `docs/specs/architecture.md#compose--build-layout`.
 - **Compose-file comments stay terse** — one line, not a paragraph; save deeper rationale for
   `docs/specs/architecture.md` and point to it.
 

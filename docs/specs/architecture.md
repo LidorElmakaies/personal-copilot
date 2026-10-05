@@ -275,6 +275,15 @@ Android/iOS have no useful container target and still run via `npx expo start` l
 never a runtime container env var — Expo inlines `EXPO_PUBLIC_*` vars into the client bundle at
 build time, so a runtime-only value would silently never reach the client.
 
+**Version build context**: every image's `build:` (the four backend services, `frontend`, and
+`docker-compose.cloud.yml`) adds `additional_contexts: version: ../../version` — just the repo's
+`version/` folder, not the whole repo as context. Each backend Dockerfile extracts only its own
+entry in a separate `own-version` stage, so bumping one service's version leaves every other
+image's layers — and its baked-in build time — cached. The frontend reads `app` and `frontend`
+from it into `EXPO_PUBLIC_*` vars at build time. A standalone `docker build` must pass
+`--build-context version=../version`. What the versions are and where they're shown:
+`services.md#versions`.
+
 **Cloud frontend (Hetzner)**: `devops/frontend/docker-compose.cloud.yml` is a standalone compose
 file, not part of `devops/docker-compose.yml`'s `include:` list and not deployed by the "First run"
 sequence — it's built and run independently on the VPS itself (`devops/frontend/.env.cloud.example`

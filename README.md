@@ -45,6 +45,12 @@ set its battery use to Unrestricted. Swiping the browser out of recent apps can 
 some phones, and a stopped app gets nothing until it's opened again. Chrome is the most reliable
 browser for this; Brave works once those settings allow it.
 
+## Versions
+
+Every version (the app's and each component's) is in `version/versions.json`; `scripts/version.sh`
+shows and bumps them (rules in CLAUDE.md's "Versions"). The Account tab shows the app and
+frontend versions; backend services report theirs on their internal `/health`.
+
 ## Git rule for Claude and every agent
 
 **Never stage or commit anything unless the user explicitly says so** ("stage this", "commit

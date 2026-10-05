@@ -22,7 +22,7 @@ and Shabbat times for the device's location via `locationSlice` + `calendarSlice
 under them the candle-lighting reminder bell + offset sheet, `CandleReminder` + `remindersSlice` —
 `/reminders*`) + an auth-gated
 Account tab (theme, notifications, email/password, profile, logout, delete account — one card
-component each) + a background location sync to the Users Service while signed in
+component each — then `VersionInfo`) + a background location sync to the Users Service while signed in
 (`LocationSyncManager` → `profileSlice.syncLocation`) + Web Push opt-in for the web build
 (`public/sw.js`, `PushSubscriptionManager`, `notificationsSlice` — see
 `docs/specs/services.md#frontend`); there is no scraper/jobs/admin surface here — don't port that part of
@@ -73,7 +73,7 @@ two folders:
   use React Native primitives, Reanimated, `expo-blur`/`expo-linear-gradient`, and
   `useAppTheme()`/hooks. Grouped into subfolders by purpose: `background/` (`Meteors`, `Stars` —
   animated background-effect primitives), `buttons/` (`GradientButton`, `PillButton`), `feedback/`
-  (`Alert`, `Chip` — status/feedback indicators), `form/` (`InputField`, `SelectField`, `Stepper`,
+  (`Alert`, `Chip`, `VersionInfo` — status/feedback indicators), `form/` (`InputField`, `SelectField`, `Stepper`,
   `Switch` — form input controls), `layout/` (`BottomSheet`, `GlowCard`, `Row` — layout/surface
   primitives). Props worth knowing:
   `Alert`'s `variant` (`error` default, `warning`, `success`); `Switch`'s `disabled` and
@@ -124,6 +124,10 @@ when a component genuinely needs something no thunk/selector combination can giv
 
 ## Non-negotiables
 
+- Build-time values come from `src/config/`: `urls.js` (`EXPO_PUBLIC_GATEWAY_ORIGIN`, throws if
+  unset) and `version.js` (`VERSION { app, frontend, builtAt }` — set by `frontend/Dockerfile` from
+  `version/versions.json`, `null` under `expo start`, shown as "dev"). Read them from there, not
+  `process.env` elsewhere.
 - Always use `useAppTheme()` for colors — never hardcode or import `colors.js` directly in a
   screen/component.
 - Don't hand-write to AsyncStorage — redux-persist handles persisted slices (`auth` — tokens only, `theme`,

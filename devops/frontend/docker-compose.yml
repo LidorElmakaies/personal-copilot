@@ -6,6 +6,9 @@ services:
     # See frontend/Dockerfile.
     build:
       context: ../../frontend
+      # Just the version folder, for the app's version info (not the whole repo).
+      additional_contexts:
+        version: ../../version
       args:
         # Build arg, not a runtime env var — see docs/specs/architecture.md#compose--build-layout.
         - GATEWAY_PUBLIC_URL=${GATEWAY_PUBLIC_URL:-http://localhost:8000}

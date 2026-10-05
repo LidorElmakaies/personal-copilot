@@ -93,6 +93,13 @@
       "entryFile": "index",
       "sourceRoot": "libs/jewish-calendar/src",
       "compilerOptions": { "tsConfigPath": "libs/jewish-calendar/tsconfig.lib.json" }
+    },
+    "build-info": {
+      "type": "library",
+      "root": "libs/build-info",
+      "entryFile": "index",
+      "sourceRoot": "libs/build-info/src",
+      "compilerOptions": { "tsConfigPath": "libs/build-info/tsconfig.lib.json" }
     }
   }
 }

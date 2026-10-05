@@ -5,6 +5,8 @@ services:
   frontend:
     build:
       context: ../../frontend
+      additional_contexts:
+        version: ../../version
       args:
         # Same-origin as the site itself — Caddy proxies /auth, /calendar, /notifications and /ws, see frontend/Caddyfile.
         - GATEWAY_PUBLIC_URL=https://${DOMAIN}

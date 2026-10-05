@@ -79,10 +79,22 @@ backend/
     queue-contracts/     # THIS project's queue names (QUEUES), job types + type guards, and
                         # per-queue publish options every publisher must use
                         # (notificationRequestedPublishOptions — dedupe, attempts, backoff).
+    kafka-client/        # kafkajs (the only code importing it): IEventPublisher/IEventConsumer +
+                        # the outbox (addOutboxEvent in the change's transaction, OutboxRelay).
+    kafka-contracts/     # KAFKA_TOPICS, consumer groups, event types + guards, NAME_PATTERN.
+    users-schema/        # read-only TypeORM mappings of the Users Service's tables.
+    jewish-calendar/     # Shabbat/candle-lighting maths over @hebcal/core (see its README).
+    build-info/          # buildInfo(service) → { service, version, builtAt, startedAt }, from the
+                        # version/ folder the Dockerfile bakes in — what /health returns.
 ```
 
 A new queue-driven or HTTP microservice follows the same `api/ → application/ → infrastructure/ +
-models/ + entities/` shape as `users` — add it under `apps/<name>/`, register it in `backend/nest-cli.json`.
+models/ + entities/` shape as `users` — add it under `apps/<name>/`, register it in `backend/nest-cli.json`,
+add it to `version/versions.json`, give its Dockerfile the same `own-version` stage as the others,
+and have its `HealthController` return `{ status: 'ok', ...buildInfo('<name>') }` (Gateway has no
+`/health` — no version on a public route; see `docs/specs/services.md#versions`). A new lib is
+registered in four places: `nest-cli.json`, `tsconfig.json` paths, `jest.config.js`'s
+`moduleNameMapper`, and `package.json`'s `build:libs`.
 
 ## Layering (non-negotiable, per service)
 

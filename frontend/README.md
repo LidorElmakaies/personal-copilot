@@ -27,7 +27,7 @@ later — keep it internally consistent until then rather than treating it as a 
 
 `src/components/` splits into `base/` (primitives, grouped into subfolders by purpose:
 `background/` — `Meteors`, `Stars`; `buttons/` — `GradientButton`, `PillButton`; `feedback/` —
-`Alert`, `Chip`; `form/` — `InputField`, `SelectField`, `Stepper`, `Switch`; `layout/` —
+`Alert`, `Chip`, `VersionInfo`; `form/` — `InputField`, `SelectField`, `Stepper`, `Switch`; `layout/` —
 `BottomSheet`, `GlowCard`, `Row`) and `composite/` (built from one or more base/composite
 components — `AmbientBackground`, `CandleReminder`, `ConfirmModal`,
 `NotificationsPrompt`, `ProfileFields`, `RequireAuthNotice`, `ShabbatSection`, and the Account
@@ -37,6 +37,12 @@ Same Redux Toolkit + services-layer + Expo Router conventions otherwise: all I/O
 `src/services/`, split by transport — `services/http/` (fetch-based calls), `services/ws/` (the
 Socket.IO client), and `services/device/` (on-device I/O: `expo-location`, the browser's push APIs) — called only from
 thunks in `src/store/slices/`, never inline in a component.
+
+## Version
+
+`src/config/version.js` exposes the `app` and `frontend` versions and the build time, which
+`Dockerfile` reads from `version/versions.json` into `EXPO_PUBLIC_*` vars (so `expo start` shows
+"dev"); the Account tab's `VersionInfo` shows them. See `docs/specs/services.md#versions`.
 
 ## Location (`expo-location`)
 

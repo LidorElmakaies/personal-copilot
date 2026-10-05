@@ -78,15 +78,28 @@ If a design changes, update the HTML file here in the same commit.
   Home uses the phone's GPS directly, as before.
 - **No "server → open app" channel for this.** The phone is the one that changes the location, so
   it re-fetches what depends on it. Web Push is for notifications only (every push must show one).
-- **Versions, the Android app and ntfy** (added before stage 3, tasks 2.17–2.26). The frontend
-  has a semver version and Android `versionCode`, bumped by one script that tags git; each backend
-  service reports its version, build commit and start time on `/health`, and an Admin tab (admin
-  accounts only) shows them all with up/down status. The phone gets a real Android app (APK),
+- **Versions, the Android app and ntfy** (added before stage 3, tasks 2.17–2.27). One
+  `version/versions.json` holds the app's version and one per deployable component (semver,
+  `-test.N` for test builds), bumped by one script that never touches git; each image bakes in its
+  own version and build time, backend services report them with their start time on `/health`, and
+  an Admin tab (admin accounts only) shows them all with up/down status. Android's `versionCode` is
+  computed from the frontend version. The phone gets a real Android app (APK),
   built in Docker and signed with one key kept outside git, published to a registry at
   `https://<pc>.ts.net/apk/`; the app checks it on start and offers updates. The APK can't use
   Web Push (browser-only), so its reminders go through a self-hosted **ntfy** server on the
   tailnet and the ntfy Android app — a second Notification Service channel, no Reminders change,
   no Google account. Web Push stays for the browser.
+- **Phones: Android gets the APK, iPhone the Home Screen web app.** Both run the same Expo code.
+  iPhones can't install apps from our own server (only through Apple), so the APK, its registry,
+  the in-app updater and ntfy are **Android only**. iPhone uses the web app installed to the Home
+  Screen (a PWA: web manifest + icons) — iOS 16.4+ delivers Web Push to Home Screen web apps, so
+  reminders reach it through the Web Push we already have (not ntfy: the ntfy iOS app can't
+  receive from a self-hosted server without relaying through the public ntfy.sh). **No native iOS
+  app**: it needs the paid Apple Developer Program, and isn't planned.
+- **Ready to move to the cloud.** Today everything runs at home behind Tailscale. Anything new must
+  also work if the whole project moves to a public cloud server: nothing may rely on the tailnet
+  being private for its security. For ntfy that means token auth and the hardening in 2.23, so it
+  is safe on the open internet, with Tailscale only as an extra layer today.
 
 ---
 
@@ -127,8 +140,8 @@ with a countdown. The Reminders and Notification services exist and run, but do 
 
 Goal: on the Home card, a bell button lets a logged-in user pick "remind me X before candle
 lighting", and a push notification arrives on the phone at that time every Friday. Then (2.17 on):
-versions, an admin status view, and an installable Android app that updates itself from the home
-network and gets its reminders through ntfy.
+versions, an admin status view, an installable Android app that updates itself from the home
+network and gets its reminders through ntfy, and the iPhone as a Home Screen web app.
 
 - [x] **2.0 Fix Kafka.** `devops/data/kafka` is owned by root, so the broker crash-loops. Give it to
   the container's user (one `sudo chown`, run by the user) and confirm the broker stays up.
@@ -240,8 +253,9 @@ events" under Decisions.
 ### Versions, admin status, Android app
 
 Added after 2.16, before stage 3: version numbers, an admin view of the backend, an installable
-Android app (APK) with updates from the home network, and reminders on that app through a
-self-hosted ntfy server. See "Versions, the Android app and ntfy" under Decisions.
+Android app (APK) with updates from the home network, reminders on that app through a
+self-hosted ntfy server, and the iPhone as a Home Screen web app. See "Versions, the Android app
+and ntfy", "Phones" and "Ready to move to the cloud" under Decisions.
 
 - [x] **2.17 Admin sign-in + sessions that end cleanly.** Today the seeded admin can log in but
   Gateway rejects every `role: 'admin'` token (`auth-kernel` accepts only `'user'`), so the app
@@ -252,24 +266,35 @@ self-hosted ntfy server. See "Versions, the Android app and ntfy" under Decision
   covers an expired or otherwise rejected token).
   *Tests:* an admin token passes `JwtAuthGuard` and `AdminGuard`, a user token fails
   `AdminGuard` with `403`; in the browser, a rejected token signs out with the message.
-- [ ] **2.18 Versions.** The frontend has a semver version (`frontend/app.json` `version`, plus
-  Android's `versionCode`, which only goes up), bumped by one script
-  (`scripts/release.sh <x.y.z>`) that also tags git (`app-v<x.y.z>`). The Account tab shows
-  "Version 1.2.0 (abc1234)" (build commit baked in at build time). Every backend service reports
-  `{ status, version, commit, startedAt }` on `GET /health`: `version` from `backend/package.json`,
-  `commit` baked into its image at build time (a build arg), so a stale container is visible.
-  *Check:* rebuild one service, its `/health` shows the new commit and start time.
-- [ ] **2.19 Admin: system status.** Gateway `GET /admin/status` (`AdminGuard`): asks every
-  backend service's `/health` (its own, Users, Reminders, Notifications — the list from Gateway's
-  config) in parallel with a short timeout and returns `[{ service, status: 'up' | 'down', version,
-  commit, startedAt, latencyMs }]`; a service that doesn't answer is `down`, not an error.
+- [x] **2.18 Versions.** One file, `version/versions.json`: `app` (the whole project, grows with
+  every change) and one version per deployable component (`frontend`, `gateway`, `users`,
+  `reminders`, `notifications`), all starting at `0.1.0` (in development; `1.0.0` is declared
+  when version 1 is ready). Semver `MAJOR.MINOR.PATCH`, `-test.N`
+  for test builds while fixing (`1.3.0-test.1` … then the release `1.3.0`); bumping one part
+  resets the ones to its right. `scripts/version.sh <component> major|minor|patch [--test] |
+  release` applies the rules and bumps `app` the same way (no git; it prints the tag to add after
+  committing). Images get the version through a small `version` build context: each backend image
+  bakes in only its own version plus its build time (so bumping one service doesn't rebuild the
+  others), reported on internal services' `/health` as `{ status, service, version, builtAt,
+  startedAt }` (`@app/build-info`); Gateway's public routes don't expose it (2.19 reads it
+  in-process). The frontend bakes in the app and frontend versions and its build time and shows
+  them at the bottom of the Account tab. Rule in `CLAUDE.md`: after every change, ask the user
+  which components to bump. (Android's `versionCode`, computed from the frontend version,
+  `major·1,000,000 + minor·10,000 + patch·100 + test number, or 99 for a release`, comes with the
+  APK in 2.20; the build commit was dropped — no git inside the builds — the build time shows a
+  stale container just as well.)
+  *Check:* bumping Reminders and rebuilding changed only Reminders' version and build time.
+- [ ] **2.19 Admin: system status.** Gateway `GET /admin/status` (`AdminGuard`): reads its own
+  build info in-process (`@app/build-info`) and asks Users', Reminders' and Notifications' `/health`
+  (the list from Gateway's config) in parallel with a short timeout; returns `[{ service, status:
+  'up' | 'down', version, builtAt, startedAt, latencyMs }]`; a service that doesn't answer is `down`, not an error.
   Frontend: an **Admin** tab, only for admins (a `requiresRole: 'admin'` tab, hidden for
   everyone else, and the same mount-time check as Account), listing each service with an up/down
-  chip, version, commit, uptime and latency, plus the app's own version; refresh on open and by
+  chip, version, build time, uptime and latency, plus the app's own version; refresh on open and by
   pull/tap. **New UI → HTML mockup first.**
   *Check:* stop the Reminders container — it shows `down` within one refresh; start it — `up`
   with a new start time.
-- [ ] **2.20 Android app (APK) builder.** `app.json` gets the Android identity
+- [ ] **2.20 Android app (APK) builder** (Android only). `app.json` gets the Android identity
   (`android.package`, `versionCode`, permissions: location, notifications). A Docker image
   (`devops/android/`: JDK 17, Android SDK, Node 22 — nothing installed on the host) runs
   `expo prebuild --platform android` and Gradle `assembleRelease`, with
@@ -280,51 +305,104 @@ self-hosted ntfy server. See "Versions, the Android app and ntfy" under Decision
   the Notifications card says "coming with 2.25" until then.
   *Check:* the APK installs on the phone (Tailscale on), logs in, shows Shabbat times from GPS,
   and the reminder sheet saves.
-- [ ] **2.21 APK registry on the tailnet.** `https://<pc>.ts.net/apk/`, served by the frontend's
-  Caddy from a persistent folder (`devops/data/apk/`, mounted, so it survives frontend rebuilds —
-  no new port). Holds every published APK, `latest.json` (`{ version, versionCode, url, sha256,
-  notes, publishedAt }`) and a plain download page listing versions, newest first, with their
-  notes. `devops/android/publish-apk.sh` (or a flag on `build-apk.sh`) copies the APK in and
+- [ ] **2.21 APK registry on the tailnet** (Android only). `https://<pc>.ts.net/apk/`, served by the
+  frontend's Caddy from a persistent folder (`devops/data/apk/`, mounted, so it survives frontend
+  rebuilds — no new port). Holds every published APK, `latest.json` (`{ version, versionCode, url,
+  sha256, notes, publishedAt }`) and a plain download page listing versions, newest first, with
+  their notes. `devops/android/publish-apk.sh` (or a flag on `build-apk.sh`) copies the APK in and
   rewrites `latest.json` and the page. **The page is new UI → HTML mockup first.**
   *Check:* the page opens on the phone, downloads the newest APK and installs it; an older one is
   still listed.
-- [ ] **2.22 In-app update prompt (APK only).** On start and when the app comes back to the
+- [ ] **2.22 In-app update prompt** (Android only). On start and when the app comes back to the
   foreground, the APK fetches `/apk/latest.json`; if its `versionCode` is newer than the installed
   one (`expo-application`), a prompt: "Version 1.3.0 is available · What's new · Update / Later".
   Update opens the APK's URL, Android downloads it and asks to install (the first time it asks to
-  allow installs from that browser). "Later" waits for the next version. The web build never
-  shows it (it's always the newest). **New UI → mockup first.**
-  *Check:* install 1.0.0, publish 1.0.1 — the prompt shows; Update installs over it keeping the
-  login; 1.0.1 shows no prompt.
-- [ ] **2.23 ntfy server.** `devops/ntfy/` (the official `binwiederhier/ntfy` image): cache and
-  auth on disk under `devops/data/ntfy/`, `auth-default-access: deny-all` (nothing readable or
-  writable without a token), an admin user for the Notification Service. The phone's ntfy app has
-  to reach it, so `tailscale serve` publishes it on `https://<pc>.ts.net:8445` — tailnet only,
-  like the frontend; the second deliberate exception to "only Gateway is reachable" (a push
-  server, not an API — **needs your OK**, see Open questions).
-  *Check:* the ntfy app on the phone subscribes to a test topic with a token and gets a message
-  `curl`ed from the PC; without a token it's refused.
+  allow installs from that browser). "Later" waits for the next version. The web build — and so the
+  iPhone's Home Screen app — never shows it (it's always the newest). Only release versions are
+  offered; `-test.N` builds are installed by hand from the registry page. **New UI → mockup first.**
+  *Check:* install 0.4.0, publish 0.4.1 — the prompt shows; Update installs over it keeping the
+  login; 0.4.1 shows no prompt.
+- [ ] **2.23 ntfy server** (Android only). `devops/ntfy/` (the official `binwiederhier/ntfy`
+  image, pinned version), its config in `devops/ntfy/server.yml`, data under `devops/data/ntfy/`
+  (auth database + message cache — back it up with the rest of `devops/data/`). **Locked down so
+  it would be safe on the open internet** (see "Ready to move to the cloud"), not just on the
+  tailnet:
+  - **Nothing without a token.** `auth-default-access: deny-all`; no sign-up
+    (`enable-signup: false`), no web login (`enable-login: false`), web app off (`web-root:
+    disable`). Anonymous requests are refused, read or write.
+  - **Least privilege per account.** The Notification Service gets two ntfy users: a *publisher*
+    with write-only access to the reminder topics (used to send) and an *admin* used only to
+    create and revoke users, access and tokens (2.24); both credentials in `backend/.env`, never
+    in the repo. Each app user gets their own ntfy user with **read-only access to their own
+    topic only** and one token for it.
+  - **Unguessable topics.** One per user, named with ≥ 128 bits of randomness
+    (`pc-<random base64url>`), so knowing the server or another user's topic reveals nothing;
+    rotated when notifications are turned off and on again.
+  - **HTTPS only.** Today `tailscale serve` on
+    `https://<pc>.ts.net:8445` (tailnet only); in the cloud, the same Caddy that serves the
+    frontend, with automatic TLS. ntfy itself listens on plain HTTP inside Docker only, never
+    published to the host directly. `base-url` set to the public HTTPS address; `behind-proxy:
+    true` so its rate limits key on the real client IP (trusting `X-Forwarded-For` only from the
+    proxy, like Gateway's `trust proxy`).
+  - **Rate limits and size limits.** ntfy's per-visitor request, subscription and message limits
+    on (defaults tightened for a handful of users); messages capped at a few KB; attachments off
+    (no `attachment-cache-dir`).
+  - **Short-lived message cache.** Kept just long enough for a phone that was offline to catch up
+    (`cache-duration` ~12 h — a reminder is useless after candle lighting anyway), then deleted.
+    The server sees the reminder text (ntfy has no end-to-end encryption, unlike Web Push) — on
+    our own machine that's acceptable; the text is "Candle lighting is at HH:MM", nothing more.
+  - **No relaying to ntfy.sh** (`upstream-base-url` unset) and **no Firebase** — nothing leaves
+    our server; the Android ntfy app keeps its own connection (see Open questions).
+  - **Logs without message bodies**; health and metrics (`enable-metrics`) on an internal port
+    for Prometheus, not published.
+  - It's the second deliberate exception to "only Gateway is reachable" (a push server, not an
+    API — **needs your OK**, see Open questions). Moving to the cloud changes only `base-url` and
+    which proxy terminates TLS, both from env.
+  *Check:* the ntfy app on the phone subscribes to a test topic with a read-only token and gets a
+  message `curl`ed from the PC with the publisher token; without a token, with the wrong user's
+  token, or publishing with a read-only token — refused; the web app and sign-up URLs answer
+  404/403.
 - [ ] **2.24 Notification Service: ntfy channel.** `ntfy_topics` table (`user_id` → `users.users`
   `ON DELETE CASCADE`, a random unguessable `topic`, created per user on first use) and a
   read-only ntfy token per user for that topic only (via ntfy's admin API).
   `POST /notifications/ntfy` (JWT, through Gateway) → `{ server, topic, token }`, creating them
-  if needed; `DELETE` removes them and revokes the token. `NtfyChannel implements
+  if needed; `DELETE` removes them and revokes the token (and the ntfy user), so a turned-off
+  phone stops receiving at once. Deleting the account does the same (the table's cascade drops
+  the row; the service revokes on ntfy). The token is returned only over the signed-in API, never
+  logged. `NtfyChannel implements
   INotificationChannel` (channel `'ntfy'` in `queue-contracts`): publishes title, body and a click
   link back into the app (`personalcopilot://`, the app's scheme) to the user's topic; per-job
   progress and retries like `WebPushChannel`. Reminders doesn't change (it already omits
   `channels`, meaning every channel the user has).
   *Tests:* the channel publishes to the right topic with the token; a deleted account's topic and
   token go. *Check:* a hand-enqueued `notification-requested` shows in the ntfy app.
-- [ ] **2.25 APK: turn on notifications (ntfy).** On the APK, the Notifications card and the
-  after-login prompt use ntfy instead of Web Push: "Turn on" calls `POST /notifications/ntfy`, then
-  opens the ntfy app's subscribe link for that server, topic and token (or, if the ntfy app isn't
-  installed, explains and links to it on F-Droid / Google Play). Tapping a notification in the
-  ntfy app opens our app. Off → `DELETE`. **Changed UI → update the 2.14 mockup first.**
-  *Check:* a reminder fired by hand (`fire-reminder-soon.sh`) arrives with the phone locked and
-  our app closed; tapping it opens the app.
-- [ ] **2.26 End-to-end on the phone + docs sync.** Install the APK from the registry, update it
-  once through the in-app prompt, receive a real reminder through ntfy with the phone locked, and
-  see every service up (and one stopped as down) on the Admin tab. Docs: `CLAUDE.md` (it says
+- [ ] **2.25 APK: turn on notifications (ntfy)** (Android only). On the APK, the Notifications card
+  and the after-login prompt use ntfy instead of Web Push: "Turn on" calls `POST
+  /notifications/ntfy`, then opens the ntfy app's subscribe link for that server, topic and token
+  (or, if the ntfy app isn't installed, explains and links to it on F-Droid / Google Play). Tapping
+  a notification in the ntfy app opens our app. Off → `DELETE`. **Changed UI → update the 2.14
+  mockup first.**
+  *Check:* a reminder fired by hand arrives with the phone locked and our app closed; tapping it
+  opens the app. (Add the test script used for 2.16 to the repo as
+  `devops/scripts/fire-reminder-soon.sh`: makes a user's real reminder fire in N minutes.)
+- [ ] **2.26 Installable web app (PWA) + iPhone support.** A web manifest
+  (`manifest.webmanifest`: name, short name, `display: standalone`, `start_url`/`scope` `/`, theme
+  and background colors from the palette) and an app icon in every size the platforms need
+  (192/512 px, a maskable version, Apple's 180 px `apple-touch-icon`, favicon), linked from the
+  web build's HTML. Android Chrome then offers "Install app"; iPhone Safari "Add to Home Screen".
+  On an iPhone in Safari (not yet on the Home Screen), the after-login notifications prompt and
+  the Account card don't offer "Turn on" (Safari can't do push there) but explain: "To get
+  reminders on iPhone, add this app to your Home Screen: Share → Add to Home Screen, then open it
+  from there". Opened from the Home Screen (standalone), the normal Web Push flow from 2.14 works
+  (iOS asks permission only from a tap, which "Turn on" is). **The icon and the iPhone hint are new
+  UI → HTML mockup first** (a few icon options to pick from).
+  *Check:* on an iPhone (iOS 16.4+): the hint shows in Safari; added to the Home Screen it opens
+  full screen with the icon, "Turn on" asks permission, and a reminder fired by hand arrives with
+  the phone locked. On Android, Chrome offers to install it and it opens full screen.
+- [ ] **2.27 End-to-end on the phones + docs sync.** Android: install the APK from the registry,
+  update it once through the in-app prompt, receive a real reminder through ntfy with the phone
+  locked. iPhone: the Home Screen web app receives a real reminder through Web Push. Admin: see
+  every service up (and one stopped as down) on the Admin tab. Docs: `CLAUDE.md` (it says
   "no admin features" today), `docs/specs/*`, READMEs, the agents' files.
 
 ## Stage 3: Calendar tab
@@ -354,7 +432,8 @@ Smaller bugs, config fixes and ideas found along the way are tracked in
 - **ntfy reachable from the phone** (task 2.23): OK to publish ntfy on its own tailnet port
   (`:8445`, tailnet only) — a second exception, like the frontend, to "only Gateway is reachable"?
   The alternative, proxying ntfy's long-lived connections through Gateway, is possible but adds
-  load and code to Gateway for no privacy gain on a tailnet.
+  load and code to Gateway. In the cloud the same holds: ntfy behind Caddy on its own subdomain or
+  path, protected by its own token auth (2.23), not by the network.
 - **ntfy delivery on Android:** without Google, the ntfy app keeps its own connection open (a
   small, permanent "ntfy" notification and some battery). Acceptable? (ntfy can also use Firebase
   for instant delivery, which would bring Google back in.)

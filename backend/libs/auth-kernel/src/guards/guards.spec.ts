@@ -27,11 +27,14 @@ function context(token?: string) {
 describe('JwtAuthGuard', () => {
   const guard = new JwtAuthGuard(tokens);
 
-  it.each(['user', 'admin'])('lets a %s in and sets request.user', async (role) => {
-    const { ctx, request } = context(sign(role));
-    await expect(guard.canActivate(ctx)).resolves.toBe(true);
-    expect(request.user).toEqual({ userId: 'u-1', role });
-  });
+  it.each(['user', 'admin'])(
+    'lets a %s in and sets request.user',
+    async (role) => {
+      const { ctx, request } = context(sign(role));
+      await expect(guard.canActivate(ctx)).resolves.toBe(true);
+      expect(request.user).toEqual({ userId: 'u-1', role });
+    },
+  );
 
   it.each([
     ['no token', undefined],
@@ -48,13 +51,15 @@ describe('AdminGuard', () => {
   const guard = new AdminGuard(tokens);
 
   it('lets an admin in', async () => {
-    await expect(guard.canActivate(context(sign('admin')).ctx)).resolves.toBe(true);
+    await expect(guard.canActivate(context(sign('admin')).ctx)).resolves.toBe(
+      true,
+    );
   });
 
   it('rejects a signed-in user with 403', async () => {
-    await expect(guard.canActivate(context(sign('user')).ctx)).rejects.toBeInstanceOf(
-      ForbiddenException,
-    );
+    await expect(
+      guard.canActivate(context(sign('user')).ctx),
+    ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
   it('rejects no token with 401', async () => {

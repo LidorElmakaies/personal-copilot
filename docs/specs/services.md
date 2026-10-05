@@ -63,6 +63,8 @@ tunnel from a Caddy instance on the public internet. HTTP + WebSocket.
   both the local frontend build (different origin than Gateway during dev) and the cloud path
   (same-origin via Caddy's reverse proxy, so this doesn't come into play there) work either way.
   Revisit if Gateway is ever reachable directly (not proxied) from the open internet.
+- No `/health` and no version on any public route — Gateway is the public entry (including the
+  cloud path). Its image bakes in its version like the others (see [Versions](#versions)).
 
 ## users
 
@@ -100,6 +102,7 @@ HTTP, internal-only — never published to the host, only Gateway calls it.
   (`+972501234567`). Returns the profile.
 - `PUT /users/me/location` — `{ lat, lon, tz }` → the profile. The frontend sends it only after a move
   of more than 5 km or a time-zone change (see [frontend](#frontend)); `updatedAt` is set here.
+- `GET /health` — see [Versions](#versions).
 
 **Profiles.** `profiles` table, keyed by `user_id` (the user's id and a foreign key, deleted with
 the user): `first_name`, `last_name`, `phone`, `lat`, `lon`, `tz`, `location_updated_at`,
@@ -149,7 +152,7 @@ can't be saved for a user that doesn't exist. The only type so far is `shabbat_c
   is ignored: the location comes from the user's profile.
 - `DELETE /reminders/shabbat-candles` → `204`. Turns it off but keeps the row, so the settings can
   prefill the sheet next time. Idempotent.
-- `GET /health`.
+- `GET /health` — see [Versions](#versions).
 
 **The user's location** is read straight from the Users Service's `users.profiles` (a read-only
 mapping, `UsersProfileEntity` from `@app/users-schema`) — never copied, never written here.
@@ -189,6 +192,7 @@ adapter per channel — `WebPushChannel` today).
   caller; idempotent.
 - Both subscription routes take the user from Gateway's `X-User-Id` (see Gateway above), `401`
   without it.
+- `GET /health` — see [Versions](#versions).
 
 `push_subscriptions` table: `id`, `user_id` (indexed), `endpoint` (unique), `p256dh`, `auth`,
 `created_at`. VAPID keys come from `VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY`/`VAPID_SUBJECT`; the
@@ -284,7 +288,10 @@ logging in" link (routes to `/`) for whoever lands there without wanting to auth
   of navigating; a direct hit on the route (deep link, web refresh, reopening the app on this tab)
   bypasses that entirely, so `AccountScreen` also calls `useRequireAuth()` on mount and renders
   `RequireAuthNotice` in that case — both are generic (`src/hooks/`, `src/components/composite/`),
-  reusable by any future `requiresAuth` tab, not Account-specific.
+  reusable by any future `requiresAuth` tab, not Account-specific. Below the cards, `VersionInfo`
+  (`base/feedback/`): "Personal Copilot <app>" and "Frontend <version> ·
+  built <date>" from `src/config/version.js` — "dev" when not built by the Dockerfile (see
+  [Versions](#versions)).
 - **Location sync** — `app/_layout.js`'s `LocationSyncManager` dispatches `profileSlice`'s
   `syncLocation` whenever the user is signed in and `locationSlice.status` is `'ready'` (a fresh
   GPS fix this session — the persisted last-known `coords` alone never trigger it).
@@ -371,6 +378,43 @@ feature listens for a specific event yet. A future feature attaches its own list
 refresh thunk exists, since the 15-min access token is short enough that logging in again is an
 acceptable v1.
 
+## Versions
+
+`version/versions.json` (repo root) holds every version: `app` and one per deployable component
+(`frontend`, `gateway`, `users`, `reminders`, `notifications`). Bumped only by `scripts/version.sh`
+(bump rules: `CLAUDE.md`'s "Versions" section):
+
+- `scripts/version.sh` — prints the file.
+- `scripts/version.sh <component> major|minor|patch [--test]` — bumps the component and `app` the
+  same way; `--test` gives the next `-test.N` of that bump (`1.2.0` → `1.3.0-test.1` →
+  `1.3.0-test.2`).
+- `scripts/version.sh <component> release` — drops `-test.N` from both.
+
+Minor and patch must stay ≤ 99 and `N` ≤ 98 (room for an Android `versionCode`). Never runs git;
+prints the `git tag v<app>` to add after committing.
+
+Images get the folder as a separate build context named `version` (see `architecture.md`'s
+"Compose / build layout"). Each backend image copies only its own entry to
+`/app/version/versions.json`, plus its build time in `/app/version/built-at`. Users, Reminders and
+Notifications answer `GET /health` (compose healthcheck; internal-only) with:
+
+```json
+{ "status": "ok", "service": "reminders", "version": "0.1.0",
+  "builtAt": "2026-10-05T18:00:00Z", "startedAt": "2026-10-05T18:02:11.123Z" }
+```
+
+(`@app/build-info`, see below.) The frontend image bakes in `app`, `frontend` and its build time
+(`EXPO_PUBLIC_APP_VERSION`/`EXPO_PUBLIC_FRONTEND_VERSION`/`EXPO_PUBLIC_BUILT_AT`), shown by the
+Account tab's `VersionInfo`.
+
+## libs/build-info
+
+`buildInfo(service)` → `{ service, version, builtAt, startedAt }`. Reads `versions.json` and
+`built-at` from the first of `$VERSION_DIR`, `./version`, `../version` that has a `versions.json` —
+so a local `nest start` from `backend/` reads the repo's own file, with `builtAt` `null` (nothing
+writes `built-at` outside Docker). Missing entry or file → `null`. `startedAt` is fixed at module
+load.
+
 ## libs/auth-kernel
 
 Shared JWT sign/verify (`IJwtService`/`JsonWebTokenService`, the only class allowed to import
@@ -401,7 +445,7 @@ that queue must pass. See `event-schemas.md`.
 
 ## libs/jewish-calendar
 
-All of the project's Jewish-calendar maths, in one place (it was a separate Calendar Service).
+All of the project's Jewish-calendar maths, in one place.
 `@hebcal/core` v6 behind `ICalendarCalculator` (`HebcalCalendarCalculator` is the only file that
 imports it); `ShabbatCalendar` (`IShabbatCalendar`) is the entry point, pure and synchronous.
 Used in-process by Gateway (`GET /calendar/shabbat`, Home) and the Reminders scheduler — so Home
@@ -435,8 +479,7 @@ the Users Service writes these tables; its own full entities stay in `apps/users
 ## libs/kafka-contracts / libs/kafka-client
 
 Kafka is for events (a fact any number of services may react to); BullMQ above is for jobs. The
-Users Service publishes (through the outbox); Reminders and Notifications start consuming in plan
-tasks 2.9/2.10.
+Users Service publishes (through the outbox); Reminders consumes `users.user-state`.
 
 `kafka-client` (the only code that imports `kafkajs`, via `KAFKA_BROKERS`):
 `IEventPublisher`/`KafkajsEventPublisher` (`publish(topic, key, message | null)`; `null` is a
