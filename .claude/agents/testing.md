@@ -37,7 +37,9 @@ dependency breaks loading. `backend/libs/testing` doesn't exist yet — create i
    two services' actual runtime config is a real deployment failure mode (every token the Users Service
    issues gets rejected by Gateway) that a unit test against one service in isolation can't catch —
    worth at least one test that signs with one `ConfigService`-backed instance and verifies with
-   another using the same secret.
+   another using the same secret. Every role in `USER_ROLES` must verify and any other must not;
+   `AdminGuard` answers `401` without a valid token and `403` for a non-admin
+   (`libs/auth-kernel/src/guards/guards.spec.ts`).
 2. **`AuthService.refresh` actually rotates.** A used refresh token must be revoked regardless of
    whether the rotation that follows succeeds — assert the *old* token is unusable in an
    immediately-following `refresh` call, not just that a new token pair comes back.
@@ -125,6 +127,9 @@ Conventions and known traps:
 cd backend
 npm test            # unit tests, all apps/libs
 npm run test:cov
+
+# no Node on the host (own node_modules volume — the host's backend/node_modules is incomplete)
+docker run --rm -v "<repo>/backend:/app" -v pc-backend-node-modules:/app/node_modules   -v pc-npm-cache:/root/.npm -w /app node:22 sh -c "npm ci && npx jest"
 
 # browser tests against the running stack (from repo root)
 docker compose -f devops/playwright/docker-compose.yml run --rm e2e

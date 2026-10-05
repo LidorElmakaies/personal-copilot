@@ -1,9 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import jwt from 'jsonwebtoken';
-import type {
-  IJwtService,
-  JwtPayload,
+import {
+  USER_ROLES,
+  type IJwtService,
+  type JwtPayload,
+  type UserRole,
 } from './interfaces/jwt-service.interface';
 
 // The only class allowed to import `jsonwebtoken` — see backend.md's non-negotiables.
@@ -23,12 +25,16 @@ export class JsonWebTokenService implements IJwtService {
       if (
         typeof decoded === 'string' ||
         !decoded.sub ||
-        decoded.role !== 'user' ||
+        !USER_ROLES.includes(decoded.role as UserRole) ||
         typeof decoded.email !== 'string'
       ) {
         return null;
       }
-      return { sub: String(decoded.sub), role: 'user', email: decoded.email };
+      return {
+        sub: String(decoded.sub),
+        role: decoded.role as UserRole,
+        email: decoded.email,
+      };
     } catch {
       // Expired, malformed, or bad signature — all treated the same: unauthenticated.
       return null;

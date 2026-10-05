@@ -68,6 +68,8 @@ function signOut(state) {
   state.error = null;
 }
 
+export const SESSION_ENDED_NOTICE = 'Your session ended — please log in again.';
+
 const authSlice = createSlice({
   name: 'auth',
   initialState: {
@@ -76,9 +78,17 @@ const authSlice = createSlice({
     refreshToken: null,
     status: 'idle',
     error: null,
+    notice: null, // shown on the login screen, e.g. SESSION_ENDED_NOTICE
   },
   reducers: {
-    clearAuth: signOut,
+    // Optional `{ notice }`, shown on the login screen (a server-rejected session).
+    clearAuth(state, action) {
+      signOut(state);
+      state.notice = action.payload?.notice ?? null;
+    },
+    clearAuthNotice(state) {
+      state.notice = null;
+    },
     clearAuthError(state) {
       state.error = null;
     },
@@ -90,6 +100,7 @@ const authSlice = createSlice({
     };
     const handleFulfilled = (state, action) => {
       state.status = 'succeeded';
+      state.notice = null;
       state.accessToken = action.payload.access_token;
       state.refreshToken = action.payload.refresh_token;
     };
@@ -118,5 +129,5 @@ export function selectUser(state) {
   return getUserFromToken(state.auth.accessToken);
 }
 
-export const { clearAuth, clearAuthError } = authSlice.actions;
+export const { clearAuth, clearAuthError, clearAuthNotice } = authSlice.actions;
 export default authSlice.reducer;

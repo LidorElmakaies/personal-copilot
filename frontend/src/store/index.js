@@ -10,7 +10,11 @@ import {
   REGISTER,
   REHYDRATE,
 } from 'redux-persist';
-import authReducer from './slices/authSlice';
+import { setUnauthorizedHandler } from '../services/http/httpClient';
+import authReducer, {
+  clearAuth,
+  SESSION_ENDED_NOTICE,
+} from './slices/authSlice';
 import calendarReducer from './slices/calendarSlice';
 import locationReducer from './slices/locationSlice';
 import notificationsReducer from './slices/notificationsSlice';
@@ -45,7 +49,7 @@ const notificationsPersistConfig = {
 const authPersistConfig = {
   key: 'auth',
   storage: AsyncStorage,
-  blacklist: ['status', 'error'], // ephemeral per-submission state
+  blacklist: ['status', 'error', 'notice'], // ephemeral per-submission state
 };
 
 export const store = configureStore({
@@ -71,3 +75,10 @@ export const store = configureStore({
 });
 
 export const persistor = persistStore(store);
+
+// Current token only: a late 401 for an older token mustn't sign out its replacement.
+setUnauthorizedHandler((token) => {
+  if (store.getState().auth.accessToken === token) {
+    store.dispatch(clearAuth({ notice: SESSION_ENDED_NOTICE }));
+  }
+});

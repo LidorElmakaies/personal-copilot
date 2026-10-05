@@ -243,7 +243,7 @@ Added after 2.16, before stage 3: version numbers, an admin view of the backend,
 Android app (APK) with updates from the home network, and reminders on that app through a
 self-hosted ntfy server. See "Versions, the Android app and ntfy" under Decisions.
 
-- [ ] **2.17 Admin sign-in + sessions that end cleanly.** Today the seeded admin can log in but
+- [x] **2.17 Admin sign-in + sessions that end cleanly.** Today the seeded admin can log in but
   Gateway rejects every `role: 'admin'` token (`auth-kernel` accepts only `'user'`), so the app
   gets stuck "signed in" with every call failing (found while testing 2.14). `auth-kernel`: verify
   `'user'` and `'admin'`; `JwtAuthGuard` lets both through (the admin also uses the app as a

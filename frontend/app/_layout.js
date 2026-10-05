@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { Provider, useDispatch, useSelector } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
@@ -71,7 +71,7 @@ function AuthGate() {
   const router = useRouter();
   const segments = useSegments();
   const dispatch = useDispatch();
-  const { accessToken } = useSelector((state) => state.auth);
+  const { accessToken, notice } = useSelector((state) => state.auth);
 
   useEffect(() => {
     if (!accessToken) return;
@@ -93,6 +93,14 @@ function AuthGate() {
       router.replace('/');
     }
   }, [accessToken, segments, router]);
+
+  // The server ended the session: take the user to login once, where the notice says why. Only
+  // when the notice appears — leaving login (Back, "Continue without logging in") isn't undone.
+  const segmentsRef = useRef(segments);
+  segmentsRef.current = segments;
+  useEffect(() => {
+    if (notice && segmentsRef.current[0] !== '(auth)') router.push('/login');
+  }, [notice, router]);
 
   return null;
 }

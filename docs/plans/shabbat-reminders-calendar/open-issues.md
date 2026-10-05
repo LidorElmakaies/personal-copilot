@@ -6,7 +6,7 @@ The plan's own open questions (holiday eves, location denied) stay in [`plan.md`
 
 ## Bugs
 
-- [ ] **Seeded admin can't use the app.** Auth issues the admin a token with `role: 'admin'`, but
+- [x] **Seeded admin can't use the app.** *Fixed by plan task 2.17.* Auth issues the admin a token with `role: 'admin'`, but
   `JsonWebTokenService.verify` (`libs/auth-kernel/src/jsonwebtoken.service.ts`) accepts only
   `'user'`, so every `JwtAuthGuard` route and the WebSocket reject it. The comment in
   `jwt-service.interface.ts` ("extend this union to add a role, no schema change needed") is

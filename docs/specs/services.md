@@ -121,11 +121,12 @@ were updated.
 
 Postgres via TypeORM (`users`, `refresh_tokens`, `profiles`, `outbox_events`), password_hash = SHA256(`PASSWORD_PEPPER` + salt +
 plaintext). Access tokens: 15-min TTL, `{ sub, role, email }` payload. `UserRole` is
-`'user' | 'admin'` (`@app/auth-kernel`); `register` always creates `'user'`. The only `'admin'` is
-the one `AdminSeedService` creates once at boot from `ADMIN_EMAIL`/`ADMIN_PASSWORD` (see
-`docs/users/environment.md`). Nothing grants admin rights yet — and `JsonWebTokenService.verify`
-accepts only `role: 'user'`, so an admin's access token is currently rejected by every
-`JwtAuthGuard` route and the WS handshake.
+`'user' | 'admin'` (`USER_ROLES` in `@app/auth-kernel`); `register` always creates `'user'`. The
+only `'admin'` is the one `AdminSeedService` creates once at boot from `ADMIN_EMAIL`/`ADMIN_PASSWORD`
+(see `docs/users/environment.md`). `JsonWebTokenService.verify` accepts any role in `USER_ROLES`
+(anything else → unauthenticated), so the admin signs in and uses every `JwtAuthGuard` route and the
+WS handshake like any user. `AdminGuard` (same lib) is `JwtAuthGuard` plus `role === 'admin'`: no or
+a bad token → `401`, a non-admin → `403 Admins only`. No route uses it yet.
 
 Refresh tokens are stored as a plain SHA-256 hash (no salt/pepper) — sufficient since a refresh
 token is already a high-entropy random value, not human-guessable like a password, so this only
@@ -328,6 +329,14 @@ logging in" link (routes to `/`) for whoever lands there without wanting to auth
     "Not now" or log-out; cleared by a successful enable); the rest is read from the browser on
     every start. It doesn't import `authSlice` (that one imports it), so it reads the token from
     `getState()`.
+- **Session ended** — `httpClient`'s `authorizedFetch` (every signed-in HTTP call) passes the
+  token to the handler set with `setUnauthorizedHandler` on any `401`. `src/store/index.js`
+  registers it: if that token is still `authSlice.accessToken` (a late answer for an older token is
+  ignored), `clearAuth({ notice: SESSION_ENDED_NOTICE })`. `AuthGate` pushes to `/login` once when
+  a notice appears — not on later navigation, so leaving login sticks — and the login screen shows
+  it as a warning `Alert`. The notice (not persisted) is cleared by Register, "Continue without
+  logging in", unmounting login, and a successful login/register. Expiry (`AuthGate`'s timer) and
+  Log Out sign out with no notice. Other errors (e.g. `500`) keep the session.
 - `profileSlice` (`{ profile, status, error, locationSyncing }`) isn't persisted; it's fetched when
   `ProfileCard` mounts or a sync needs it, and reset on `clearAuth` and a successful
   `deleteAccount` so one user's profile is never shown to the next.
@@ -366,7 +375,8 @@ acceptable v1.
 
 Shared JWT sign/verify (`IJwtService`/`JsonWebTokenService`, the only class allowed to import
 `jsonwebtoken`), the higher-level `IAuthTokenService`/`AuthTokenService` used by every guard,
-`JwtAuthGuard`, and the `CurrentUser` param decorator. Used by both `apps/users` (signs, on
+`JwtAuthGuard` (any role in `USER_ROLES`), `AdminGuard` (`JwtAuthGuard` + admins only → `403`; not
+used by any route yet), and the `CurrentUser` param decorator. Used by both `apps/users` (signs, on
 login/register) and `apps/gateway` (verifies — `JwtAuthGuard` on `/users/me*`, `/reminders*`,
 `/notifications/subscriptions`). Also `USER_ID_HEADER` + `@ForwardedUserId()`, the
 internal-service side of Gateway's forwarded user id (see Gateway above) — used by `apps/users`,

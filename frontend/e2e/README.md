@@ -18,6 +18,8 @@ push service). `tests/service-worker.spec.js` runs the real `sw.js` and delivers
 it sets `channel: 'chromium'` for its file, since the default headless shell reports notification
 permission as denied. `tests/notification-permission.spec.js` (also `channel: 'chromium'`) grants
 the real permission mid-test to check the app re-subscribes when a blocked site is allowed again.
+`tests/session.spec.js` (same mocking and fake token) answers `/users/me` with a `401` to check
+the app signs out to login with the "session ended" notice, and with a `500` to check it doesn't.
 `tests/reminders.spec.js` mocks Gateway and seeds a token the same way; it
 starts the clock at a fixed time with `page.clock.install` + `resume` rather than freezing it with
 `setFixedTime`, since a frozen clock also stops the bottom sheet's JS slide-in animation.

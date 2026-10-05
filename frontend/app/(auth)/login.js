@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ScrollView,
   StyleSheet,
@@ -9,11 +9,16 @@ import {
 import { useRouter } from 'expo-router';
 import { useDispatch, useSelector } from 'react-redux';
 import AmbientBackground from '../../src/components/composite/AmbientBackground';
+import Alert from '../../src/components/base/feedback/Alert';
 import GlowCard from '../../src/components/base/layout/GlowCard';
 import GradientButton from '../../src/components/base/buttons/GradientButton';
 import InputField from '../../src/components/base/form/InputField';
 import { useAppTheme } from '../../src/hooks/useAppTheme';
-import { clearAuthError, loginUser } from '../../src/store/slices/authSlice';
+import {
+  clearAuthError,
+  clearAuthNotice,
+  loginUser,
+} from '../../src/store/slices/authSlice';
 import { isValidEmail } from '../../src/utils/validation';
 
 // AuthGate (app/_layout.js) handles the post-login redirect via accessToken — don't duplicate it here.
@@ -23,8 +28,12 @@ export default function LoginScreen() {
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const dispatch = useDispatch();
   const router = useRouter();
-  const { status, error } = useSelector((state) => state.auth);
+  const { status, error, notice } = useSelector((state) => state.auth);
   const { colors } = useAppTheme();
+
+  // The notice is for this visit only. The stack can keep this screen mounted underneath, so it's
+  // also cleared when leaving through the links below.
+  useEffect(() => () => dispatch(clearAuthNotice()), [dispatch]);
 
   const emailError =
     email.trim().length > 0 && !isValidEmail(email)
@@ -53,6 +62,8 @@ export default function LoginScreen() {
             Log in to continue
           </Text>
         </View>
+
+        {notice ? <Alert variant="warning">{notice}</Alert> : null}
 
         <GlowCard>
           <View style={styles.fields}>
@@ -104,6 +115,7 @@ export default function LoginScreen() {
         <TouchableOpacity
           onPress={() => {
             dispatch(clearAuthError());
+            dispatch(clearAuthNotice());
             router.push('/register');
           }}
           style={styles.switchLink}
@@ -117,7 +129,10 @@ export default function LoginScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity
-          onPress={() => router.push('/')}
+          onPress={() => {
+            dispatch(clearAuthNotice());
+            router.push('/');
+          }}
           style={styles.switchLink}
         >
           <Text style={[styles.switchText, { color: colors.textMuted }]}>

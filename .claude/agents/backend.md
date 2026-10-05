@@ -47,9 +47,9 @@ backend/
                         # optional, at least one required) is body-driven (current password
                         # proves identity), not JwtAuthGuard-gated, and always reissues tokens
                         # since email may have changed. Postgres via TypeORM, salt+pepper+SHA-256
-                        # hashing. UserRole is 'user' | 'admin'; the only admin is the one-time
-                        # AdminSeedService account, and no feature uses the role yet (see
-                        # services.md#users — verify() currently accepts only 'user').
+                        # hashing. UserRole is 'user' | 'admin' (USER_ROLES); the only admin is
+                        # the one-time AdminSeedService account. JwtAuthGuard admits both roles;
+                        # an admin-only route uses AdminGuard (403 for a user) — see services.md#users.
     reminders/           # Per-user reminders (schema `reminders`); reads the location from users.profiles.
                         # Schedules them as delayed reminder-due jobs (ReminderScheduler + a 15-min
                         # ReminderSweeper); next candle lighting from @app/jewish-calendar,
@@ -64,7 +64,8 @@ backend/
                         # User id from Gateway's X-User-Id header (@ForwardedUserId()), never a JWT.
   libs/
     auth-kernel/          # generic JWT sign/verify (the only class allowed to import
-                        # `jsonwebtoken`), JwtAuthGuard, CurrentUser decorator — shared by users
+                        # `jsonwebtoken`), USER_ROLES, JwtAuthGuard (any role), AdminGuard
+                        # (admins only, 403 otherwise), CurrentUser decorator — shared by users
                         # (signs) and gateway (verifies). Plus USER_ID_HEADER/@ForwardedUserId():
                         # how an internal service reads the user Gateway already authenticated.
     otel/                # generic OTel bootstrap — ported near-verbatim from ask-my-crawl, no
@@ -174,5 +175,10 @@ npm install
 npx nest start gateway --watch     # or: users, reminders, notifications
 npm test                           # jest.config.js
 npm run lint
+```
+No Node on the host: run Jest in a container, with its own `node_modules` volume (the host's
+`backend/node_modules` is incomplete):
+```bash
+docker run --rm -v "<repo>/backend:/app" -v pc-backend-node-modules:/app/node_modules   -v pc-npm-cache:/root/.npm -w /app node:22 sh -c "npm ci && npx jest"
 ```
 Full stack (see root CLAUDE.md for the two-command bring-up sequence, observability first).

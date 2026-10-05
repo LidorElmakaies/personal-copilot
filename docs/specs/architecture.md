@@ -132,6 +132,26 @@ sequenceDiagram
     Frontend->>Frontend: decode access_token → user
 ```
 
+## Flow: session rejected by the server (signed in)
+
+Any signed-in call; see `services.md#frontend`'s "Session ended".
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant Frontend
+    participant Gateway
+
+    Frontend->>Gateway: e.g. GET /users/me (Bearer token)
+    Gateway-->>Frontend: 401 (JwtAuthGuard rejects the token)
+    alt token is still the current one
+        Frontend->>Frontend: clearAuth({ notice }) — signed out
+        Frontend->>User: go to /login once, "Your session ended — please log in again."
+    else older token (session already replaced)
+        Frontend->>Frontend: ignore
+    end
+```
+
 ## Flow: Shabbat times on Home
 
 ```mermaid

@@ -9,9 +9,9 @@ Service (candle-lighting reminders), a Notification Service (Web Push), full OTe
 built in stages from [`docs/plans/shabbat-reminders-calendar/plan.md`](docs/plans/shabbat-reminders-calendar/plan.md)
 (Shabbat times on Home → per-user candle-lighting reminders → a Jewish-calendar tab); read that
 plan and its design pages (`architecture.html`, `mockups.html`) before working on the feature.
-Stages 1 (Shabbat times) and 2 (per-user candle-lighting reminders, checked end to end on the
-phone) are done; stage 3 (the Calendar tab, starting with `GET /calendar/month` in Gateway) is
-next. Work the plan one task at a time and stop for review after each.
+Stage 1 (Shabbat times) and stage 2's candle-lighting reminder (checked end to end on the phone)
+are done; stage 2's second part (versions, admin status, Android app + ntfy) is in progress —
+admin sign-in is done, versions (2.18) are next; stage 3 (the Calendar tab) follows. Work the plan one task at a time and stop for review after each.
 
 Hosted on the user's personal PC, reachable from their phone via **Tailscale** — `gateway` is the
 only backend service published to the host (`frontend` also has its own published port — it's a
@@ -28,9 +28,9 @@ repo not checked out on this machine — same NestJS Nest-CLI monorepo shape, sa
 Gateway/auth-service split (here the Users Service) with a shared `auth-kernel` lib, same `devops/<service>/docker-
 compose.yml` structure, same `.claude/agents`/`.claude/memory` setup, and — as of this rewrite —
 the same frontend theme/component conventions (see the Architecture section's Frontend paragraph).
-Deliberately simpler where this project's actual shape allows it: no admin features (`UserRole` has
-`'user' | 'admin'`, but the only admin is a one-time seeded account, no feature reads the role, and
-token verification accepts only `'user'` — see `docs/specs/services.md#users`), no Gluestack dependency on the frontend (the animated theme pipeline is
+Deliberately simpler where this project's actual shape allows it: no admin features yet (`UserRole` is
+`'user' | 'admin'`; the only admin is a one-time seeded account that signs in and uses the app like
+any user; `AdminGuard` exists but no route uses it yet — see `docs/specs/services.md#users`), no Gluestack dependency on the frontend (the animated theme pipeline is
 ported, the unused Gluestack layer underneath it isn't — see `frontend/README.md`). The current
 look (space/glow/gradient) is a known stepping-stone, not a final design — expect it to be replaced
 by a different, more animated style later.
@@ -117,7 +117,8 @@ docs/plans/               staged feature plans + their HTML design pages
   salt+pepper+SHA-256 password hashing (`PASSWORD_PEPPER`),
   15-min access tokens (`{ sub, role, email }` payload — the client decodes this instead of a
   separate `/me` call) + 30-day rotating refresh tokens (`backend/libs/auth-kernel` for the
-  shared JWT sign/verify + guard).
+  shared JWT sign/verify + guards: `JwtAuthGuard` admits any role in `USER_ROLES`, `AdminGuard`
+  admins only → `403`).
 - **reminders** (`backend/apps/reminders`) — internal-only, schema `reminders`. One `reminders`
   row per user and type (`shabbat_candles` so far; `user_id` → `users.users` `ON DELETE CASCADE`):
   `GET /reminders`, `PUT`/`DELETE /reminders/shabbat-candles` (user from `X-User-Id`; `PUT` takes
@@ -177,6 +178,9 @@ docs/plans/               staged feature plans + their HTML design pages
   specific event yet. While signed in, `LocationSyncManager` (also in `app/_layout.js`) sends a
   fresh GPS fix to `PUT /users/me/location` only if it's > 5 km from the server's saved location
   or the time zone changed (`profileSlice.syncLocation`, see `docs/specs/services.md#frontend`).
+  A `401` on any signed-in call (`authorizedFetch`) for the current token signs out with a notice:
+  `AuthGate` takes the user to login once, which shows "Your session ended — please log in again."
+  until they leave it; expiry and Log Out sign out silently.
   Notifications (web build only): `frontend/public/sw.js` shows each push (`tag` =
   `notificationId`) and opens/focuses the app on tap; `PushSubscriptionManager` (`app/_layout.js`)
   registers it at start and, while signed in, re-posts the browser's subscription to
@@ -249,7 +253,7 @@ Full stack: see "First run" above — same two-command sequence (`devops/observa
 NestJS monorepo, clean/hexagonal layering (API → Application → Infrastructure, plus a `models/`
 domain layer and an `entities/` folder for TypeORM table mappings) enforced in every app — see
 `.claude/agents/backend.md` before writing backend code.
-Shared code lives in `backend/libs/`: `auth-kernel` (JWT sign/verify, `JwtAuthGuard`,
+Shared code lives in `backend/libs/`: `auth-kernel` (JWT sign/verify, `JwtAuthGuard`, `AdminGuard`,
 `CurrentUser`), `otel` (generic OTel bootstrap, ported unmodified from `ask-my-crawl`),
 `queue-client` (`IQueuePublisher`/`BullmqQueuePublisher`, `IQueueConsumer`/`BullmqQueueConsumer` —
 malformed job fails without retry, handler error retried while attempts remain, job progress kept

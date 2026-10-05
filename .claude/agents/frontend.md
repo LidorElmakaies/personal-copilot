@@ -37,6 +37,12 @@ check. Both halves are generic, not Account-specific: `useRequireAuth()`
 (`src/components/composite/RequireAuthNotice.js`) is the logged-out fallback to render when it's false — see
 `(tabs)/account.js` for the pattern the next `requiresAuth` tab should follow.
 
+A signed-in HTTP call goes through `httpClient`'s `authorizedFetch`: a `401` for the current token
+signs out with `authSlice.notice` set (`SESSION_ENDED_NOTICE`), `AuthGate` takes the user to login
+once and the login screen shows it. The hook is `setUnauthorizedHandler`, registered in
+`src/store/index.js` so the service stays Redux-free. Don't hand-roll a bearer `fetch` that skips
+it. `selectUser(state)` → `{ id, email, role }` from the token, for anything role-dependent.
+
 ## Theme system — three-layer pipeline, no Gluestack
 
 Unlike `ask-my-crawl`, there's no Gluestack layer here: nothing in this app renders an actual
@@ -120,7 +126,7 @@ when a component genuinely needs something no thunk/selector combination can giv
 
 - Always use `useAppTheme()` for colors — never hardcode or import `colors.js` directly in a
   screen/component.
-- Don't hand-write to AsyncStorage — redux-persist handles persisted slices (`auth`, `theme`,
+- Don't hand-write to AsyncStorage — redux-persist handles persisted slices (`auth` — tokens only, `theme`,
   `location` — `coords` only, `calendar` — `shabbat` only, `notifications` — `promptDismissed`
   and `optedOut` only). `ws`, `profile` and `reminders` aren't persisted; `profile` and `reminders` are reset on
   `clearAuth`/`deleteAccount` so one user's data never reaches the next.

@@ -1,6 +1,7 @@
-// Extend this union to add a role — the JWT payload and the `users.role` column (plain `text`, no
-// enum constraint) both follow from this one type, so no schema change is needed to grow the set.
-export type UserRole = 'user' | 'admin';
+// Extend this list to add a role — the JWT payload, token verification and the `users.role` column
+// (plain `text`, no enum constraint) all follow from it, so no schema change is needed to grow the set.
+export const USER_ROLES = ['user', 'admin'] as const;
+export type UserRole = (typeof USER_ROLES)[number];
 
 export interface JwtPayload {
   sub: string;
