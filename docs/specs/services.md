@@ -33,6 +33,15 @@ tunnel from a Caddy instance on the public internet. HTTP + WebSocket.
   name. Body relayed untouched.
 - `GET /reminders`, `PUT /reminders/shabbat-candles`, `DELETE /reminders/shabbat-candles`
   (`JwtAuthGuard`) → Reminders Service's routes of the same name. Body relayed untouched.
+- `GET /admin/status` (`AdminGuard`, `src/admin/`) — **answered by Gateway itself**: its own
+  [`buildInfo`](#libsbuild-info) read in-process, plus each internal service's `/health` (Users,
+  Reminders, Notifications — the same `*_SERVICE_URL`s the proxies use), asked in parallel with a
+  timeout (`ADMIN_STATUS_TIMEOUT_MS`, default 2000). No answer, a non-200 or a body without
+  `status: 'ok'` → `down`, never an error. `Cache-Control: no-store`. Gateway first:
+  ```json
+  [{ "service": "gateway", "status": "up", "version": "0.1.0", "builtAt": "…", "startedAt": "…", "latencyMs": null },
+   { "service": "reminders", "status": "down", "version": null, "builtAt": null, "startedAt": null, "latencyMs": null }]
+  ```
 - **User identity for internal services:** a guarded route forwards only the token's user id, in
   an `X-User-Id` header Gateway sets itself (`USER_ID_HEADER` in `@app/auth-kernel`). Client
   headers are never passed through, so a client can't supply its own. The internal service reads
@@ -63,8 +72,9 @@ tunnel from a Caddy instance on the public internet. HTTP + WebSocket.
   both the local frontend build (different origin than Gateway during dev) and the cloud path
   (same-origin via Caddy's reverse proxy, so this doesn't come into play there) work either way.
   Revisit if Gateway is ever reachable directly (not proxied) from the open internet.
-- No `/health` and no version on any public route — Gateway is the public entry (including the
-  cloud path). Its image bakes in its version like the others (see [Versions](#versions)).
+- No `/health`, and versions only behind `AdminGuard` (`GET /admin/status`) — Gateway is the
+  public entry (including the cloud path). Its image bakes in its version like the others (see
+  [Versions](#versions)).
 
 ## users
 
@@ -129,7 +139,7 @@ only `'admin'` is the one `AdminSeedService` creates once at boot from `ADMIN_EM
 (see `docs/users/environment.md`). `JsonWebTokenService.verify` accepts any role in `USER_ROLES`
 (anything else → unauthenticated), so the admin signs in and uses every `JwtAuthGuard` route and the
 WS handshake like any user. `AdminGuard` (same lib) is `JwtAuthGuard` plus `role === 'admin'`: no or
-a bad token → `401`, a non-admin → `403 Admins only`. No route uses it yet.
+a bad token → `401`, a non-admin → `403 Admins only`. Used by Gateway's `GET /admin/status`.
 
 Refresh tokens are stored as a plain SHA-256 hash (no salt/pepper) — sufficient since a refresh
 token is already a high-entropy random value, not human-guessable like a password, so this only
@@ -405,7 +415,8 @@ Notifications answer `GET /health` (compose healthcheck; internal-only) with:
 
 (`@app/build-info`, see below.) The frontend image bakes in `app`, `frontend` and its build time
 (`EXPO_PUBLIC_APP_VERSION`/`EXPO_PUBLIC_FRONTEND_VERSION`/`EXPO_PUBLIC_BUILT_AT`), shown by the
-Account tab's `VersionInfo`.
+Account tab's `VersionInfo` (and at the bottom of the Admin tab, which lists every backend
+service's version from `GET /admin/status`).
 
 ## libs/build-info
 

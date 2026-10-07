@@ -6,9 +6,11 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSelector } from 'react-redux';
 import ConfirmModal from '../../src/components/composite/ConfirmModal';
 import { useAppTheme } from '../../src/hooks/useAppTheme';
+import { useHasRole } from '../../src/hooks/useHasRole';
 
 // One entry per tab (bar + Tabs.Screen below); icon set per DESIGN.md's "Navigation" section.
 // `requiresAuth: true` opts a tab into the CustomTabBar guard below — see .claude/agents/frontend.md.
+// `requiresRole: 'admin'` leaves the tab out of the bar for everyone else (the screen checks again).
 const TABS = [
   { name: 'index', label: 'Home', icon: 'time-outline', iconActive: 'time' },
   {
@@ -18,12 +20,25 @@ const TABS = [
     iconActive: 'person-circle',
     requiresAuth: true,
   },
+  {
+    name: 'admin',
+    label: 'Admin',
+    icon: 'shield-checkmark-outline',
+    iconActive: 'shield-checkmark',
+    requiresRole: 'admin',
+  },
 ];
 
 function CustomTabBar({ navigation, state }) {
   const { isDark, colors } = useAppTheme();
   const router = useRouter();
   const isAuthenticated = useSelector((s) => !!s.auth.accessToken);
+  const isAdmin = useHasRole('admin');
+  const visibleTabs = TABS.filter(
+    (tab) => tab.requiresRole !== 'admin' || isAdmin,
+  );
+  // By name, not position — a hidden tab would shift the indexes.
+  const activeName = state.routes[state.index]?.name;
   // Name of the requiresAuth tab pressed while signed out — drives the confirm prompt below.
   // Doesn't cover direct navigation (deep link/refresh); see .claude/agents/frontend.md.
   const [pendingTabName, setPendingTabName] = useState(null);
@@ -49,8 +64,8 @@ function CustomTabBar({ navigation, state }) {
         <View
           style={[StyleSheet.absoluteFill, { backgroundColor: colors.tabBar }]}
         />
-        {TABS.map((tab, index) => {
-          const isActive = state.index === index;
+        {visibleTabs.map((tab) => {
+          const isActive = activeName === tab.name;
 
           return (
             <TouchableOpacity
@@ -115,6 +130,7 @@ export default function TabsLayout() {
     >
       <Tabs.Screen name="index" />
       <Tabs.Screen name="account" />
+      <Tabs.Screen name="admin" />
     </Tabs>
   );
 }

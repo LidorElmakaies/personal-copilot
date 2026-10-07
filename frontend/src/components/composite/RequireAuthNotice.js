@@ -5,9 +5,13 @@ import GlowCard from '../base/layout/GlowCard';
 import GradientButton from '../base/buttons/GradientButton';
 import { useAppTheme } from '../../hooks/useAppTheme';
 
-// Composite component — pairs with useRequireAuth as the standard fallback for any requiresAuth
-// screen, not just Account.
-export default function RequireAuthNotice({ title, message }) {
+// Composite component — pairs with useRequireAuth (and useHasRole) as the standard fallback for any
+// requiresAuth/requiresRole screen. `showLogin={false}` for a signed-in user who lacks the role.
+export default function RequireAuthNotice({
+  title,
+  message,
+  showLogin = true,
+}) {
   const router = useRouter();
   const { colors } = useAppTheme();
 
@@ -19,11 +23,13 @@ export default function RequireAuthNotice({ title, message }) {
           <Text style={[styles.message, { color: colors.text }]}>
             {message}
           </Text>
-          <GradientButton
-            label="Log In"
-            onPress={() => router.push('/login')}
-            style={styles.button}
-          />
+          {showLogin ? (
+            <GradientButton
+              label="Log In"
+              onPress={() => router.push('/login')}
+              style={styles.button}
+            />
+          ) : null}
         </GlowCard>
       </View>
     </AmbientBackground>

@@ -284,14 +284,14 @@ and ntfy", "Phones" and "Ready to move to the cloud" under Decisions.
   APK in 2.20; the build commit was dropped — no git inside the builds — the build time shows a
   stale container just as well.)
   *Check:* bumping Reminders and rebuilding changed only Reminders' version and build time.
-- [ ] **2.19 Admin: system status.** Gateway `GET /admin/status` (`AdminGuard`): reads its own
+- [x] **2.19 Admin: system status.** Gateway `GET /admin/status` (`AdminGuard`): reads its own
   build info in-process (`@app/build-info`) and asks Users', Reminders' and Notifications' `/health`
   (the list from Gateway's config) in parallel with a short timeout; returns `[{ service, status:
   'up' | 'down', version, builtAt, startedAt, latencyMs }]`; a service that doesn't answer is `down`, not an error.
   Frontend: an **Admin** tab, only for admins (a `requiresRole: 'admin'` tab, hidden for
   everyone else, and the same mount-time check as Account), listing each service with an up/down
   chip, version, build time, uptime and latency, plus the app's own version; refresh on open and by
-  pull/tap. **New UI → HTML mockup first.**
+  pull/tap. **New UI → HTML mockup first** (chosen: A2, summary + compact list).
   *Check:* stop the Reminders container — it shows `down` within one refresh; start it — `up`
   with a new start time.
 - [ ] **2.20 Android app (APK) builder** (Android only). `app.json` gets the Android identity

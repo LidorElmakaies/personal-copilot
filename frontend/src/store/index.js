@@ -11,6 +11,7 @@ import {
   REHYDRATE,
 } from 'redux-persist';
 import { setUnauthorizedHandler } from '../services/http/httpClient';
+import adminReducer from './slices/adminSlice';
 import authReducer, {
   clearAuth,
   SESSION_ENDED_NOTICE,
@@ -61,6 +62,7 @@ export const store = configureStore({
     calendar: persistReducer(calendarPersistConfig, calendarReducer),
     profile: profileReducer, // not persisted — fetched when needed (profileSlice)
     reminders: remindersReducer, // not persisted — fetched on sign-in (CandleReminder)
+    admin: adminReducer, // not persisted — fetched when the Admin tab opens
     notifications: persistReducer(
       notificationsPersistConfig,
       notificationsReducer,

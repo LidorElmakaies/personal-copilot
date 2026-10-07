@@ -29,3 +29,7 @@ export const CONNECTION_STORE = Symbol('CONNECTION_STORE');
 
 // calendar (served here, not proxied — @app/jewish-calendar in-process)
 export const SHABBAT_CALENDAR = Symbol('IShabbatCalendar');
+
+// admin
+export const ADMIN_STATUS_SERVICE = Symbol('ADMIN_STATUS_SERVICE');
+export const HEALTH_PROBES = Symbol('HEALTH_PROBES');

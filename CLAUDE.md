@@ -11,7 +11,7 @@ built in stages from [`docs/plans/shabbat-reminders-calendar/plan.md`](docs/plan
 plan and its design pages (`architecture.html`, `mockups.html`) before working on the feature.
 Stage 1 (Shabbat times) and stage 2's candle-lighting reminder (checked end to end on the phone)
 are done; stage 2's second part (versions, admin status, Android app + ntfy) is in progress —
-admin sign-in and versions are done, admin status (2.19) is next; stage 3 (the Calendar tab) follows. Work the plan one task at a time and stop for review after each.
+admin sign-in, versions and admin status are done, the Android APK (2.20) is next; stage 3 (the Calendar tab) follows. Work the plan one task at a time and stop for review after each.
 
 Hosted on the user's personal PC, reachable from their phone via **Tailscale** — `gateway` is the
 only backend service published to the host (`frontend` also has its own published port — it's a
@@ -30,7 +30,7 @@ compose.yml` structure, same `.claude/agents`/`.claude/memory` setup, and — as
 the same frontend theme/component conventions (see the Architecture section's Frontend paragraph).
 Deliberately simpler where this project's actual shape allows it: no admin features yet (`UserRole` is
 `'user' | 'admin'`; the only admin is a one-time seeded account that signs in and uses the app like
-any user; `AdminGuard` exists but no route uses it yet — see `docs/specs/services.md#users`), no Gluestack dependency on the frontend (the animated theme pipeline is
+any user, plus an admin-only Admin tab of service status (`AdminGuard` on `GET /admin/status`) — see `docs/specs/services.md#users`), no Gluestack dependency on the frontend (the animated theme pipeline is
 ported, the unused Gluestack layer underneath it isn't — see `frontend/README.md`). The current
 look (space/glow/gradient) is a known stepping-stone, not a final design — expect it to be replaced
 by a different, more animated style later.
@@ -98,7 +98,7 @@ scripts/version.sh        the only way to bump them
   `/auth/login`, `/auth/refresh`, `/auth/account`
   (`AUTH_THROTTLE_TTL_MS`/`AUTH_THROTTLE_LIMIT`, default 60s/5req); `/auth/logout` stays on the
   global default since it needs a valid token already, as do `/calendar/*` and
-  `/notifications/*`. Six feature modules, with the proxying ones built on one shared forwarder in `src/proxy/`
+  `/notifications/*`. Seven feature modules, with the proxying ones built on one shared forwarder in `src/proxy/`
   (`ServiceHttpClient`, `writeProxyResponse` — `502 <service>_unreachable` when a service is down):
   - `src/auth-proxy/` — thin pass-through to the Users Service, one hardcoded route per operation (not
     a wildcard): `register`, `login`, `refresh`, `logout`, `account` (`POST` edits, `DELETE`
@@ -118,6 +118,9 @@ scripts/version.sh        the only way to bump them
     kept for the next feature: `IRealtimeConnectionService.pushToUser(userId, event, payload)` is
     the entry point a feature module injects to reach a user's live connection. Nothing pushes
     anything over it yet.
+  - `src/admin/` — `GET /admin/status` (`AdminGuard`): Gateway's own version in-process plus each
+    internal service's `/health` in parallel (timeout `ADMIN_STATUS_TIMEOUT_MS`); a service that
+    doesn't answer is `down`, not an error.
 - **users** (`backend/apps/users`) — HTTP, internal-only (never published to the host — stricter
   than `ask-my-crawl`'s own Auth Service, which still publishes its port as documented debt; this
   project starts without that exception). `POST /auth/register`, `/auth/login`, `/auth/refresh`,

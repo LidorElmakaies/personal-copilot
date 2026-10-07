@@ -24,7 +24,7 @@ COPY package.json package-lock.json ./
 RUN npm install --omit=dev
 COPY --from=builder /app/dist/apps/gateway ./dist/apps/gateway
 COPY --from=builder /app/dist/libs ./dist/libs
-# Own version + build time (no route exposes them yet) — see docs/specs/services.md#versions.
+# Own version + build time, read in-process by GET /admin/status — see docs/specs/services.md#versions.
 COPY --from=own-version /own-version.json ./version/versions.json
 RUN date -u +%Y-%m-%dT%H:%M:%SZ > ./version/built-at
 

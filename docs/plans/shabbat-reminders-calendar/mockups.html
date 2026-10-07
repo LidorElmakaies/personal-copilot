@@ -236,6 +236,38 @@ section.group{margin-top:44px}
 .fires b{font-family:var(--mono);color:var(--candle)}
 .nudge{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:11.5px;color:var(--pending);background:var(--pendingBg);border-radius:10px;padding:8px 10px}
 .nudge .link{font-weight:700;white-space:nowrap}
+/* admin status (task 2.19) */
+.pageHead{display:flex;justify-content:space-between;align-items:center}
+.pageHead h4{margin:0;font-size:22px;font-weight:800}
+.refresh{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--faint)}
+.refresh i{width:30px;height:30px;border-radius:10px;display:grid;place-items:center;background:var(--accentSoft);color:var(--accent)}
+.refresh svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2}
+.oChip{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;border:1px solid var(--success);color:var(--success)}
+.oChip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;box-shadow:0 0 6px currentColor}
+.oChip.down{border-color:var(--error);color:var(--error)}
+.svcHead{display:flex;justify-content:space-between;align-items:center}
+.svcHead strong{font-size:14.5px}
+.svcVer{font:700 17px var(--mono);margin-top:6px}
+.svcMeta{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}
+.svcMeta div{display:flex;flex-direction:column;gap:1px}
+.svcMeta span{font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);font-weight:600}
+.svcMeta b{font:600 11.5px var(--mono);color:var(--muted)}
+.glow.isDown{border-color:var(--error);box-shadow:0 0 28px -8px var(--error)}
+.downNote{font-size:11.5px;color:var(--error);margin-top:6px}
+.summary{display:flex;align-items:center;gap:10px}
+.summary b{font:700 26px var(--mono)}
+.summary small{font-size:12px;color:var(--muted)}
+.srow{display:grid;grid-template-columns:10px 1fr auto;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--cardBorderSoft)}
+.srow:first-child{border-top:0;padding-top:2px}
+.srow .dotS{width:8px;height:8px;border-radius:50%;background:var(--success);box-shadow:0 0 6px var(--success)}
+.srow.down .dotS{background:var(--error);box-shadow:0 0 6px var(--error)}
+.srow strong{font-size:13.5px;display:block}
+.srow small{font-size:11px;color:var(--faint);display:block;font-family:var(--mono)}
+.srow .v{font:700 13px var(--mono);text-align:right}
+.srow .v small{font-family:var(--sans);text-align:right}
+.srow.down strong,.srow.down .v{color:var(--error)}
+.appVer{text-align:center;font-size:11px;color:var(--faint)}
+.appVer b{color:var(--muted);font-weight:600}
 @media (prefers-reduced-motion:no-preference){.day,.pill{transition:background .15s,border-color .15s}}
 </style>
 
@@ -588,6 +620,77 @@ section.group{margin-top:44px}
     </div>
   </section>
 
+  <!-- ================= ADMIN STATUS (task 2.19) ================= -->
+  <section class="group">
+    <div class="groupHead"><h2>Admin: system status</h2><span>Task 2.19 · a tab only admin accounts see · <code>GET /admin/status</code></span></div>
+    <div class="row">
+
+      <div class="idea">
+        <div class="ideaLabel"><span class="tag">A1</span><h3>A card per service</h3></div>
+        <div class="phone"><div class="screen">
+          <div class="pageHead"><h4>Admin</h4><span class="refresh">10:42:18<i><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></i></span></div>
+          <div class="glow" style="padding:14px">
+            <div class="svcHead"><strong>Gateway</strong><span class="oChip">Up</span></div>
+            <div class="svcVer">0.3.0</div>
+            <div class="svcMeta"><div><span>Built</span><b>5 Oct 18:00</b></div><div><span>Up for</span><b>1d 4h</b></div><div><span>Latency</span><b>—</b></div></div>
+          </div>
+          <div class="glow" style="padding:14px">
+            <div class="svcHead"><strong>Users</strong><span class="oChip">Up</span></div>
+            <div class="svcVer">0.2.1</div>
+            <div class="svcMeta"><div><span>Built</span><b>5 Oct 18:00</b></div><div><span>Up for</span><b>1d 4h</b></div><div><span>Latency</span><b>8 ms</b></div></div>
+          </div>
+          <div class="glow isDown" style="padding:14px">
+            <div class="svcHead"><strong>Reminders</strong><span class="oChip down">Down</span></div>
+            <div class="downNote">No answer from its health check</div>
+          </div>
+          <div class="glow" style="padding:14px">
+            <div class="svcHead"><strong>Notifications</strong><span class="oChip">Up</span></div>
+            <div class="svcVer">0.1.0</div>
+            <div class="svcMeta"><div><span>Built</span><b>3 Oct 09:12</b></div><div><span>Up for</span><b>12m</b></div><div><span>Latency</span><b>11 ms</b></div></div>
+          </div>
+          <div class="appVer"><b>Personal Copilot 0.5.0</b> · Frontend 0.3.0</div>
+        </div>
+        <div class="tabbar" data-tabs="home,acc,admin" data-tab="admin"></div></div>
+        <p>Same GlowCards as the Account tab, one per service, Gateway first. A down service turns red and drops its details.</p>
+        <ul>
+          <li>Refresh button top right with the time of the last check; also refreshes on opening the tab and by pull-to-refresh</li>
+          <li>"Up for" counts from the service's start time, so a restart shows straight away</li>
+          <li>Gateway's latency is "—" (it reads its own version in-process)</li>
+        </ul>
+      </div>
+
+      <div class="idea">
+        <div class="ideaLabel"><span class="tag">A2</span><h3>Summary + one compact list</h3></div>
+        <div class="phone"><div class="screen">
+          <div class="pageHead"><h4>Admin</h4><span class="refresh">10:42:18<i><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></i></span></div>
+          <div class="glow summary"><b style="color:var(--error)">3/4</b><div><strong style="font-size:14px">services up</strong><small style="display:block">Reminders isn&rsquo;t answering</small></div></div>
+          <div class="glow" style="padding:12px 14px">
+            <div class="srow"><span class="dotS"></span><div><strong>Gateway</strong><small>built 5 Oct 18:00 · up 1d 4h</small></div><div class="v">0.3.0<small>&nbsp;</small></div></div>
+            <div class="srow"><span class="dotS"></span><div><strong>Users</strong><small>built 5 Oct 18:00 · up 1d 4h</small></div><div class="v">0.2.1<small>8 ms</small></div></div>
+            <div class="srow down"><span class="dotS"></span><div><strong>Reminders</strong><small>no answer</small></div><div class="v">down<small>&nbsp;</small></div></div>
+            <div class="srow"><span class="dotS"></span><div><strong>Notifications</strong><small>built 3 Oct 09:12 · up 12m</small></div><div class="v">0.1.0<small>11 ms</small></div></div>
+          </div>
+          <div class="appVer"><b>Personal Copilot 0.5.0</b> · Frontend 0.3.0</div>
+        </div>
+        <div class="tabbar" data-tabs="home,acc,admin" data-tab="admin"></div></div>
+        <p>A count at the top (green when all are up, red when not), then every service in one card: a status dot, build time and uptime, version and latency on the right.</p>
+        <ul>
+          <li>Everything fits on one screen without scrolling, even with more services later</li>
+          <li>Same refresh button and pull-to-refresh as A1</li>
+        </ul>
+      </div>
+
+      <div class="idea">
+        <div class="ideaLabel"><span class="tag">A3</span><h3>Who sees the tab</h3></div>
+        <div style="display:flex;flex-direction:column;gap:14px;max-width:320px">
+          <div><div class="stateLbl">Admin signed in</div><div class="glow" style="padding:0;overflow:hidden"><div class="tabbar" data-tabs="home,acc,admin" data-tab="admin" style="border-top:0"></div></div></div>
+          <div><div class="stateLbl">User signed in, or signed out</div><div class="glow" style="padding:0;overflow:hidden"><div class="tabbar" data-tabs="home,acc" data-tab="home" style="border-top:0"></div></div></div>
+        </div>
+        <p>The tab is left out of the bar for anyone who isn't an admin, so there's nothing to tap. Opening <code>/admin</code> directly (link or refresh) shows "This page is for admins" instead, the same kind of notice Account shows when signed out. The server checks the role as well: a user's token gets <code>403</code>.</p>
+      </div>
+    </div>
+  </section>
+
   <div class="plan">
     <div><h4>Mix and match</h4><p>C2's agenda and C1's grid can be one screen with a List / Month switch at the top. H1 or H2 fit any calendar choice.</p></div>
     <div><h4>Where the times come from</h4><p>Candle lighting, Havdalah and holidays are calculated from your coordinates and date. A small backend service behind Gateway (or on-device with @hebcal/core) can do this.</p></div>
@@ -609,11 +712,14 @@ section.group{margin-top:44px}
   var icons={
     home:'<svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>',
     cal:'<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
-    acc:'<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 5-5 8-5s6.5 1 8 5"/></svg>'
+    acc:'<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 5-5 8-5s6.5 1 8 5"/></svg>',
+    admin:'<svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>'
   };
+  var tabNames={home:'Home',cal:'Calendar',acc:'Account',admin:'Admin'};
   document.querySelectorAll('.tabbar').forEach(function(tb){
     var on=tb.getAttribute('data-tab');
-    tb.innerHTML=[['home','Home'],['cal','Calendar'],['acc','Account']].map(function(t){
+    var list=(tb.getAttribute('data-tabs')||'home,cal,acc').split(',');
+    tb.innerHTML=list.map(function(k){return [k,tabNames[k]];}).map(function(t){
       return '<div class="tab'+(t[0]===on?' on':'')+'">'+icons[t[0]]+t[1]+'</div>';
     }).join('');
   });
