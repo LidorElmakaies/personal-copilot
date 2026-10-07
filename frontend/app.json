@@ -9,6 +9,20 @@
     "ios": {
       "supportsTablet": true
     },
+    "android": {
+      "package": "com.lidor.personalcopilot",
+      "versionCode": 1,
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "POST_NOTIFICATIONS"
+      ],
+      "blockedPermissions": [
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ]
+    },
     "web": {
       "bundler": "metro"
     },
@@ -18,7 +32,8 @@
         {
           "locationWhenInUsePermission": "Personal Copilot uses your location to show Shabbat and holiday times for where you are."
         }
-      ]
+      ],
+      "./plugins/withReleaseSigning"
     ]
   }
 }

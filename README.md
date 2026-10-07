@@ -45,6 +45,24 @@ set its battery use to Unrestricted. Swiping the browser out of recent apps can 
 some phones, and a stopped app gets nothing until it's opened again. Chrome is the most reliable
 browser for this; Brave works once those settings allow it.
 
+## Android app (APK)
+
+The same app as a real Android app, built in Docker (nothing to install on this PC):
+
+```bash
+devops/android/build-apk.sh     # → devops/data/android/apk/personal-copilot-<version>.apk
+```
+
+It talks to `GATEWAY_PUBLIC_URL` from `devops/.env`, which must be the HTTPS tailnet URL (see
+above), so the phone needs Tailscale on. The first build downloads the Android SDK and Gradle into
+Docker volumes and takes a while; later ones are faster.
+
+The first run also creates the release signing key in `devops/data/android/` (git-ignored).
+**Back up `release.keystore` and `keystore.properties` from there.** Every later APK must be signed
+with the same key to update the installed app; with a new key you'd have to uninstall it (and sign
+in again) first. Notifications on the APK come later (plan task 2.25); until then reminders reach
+your browsers only.
+
 ## Versions
 
 Every version (the app's and each component's) is in `version/versions.json`; `scripts/version.sh`

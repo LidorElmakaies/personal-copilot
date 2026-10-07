@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import Alert from '../base/feedback/Alert';
 import GradientButton from '../base/buttons/GradientButton';
@@ -243,11 +243,14 @@ function NotificationsNudge() {
   );
   if (subscribed) return null;
 
+  // The non-web "coming soon" is a stopgap until the APK's ntfy channel (plan task 2.25).
   const message =
     permission === 'denied'
       ? "Notifications are blocked for this site in the browser, so the reminder won't reach you here."
       : permission === 'unsupported'
-        ? "This browser can't receive notifications, so the reminder won't reach you here."
+        ? Platform.OS === 'web'
+          ? "This browser can't receive notifications, so the reminder won't reach you here."
+          : 'Notifications on the Android app are coming soon. The reminder still reaches your other devices.'
         : "Notifications are off on this browser, so the reminder won't reach you here.";
   const canTurnOn = permission === 'default' || permission === 'granted';
 

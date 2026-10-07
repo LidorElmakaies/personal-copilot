@@ -269,8 +269,13 @@ stack (`devops/observability/`) owns it and must already be running, or `docker 
 fails outright ("network observability not found"). See root `CLAUDE.md`'s "First run" for the
 required startup order.
 
-**Frontend build**: `frontend/Dockerfile` builds only the static web export (served by Caddy) —
-Android/iOS have no useful container target and still run via `npx expo start` locally.
+**Frontend build**: `frontend/Dockerfile` builds only the static web export (served by Caddy).
+The Android app is built separately, not by compose: `devops/android/build-apk.sh` runs
+`devops/android/Dockerfile` (JDK 17, Android SDK command-line tools, Node 22) over a read-only
+`frontend/` mount, with Docker volumes caching the SDK (`pc-android-sdk`), Gradle
+(`pc-android-gradle`) and npm, and the release key plus the built APKs in `devops/data/android/`.
+It sets the same `EXPO_PUBLIC_*` values the web image does, from `devops/.env` and
+`version/versions.json`. arm64 only.
 `GATEWAY_PUBLIC_URL` must reach it as a Docker build `ARG` (`devops/frontend/docker-compose.yml`),
 never a runtime container env var — Expo inlines `EXPO_PUBLIC_*` vars into the client bundle at
 build time, so a runtime-only value would silently never reach the client.

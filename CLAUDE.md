@@ -80,6 +80,7 @@ frontend/                 Expo/React Native app — login/register (optional, no
                           public/sw.js is the Web Push service worker;
                           e2e/ holds the containerized Playwright tests
 devops/                   docker-compose.yml (app stack: services + shared postgres/redis)
+                          + android/ (the APK builder image + build-apk.sh)
                           + observability/ (Grafana/Loki/Prometheus/Tempo/OTel, joined to
                           the app stack via a shared Docker network)
 docs/specs/               services.md, event-schemas.md (queues/jobs), notification-flow.md,
@@ -255,6 +256,11 @@ npx nest start gateway --watch     # or: users, reminders, notifications
 npm test                           # jest.config.js — unit + API tests
 REDIS_IT_URL=redis://localhost:6379 npx jest notification-flow.it queue-roundtrip  # opt-in; needs a Redis on the host
 npm run lint
+```
+
+Android app (from the repo root; Docker only — see README's "Android app (APK)"):
+```bash
+devops/android/build-apk.sh        # → devops/data/android/apk/personal-copilot-<frontend version>.apk
 ```
 
 Browser tests (from the repo root, against the running stack — see `frontend/e2e/README.md`):

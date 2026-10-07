@@ -294,7 +294,7 @@ and ntfy", "Phones" and "Ready to move to the cloud" under Decisions.
   pull/tap. **New UI → HTML mockup first** (chosen: A2, summary + compact list).
   *Check:* stop the Reminders container — it shows `down` within one refresh; start it — `up`
   with a new start time.
-- [ ] **2.20 Android app (APK) builder** (Android only). `app.json` gets the Android identity
+- [x] **2.20 Android app (APK) builder** (Android only). `app.json` gets the Android identity
   (`android.package`, `versionCode`, permissions: location, notifications). A Docker image
   (`devops/android/`: JDK 17, Android SDK, Node 22 — nothing installed on the host) runs
   `expo prebuild --platform android` and Gradle `assembleRelease`, with
@@ -305,6 +305,24 @@ and ntfy", "Phones" and "Ready to move to the cloud" under Decisions.
   the Notifications card says "coming with 2.25" until then.
   *Check:* the APK installs on the phone (Tailscale on), logs in, shows Shabbat times from GPS,
   and the reminder sheet saves.
+- [ ] **2.20a Android look check (screenshots from the user).** The APK runs, but some effects and
+  borders look wrong on the phone (found while testing 2.20). **Ask the user first** to take
+  screenshots on the phone of every screen and state — Home (signed out and in, with the reminder
+  sheet open), login/register, Account (every card), Admin, the confirm prompts, both themes — and
+  send them over; don't guess from the web build. Then fix what differs from the web look and the
+  mockups: likely suspects are `GlowCard`'s blur/gradient border (`expo-blur` renders differently
+  on Android), shadows and glows (`elevation` vs `shadow*`), hairline borders, the tab bar's blur,
+  and the monospace font. Fixes must keep the web build looking the same.
+  *Check:* the user's new screenshots of the same screens look right to them; the web e2e tests
+  still pass.
+- [ ] **2.20b App icon** (APK and web). The app has no icon of its own (the APK shows Expo's
+  default). Design one: **new UI → HTML mockup first** with a few icon options to pick from, shown
+  on light and dark backgrounds and at small sizes. Then the files every platform needs from that
+  one design: Android's adaptive icon (foreground + background layers, `android.adaptiveIcon` in
+  `app.json`), the splash icon, and the web set 2.26 links (192/512 px, maskable, Apple's 180 px
+  `apple-touch-icon`, favicon). The source (SVG) lives in the repo so sizes can be regenerated.
+  *Check:* the rebuilt APK shows the icon on the phone's home screen and app list (round and
+  squircle masks both fine); the web build's tab shows the favicon.
 - [ ] **2.21 APK registry on the tailnet** (Android only). `https://<pc>.ts.net/apk/`, served by the
   frontend's Caddy from a persistent folder (`devops/data/apk/`, mounted, so it survives frontend
   rebuilds — no new port). Holds every published APK, `latest.json` (`{ version, versionCode, url,
@@ -381,21 +399,25 @@ and ntfy", "Phones" and "Ready to move to the cloud" under Decisions.
   /notifications/ntfy`, then opens the ntfy app's subscribe link for that server, topic and token
   (or, if the ntfy app isn't installed, explains and links to it on F-Droid / Google Play). Tapping
   a notification in the ntfy app opens our app. Off → `DELETE`. **Changed UI → update the 2.14
-  mockup first.**
+  mockup first.** Replace the APK's "coming soon" stopgaps from 2.20 with the real ntfy states
+  (on / off / ntfy app missing): `SUBTITLES.unsupported`'s non-web branch in
+  `NotificationsCard.js`, and the `Platform.OS !== 'web'` message in `CandleReminder.js`'s
+  `NotificationsNudge` (whose "Turn on" link must then work on the APK too, not just `default` /
+  `granted` Web Push). Neither may say "coming soon" after this task.
   *Check:* a reminder fired by hand arrives with the phone locked and our app closed; tapping it
   opens the app. (Add the test script used for 2.16 to the repo as
   `devops/scripts/fire-reminder-soon.sh`: makes a user's real reminder fire in N minutes.)
 - [ ] **2.26 Installable web app (PWA) + iPhone support.** A web manifest
   (`manifest.webmanifest`: name, short name, `display: standalone`, `start_url`/`scope` `/`, theme
-  and background colors from the palette) and an app icon in every size the platforms need
-  (192/512 px, a maskable version, Apple's 180 px `apple-touch-icon`, favicon), linked from the
-  web build's HTML. Android Chrome then offers "Install app"; iPhone Safari "Add to Home Screen".
+  and background colors from the palette) and the app icon from 2.20b in every size the platforms
+  need (192/512 px, a maskable version, Apple's 180 px `apple-touch-icon`, favicon), linked from
+  the web build's HTML. Android Chrome then offers "Install app"; iPhone Safari "Add to Home Screen".
   On an iPhone in Safari (not yet on the Home Screen), the after-login notifications prompt and
   the Account card don't offer "Turn on" (Safari can't do push there) but explain: "To get
   reminders on iPhone, add this app to your Home Screen: Share → Add to Home Screen, then open it
   from there". Opened from the Home Screen (standalone), the normal Web Push flow from 2.14 works
-  (iOS asks permission only from a tap, which "Turn on" is). **The icon and the iPhone hint are new
-  UI → HTML mockup first** (a few icon options to pick from).
+  (iOS asks permission only from a tap, which "Turn on" is). **The iPhone hint is new UI → HTML
+  mockup first** (the icon itself is already designed in 2.20b).
   *Check:* on an iPhone (iOS 16.4+): the hint shows in Safari; added to the Home Screen it opens
   full screen with the icon, "Turn on" asks permission, and a reminder fired by hand arrives with
   the phone locked. On Android, Chrome offers to install it and it opens full screen.

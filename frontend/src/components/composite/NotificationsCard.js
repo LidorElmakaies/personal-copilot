@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { StyleSheet } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import Alert from '../base/feedback/Alert';
 import Switch from '../base/form/Switch';
@@ -12,7 +12,11 @@ import {
 } from '../../store/slices/notificationsSlice';
 
 const SUBTITLES = {
-  unsupported: "This browser can't receive push notifications",
+  // The Android app gets its own channel (ntfy) in plan task 2.25; Web Push is browser-only.
+  unsupported:
+    Platform.OS === 'web'
+      ? "This browser can't receive push notifications"
+      : 'Coming soon to the Android app',
   denied: 'Blocked for this site',
   on: 'Reminders reach this browser',
   off: 'Turn on to get reminders here',

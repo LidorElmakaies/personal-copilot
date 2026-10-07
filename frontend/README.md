@@ -44,6 +44,17 @@ thunks in `src/store/slices/`, never inline in a component.
 `Dockerfile` reads from `version/versions.json` into `EXPO_PUBLIC_*` vars (so `expo start` shows
 "dev"); the Account tab's `VersionInfo` shows them. See `docs/specs/services.md#versions`.
 
+## Android app
+
+`devops/android/build-apk.sh` builds the release APK in Docker (`expo prebuild --platform
+android`, then Gradle) — see the root README. `app.json` holds the Android identity
+(`com.lidor.personalcopilot`, which must never change, plus the permissions); `app.config.js`
+adds the version and Android's `versionCode`, both from `FRONTEND_VERSION`, which the build
+script sets (unset for the web build and `expo start`). `plugins/withReleaseSigning.js` switches
+the generated `android/app/build.gradle` from debug to release signing, with the key taken from env
+vars only the build sets. `react-native-worklets` is a direct dependency so Reanimated 4's native
+part links. `android/` is generated and git-ignored.
+
 ## Location (`expo-location`)
 
 `app.json` registers the `expo-location` config plugin with the iOS "when in use" permission text;
@@ -55,7 +66,8 @@ access").
 
 `public/sw.js` is the service worker; `expo export` copies `public/` to the export root, so it's
 served at `/sw.js` with scope `/`. It needs a secure context like GPS does — on the phone that's
-the `tailscale serve` HTTPS URL. Native builds report notifications as unsupported. Flow and state
+the `tailscale serve` HTTPS URL. Native builds report notifications as unsupported (the Android app gets ntfy in plan task 2.25;
+until then its Notifications card and the reminder sheet say they're coming soon). Flow and state
 rules: `docs/specs/services.md#frontend` and `docs/specs/notification-flow.md`.
 
 ## Phone numbers (`libphonenumber-js`)
