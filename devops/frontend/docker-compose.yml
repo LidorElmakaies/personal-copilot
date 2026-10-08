@@ -14,5 +14,9 @@ services:
         - GATEWAY_PUBLIC_URL=${GATEWAY_PUBLIC_URL:-http://localhost:8000}
     ports:
       - "8081:80"
+    # The APK registry (devops/android/publish-apk.sh writes it), served at /apk/. Outside the
+    # image so published APKs survive frontend rebuilds.
+    volumes:
+      - ../data/apk:/apk:ro
     networks:
       - personal-copilot

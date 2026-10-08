@@ -34,6 +34,19 @@
 		reverse_proxy {$GATEWAY_UPSTREAM:gateway:8000}
 	}
 
+	# APK registry (devops/data/apk, mounted at /apk — see devops/frontend/docker-compose.yml).
+	# Absent where nothing is mounted (the cloud deployment): those paths just 404.
+	redir /apk /apk/
+	handle_path /apk/* {
+		root * /apk
+		header *.apk Content-Type application/vnd.android.package-archive
+		# Always re-check the page and latest.json, so a new version shows at once.
+		header /index.html Cache-Control no-cache
+		header /latest.json Cache-Control no-cache
+		header / Cache-Control no-cache
+		file_server
+	}
+
 	handle {
 		root * /srv
 		# Expo Router's web export is a single-page app — any path that isn't a real static file

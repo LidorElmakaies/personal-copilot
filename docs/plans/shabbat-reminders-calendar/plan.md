@@ -323,12 +323,18 @@ and ntfy", "Phones" and "Ready to move to the cloud" under Decisions.
   `apple-touch-icon`, favicon). The source (SVG) lives in the repo so sizes can be regenerated.
   *Check:* the rebuilt APK shows the icon on the phone's home screen and app list (round and
   squircle masks both fine); the web build's tab shows the favicon.
-- [ ] **2.21 APK registry on the tailnet** (Android only). `https://<pc>.ts.net/apk/`, served by the
-  frontend's Caddy from a persistent folder (`devops/data/apk/`, mounted, so it survives frontend
-  rebuilds — no new port). Holds every published APK, `latest.json` (`{ version, versionCode, url,
-  sha256, notes, publishedAt }`) and a plain download page listing versions, newest first, with
-  their notes. `devops/android/publish-apk.sh` (or a flag on `build-apk.sh`) copies the APK in and
-  rewrites `latest.json` and the page. **The page is new UI → HTML mockup first.**
+- [x] **2.21a APK registry: serving** (Android only). `https://<pc>.ts.net/apk/`, served by the
+  frontend's Caddy from a persistent folder (`devops/data/apk/`, mounted read-only, so it survives
+  frontend rebuilds — no new port). `/apk` redirects to `/apk/`; the page and `latest.json` are
+  never cached; `.apk` files get Android's installer content type. Where nothing is mounted (the
+  cloud deployment, same Caddyfile) the paths 404. Download-page mockups D1 / D2 in
+  `mockups.html`.
+  *Check:* each route answers as above against the running stack (test files, since removed).
+- [ ] **2.21b APK registry: publishing + page** (Android only). `devops/android/publish-apk.sh`
+  (or a flag on `build-apk.sh`) copies the APK into `devops/data/apk/` and rewrites
+  `latest.json` (`{ version, versionCode, url, sha256, notes, publishedAt }`) and a plain download
+  page listing every version, newest first, with their notes, in the chosen mockup layout (D1 or
+  D2 — **pick first**).
   *Check:* the page opens on the phone, downloads the newest APK and installs it; an older one is
   still listed.
 - [ ] **2.22 In-app update prompt** (Android only). On start and when the app comes back to the

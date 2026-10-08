@@ -121,3 +121,8 @@ native substitution) — see `docs/specs/architecture.md#system-topology` for th
 
 Both are inert in local mode: a bare `:80` site address never attempts TLS or ACME at all, with or
 without these settings.
+
+**`/apk/` — the APK registry.** Local mode only: `devops/frontend/docker-compose.yml` mounts
+`devops/data/apk` read-only at `/apk`, and Caddy serves it there (page and `latest.json` never
+cached, `.apk` with Android's installer content type). Nothing is mounted in cloud mode, so the
+same block just 404s.

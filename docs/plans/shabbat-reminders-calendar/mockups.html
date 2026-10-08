@@ -292,6 +292,37 @@ section.group{margin-top:44px}
 .tabMock{display:inline-flex;align-items:center;gap:7px;background:var(--panel);border:1px solid var(--cardBorder);border-radius:9px 9px 0 0;padding:6px 12px;font:500 12px var(--sans);color:var(--text)}
 .tabMock svg{width:16px;height:16px;border-radius:3px}
 .icoNote{font-size:13px;color:var(--muted);margin:0}
+
+/* APK downloads (2.21) */
+.urlbar{display:flex;align-items:center;gap:8px;padding:10px 12px 8px;background:var(--panel);border-bottom:1px solid var(--cardBorderSoft);font:12px var(--sans);color:var(--muted)}
+.urlbar b{flex:1;background:var(--card);border-radius:999px;padding:6px 12px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dlHead{display:flex;align-items:center;gap:12px}
+.dlHead svg{width:46px;height:46px;border-radius:12px;flex:none}
+.dlHead h4{margin:0;font-size:17px}
+.dlHead small{display:block;font-size:11.5px;color:var(--muted)}
+.dlBtn{display:flex;align-items:center;justify-content:center;gap:8px;padding:11px 0;border-radius:12px;background:var(--accent);color:var(--bg);font:700 13.5px var(--sans)}
+.dlBtn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2.2}
+.dlMeta{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--faint)}
+.dlMeta b{font-family:var(--mono);color:var(--muted);font-weight:600}
+.notes{margin:0;padding-left:16px;font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:3px}
+.oldRow{display:grid;grid-template-columns:1fr auto;gap:4px 10px;align-items:center;padding:10px 0;border-top:1px solid var(--cardBorderSoft)}
+.oldRow:first-of-type{border-top:0}
+.oldRow strong{font:700 13.5px var(--mono)}
+.oldRow small{font-size:11px;color:var(--faint)}
+.oldRow .get{font:600 12px var(--sans);color:var(--accent);border:1px solid var(--cardBorder);border-radius:999px;padding:5px 11px}
+.oldRow .notes{grid-column:1/-1;font-size:11.5px}
+.firstTime{font-size:11.5px;color:var(--pending);background:var(--pendingBg);border-radius:10px;padding:8px 10px}
+.latestBadge{font:700 10px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--success);background:var(--successBg);border-radius:999px;padding:2px 8px}
+.tlRel{position:relative;padding-left:20px;display:flex;flex-direction:column;gap:14px}
+.tlRel::before{content:"";position:absolute;left:6px;top:6px;bottom:6px;width:2px;background:var(--cardBorderSoft)}
+.rel{position:relative;display:flex;flex-direction:column;gap:6px}
+.rel::before{content:"";position:absolute;left:-19px;top:5px;width:10px;height:10px;border-radius:50%;background:var(--panel);border:2px solid var(--faint)}
+.rel.now::before{border-color:var(--accent);background:var(--accent);box-shadow:0 0 0 4px var(--accentSoft)}
+.relTop{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.relTop strong{font:700 15px var(--mono)}
+.relTop small{font-size:11px;color:var(--faint)}
+.relTop .get{margin-left:auto;font:600 12px var(--sans);color:var(--accent);border:1px solid var(--cardBorder);border-radius:999px;padding:5px 11px}
+.rel.now .relTop .get{background:var(--accent);color:var(--bg);border-color:var(--accent)}
 </style>
 
 
@@ -762,6 +793,56 @@ section.group{margin-top:44px}
         <div class="ideaLabel"><span class="tag">A</span><h3>Small sizes and the browser tab</h3></div>
         <div class="sizes"><figure><svg viewBox="0 0 108 108" width="48" height="48"><use href="#icApp"/></svg><figcaption>48px</figcaption></figure><figure><svg viewBox="0 0 108 108" width="32" height="32"><use href="#icApp"/></svg><figcaption>32px</figcaption></figure><figure><svg viewBox="0 0 108 108" width="24" height="24"><use href="#icApp"/></svg><figcaption>24px</figcaption></figure><figure><svg viewBox="0 0 108 108" width="16" height="16"><use href="#icApp"/></svg><figcaption>16px</figcaption></figure></div>
         <div><span class="tabMock"><svg viewBox="0 0 108 108"><use href="#icApp"/></svg>Personal Copilot</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="group">
+    <div class="groupHead"><h2>APK downloads</h2><span>Task 2.21 · <code>https://&lt;pc&gt;.ts.net/apk/</code> · a plain page opened in Chrome, not inside the app · example versions</span></div>
+    <div class="row">
+      <div class="idea">
+        <div class="ideaLabel"><span class="tag">D1</span><h3>Latest card + older versions</h3></div>
+        <div class="phone"><div class="urlbar"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><b>&lt;pc&gt;.ts.net/apk/</b></div><div class="screen">
+          <div class="dlHead"><svg viewBox="0 0 108 108" aria-hidden="true"><use href="#icApp"/></svg><div><h4>Personal Copilot</h4><small>Android app · for your tailnet only</small></div></div>
+          <div class="glow" style="display:flex;flex-direction:column;gap:10px">
+            <div class="relTop"><span class="lbl">Newest</span><span class="latestBadge">Latest</span></div>
+            <div style="font:700 26px var(--mono)">0.2.0</div>
+            <div class="dlMeta"><span>Published <b>9 Oct 2026, 21:10</b></span><span>Size <b>42.2 MB</b></span></div>
+            <ul class="notes"><li>New app icon</li><li>Reminder sheet closes by dragging or tapping outside</li><li>Logout ends the session on the server</li></ul>
+            <div class="dlBtn"><svg viewBox="0 0 24 24"><path d="M12 4v11"/><path d="M7 10l5 5 5-5"/><path d="M5 20h14"/></svg>Download 0.2.0</div>
+            <div class="dlMeta"><span>SHA-256 <b>3f9a…c21e</b></span></div>
+          </div>
+          <div class="firstTime">First install from here? Android asks to allow installs from Chrome once. Updating keeps your login.</div>
+          <div class="soft">
+            <span class="lbl">Older versions</span>
+            <div class="oldRow"><div><strong>0.1.0</strong> <small>8 Oct 2026</small></div><span class="get">Download</span><ul class="notes"><li>First Android build</li></ul></div>
+          </div>
+        </div></div>
+        <p>The newest version up top with a big Download button and what's new; everything older in a compact list below, each still downloadable.</p>
+        <ul><li>Install hint shown to everyone (the page can't know if it's a first install)</li><li>SHA-256 shortened, full value in <code>latest.json</code></li></ul>
+      </div>
+      <div class="idea">
+        <div class="ideaLabel"><span class="tag">D2</span><h3>Release timeline</h3></div>
+        <div class="phone"><div class="urlbar"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><b>&lt;pc&gt;.ts.net/apk/</b></div><div class="screen">
+          <div class="dlHead"><svg viewBox="0 0 108 108" aria-hidden="true"><use href="#icApp"/></svg><div><h4>Personal Copilot</h4><small>Android app · every version, newest first</small></div></div>
+          <div class="firstTime">First install from here? Android asks to allow installs from Chrome once. Updating keeps your login.</div>
+          <div class="glow">
+            <div class="tlRel">
+              <div class="rel now">
+                <div class="relTop"><strong>0.2.0</strong><span class="latestBadge">Latest</span><span class="get">Download</span></div>
+                <small style="font-size:11px;color:var(--faint)">9 Oct 2026, 21:10 · 42.2 MB</small>
+                <ul class="notes"><li>New app icon</li><li>Reminder sheet closes by dragging or tapping outside</li><li>Logout ends the session on the server</li></ul>
+              </div>
+              <div class="rel">
+                <div class="relTop"><strong>0.1.0</strong><span class="get">Download</span></div>
+                <small style="font-size:11px;color:var(--faint)">8 Oct 2026, 18:46 · 42.1 MB</small>
+                <ul class="notes"><li>First Android build</li></ul>
+              </div>
+            </div>
+          </div>
+        </div></div>
+        <p>One list, every version the same shape on a timeline; the newest is highlighted and its button filled. Reads like a changelog.</p>
+        <ul><li>Lighter than D1; the newest is less prominent</li><li>Scales the same with 2 or 20 versions</li></ul>
       </div>
     </div>
   </section>
