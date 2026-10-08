@@ -9,9 +9,8 @@ Service (candle-lighting reminders), a Notification Service (Web Push), full OTe
 built in stages from [`docs/plans/shabbat-reminders-calendar/plan.md`](docs/plans/shabbat-reminders-calendar/plan.md)
 (Shabbat times on Home → per-user candle-lighting reminders → a Jewish-calendar tab); read that
 plan and its design pages (`architecture.html`, `mockups.html`) before working on the feature.
-Stage 1 (Shabbat times) and stage 2's candle-lighting reminder (checked end to end on the phone)
-are done; stage 2's second part (versions, admin status, Android app + ntfy) is in progress —
-admin sign-in, versions and admin status are done, the Android APK (2.20) is next; stage 3 (the Calendar tab) follows. Work the plan one task at a time and stop for review after each.
+Progress lives in that plan's checkboxes; "What's implemented" below is what exists now. Work the
+plan one task at a time and stop for review after each.
 
 Hosted on the user's personal PC, reachable from their phone via **Tailscale** — `gateway` is the
 only backend service published to the host (`frontend` also has its own published port — it's a
@@ -198,14 +197,15 @@ scripts/version.sh        the only way to bump them
   not Account-specific). Redux Toolkit, services-layer convention (all I/O in
   `src/services/`, split by transport — `http/`, `ws/`, and `device/` (location, browser push) — called only
   from thunks in `src/store/slices/`). Socket.IO
-  auto-connects whenever `authSlice.accessToken` changes (`app/_layout.js`'s
-  `RealtimeConnectionManager`) — generic plumbing, same as Gateway's `/ws`; nothing listens for a
+  connects/disconnects as `authSlice.accessToken` appears/goes (`app/_layout.js`'s
+  `RealtimeConnectionManager`; a new token while connected only replaces the one the next
+  reconnect sends) — generic plumbing, same as Gateway's `/ws`; nothing listens for a
   specific event yet. While signed in, `LocationSyncManager` (also in `app/_layout.js`) sends a
   fresh GPS fix to `PUT /users/me/location` only if it's > 5 km from the server's saved location
   or the time zone changed (`profileSlice.syncLocation`, see `docs/specs/services.md#frontend`).
   A `401` on any signed-in call (`authorizedFetch`) for the current token signs out with a notice:
   `AuthGate` takes the user to login once, which shows "Your session ended — please log in again."
-  until they leave it; expiry and Log Out sign out silently.
+  until they leave it; expiry and Log Out sign out silently (Log Out also revokes the refresh token, best effort).
   Notifications (web build only): `frontend/public/sw.js` shows each push (`tag` =
   `notificationId`) and opens/focuses the app on tap; `PushSubscriptionManager` (`app/_layout.js`)
   registers it at start and, while signed in, re-posts the browser's subscription to

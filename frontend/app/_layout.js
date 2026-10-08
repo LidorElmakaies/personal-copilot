@@ -1,8 +1,10 @@
 import { useEffect, useRef } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
+import { StatusBar } from 'react-native';
 import { Provider, useDispatch, useSelector } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import { ThemeAnimProvider } from '../src/context/ThemeAnimContext';
+import { useAppTheme } from '../src/hooks/useAppTheme';
 import { persistor, store } from '../src/store';
 import { clearAuth } from '../src/store/slices/authSlice';
 import {
@@ -105,11 +107,18 @@ function AuthGate() {
   return null;
 }
 
+// Status-bar icons follow the app's theme, not the phone's — light icons on a light page vanish.
+function ThemedStatusBar() {
+  const { isDark } = useAppTheme();
+  return <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />;
+}
+
 export default function RootLayout() {
   return (
     <Provider store={store}>
       <PersistGate persistor={persistor}>
         <ThemeAnimProvider>
+          <ThemedStatusBar />
           <AuthGate />
           <RealtimeConnectionManager />
           <LocationSyncManager />

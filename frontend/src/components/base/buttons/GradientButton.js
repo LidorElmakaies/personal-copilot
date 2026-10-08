@@ -1,13 +1,7 @@
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useCallback, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-} from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
 import Animated, {
   interpolate,
   interpolateColor,
@@ -66,25 +60,21 @@ export default function GradientButton({
 
   // Colored glow in dark mode, plain drop-shadow in light — see DESIGN.md's Theme section.
   const shadowStyle = useAnimatedStyle(() => {
-    const opacity = interpolate(
-      pressed.value,
-      [0, 1],
-      [0, isDark ? 0.45 : 0.16],
-    );
-    const radius = interpolate(pressed.value, [0, 1], [0, isDark ? 18 : 10]);
-    if (Platform.OS === 'web') {
-      const boxShadow = isDark
-        ? `0 0 ${radius}px rgba(${tintRgb.r},${tintRgb.g},${tintRgb.b},${opacity})`
-        : `0 4px ${radius}px rgba(0,0,0,${opacity})`;
-      return { boxShadow };
-    }
-    return {
-      shadowColor: isDark ? tint : '#000000',
-      shadowOpacity: opacity,
-      shadowRadius: radius,
-      shadowOffset: isDark ? { width: 0, height: 0 } : { width: 0, height: 4 },
-      elevation: interpolate(pressed.value, [0, 1], [0, isDark ? 6 : 3]),
-    };
+    // Rounded: near the end of a fade these reach values like 2.8e-8, which String() writes in
+    // exponent form — an invalid color that crashes Reanimated on Android.
+    const opacity =
+      Math.round(
+        interpolate(pressed.value, [0, 1], [0, isDark ? 0.45 : 0.16]) * 1000,
+      ) / 1000;
+    const radius =
+      Math.round(
+        interpolate(pressed.value, [0, 1], [0, isDark ? 18 : 10]) * 10,
+      ) / 10;
+    // boxShadow on every platform — an Android elevation shadow shows through the glass fill.
+    const boxShadow = isDark
+      ? `0 0 ${radius}px rgba(${tintRgb.r},${tintRgb.g},${tintRgb.b},${opacity})`
+      : `0 4px ${radius}px rgba(0,0,0,${opacity})`;
+    return { boxShadow };
   });
 
   const sweepStyle = useAnimatedStyle(() => ({
@@ -159,8 +149,6 @@ const styles = StyleSheet.create({
   // patterns already hit".
   shadowWrapper: {
     borderRadius: 999,
-    shadowOffset: { width: 0, height: 0 },
-    shadowRadius: 16,
   },
   inner: {
     borderRadius: 999,

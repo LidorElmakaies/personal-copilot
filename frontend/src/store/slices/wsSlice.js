@@ -28,6 +28,16 @@ export function connectWebSocket() {
     const { accessToken } = getState().auth;
     if (!accessToken) return;
 
+    // A new token for the same session (account update, refresh): keep the connection, use the
+    // token for its next reconnect. connect() would hand back this socket with no new 'connect'
+    // event, leaving the status stuck on 'connecting'.
+    const existing = socketService.getSocket();
+    if (existing) {
+      socketService.updateToken(accessToken);
+      dispatch(existing.connected ? wsConnected() : wsConnecting());
+      return;
+    }
+
     dispatch(wsConnecting());
     const socket = socketService.connect(accessToken);
     socket.on('connect', () => dispatch(wsConnected()));

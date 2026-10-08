@@ -288,7 +288,8 @@ logging in" link (routes to `/`) for whoever lands there without wanting to auth
   dark toggle), `NotificationsCard` (see Notifications below), `AccountCard` (email; edit email/password via `POST /auth/account` — the
   `updateAccount` thunk, see `apps/users` above), `ProfileCard` (name and phone; fetches
   `GET /users/me` on mount, saves via `PATCH /users/me`, an emptied field sent as `null`),
-  `LogoutCard` (confirmed in place; `authSlice`'s `logOut`), `DeleteAccountCard` (asks for the password, then
+  `LogoutCard` (confirmed in place; `authSlice`'s `logOut`, which also revokes the refresh token
+  with a best-effort `POST /auth/logout` — offline, the device still signs out), `DeleteAccountCard` (asks for the password, then
   `DELETE /auth/account` via `authSlice`'s `deleteAccount`, which signs out on success). Each card
   holds its row and its edit/confirm form as a private component in the same file, so Cancel drops
   whatever was typed. The cards render only while signed in, so signing out unmounts them — every
@@ -379,14 +380,15 @@ convention, and why there's no Gluestack layer here.
 (`socketService`, a single shared Socket.IO connection), and `device/` (`locationService` —
 `expo-location` permission + position, plus the device's IANA time zone; `pushService` — the
 browser's service worker, `Notification` permission and `PushManager`). `wsSlice`'s `connectWebSocket`/
-`disconnectWebSocket` thunks open/close it whenever `authSlice.accessToken` changes
-(`app/_layout.js`'s `RealtimeConnectionManager`) — generic plumbing, same as Gateway's `/ws`; no
+`disconnectWebSocket` thunks open/close it as `authSlice.accessToken` appears/goes
+(`app/_layout.js`'s `RealtimeConnectionManager`); a new token while one is open (e.g. after
+`updateAccount`) keeps the connection and only replaces the token its next reconnect sends — generic plumbing, same as Gateway's `/ws`; no
 feature listens for a specific event yet. A future feature attaches its own listener via
 `socketService.getSocket()` rather than opening a second connection.
 
-`authSlice` stores the `refreshToken` that register/login return but doesn't consume it yet — no
-refresh thunk exists, since the 15-min access token is short enough that logging in again is an
-acceptable v1.
+`authSlice` stores the `refreshToken` that register/login return and uses it only for `logOut`'s
+revoke — no refresh thunk exists, since the 15-min access token is short enough that logging in
+again is an acceptable v1.
 
 ## Versions
 

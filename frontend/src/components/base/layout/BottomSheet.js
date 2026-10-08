@@ -1,116 +1,120 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect } from 'react';
+import { Modal, StyleSheet, View } from 'react-native';
 import {
-  Animated,
-  Modal,
-  PanResponder,
-  Pressable,
-  StyleSheet,
-  View,
-} from 'react-native';
+  Gesture,
+  GestureDetector,
+  GestureHandlerRootView,
+} from 'react-native-gesture-handler';
+import Animated, {
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 import { useAppTheme } from '../../../hooks/useAppTheme';
 
 // Past this much of the panel's height (capped), or a fast flick down, a drag closes the sheet.
 const CLOSE_FRACTION = 0.3;
 const CLOSE_MAX_PX = 120;
-const CLOSE_VELOCITY = 0.8;
+const CLOSE_VELOCITY = 800; // px/s
 
 // Panel that slides up from the bottom over a dimmed backdrop. Drag it down (from anywhere on it —
 // a tap still reaches its buttons, the drag starts only once the pointer moves down) or tap the
 // backdrop to close: it slides away, then onClose. The backdrop fades (Modal) while the panel
 // slides, so the dim doesn't slide with it.
+// Gestures are gesture-handler's, not PanResponder: inside an Android Modal the JS responder never
+// saw the backdrop tap or the drag. A Modal is its own window, so it needs its own
+// GestureHandlerRootView.
 export default function BottomSheet({ visible, onClose, children }) {
   const { colors } = useAppTheme();
-  const offset = useRef(new Animated.Value(400)).current;
-  const height = useRef(400);
-  const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
+  const offset = useSharedValue(400);
+  const height = useSharedValue(400);
 
   useEffect(() => {
     if (!visible) return;
-    offset.setValue(height.current);
-    Animated.timing(offset, {
-      toValue: 0,
-      duration: 260,
-      useNativeDriver: false,
-    }).start();
-  }, [visible, offset]);
+    offset.value = height.value;
+    offset.value = withTiming(0, { duration: 260 });
+  }, [visible, offset, height]);
 
-  const pan = useMemo(() => {
-    const close = () =>
-      Animated.timing(offset, {
-        toValue: height.current,
-        duration: 180,
-        useNativeDriver: false,
-      }).start(() => onCloseRef.current());
-    const settle = () =>
-      Animated.spring(offset, {
-        toValue: 0,
-        bounciness: 4,
-        useNativeDriver: false,
-      }).start();
-    const isDragDown = (_, g) => g.dy > 6 && g.dy > Math.abs(g.dx);
-    return {
-      close,
-      handlers: PanResponder.create({
-        // Capture: a drag that starts on a button inside still moves the sheet.
-        onMoveShouldSetPanResponderCapture: isDragDown,
-        onMoveShouldSetPanResponder: isDragDown,
-        onPanResponderMove: (_, g) => offset.setValue(Math.max(0, g.dy)),
-        onPanResponderRelease: (_, g) => {
-          const far = Math.min(height.current * CLOSE_FRACTION, CLOSE_MAX_PX);
-          if (g.dy > far || g.vy > CLOSE_VELOCITY) close();
-          else settle();
-        },
-        onPanResponderTerminate: settle,
-      }).panHandlers,
-    };
-  }, [offset]);
+  const close = useCallback(() => {
+    offset.value = withTiming(height.value, { duration: 180 }, () =>
+      runOnJS(onClose)(),
+    );
+  }, [offset, height, onClose]);
+
+  const pan = Gesture.Pan()
+    // Down past 6px activates; sideways first fails, so horizontal swipes stay with the content.
+    .activeOffsetY(6)
+    .failOffsetX([-12, 12])
+    .onUpdate((e) => {
+      offset.value = Math.max(0, e.translationY);
+    })
+    .onEnd((e) => {
+      const far = Math.min(height.value * CLOSE_FRACTION, CLOSE_MAX_PX);
+      if (e.translationY > far || e.velocityY > CLOSE_VELOCITY) {
+        runOnJS(close)();
+      } else {
+        offset.value = withSpring(0, { damping: 18, stiffness: 220 });
+      }
+    });
+
+  const tap = Gesture.Tap().onEnd(() => runOnJS(close)());
+
+  const panelStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: offset.value }],
+  }));
 
   return (
     <Modal
       visible={visible}
       transparent
       animationType="fade"
-      onRequestClose={pan.close}
+      onRequestClose={close}
     >
-      <View style={styles.root}>
-        <Pressable
-          style={styles.backdrop}
-          onPress={pan.close}
-          accessibilityLabel="Close"
-        />
-        <Animated.View
-          {...pan.handlers}
-          onLayout={(e) => {
-            height.current = e.nativeEvent.layout.height;
-          }}
-          style={[
-            styles.panel,
-            {
-              backgroundColor: colors.panel,
-              borderColor: colors.cardBorder,
-              transform: [{ translateY: offset }],
-            },
-          ]}
-        >
-          <View style={styles.grabZone} testID="bottom-sheet-handle">
-            <View
-              style={[styles.grab, { backgroundColor: colors.cardBorder }]}
-            />
-          </View>
-          {children}
-        </Animated.View>
-      </View>
+      <GestureHandlerRootView style={styles.root}>
+        <GestureDetector gesture={tap}>
+          {/* A flex area above the panel: absolutely positioned behind it, the backdrop got no
+              taps on Android (nor drew a dim). collapsable={false}: it draws nothing, so it would
+              be flattened away, leaving the tap no native view to attach to. */}
+          <View
+            collapsable={false}
+            style={styles.backdrop}
+            accessibilityRole="button"
+            accessibilityLabel="Close"
+          />
+        </GestureDetector>
+        <GestureDetector gesture={pan}>
+          <Animated.View
+            onLayout={(e) => {
+              height.value = e.nativeEvent.layout.height;
+            }}
+            style={[
+              styles.panel,
+              { backgroundColor: colors.panel, borderColor: colors.cardBorder },
+              panelStyle,
+            ]}
+          >
+            <View style={styles.grabZone} testID="bottom-sheet-handle">
+              <View
+                style={[styles.grab, { backgroundColor: colors.cardBorder }]}
+              />
+            </View>
+            {children}
+          </Animated.View>
+        </GestureDetector>
+      </GestureHandlerRootView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, justifyContent: 'flex-end' },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
+  // The dim lives on the root View: painted on the backdrop, Android showed no dim at all.
+  root: {
+    flex: 1,
     backgroundColor: 'rgba(0,0,0,0.55)',
   },
+  backdrop: { flex: 1 },
   panel: {
     width: '100%',
     maxWidth: 520,

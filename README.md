@@ -60,8 +60,8 @@ Docker volumes and takes a while; later ones are faster.
 The first run also creates the release signing key in `devops/data/android/` (git-ignored).
 **Back up `release.keystore` and `keystore.properties` from there.** Every later APK must be signed
 with the same key to update the installed app; with a new key you'd have to uninstall it (and sign
-in again) first. Notifications on the APK come later (plan task 2.25); until then reminders reach
-your browsers only.
+in again) first. The APK doesn't receive notifications yet; reminders reach your browsers
+only.
 
 ## Versions
 

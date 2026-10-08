@@ -55,7 +55,7 @@ export default function ProfileCard() {
 // which clears it — see docs/specs/services.md#users.
 function EditForm({ profile, onDone }) {
   const dispatch = useDispatch();
-  const [details, setDetails] = useState(() => {
+  const [initial] = useState(() => {
     const { country, local } = fromE164(profile?.phone);
     return {
       firstName: profile?.firstName ?? '',
@@ -64,10 +64,12 @@ function EditForm({ profile, onDone }) {
       phone: local,
     };
   });
+  const [details, setDetails] = useState(initial);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
-  const canSubmit = !phoneError(details.country, details.phone);
+  const changed = Object.keys(initial).some((k) => details[k] !== initial[k]);
+  const canSubmit = changed && !phoneError(details.country, details.phone);
 
   const handleSubmit = async () => {
     if (!canSubmit) return;

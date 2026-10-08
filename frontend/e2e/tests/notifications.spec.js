@@ -130,6 +130,8 @@ async function mockGateway(page) {
     (req.method() === 'POST' ? calls.posts : calls.deletes).push(call);
     return route.fulfill({ status: 204, headers: CORS });
   });
+  // Log Out's refresh-token revoke — stubbed so the suite never reaches the real Gateway.
+  await page.route('**/auth/logout', (route) => route.fulfill({ status: 204, headers: CORS }));
   return calls;
 }
 

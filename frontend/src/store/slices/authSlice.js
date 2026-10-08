@@ -3,7 +3,8 @@ import * as authService from '../../services/http/authService';
 import { getUserFromToken } from '../../utils/jwt';
 import { disableNotifications } from './notificationsSlice';
 
-// refreshToken is stored but not consumed yet — no refresh thunk exists (see docs/specs/services.md#users).
+// refreshToken is only used to revoke the session on log-out — no refresh thunk exists (see
+// docs/specs/services.md#frontend).
 export const registerUser = createAsyncThunk(
   'auth/register',
   async (payload, { rejectWithValue }) => {
@@ -53,10 +54,19 @@ export const deleteAccount = createAsyncThunk(
 
 // An explicit log-out turns this browser's notifications off first (needs the token); a session
 // that merely expires (AuthGate → clearAuth) keeps them, so reminders still arrive signed out.
+// Then the server revokes the refresh token — best effort: offline, this device still signs out.
 export const logOut = createAsyncThunk(
   'auth/logOut',
-  async (_, { dispatch }) => {
+  async (_, { dispatch, getState }) => {
     await dispatch(disableNotifications({ loggingOut: true }));
+    const { refreshToken } = getState().auth;
+    if (refreshToken) {
+      try {
+        await authService.logout(refreshToken);
+      } catch {
+        // Signing out locally matters more than the revoke.
+      }
+    }
     dispatch(clearAuth());
   },
 );

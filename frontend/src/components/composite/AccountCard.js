@@ -109,7 +109,7 @@ function EditForm({ email: originalEmail, onDone }) {
         label="New password"
         value={newPassword}
         onChangeText={setNewPassword}
-        placeholder="Leave blank to keep current password"
+        placeholder="Leave blank to keep it"
         hint={PASSWORD_REQUIREMENTS_HINT}
         error={passwordFieldError}
         isPassword

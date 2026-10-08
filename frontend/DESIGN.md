@@ -73,8 +73,8 @@ Glass itself is not a naive color invert between themes:
 ## Components
 
 - **Glass Card** — the standard container for grouped content: translucent
-  blurred surface (`backdrop-filter: blur(10px)`), soft accent-colored glow shadow in dark mode /
-  soft neutral shadow in light mode. This was the explicitly confirmed pick over three other node
+  blurred surface (`backdrop-filter: blur(10px)`; an opaque panel on Android, which doesn't blur),
+  soft accent-colored glow shadow in dark mode / soft neutral shadow in light mode. This was the explicitly confirmed pick over three other node
   styles that were prototyped (console-panel, gauge-tile, radial-node) — possible starting points
   for denser data display (e.g. a future detail screen), not the default.
 - **Row** — title + subtitle stack, optional trailing chip or control, used inside a card,

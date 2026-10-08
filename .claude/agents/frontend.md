@@ -78,11 +78,12 @@ two folders:
   primitives). Props worth knowing:
   `Alert`'s `variant` (`error` default, `warning`, `success`); `Switch`'s `disabled` and
   `accessibilityLabel` (rendered with role `switch`); `GlowCard`'s `solid` (opaque panel under the
-  glass, for a card drawn over other content such as a modal); `PillButton`'s `tone` (`accent`
+  glass, for a card drawn over other content such as a modal; Android always gets the panel
+  instead of the blur); `PillButton`'s `tone` (`accent`
   default, `muted`, `pending` — amber, something is set, `selected` — the chosen option in a group)
   and `icon` (a render function given the text color); `Stepper`'s `min`/`max`/`step`/`unit` (− value
   +, clamped; an off-grid value moves to the next grid point); `BottomSheet`'s `visible`/`onClose`
-  (a `Modal` whose backdrop fades while the panel slides up in JS; drag the panel down — from anywhere on it, past ~⅓ of its height or a quick flick, via `PanResponder` — or tap the backdrop to slide it away and close). `SelectField` renders its
+  (a `Modal` whose backdrop fades while the panel slides up; drag the panel down — from anywhere on it, past ~⅓ of its height or a quick flick — or tap the backdrop to slide it away and close. Gestures are `react-native-gesture-handler`'s `Pan`/`Tap` with Reanimated, inside the Modal's own `GestureHandlerRootView` — `PanResponder` never received the drag or the backdrop tap in an Android Modal). `SelectField` renders its
   option list in a transparent `Modal` at the box's measured window position (below it, or above
   if there's no room; scrolls past 4 options) — inline, any `overflow:'hidden'` ancestor such as
   `GlowCard` would clip it and later siblings would draw over it.
@@ -140,8 +141,8 @@ when a component genuinely needs something no thunk/selector combination can giv
 - `notificationsSlice` must not import `authSlice` (`authSlice`'s `logOut`/`deleteAccount` import
   it — a cycle); it reads the token via `getState()`.
 - Provider order in `app/_layout.js` is load-bearing (`Provider` → `PersistGate` →
-  `ThemeAnimProvider` → `AuthGate`/`RealtimeConnectionManager`/`LocationSyncManager`/
-  `PushSubscriptionManager` → `Stack`) — adding a provider means
+  `ThemeAnimProvider` → `ThemedStatusBar`/`AuthGate`/`RealtimeConnectionManager`/
+  `LocationSyncManager`/`PushSubscriptionManager` → `Stack`) — adding a provider means
   deciding where it sits deliberately, not appending it wherever's convenient.
 - **The frontend only ever talks to Gateway, never the Users Service or any other backend service
   directly** — see `.claude/memory/feedback_gateway_only_service_access.md`.
@@ -203,6 +204,25 @@ Driving tips:
 - **`BlurView`/`backdrop-filter` needs its own explicit `borderRadius`**, not just an ancestor's
   `overflow:'hidden'` — on web, blur can bleed past a rounded clip in a rectangular shape. Barely
   visible at a small corner radius, very visible once a shape is fully rounded (a pill).
+- **Never `elevation` (or `shadow*`) on a translucent view — use RN `boxShadow`.** Android draws an
+  elevation shadow under the whole view, and it shows through translucent layers as a thick tinted
+  band or an offset box. `boxShadow` is also the only way to get a *colored* glow on Android.
+- **`BlurView` (`expo-blur`) is just a tint on Android** unless given a `BlurTargetView` — the
+  background shows through sharp. Android gets an opaque layer instead (`GlowCard`'s `colors.panel`).
+  The tab bar has no blur on any platform: it sits below the screen, not over it, so there's nothing
+  to blur — it uses `colors.bg` under its tint.
+- **Gestures inside a `Modal` on Android: use `react-native-gesture-handler`, not `PanResponder`** —
+  the JS responder got neither `BottomSheet`'s drag nor its backdrop tap there (taps on buttons inside
+  still worked, and the web build was fine, so only the phone shows it). A Modal is its own window:
+  wrap its content in a `GestureHandlerRootView`, and give a view that only carries a gesture
+  `collapsable={false}` so it isn't flattened away.
+- **Round numbers interpolated into a style string inside a worklet** (e.g. a `boxShadow`'s
+  opacity/radius). Near the end of an animation they reach values like `2.8e-8`, which stringify
+  in exponent form — an invalid color that crashes Reanimated on Android.
+- **Toggle a style prop's value, not its presence, on Android.** A `borderWidth` added after mount
+  drew with square corners (lost its `borderRadius`); keep the border always set and switch its
+  color to `'transparent'` instead. Likewise a translucent `borderTop` drew near-white — use a
+  hairline `View`.
 - **A CSS/RN gradient "border ring" trick paints the full box, not just the 1px padding sliver**
   — background/gradient fills always paint edge-to-edge regardless of padding, so a semi-
   transparent child sitting on top of a strong gradient *blends* with it rather than occluding it.

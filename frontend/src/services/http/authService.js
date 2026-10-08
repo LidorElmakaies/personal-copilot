@@ -30,6 +30,16 @@ export async function login({ email, password }) {
   return response.json(); // { access_token, refresh_token }
 }
 
+// Revokes the refresh token on the server, so it can't mint new sessions after log-out.
+export async function logout(refreshToken) {
+  const response = await fetch(`${URLS.auth.origin}/auth/logout`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refresh_token: refreshToken }),
+  });
+  if (!response.ok) throw new Error(await parseErrorMessage(response));
+}
+
 // Authenticated by password-in-body, not a bearer token — deliberate on the backend side, see
 // CLAUDE.md.
 export async function updateAccount({

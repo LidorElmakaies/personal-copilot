@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
 import { Tabs, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -30,7 +29,7 @@ const TABS = [
 ];
 
 function CustomTabBar({ navigation, state }) {
-  const { isDark, colors } = useAppTheme();
+  const { colors } = useAppTheme();
   const router = useRouter();
   const isAuthenticated = useSelector((s) => !!s.auth.accessToken);
   const isAdmin = useHasRole('admin');
@@ -53,16 +52,18 @@ function CustomTabBar({ navigation, state }) {
 
   return (
     <>
-      <View
-        style={[styles.barWrapper, { borderTopColor: colors.tabBarBorder }]}
-      >
-        <BlurView
-          intensity={isDark ? 40 : 60}
-          tint={isDark ? 'dark' : 'light'}
-          style={StyleSheet.absoluteFill}
+      <View style={styles.barWrapper}>
+        {/* Page color under the tint: the bar sits below the screen, not over it, so a blur would
+            only blur the grey window/page behind it. */}
+        <View
+          style={[StyleSheet.absoluteFill, { backgroundColor: colors.bg }]}
         />
         <View
           style={[StyleSheet.absoluteFill, { backgroundColor: colors.tabBar }]}
+        />
+        {/* A View, not borderTop: Android drew the translucent border near-white. */}
+        <View
+          style={[styles.topLine, { backgroundColor: colors.tabBarBorder }]}
         />
         {visibleTabs.map((tab) => {
           const isActive = activeName === tab.name;
@@ -75,16 +76,13 @@ function CustomTabBar({ navigation, state }) {
               activeOpacity={0.7}
             >
               <View
+                // Border and glow always set, only their color changes — added after mount,
+                // Android drew square corners. See frontend.md's "Bug patterns already hit".
                 style={[
                   styles.iconWrapper,
-                  isActive && {
-                    borderColor: colors.accent,
-                    borderWidth: 1,
-                    shadowColor: colors.accent,
-                    shadowOpacity: 0.5,
-                    shadowRadius: 8,
-                    shadowOffset: { width: 0, height: 0 },
-                    elevation: 4,
+                  {
+                    borderColor: isActive ? colors.accent : 'transparent',
+                    boxShadow: `0 0 8px ${isActive ? `${colors.accent}80` : 'transparent'}`,
                   },
                 ]}
               >
@@ -138,16 +136,23 @@ export default function TabsLayout() {
 const styles = StyleSheet.create({
   barWrapper: {
     flexDirection: 'row',
-    borderTopWidth: 1,
     paddingBottom: 8,
     paddingTop: 6,
     overflow: 'hidden',
+  },
+  topLine: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: StyleSheet.hairlineWidth,
   },
   tab: { flex: 1, alignItems: 'center', gap: 4, paddingVertical: 6 },
   iconWrapper: {
     width: 34,
     height: 30,
     borderRadius: 8,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },

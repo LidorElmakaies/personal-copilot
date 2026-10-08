@@ -1,6 +1,12 @@
 import { HDate } from '@hebcal/hdate';
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import AmbientBackground from '../../src/components/composite/AmbientBackground';
 import CandleReminder from '../../src/components/composite/CandleReminder';
@@ -61,10 +67,15 @@ export default function HomeScreen() {
   const weekday = now.toLocaleDateString('en-US', { weekday: 'long' });
   const monthName = now.toLocaleDateString('en-US', { month: 'long' });
   const hebrewDate = formatHebrewDate(now);
+  // Eight monospace digits at 56pt need ~285px — more than a 320-wide phone's card has. Scale down
+  // to the card's text width (screen minus container + card padding), capped by its maxWidth.
+  const { width } = useWindowDimensions();
+  const clockSize = Math.min(56, Math.floor((Math.min(width, 460) - 88) / 5.4));
 
   return (
     <AmbientBackground>
-      <View style={styles.container}>
+      {/* Scrolls when the card is taller than the screen (small phones, landscape). */}
+      <ScrollView contentContainerStyle={styles.container}>
         <GlowCard style={styles.panel}>
           <View style={styles.statusRow}>
             <Chip
@@ -73,7 +84,11 @@ export default function HomeScreen() {
             />
           </View>
 
-          <Text style={[styles.clock, { color: colors.text }]}>{time}</Text>
+          <Text
+            style={[styles.clock, { color: colors.text, fontSize: clockSize }]}
+          >
+            {time}
+          </Text>
 
           <View style={styles.dateBlock}>
             <Text style={[styles.dateNumeric, { color: colors.textMuted }]}>
@@ -103,7 +118,7 @@ export default function HomeScreen() {
             }
           />
         </GlowCard>
-      </View>
+      </ScrollView>
       <NotificationsPrompt />
     </AmbientBackground>
   );
@@ -111,7 +126,7 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
@@ -123,7 +138,6 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   clock: {
-    fontSize: 56,
     fontWeight: '700',
     textAlign: 'center',
     letterSpacing: 2,

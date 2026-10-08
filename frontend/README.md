@@ -66,8 +66,8 @@ access").
 
 `public/sw.js` is the service worker; `expo export` copies `public/` to the export root, so it's
 served at `/sw.js` with scope `/`. It needs a secure context like GPS does — on the phone that's
-the `tailscale serve` HTTPS URL. Native builds report notifications as unsupported (the Android app gets ntfy in plan task 2.25;
-until then its Notifications card and the reminder sheet say they're coming soon). Flow and state
+the `tailscale serve` HTTPS URL. Native builds report notifications as unsupported (the Android app's Notifications card and the
+reminder sheet say they're coming soon). Flow and state
 rules: `docs/specs/services.md#frontend` and `docs/specs/notification-flow.md`.
 
 ## Phone numbers (`libphonenumber-js`)

@@ -1,6 +1,6 @@
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { useAppTheme } from '../../../hooks/useAppTheme';
 
 function withAlpha(hex, alpha) {
@@ -16,15 +16,18 @@ function withAlpha(hex, alpha) {
 // AmbientBackground's stars/meteors into a wash instead of a soft glow. Outer/inner split is the
 // same shadow+clip pattern as GradientButton — see .claude/agents/frontend.md's "Bug patterns
 // already hit". `solid` puts an opaque panel under the glass, for a card drawn over other content
-// (a modal) that must not show through.
+// (a modal) that must not show through. Android always gets the panel — BlurView doesn't blur there.
 export default function GlowCard({ children, style, solid }) {
   const { isDark, colors } = useAppTheme();
+  const isAndroid = Platform.OS === 'android';
 
   return (
     <View
       style={[
         styles.shadowWrapper,
-        { shadowColor: colors.shadow, shadowOpacity: isDark ? 0.35 : 0.16 },
+        {
+          boxShadow: `0 0 24px ${withAlpha(colors.shadow, isDark ? 0.35 : 0.16)}`,
+        },
         style,
       ]}
     >
@@ -38,19 +41,20 @@ export default function GlowCard({ children, style, solid }) {
         style={styles.borderGradient}
       >
         <View style={styles.card}>
-          {solid ? (
+          {solid || isAndroid ? (
             <View
               style={[
                 StyleSheet.absoluteFill,
                 { backgroundColor: colors.panel },
               ]}
             />
-          ) : null}
-          <BlurView
-            intensity={isDark ? 12 : 18}
-            tint={isDark ? 'dark' : 'light'}
-            style={StyleSheet.absoluteFill}
-          />
+          ) : (
+            <BlurView
+              intensity={isDark ? 12 : 18}
+              tint={isDark ? 'dark' : 'light'}
+              style={StyleSheet.absoluteFill}
+            />
+          )}
           <View
             style={[StyleSheet.absoluteFill, { backgroundColor: colors.card }]}
           />
@@ -62,11 +66,9 @@ export default function GlowCard({ children, style, solid }) {
 }
 
 const styles = StyleSheet.create({
+  // boxShadow, never elevation — see .claude/agents/frontend.md's "Bug patterns already hit".
   shadowWrapper: {
     borderRadius: 20,
-    shadowOffset: { width: 0, height: 0 },
-    shadowRadius: 24,
-    elevation: 8,
   },
   borderGradient: {
     borderRadius: 20,

@@ -255,3 +255,28 @@ test('a touch drag (finger, as on the phone) closes it too', async ({ page }) =>
   await expect(sheetTitle(page)).toHaveCount(1);
   expect(calls.puts).toEqual([]);
 });
+
+test('the page behind the sheet is dimmed, and tapping it closes the sheet without saving', async ({ page }) => {
+  await signIn(page);
+  const calls = await mockGateway(page);
+  await page.goto('/');
+  await openSheet(page);
+
+  // The darkest translucent black painted at a point above the sheet (the element there or an ancestor).
+  const dimAlpha = await page.evaluate(() => {
+    let el = document.elementFromPoint(window.innerWidth / 2, 40);
+    let best = 0;
+    for (; el; el = el.parentElement) {
+      const m = getComputedStyle(el).backgroundColor.match(/^rgba\(0, 0, 0, ([\d.]+)\)$/);
+      if (m) best = Math.max(best, Number(m[1]));
+    }
+    return best;
+  });
+  expect(dimAlpha).toBeGreaterThanOrEqual(0.5);
+  await settle(page);
+  await page.screenshot({ path: 'screenshots/reminder-sheet-dimmed.png' });
+
+  await page.getByLabel('Close').click({ position: { x: 20, y: 40 } });
+  await expect(sheetTitle(page)).toHaveCount(1);
+  expect(calls.puts).toEqual([]);
+});

@@ -57,13 +57,8 @@ export default function Chip({ label, variant = 'pending', style }) {
           style={[
             styles.dot,
             { backgroundColor: color },
-            {
-              shadowColor: color,
-              shadowOpacity: 0.9,
-              shadowRadius: 6,
-              shadowOffset: { width: 0, height: 0 },
-              elevation: 4,
-            },
+            // boxShadow — Android's elevation shadow is grey, not a colored glow.
+            { boxShadow: `0 0 6px ${color}e6` },
           ]}
         />
       </View>

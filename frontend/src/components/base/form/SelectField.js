@@ -45,6 +45,7 @@ export default function SelectField({
     onChange(next);
   };
 
+  const scrolls = options.length > VISIBLE_OPTIONS;
   const listHeight =
     Math.min(options.length, VISIBLE_OPTIONS) * OPTION_HEIGHT +
     LIST_PADDING * 2;
@@ -108,8 +109,8 @@ export default function SelectField({
             ]}
           >
             <ScrollView
-              showsVerticalScrollIndicator
-              persistentScrollbar
+              showsVerticalScrollIndicator={scrolls}
+              persistentScrollbar={scrolls}
               bounces={false}
             >
               {options.map((item) => (

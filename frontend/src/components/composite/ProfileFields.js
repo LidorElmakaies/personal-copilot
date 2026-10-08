@@ -40,7 +40,8 @@ export default function ProfileFields({ value, onChange, showErrors = false }) {
           style={styles.flex}
         />
       </View>
-      <View style={styles.row}>
+      {/* Wraps: on a narrow screen the phone field drops to its own full-width line. */}
+      <View style={[styles.row, styles.wrap]}>
         <SelectField
           label="Country"
           value={value.country}
@@ -57,7 +58,7 @@ export default function ProfileFields({ value, onChange, showErrors = false }) {
           maxLength={15}
           onBlur={() => setPhoneTouched(true)}
           error={phoneFieldError}
-          style={styles.flex}
+          style={styles.phone}
         />
       </View>
     </View>
@@ -67,6 +68,8 @@ export default function ProfileFields({ value, onChange, showErrors = false }) {
 const styles = StyleSheet.create({
   group: { gap: 16 },
   row: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
+  wrap: { flexWrap: 'wrap' },
   flex: { flex: 1 },
   country: { width: 120 },
+  phone: { flexGrow: 1, flexBasis: 140 },
 });

@@ -311,7 +311,7 @@ from outside Docker.
 ZooKeeper), holds only events (see `event-schemas.md`). Not published to the host: it has no
 authentication, and a published port would be reachable over Tailscale. One listener,
 `kafka:19092` (`KAFKA_BROKERS` in `docker.env`). Data in `devops/data/kafka`, which must be owned by
-the container's user or the broker crash-loops (plan task 2.0). `CLUSTER_ID` is fixed so the
+the container's user or the broker crash-loops. `CLUSTER_ID` is fixed so the
 existing data directory stays valid across recreations. Auto-create is off: the one-shot
 `kafka-init` creates every topic in `KAFKA_TOPICS` (idempotent, 3 partitions each,
 `users.user-state` compacted). The opt-in round-trip test needs a broker of its own on the host

@@ -15,6 +15,11 @@ export function connect(token) {
   return socket;
 }
 
+// A refreshed token for the open connection — socket.io sends it on its next (re)connect.
+export function updateToken(token) {
+  if (socket) socket.auth = { token };
+}
+
 export function disconnect() {
   socket?.disconnect();
   socket = null;
