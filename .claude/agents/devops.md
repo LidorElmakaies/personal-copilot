@@ -26,6 +26,12 @@ Two independent Compose projects, joined by a shared `observability` Docker netw
 - `devops/tailscale/serve.sh` — not a compose project: puts `frontend` (`https://<pc>.ts.net`) and
   `gateway` (`:8443`) behind Tailscale HTTPS for phone access. `tailscale serve` config persists
   on the host; `tailscale serve reset` removes it.
+- `devops/android/` — not a compose project: `Dockerfile` (the APK builder image), `apk.js`,
+  `apk.test.js`. `node devops/android/apk.js build` builds in the image into
+  `devops/data/android/apk/`; `node devops/android/apk.js publish` publishes one into
+  `devops/data/apk/` (the registry `frontend` mounts read-only and serves at `/apk/`), directly or
+  via a Node container when that folder is root-owned — see `frontend/README.md`'s `/apk/`
+  paragraph. Tests: `node --test devops/android/`.
 - `devops/playwright/` — on-demand browser-test runner (not in the root `include:`), see
   `frontend/e2e/README.md`.
 - `devops/observability/` — `otel-collector`, `loki`, `prometheus`, `tempo`, `grafana`.
@@ -65,6 +71,8 @@ observability up first.
   Dockerfile reads the repo's `version/versions.json` from that context (a backend image keeps only
   its own entry, so another service's bump doesn't rebuild it). Standalone `docker build` needs
   `--build-context version=../version`. See `docs/specs/architecture.md#compose--build-layout`.
+- **Tooling scripts are cross-platform Node** (`node <script>`, Linux and Windows alike), one
+  script per tool with subcommands, Docker only where the tool needs it. No new `.sh` scripts.
 - **Compose-file comments stay terse** — one line, not a paragraph; save deeper rationale for
   `docs/specs/architecture.md` and point to it.
 

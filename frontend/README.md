@@ -46,7 +46,7 @@ thunks in `src/store/slices/`, never inline in a component.
 
 ## Android app
 
-`devops/android/build-apk.sh` builds the release APK in Docker (`expo prebuild --platform
+`node devops/android/apk.js build` builds the release APK in Docker (`expo prebuild --platform
 android`, then Gradle) — see the root README. `app.json` holds the Android identity
 (`com.lidor.personalcopilot`, which must never change, plus the permissions); `app.config.js`
 adds the version and Android's `versionCode`, both from `FRONTEND_VERSION`, which the build
@@ -126,3 +126,11 @@ without these settings.
 `devops/data/apk` read-only at `/apk`, and Caddy serves it there (page and `latest.json` never
 cached, `.apk` with Android's installer content type). Nothing is mounted in cloud mode, so the
 same block just 404s.
+`node devops/android/apk.js publish` writes it (directly, or via a Node container when `devops/data/apk` is root-owned):
+every published APK, `releases.json` (each version's `version`, `versionCode`, `file`, `sha256`,
+`size`, `publishedAt`, `notes`), `latest.json` (`{version, versionCode, url: "/apk/<file>", sha256,
+notes, publishedAt}` for the newest release — never a `-test.N` build; absent until there is one)
+and `index.html`, a static download page: every version newest first, light/dark via
+`prefers-color-scheme`, the icon inlined from `assets/icon/icon.svg`, times in the phone's local
+time. Versions sort by `app.config.js`'s exported `versionCode()`. A published version's file
+never changes — publishing a different one under it fails.

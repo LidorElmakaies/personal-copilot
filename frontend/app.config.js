@@ -1,6 +1,6 @@
 // Extends app.json with what changes per build: the version and Android's versionCode, from
-// FRONTEND_VERSION (set by devops/android/build-apk.sh from version/versions.json). Unset — the web
-// build, a dev server — app.json is used as is.
+// FRONTEND_VERSION (set by `node devops/android/apk.js build` from version/versions.json). Unset —
+// the web build, a dev server — app.json is used as is.
 
 // major·1,000,000 + minor·10,000 + patch·100 + the test number, or 99 for a release, so
 // 1.3.0-test.2 (1030002) < 1.3.0 (1030099) < 1.3.1-test.1 (1030101). See version.sh's limits.

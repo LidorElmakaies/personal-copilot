@@ -23,6 +23,9 @@ the app signs out to login with the "session ended" notice, and with a `500` to 
 `tests/reminders.spec.js` mocks Gateway and seeds a token the same way; it
 starts the clock at a fixed time with `page.clock.install` + `resume` rather than freezing it with
 `setFixedTime`, since a frozen clock also stops the bottom sheet's JS slide-in animation.
+`tests/apk-registry.spec.js` checks the published APK registry at `/apk/` read-only (headers, the
+page lists `releases.json`) and skips where nothing is published; the publisher itself is tested by
+`node --test devops/android/`.
 
 Output lands in this folder (gitignored): `screenshots/` (explicit captures), `test-results/`
 (per-test screenshot, plus trace/video on failure), `playwright-report/` (HTML report).

@@ -79,7 +79,7 @@ frontend/                 Expo/React Native app — login/register (optional, no
                           public/sw.js is the Web Push service worker;
                           e2e/ holds the containerized Playwright tests
 devops/                   docker-compose.yml (app stack: services + shared postgres/redis)
-                          + android/ (the APK builder image + build-apk.sh)
+                          + android/ (the APK builder image + apk.js: build/publish)
                           + observability/ (Grafana/Loki/Prometheus/Tempo/OTel, joined to
                           the app stack via a shared Docker network)
 docs/specs/               services.md, event-schemas.md (queues/jobs), notification-flow.md,
@@ -258,9 +258,11 @@ REDIS_IT_URL=redis://localhost:6379 npx jest notification-flow.it queue-roundtri
 npm run lint
 ```
 
-Android app (from the repo root; Docker only — see README's "Android app (APK)"):
+Android app (from the repo root, Linux or Windows; `build` runs in Docker — see README's "Android app (APK)"):
 ```bash
-devops/android/build-apk.sh        # → devops/data/android/apk/personal-copilot-<frontend version>.apk
+node devops/android/apk.js build              # → devops/data/android/apk/personal-copilot-<frontend version>.apk
+node devops/android/apk.js publish "note" ... # → devops/data/apk/, served at https://<pc>.ts.net/apk/
+node --test devops/android/                   # publisher tests, on the host
 ```
 
 Browser tests (from the repo root, against the running stack — see `frontend/e2e/README.md`):

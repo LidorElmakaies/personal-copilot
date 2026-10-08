@@ -47,21 +47,34 @@ browser for this; Brave works once those settings allow it.
 
 ## Android app (APK)
 
-The same app as a real Android app, built in Docker (nothing to install on this PC):
+The same app as a real Android app. One Node script, same on Linux and Windows; the build runs in
+Docker (nothing else to install):
 
 ```bash
-devops/android/build-apk.sh     # → devops/data/android/apk/personal-copilot-<version>.apk
+node devops/android/apk.js build     # → devops/data/android/apk/personal-copilot-<version>.apk
+node devops/android/apk.js publish "Release note" "Another note"   # → https://<pc>.ts.net/apk/
+node --test devops/android/          # the publisher's tests, on the host
 ```
 
 It talks to `GATEWAY_PUBLIC_URL` from `devops/.env`, which must be the HTTPS tailnet URL (see
 above), so the phone needs Tailscale on. The first build downloads the Android SDK and Gradle into
-Docker volumes and takes a while; later ones are faster.
+Docker volumes and takes a while; later ones are faster. `ANDROID_ABIS=arm64-v8a,x86_64` builds
+`personal-copilot-<version>-emulator.apk` for an x86_64 emulator instead.
 
 The first run also creates the release signing key in `devops/data/android/` (git-ignored).
 **Back up `release.keystore` and `keystore.properties` from there.** Every later APK must be signed
 with the same key to update the installed app; with a new key you'd have to uninstall it (and sign
 in again) first. The APK doesn't receive notifications yet; reminders reach your browsers
 only.
+
+`publish` puts the built APK (the `frontend` version, or `--version X`) on the download
+page at `https://<pc>.ts.net/apk/`, each argument one bullet of its release notes. Every published
+version stays downloadable; the newest release is highlighted, and `-test.N` builds are listed as
+test builds. Publishing the same version and file again replaces its notes (no notes: just
+regenerates the page, and puts back a published APK that went missing); a different file under a
+published version is refused — bump the version. On the phone, the first install asks to allow
+installs from Chrome. `publish` writes `devops/data/apk/` directly, or through a `node:22-alpine`
+container when that folder isn't writable (root-owned on Linux, since Docker created it).
 
 ## Versions
 

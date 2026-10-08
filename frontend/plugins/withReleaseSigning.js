@@ -2,7 +2,7 @@ const { withAppBuildGradle } = require('expo/config-plugins');
 
 // Signs the release APK with the project's own key instead of the debug one the generated
 // android/app/build.gradle uses. Gradle reads the key from env vars that only
-// devops/android/build-apk.sh sets (the keystore lives in devops/data/android/, never in git);
+// `node devops/android/apk.js build` sets (the keystore lives in devops/data/android/, never in git);
 // without them the release signing config stays empty and only a debug build works.
 const RELEASE_SIGNING = `
         release {
