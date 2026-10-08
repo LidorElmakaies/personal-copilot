@@ -13,6 +13,7 @@
     "expo-linking": "~57.0.1",
     "expo-location": "~57.0.20",
     "expo-router": "^57.0.2",
+    "expo-splash-screen": "~57.0.9",
     "libphonenumber-js": "^1.13.14",
     "moti": "^0.30.0",
     "react": "19.2.3",

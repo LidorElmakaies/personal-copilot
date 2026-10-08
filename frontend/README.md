@@ -55,6 +55,15 @@ the generated `android/app/build.gradle` from debug to release signing, with the
 vars only the build sets. `react-native-worklets` is a direct dependency so Reanimated 4's native
 part links. `android/` is generated and git-ignored.
 
+## App icon
+
+One source, `assets/icon/icon.svg`, on Android's 108×108 adaptive-icon canvas with two layers
+(`#background`, `#foreground`). `devops/icons/render-icons.sh` renders every PNG from it in the
+pinned Playwright image: the Android adaptive layers, `icon.png`, the splash image
+(`expo-splash-screen` plugin in `app.json`), the favicon (`web.favicon`) and the web set in
+`public/icons/`. Edit the SVG, re-run the script, rebuild. Keep anything that matters inside the
+66px safe circle: launchers show only the middle 72px, masked.
+
 ## Location (`expo-location`)
 
 `app.json` registers the `expo-location` config plugin with the iOS "when in use" permission text;

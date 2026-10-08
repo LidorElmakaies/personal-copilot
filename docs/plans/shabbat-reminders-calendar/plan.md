@@ -305,7 +305,7 @@ and ntfy", "Phones" and "Ready to move to the cloud" under Decisions.
   the Notifications card says "coming with 2.25" until then.
   *Check:* the APK installs on the phone (Tailscale on), logs in, shows Shabbat times from GPS,
   and the reminder sheet saves.
-- [ ] **2.20a Android look check (screenshots from the user).** The APK runs, but some effects and
+- [x] **2.20a Android look check (screenshots from the user).** The APK runs, but some effects and
   borders look wrong on the phone (found while testing 2.20). **Ask the user first** to take
   screenshots on the phone of every screen and state — Home (signed out and in, with the reminder
   sheet open), login/register, Account (every card), Admin, the confirm prompts, both themes — and
@@ -315,7 +315,7 @@ and ntfy", "Phones" and "Ready to move to the cloud" under Decisions.
   and the monospace font. Fixes must keep the web build looking the same.
   *Check:* the user's new screenshots of the same screens look right to them; the web e2e tests
   still pass.
-- [ ] **2.20b App icon** (APK and web). The app has no icon of its own (the APK shows Expo's
+- [x] **2.20b App icon** (APK and web). The app has no icon of its own (the APK shows Expo's
   default). Design one: **new UI → HTML mockup first** with a few icon options to pick from, shown
   on light and dark backgrounds and at small sizes. Then the files every platform needs from that
   one design: Android's adaptive icon (foreground + background layers, `android.adaptiveIcon` in
