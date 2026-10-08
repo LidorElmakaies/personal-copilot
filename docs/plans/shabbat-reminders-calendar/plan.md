@@ -330,13 +330,22 @@ and ntfy", "Phones" and "Ready to move to the cloud" under Decisions.
   cloud deployment, same Caddyfile) the paths 404. Download-page mockups D1 / D2 in
   `mockups.html`.
   *Check:* each route answers as above against the running stack (test files, since removed).
-- [ ] **2.21b APK registry: publishing + page** (Android only). `devops/android/publish-apk.sh`
-  (or a flag on `build-apk.sh`) copies the APK into `devops/data/apk/` and rewrites
+- [x] **2.21b APK registry: publishing + page** (Android only). `node devops/android/apk.js publish`
+  (one cross-platform Node script with `build`; it replaced the `.sh` scripts) copies the APK into `devops/data/apk/` and rewrites
   `latest.json` (`{ version, versionCode, url, sha256, notes, publishedAt }`) and a plain download
   page listing every version, newest first, with their notes, in the chosen mockup layout (D1 or
   D2 — **pick first**).
   *Check:* the page opens on the phone, downloads the newest APK and installs it; an older one is
   still listed.
+- [ ] **2.21c Play Protect: stop the "unknown developer" block** (Android only). Installing or
+  updating from the registry page, Google Play Protect blocks the APK ("blocked to protect your
+  device — Play Protect doesn't recognise this developer"); only More details → Install anyway gets
+  past it. (adb installs don't trigger it, which is why 2.20 never saw it.) Submit the app to
+  Google's Play Protect review (the developer appeal form, with the release signing key's
+  certificate) so it's recognised, and check what Android's developer verification for sideloaded
+  apps requires of us. Until then the page's hint tells users how to get past the warning.
+  *Check:* a fresh install of the newest APK from `/apk/` on a phone with Play Protect on shows
+  no block.
 - [ ] **2.22 In-app update prompt** (Android only). On start and when the app comes back to the
   foreground, the APK fetches `/apk/latest.json`; if its `versionCode` is newer than the installed
   one (`expo-application`), a prompt: "Version 1.3.0 is available · What's new · Update / Later".

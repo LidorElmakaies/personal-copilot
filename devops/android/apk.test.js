@@ -200,3 +200,10 @@ test('blank notes are dropped; only blank notes count as none', () => {
   ok('0.1.0', ' First build ', '');
   assert.deepEqual(readJson('releases.json')[0].notes, ['First build']);
 });
+
+test('the page tells how to get past the install warnings', () => {
+  apk('0.1.0');
+  ok('0.1.0', 'First build');
+  assert.match(html(), /allow installs from Chrome once/);
+  assert.match(html(), /More details → Install anyway/);
+});

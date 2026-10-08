@@ -73,7 +73,8 @@ version stays downloadable; the newest release is highlighted, and `-test.N` bui
 test builds. Publishing the same version and file again replaces its notes (no notes: just
 regenerates the page, and puts back a published APK that went missing); a different file under a
 published version is refused — bump the version. On the phone, the first install asks to allow
-installs from Chrome. `publish` writes `devops/data/apk/` directly, or through a `node:22-alpine`
+installs from Chrome, and Google Play Protect may block the app as from an unknown developer:
+More details → Install anyway (the page says so too). `publish` writes `devops/data/apk/` directly, or through a `node:22-alpine`
 container when that folder isn't writable (root-owned on Linux, since Docker created it).
 
 ## Versions

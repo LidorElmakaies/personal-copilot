@@ -316,7 +316,7 @@ main{max-width:560px;margin:0 auto;padding:28px 16px 40px;display:flex;flex-dire
     ${icon.replace('<svg ', '<svg aria-hidden="true" ')}
     <div><h1>Personal Copilot</h1><p>Android app · every version, newest first</p></div>
   </header>
-  <p class="hint">First install from here? Android asks to allow installs from Chrome once. Updating keeps your login.</p>
+  <p class="hint">First install from here? Android asks to allow installs from Chrome once. If Play Protect blocks the app as from an unknown developer, tap More details → Install anyway. Updating keeps your login.</p>
   <section class="card">
     <ol class="timeline">${releases.map((r) => release(r, latest)).join('')}
     </ol>
