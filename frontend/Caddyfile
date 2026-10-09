@@ -12,25 +12,10 @@
 
 	encode gzip
 
-	handle /auth/* {
-		reverse_proxy {$GATEWAY_UPSTREAM:gateway:8000}
-	}
-	handle /calendar/* {
-		reverse_proxy {$GATEWAY_UPSTREAM:gateway:8000}
-	}
-	handle /users/* {
-		reverse_proxy {$GATEWAY_UPSTREAM:gateway:8000}
-	}
-	handle /reminders {
-		reverse_proxy {$GATEWAY_UPSTREAM:gateway:8000}
-	}
-	handle /reminders/* {
-		reverse_proxy {$GATEWAY_UPSTREAM:gateway:8000}
-	}
-	handle /notifications/* {
-		reverse_proxy {$GATEWAY_UPSTREAM:gateway:8000}
-	}
-	handle /ws* {
+	# Every Gateway route, same-origin in the cloud deployment. A new top-level Gateway route needs
+	# adding here.
+	@gateway path /auth/* /users/* /calendar/* /reminders /reminders/* /notifications/* /realtime/* /admin/* /ws*
+	handle @gateway {
 		reverse_proxy {$GATEWAY_UPSTREAM:gateway:8000}
 	}
 

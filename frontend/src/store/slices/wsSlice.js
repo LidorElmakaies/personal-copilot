@@ -1,54 +1,68 @@
 import { createSlice } from '@reduxjs/toolkit';
+import * as realtimeService from '../../services/http/realtimeService';
 import * as socketService from '../../services/ws/socketService';
+
+// Gateway's refusal when the device token isn't valid (e.g. JWT_SECRET changed): get a new one.
+const DEVICE_TOKEN_INVALID = 'device_token_invalid';
 
 const wsSlice = createSlice({
   name: 'ws',
   initialState: {
-    status: 'disconnected', // 'disconnected' | 'connecting' | 'connected'
+    deviceToken: null, // persisted: this install's /ws identity, fetched once
   },
   reducers: {
-    wsConnecting(state) {
-      state.status = 'connecting';
-    },
-    wsConnected(state) {
-      state.status = 'connected';
-    },
-    wsDisconnected(state) {
-      state.status = 'disconnected';
+    deviceTokenChanged(state, { payload }) {
+      state.deviceToken = payload;
     },
   },
 });
 
-export const { wsConnecting, wsConnected, wsDisconnected } = wsSlice.actions;
+const { deviceTokenChanged } = wsSlice.actions;
 export default wsSlice.reducer;
 
-// Thunks, not components, own the socket lifecycle — see src/services/ws/socketService.js.
-export function connectWebSocket() {
-  return (dispatch, getState) => {
-    const { accessToken } = getState().auth;
-    if (!accessToken) return;
+// The saved device token, or a new one from Gateway; null if Gateway can't be reached (the next
+// connectWebSocket tries again).
+const ensureDeviceToken = () => async (dispatch, getState) => {
+  const saved = getState().ws.deviceToken;
+  if (saved) return saved;
+  try {
+    const deviceToken = await realtimeService.requestDeviceToken();
+    dispatch(deviceTokenChanged(deviceToken));
+    return deviceToken;
+  } catch {
+    return null;
+  }
+};
 
-    // A new token for the same session (account update, refresh): keep the connection, use the
-    // token for its next reconnect. connect() would hand back this socket with no new 'connect'
-    // event, leaving the status stuck on 'connecting'.
-    const existing = socketService.getSocket();
-    if (existing) {
-      socketService.updateToken(accessToken);
-      dispatch(existing.connected ? wsConnected() : wsConnecting());
+// The app's one /ws connection; thunks, not components, own its lifecycle
+// (src/services/ws/socketService.js). Connects signed in or not (anonymous without a login token).
+// Signing in or out switches identity, so it reconnects; a new login token for the same session
+// (refresh, account update) keeps the connection and is sent on its next reconnect.
+export function connectWebSocket() {
+  return async (dispatch, getState) => {
+    const { accessToken } = getState().auth;
+    const current = socketService.currentToken();
+    if (current !== undefined && !!current === !!accessToken) {
+      if (accessToken) socketService.updateToken(accessToken);
       return;
     }
+    socketService.disconnect();
 
-    dispatch(wsConnecting());
-    const socket = socketService.connect(accessToken);
-    socket.on('connect', () => dispatch(wsConnected()));
-    socket.on('disconnect', () => dispatch(wsDisconnected()));
-    socket.on('connect_error', () => dispatch(wsDisconnected()));
+    const deviceToken = await dispatch(ensureDeviceToken());
+    if (!deviceToken || socketService.currentToken() !== undefined) return;
+    const socket = socketService.connect(
+      deviceToken,
+      getState().auth.accessToken,
+    );
+    socket.on('connect_error', (error) => {
+      if (error.message !== DEVICE_TOKEN_INVALID) return;
+      dispatch(deviceTokenChanged(null));
+      socketService.disconnect();
+      dispatch(connectWebSocket());
+    });
   };
 }
 
 export function disconnectWebSocket() {
-  return (dispatch) => {
-    socketService.disconnect();
-    dispatch(wsDisconnected());
-  };
+  return () => socketService.disconnect();
 }

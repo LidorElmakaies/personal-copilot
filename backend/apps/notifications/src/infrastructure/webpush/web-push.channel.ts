@@ -41,7 +41,7 @@ export class WebPushChannel implements INotificationChannel {
         return;
       }
 
-      // Rows from before the allowlist, or a host dropped from it since.
+      // A host dropped from the allowlist since the row was saved.
       const outcome = isAllowedPushEndpoint(sub.endpoint)
         ? await this.sender.send(sub, payload, ttlSeconds)
         : 'gone';

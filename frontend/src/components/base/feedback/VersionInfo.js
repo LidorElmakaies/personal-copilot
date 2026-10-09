@@ -11,22 +11,20 @@ const formatBuilt = (iso) =>
     minute: '2-digit',
   });
 
-// The app's and this frontend's versions and build time (src/config/version.js) — what's deployed.
+// This frontend's version and build time (src/config/version.js) — what's deployed.
 export default function VersionInfo({ style }) {
   const { colors } = useAppTheme();
-  const details = [
-    `Frontend ${VERSION.frontend ?? 'dev'}`,
-    VERSION.builtAt ? `built ${formatBuilt(VERSION.builtAt)}` : null,
-  ].filter(Boolean);
 
   return (
     <View style={[styles.box, style]} accessibilityLabel="Version">
       <Text style={[styles.app, { color: colors.textMuted }]}>
-        Personal Copilot {VERSION.app ?? 'dev'}
+        Personal Copilot {VERSION.frontend ?? 'dev'}
       </Text>
-      <Text style={[styles.details, { color: colors.textFaint }]}>
-        {details.join(' · ')}
-      </Text>
+      {VERSION.builtAt ? (
+        <Text style={[styles.details, { color: colors.textFaint }]}>
+          built {formatBuilt(VERSION.builtAt)}
+        </Text>
+      ) : null}
     </View>
   );
 }

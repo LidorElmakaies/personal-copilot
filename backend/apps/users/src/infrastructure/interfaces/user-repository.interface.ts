@@ -9,18 +9,32 @@ export interface CreateUserInput {
   role: UserRole;
 }
 
+/** Only the fields present change. */
+export interface CredentialsChange {
+  email?: string;
+  passwordHash?: string;
+  passwordSalt?: string;
+}
+
+/** Thrown by create/updateCredentials when another account has the email. */
+export class EmailTakenError extends Error {
+  constructor() {
+    super('Email is already registered');
+    this.name = 'EmailTakenError';
+  }
+}
+
 /** Implemented by TypeOrmUserRepository, consumed by AuthService and AdminSeedService. */
 export interface IUserRepository {
-  /** Creates the user and their profile, and publishes the profile's state — atomically. */
+  /** Creates the user and their profile, and publishes the profile's state — atomically. Throws EmailTakenError. */
   create(input: CreateUserInput, details: ProfileDetails): Promise<User>;
   findById(id: string): Promise<User | null>;
   findByEmail(email: string): Promise<User | null>;
-  updatePassword(
-    userId: string,
-    passwordHash: string,
-    passwordSalt: string,
-  ): Promise<void>;
-  updateEmail(userId: string, email: string): Promise<void>;
+  /**
+   * One transaction: an email and a password change land together or not at all, and a new
+   * password revokes every refresh token the user has. Throws EmailTakenError.
+   */
+  updateCredentials(userId: string, change: CredentialsChange): Promise<void>;
   /** Deletes the user (cascading to other services' rows about them) and publishes a tombstone — atomically. */
   delete(userId: string): Promise<void>;
 }

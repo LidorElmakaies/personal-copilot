@@ -1,11 +1,16 @@
 import { useEffect, useRef } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
-import { StatusBar } from 'react-native';
+import { AppState, StatusBar } from 'react-native';
 import { Provider, useDispatch, useSelector } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
-import { ThemeAnimProvider } from '../src/context/ThemeAnimContext';
+import UpdateSheet from '../src/components/composite/UpdateSheet';
 import { useAppTheme } from '../src/hooks/useAppTheme';
 import { persistor, store } from '../src/store';
+import {
+  checkForUpdate,
+  deleteOldUpdates,
+  listenForUpdates,
+} from '../src/store/slices/appUpdateSlice';
 import { clearAuth } from '../src/store/slices/authSlice';
 import {
   initNotifications,
@@ -19,18 +24,23 @@ import {
 } from '../src/store/slices/wsSlice';
 import { isTokenExpired, msUntilExpiry } from '../src/utils/jwt';
 
-// Connects/disconnects the WS as soon as a token becomes available/unavailable — app-wide.
+// One WS connection app-wide, signed in or not (anonymous without a token); reconnects on sign-in/
+// out. Closed while the app is in the background, opened again when it comes back.
 function RealtimeConnectionManager() {
   const dispatch = useDispatch();
   const { accessToken } = useSelector((state) => state.auth);
 
   useEffect(() => {
-    if (accessToken) {
-      dispatch(connectWebSocket());
-    } else {
-      dispatch(disconnectWebSocket());
-    }
+    if (AppState.currentState !== 'background') dispatch(connectWebSocket());
   }, [accessToken, dispatch]);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') dispatch(connectWebSocket());
+      else if (state === 'background') dispatch(disconnectWebSocket());
+    });
+    return () => sub.remove();
+  }, [dispatch]);
 
   return null;
 }
@@ -65,6 +75,29 @@ function PushSubscriptionManager() {
   }, [accessToken, ready, dispatch]);
 
   return null;
+}
+
+// The APK checks for a newer version on start, whenever it comes back to the foreground, and when
+// Gateway announces one over /ws (`app-update`); it clears update files it no longer needs on
+// start. appUpdateSlice skips this everywhere else. UpdateSheet is app-wide, so it opens over any
+// tab.
+function AppUpdateManager() {
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    dispatch(deleteOldUpdates());
+    dispatch(checkForUpdate());
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') dispatch(checkForUpdate());
+    });
+    const stopListening = dispatch(listenForUpdates());
+    return () => {
+      sub.remove();
+      stopListening();
+    };
+  }, [dispatch]);
+
+  return <UpdateSheet />;
 }
 
 // Login is optional app-wide (see CLAUDE.md) — clears an expired session on a timer and keeps a
@@ -117,14 +150,13 @@ export default function RootLayout() {
   return (
     <Provider store={store}>
       <PersistGate persistor={persistor}>
-        <ThemeAnimProvider>
-          <ThemedStatusBar />
-          <AuthGate />
-          <RealtimeConnectionManager />
-          <LocationSyncManager />
-          <PushSubscriptionManager />
-          <Stack screenOptions={{ headerShown: false }} />
-        </ThemeAnimProvider>
+        <ThemedStatusBar />
+        <AuthGate />
+        <RealtimeConnectionManager />
+        <LocationSyncManager />
+        <PushSubscriptionManager />
+        <Stack screenOptions={{ headerShown: false }} />
+        <AppUpdateManager />
       </PersistGate>
     </Provider>
   );

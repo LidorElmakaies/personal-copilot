@@ -6,3 +6,4 @@ export {
   NAME_PATTERN,
 } from './messages/validators';
 export * from './messages/user-state';
+export * from './messages/frontend-release';

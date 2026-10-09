@@ -2,12 +2,12 @@
 
 How the pieces in `docs/specs/services.md` fit together — diagrams plus the compose/build wiring
 that doesn't fit one. See `services.md` for the per-service contract and `event-schemas.md` for the
-queue/job contract.
+queue, job and event contracts.
 
 ## System topology
 
 Two access paths exist to reach Gateway. The Tailscale path is what actually runs today. The
-cloud/Hetzner path is code that's in place on this branch (Gateway's rate limiting, `trust proxy`
+cloud/Hetzner path is code that's in place in the repo (Gateway's rate limiting, `trust proxy`
 handling, `frontend/Caddyfile`'s proxy blocks, `devops/frontend/docker-compose.cloud.yml`) to
 support a planned deployment — the VPS itself isn't provisioned or live. Both are valid at once:
 nothing about the Tailscale path changes, since `frontend/Caddyfile`'s `{$GATEWAY_UPSTREAM}` and
@@ -22,14 +22,15 @@ flowchart LR
     subgraph Home["Home PC"]
         TsServe["tailscale serve\nHTTPS :443 / :8443"]
         Gateway["gateway\n:8000\n(+ /calendar/shabbat, @app/jewish-calendar)"]
-        FrontendLocal["frontend\n:8081 (Caddy, local mode)"]
+        FrontendLocal["frontend\n:8081 (Caddy, local mode;\n/apk/ registry)"]
+        ApkRegistry[("devops/data/apk\nAPK registry: latest.json, APKs")]
         subgraph Docker["Docker network: personal-copilot"]
             Users["users"]
             Reminders["reminders\n(scheduler, @app/jewish-calendar)"]
             Notifications["notifications\n(Web Push)"]
             Postgres[("postgres\nDB personal_copilot, schemas:\nusers, reminders, notifications")]
             Redis[("redis\nBullMQ queues: notification-requested,\nreminder-due")]
-            Kafka[("kafka\ntopic: users.user-state")]
+            Kafka[("kafka\ntopics: users.user-state,\nfrontend.releases")]
         end
     end
 
@@ -42,8 +43,10 @@ flowchart LR
     TsServe -->|":8443 → :8000 (REST + WS)"| Gateway
 
     Browser -->|HTTPS| CaddyCloud
-    CaddyCloud -->|"/auth/*, /calendar/*, /users/*, /reminders*, /notifications/*, /ws* via SSH reverse tunnel"| Gateway
+    CaddyCloud -->|"every Gateway route (@gateway) via SSH reverse tunnel"| Gateway
 
+    FrontendLocal -->|"serves /apk/ (read-only)"| ApkRegistry
+    Kafka -->|"frontend.releases → app-update over /ws"| Gateway
     Gateway -->|"HTTP (+ X-User-Id on /users/me*)"| Users
     Gateway -->|"HTTP + X-User-Id"| Reminders
     Gateway -->|"HTTP + X-User-Id"| Notifications
@@ -60,10 +63,11 @@ flowchart LR
 
 Only `gateway` and `frontend` are reachable from outside the Docker network. Over Tailscale,
 `frontend` is a container on the same Docker host as `gateway`, and `tailscale serve`
-(`devops/tailscale/serve.sh`) puts both behind HTTPS with the machine's `*.ts.net` certificate —
+(`devops/tailscale/serve.js`) puts both behind HTTPS with the machine's `*.ts.net` certificate —
 required because phone browsers only allow GPS on HTTPS pages. The frontend build calls Gateway at
-that HTTPS `:8443` address directly (`GATEWAY_PUBLIC_URL`), not through the local Caddy. Expo Go /
-native builds don't need HTTPS and can call Gateway at the PC's tailnet IP on `:8000`; in the cloud path, `frontend`
+that HTTPS `:8443` address directly (`GATEWAY_PUBLIC_URL`), not through the local Caddy. The Android
+APK uses the same HTTPS address (Android blocks plain HTTP), and Gateway's `:8000` is bound to
+`127.0.0.1`, so nothing reaches it without going through `tailscale serve`. In the cloud path, `frontend`
 (Caddy) instead runs standalone on the VPS and reaches `gateway` only via an SSH reverse tunnel
 from the home machine (see "SSH reverse-tunnel hardening" below) — `gateway` itself is never given
 a public port either way. `users`, `reminders`, and `notifications` are
@@ -71,21 +75,26 @@ internal-only; `users` publishes every profile change to Kafka (`users.user-stat
 its outbox; Reminders consumes it); `reminders` stores per-user reminders and fires them as delayed
 BullMQ jobs, publishing `notification-requested`. All calendar maths is the in-process
 `@app/jewish-calendar` library, used by Reminders and by Gateway, which serves Home's
-`GET /calendar/shabbat` itself (its one non-proxy route);
+`GET /calendar/shabbat` itself;
 `notifications` stores browsers' Web Push subscriptions and processes `notification-requested`
 jobs from Redis (BullMQ), sending each to every device the user has through that browser's push
-service, end-to-end encrypted, and retrying the job for devices that weren't reached. Gateway's WS (`/ws`) authenticates connections and can push to a specific
-user (`IRealtimeConnectionService.pushToUser`), but no feature sends anything over it yet either.
+service, end-to-end encrypted, and retrying the job for devices that weren't reached. Gateway's WS (`/ws`) holds one connection per
+device (each app install has a device token from `POST /realtime/device`; signed in or anonymous)
+and can push to every device of a user
+(`IRealtimeConnectionService.pushToUser`) or broadcast to all; today it broadcasts `app-update`
+when `apk.js publish` announces a new release on Kafka (`frontend.releases`); the release itself
+is in the APK registry (`devops/data/apk`), served by the frontend's Caddy at `/apk/`.
 
 Gateway rate-limits globally (`@nestjs/throttler`, `THROTTLE_TTL_MS`/`THROTTLE_LIMIT`) plus a
-tighter per-route limit on `/auth/register`, `/auth/login`, `/auth/refresh`, `/auth/account`
-(`AUTH_THROTTLE_TTL_MS`/`AUTH_THROTTLE_LIMIT`) — see `docs/specs/services.md#gateway`. The limiter
-keys on client IP, so Gateway's `main.ts` sets `app.set('trust proxy', 'loopback')`: it trusts
-`X-Forwarded-For` only when the connection reaches it *from* loopback. In the cloud path that's
-exactly the SSH tunnel's local end (Caddy → tunnel → Gateway all resolve to loopback hops on the
-way in), so the limiter sees the real client IP Caddy forwarded. A connection reaching Gateway any
-other way — e.g. directly over Tailscale — doesn't arrive from loopback, so `trust proxy` is
-ignored for it and it can't spoof its IP by sending its own `X-Forwarded-For`.
+tighter per-route limit on `/auth/register`, `/auth/login`, `/auth/refresh`, `/auth/account` (both
+methods) and `/realtime/device` (`AUTH_THROTTLE_TTL_MS`/`AUTH_THROTTLE_LIMIT`) — see `docs/specs/services.md#gateway`. The limiter
+keys on client IP. Gateway's port is published on `127.0.0.1` only, so the only ways in are local
+proxies: `tailscale serve` (phones) and the SSH tunnel's local end (cloud: Caddy → tunnel). Both
+reach the container through Docker's bridge, never as the real client, and both set
+`X-Forwarded-For`. `src/trust-proxy.ts`'s `TRUST_PROXY` (loopback + private networks) trusts exactly
+those hops (Express's `trust proxy`), so the limiter sees the client's own IP — which also bounds
+`/ws`, since each connection needs a device token from the rate-limited `POST /realtime/device`. Nothing can reach the port from outside the machine to send a forged
+header — that's what makes the trust safe, so the port must stay bound to `127.0.0.1`.
 
 ## SSH reverse-tunnel hardening (Hetzner deployment)
 
@@ -236,6 +245,39 @@ sequenceDiagram
     end
 ```
 
+## Flow: Android app update
+
+Android APK only, no login. The registry is static files the frontend's Caddy serves at `/apk/`,
+written by `apk.js publish`, which then announces a new newest release on Kafka
+(`frontend.releases`); Gateway relays it over `/ws` (`services.md#gateway`), so an open app checks
+right away.
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant App as Android app (AppUpdateManager, UpdateSheet)
+    participant Reg as frontend Caddy /apk/
+    participant Gateway as Gateway /ws
+    participant Android as Android installer
+
+    App->>App: on start: delete cached APKs at or below the installed versionCode
+    App->>Gateway: connect with its device token (closed while in the background)
+    opt apk.js publish while the app is open
+        Note over Gateway: frontend.releases event (Kafka, from apk.js publish)
+        Gateway-->>App: app-update {} (broadcast)
+    end
+    App->>Reg: GET latest.json (on start, on return to foreground, on app-update)
+    Reg-->>App: { version, versionCode, url, notes }
+    alt versionCode > installed
+        App->>App: UpdateSheet opens (once per version), UpdateChip on Home
+        User->>App: Update
+        App->>Reg: GET the APK → cache/updates/(versionCode).part, progress + Cancel
+        App->>App: rename to .apk (status ready)
+        App->>Android: ACTION_VIEW content:// URI
+        Android-->>User: install screen (first time: allow installs from this app)
+    end
+```
+
 ## Compose & build layout
 
 `devops/docker-compose.yml` only lists what to `include:` (one `devops/<unit>/docker-compose.yml`
@@ -276,7 +318,9 @@ itself inside it (`devops/android` mounted read-only at `/tools`) over a read-on
 `frontend/` mount, with Docker volumes caching the SDK (`pc-android-sdk`), Gradle
 (`pc-android-gradle`) and npm, and the release key plus the built APKs in `devops/data/android/`.
 It sets the same `EXPO_PUBLIC_*` values the web image does, from `devops/.env` and
-`version/versions.json`. arm64 by default (`ANDROID_ABIS=arm64-v8a,x86_64` → an `-emulator` APK).
+`version/versions.json`, plus `EXPO_PUBLIC_APK_REGISTRY_URL` — where the app checks for updates:
+`APK_REGISTRY_URL` (env or `devops/.env`), else `https://<GATEWAY_PUBLIC_URL's host>/apk/`, the
+frontend's address as `devops/tailscale/serve.js` publishes it. arm64 by default (`ANDROID_ABIS=arm64-v8a,x86_64` → an `-emulator` APK).
 `node devops/android/apk.js publish` copies a built APK into `devops/data/apk/` — directly, or via
 a `node:22-alpine` container when that folder is root-owned — which `frontend`'s Caddy serves at
 `/apk/` (local mode only — see `frontend/README.md`).
@@ -288,8 +332,8 @@ build time, so a runtime-only value would silently never reach the client.
 `docker-compose.cloud.yml`) adds `additional_contexts: version: ../../version` — just the repo's
 `version/` folder, not the whole repo as context. Each backend Dockerfile extracts only its own
 entry in a separate `own-version` stage, so bumping one service's version leaves every other
-image's layers — and its baked-in build time — cached. The frontend reads `app` and `frontend`
-from it into `EXPO_PUBLIC_*` vars at build time. A standalone `docker build` must pass
+image's layers — and its baked-in build time — cached. The frontend reads its own `frontend` entry
+from it into an `EXPO_PUBLIC_*` var at build time. A standalone `docker build` must pass
 `--build-context version=../version`. What the versions are and where they're shown:
 `services.md#versions`.
 
@@ -307,9 +351,9 @@ published to the host. AOF (`appendfsync everysec`) with RDB snapshots off, data
 `devops/data/redis`, so queued and delayed jobs survive a restart. `maxmemory 64mb` with
 `noeviction`, which BullMQ requires: a full Redis rejects new jobs (the publisher gets an error)
 instead of silently evicting queue keys. `notifications` waits on its healthcheck
-(`service_healthy`). The opt-in Redis tests need a Redis of its own on the host
-(`REDIS_IT_URL=redis://localhost:6379 npx jest notification-flow.it queue-roundtrip`), since this one isn't reachable
-from outside Docker.
+(`service_healthy`). The opt-in Redis tests run against a throwaway Redis
+of their own (see CLAUDE.md's Commands) — this one isn't reachable from outside Docker, and they
+empty the queues they use.
 
 **Kafka**: `apache/kafka:4.3.1`, one node in KRaft mode (broker and controller in one, no
 ZooKeeper), holds only events (see `event-schemas.md`). Not published to the host: it has no

@@ -93,24 +93,9 @@ export default function LoginScreen() {
           />
         </GlowCard>
 
-        {status === 'failed' && error && (
-          <View
-            style={[
-              styles.feedback,
-              {
-                backgroundColor: colors.errorBg,
-                borderColor: colors.errorBorder,
-              },
-            ]}
-          >
-            <Text style={[styles.feedbackTitle, { color: colors.error }]}>
-              ✗ Error
-            </Text>
-            <Text style={[styles.feedbackBody, { color: colors.text }]}>
-              {error}
-            </Text>
-          </View>
-        )}
+        {status === 'failed' && error ? (
+          <Alert variant="error">{error}</Alert>
+        ) : null}
 
         <TouchableOpacity
           onPress={() => {
@@ -151,9 +136,6 @@ const styles = StyleSheet.create({
   subheading: { fontSize: 14 },
   fields: { gap: 16, marginBottom: 16 },
   submit: { marginTop: 0 },
-  feedback: { borderWidth: 1, borderRadius: 16, padding: 16, gap: 8 },
-  feedbackTitle: { fontSize: 14, fontWeight: '700', letterSpacing: 0.5 },
-  feedbackBody: { fontSize: 13, lineHeight: 20 },
   switchLink: { alignItems: 'center', paddingVertical: 8 },
   switchText: { fontSize: 14, textAlign: 'center' },
   switchTextBold: { fontWeight: '700' },

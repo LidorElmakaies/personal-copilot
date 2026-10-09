@@ -1,6 +1,6 @@
 const { test, expect } = require('@playwright/test');
 
-// Location sync (plan task 2.12): signed in + a fresh GPS fix → PUT /users/me/location only when
+// Location sync: signed in + a fresh GPS fix → PUT /users/me/location only when
 // the server has no location, it's > 5 km away, or the time zone differs. Gateway fully mocked.
 
 const TEL_AVIV = { latitude: 32.0853, longitude: 34.7818 };

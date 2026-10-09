@@ -16,7 +16,7 @@ const ISRAEL_DEFAULT_MINUTES = 20;
 // Tzfat and Haifa"), plus Zikhron Ya'akov 30 (Hebcal; OU lists it with Haifa). Hebcal's own table
 // misses Petach Tikva and Tzfat. Radii are approximate: near a border a neighboring town can count
 // as the city, or a far edge of it not (see README.md).
-export const ISRAEL_CITY_CUSTOMS: readonly CityCustom[] = [
+const ISRAEL_CITY_CUSTOMS: readonly CityCustom[] = [
   {
     name: 'Jerusalem',
     latitude: 31.7683,

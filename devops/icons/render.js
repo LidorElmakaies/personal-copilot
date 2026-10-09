@@ -1,6 +1,13 @@
-// Renders frontend/assets/icon/icon.svg to every PNG the app needs. Run via render-icons.sh.
+// Renders frontend/assets/icon/icon.svg to every PNG the app needs; re-run after editing the SVG.
+// Plain Node, Linux and Windows alike: node devops/icons/render.js
+// It runs itself (`inside`) in the same pinned Playwright image as the e2e tests, so nothing but
+// Docker is needed on the host.
+'use strict';
 const fs = require('fs');
-const { chromium } = require('playwright');
+const path = require('path');
+const { spawnSync } = require('child_process');
+
+const ROOT = path.resolve(__dirname, '../..');
 
 const SRC = '/frontend/assets/icon/icon.svg';
 // viewBox crops of the 108 canvas: FULL keeps Android's adaptive margins (and the maskable web
@@ -23,7 +30,8 @@ const OUTPUTS = [
   { file: 'public/icons/apple-touch-icon.png', size: 180, viewBox: TIGHT },
 ];
 
-(async () => {
+async function render() {
+  const { chromium } = require('playwright'); // the container's, via NODE_PATH
   const svg = fs.readFileSync(SRC, 'utf8');
   const browser = await chromium.launch();
   for (const o of OUTPUTS) {
@@ -38,7 +46,40 @@ const OUTPUTS = [
     console.log(`${o.file} (${o.size}px)`);
   }
   await browser.close();
-})().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+}
+
+// The Playwright image devops/playwright/docker-compose.yml pins.
+function playwrightImage() {
+  const compose = fs.readFileSync(path.join(ROOT, 'devops/playwright/docker-compose.yml'), 'utf8');
+  return /^\s*image:\s*(\S+)/m.exec(compose)[1];
+}
+
+function inDocker() {
+  const r = spawnSync(
+    'docker',
+    [
+      'run', '--rm',
+      // Linux: write the PNGs as you, not root. Docker Desktop (Windows) maps ownership itself.
+      ...(process.getuid ? ['--user', `${process.getuid()}:${process.getgid()}`] : []),
+      '-e', 'HOME=/tmp',
+      '-v', `${path.join(ROOT, 'frontend')}:/frontend`,
+      '-v', `${__dirname}:/icons:ro`,
+      '-w', '/frontend/e2e',
+      playwrightImage(),
+      'sh', '-c',
+      'npm ci --no-audit --no-fund --loglevel=error && NODE_PATH=/frontend/e2e/node_modules node /icons/render.js inside',
+    ],
+    { stdio: 'inherit' },
+  );
+  if (r.error) throw r.error;
+  process.exit(r.status ?? 1);
+}
+
+if (process.argv[2] === 'inside') {
+  render().catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });
+} else {
+  inDocker();
+}

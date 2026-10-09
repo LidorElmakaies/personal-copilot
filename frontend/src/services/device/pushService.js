@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 // build only; everything reports 'unsupported' elsewhere.
 const SW_URL = '/sw.js';
 
-export function isSupported() {
+function isSupported() {
   return (
     Platform.OS === 'web' &&
     typeof window !== 'undefined' &&

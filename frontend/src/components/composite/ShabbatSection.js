@@ -1,16 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import GradientButton from '../base/buttons/GradientButton';
 import { useAppTheme } from '../../hooks/useAppTheme';
-
-const pad2 = (n) => String(n).padStart(2, '0');
-const formatTime = (date) =>
-  `${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
-const formatDay = (date) =>
-  date.toLocaleDateString('en-GB', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-  });
+import { formatDay, formatTime, pad2 } from '../../utils/time';
 
 function countdownParts(from, to) {
   const totalMinutes = Math.max(0, Math.floor((to - from) / 60000));

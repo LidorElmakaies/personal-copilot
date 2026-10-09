@@ -8,7 +8,7 @@ services:
       additional_contexts:
         version: ../../version
       args:
-        # Same-origin as the site itself — Caddy proxies /auth, /calendar, /notifications and /ws, see frontend/Caddyfile.
+        # Same-origin as the site itself — Caddy proxies every Gateway route (`@gateway`, frontend/Caddyfile).
         - GATEWAY_PUBLIC_URL=https://${DOMAIN}
     restart: unless-stopped
     logging:

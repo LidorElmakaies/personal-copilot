@@ -2,7 +2,7 @@ const { test, expect } = require('@playwright/test');
 
 // The APK registry Caddy serves at /apk/ (`node devops/android/apk.js publish` writes it). Read-only
 // against whatever is published; skipped where nothing is (an empty registry, the cloud deployment).
-// The publisher's own logic is tested by `node --test devops/android/`.
+// The publisher's own logic is tested by `node --test devops/android/apk.test.js`.
 
 test.describe('APK registry', () => {
   let releases;

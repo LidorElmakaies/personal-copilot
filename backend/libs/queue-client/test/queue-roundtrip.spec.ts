@@ -6,7 +6,7 @@ import { BullmqQueuePublisher } from '../src/bullmq-queue-publisher';
 import type { JobMeta } from '../src/queue-consumer.interface';
 import { redisConnectionFromUrl } from '../src/redis-connection';
 
-// Opt-in: needs a real Redis. REDIS_IT_URL=redis://localhost:6379 npx jest queue-roundtrip
+// Opt-in: needs a throwaway Redis — see CLAUDE.md's Commands. REDIS_IT_URL=redis://127.0.0.1:6390 npx jest queue-roundtrip
 const url = process.env.REDIS_IT_URL;
 const maybe = url ? describe : describe.skip;
 

@@ -7,14 +7,22 @@ import {
   Post,
 } from '@nestjs/common';
 import { AUTH_SERVICE } from '../../tokens';
-import type { IAuthService } from '../../application/interfaces/auth-service.interface';
+import type {
+  AuthTokens,
+  IAuthService,
+} from '../../application/interfaces/auth-service.interface';
 import { DeleteAccountDto } from '../dto/delete-account.dto';
 import { LoginDto } from '../dto/login.dto';
 import { RefreshTokenDto } from '../dto/refresh-token.dto';
 import { RegisterDto } from '../dto/register.dto';
 import { UpdateAccountDto } from '../dto/update-account.dto';
 
-// No `user` object in any response — see docs/specs/services.md#users.
+// Every token response, and nothing else — see docs/specs/services.md#users.
+const toTokenResponse = (tokens: AuthTokens) => ({
+  access_token: tokens.accessToken,
+  refresh_token: tokens.refreshToken,
+});
+
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -30,10 +38,7 @@ export class AuthController {
       lastName: dto.lastName,
       phone: dto.phone,
     });
-    return {
-      access_token: tokens.accessToken,
-      refresh_token: tokens.refreshToken,
-    };
+    return toTokenResponse(tokens);
   }
 
   @Post('login')
@@ -43,20 +48,14 @@ export class AuthController {
       email: dto.email,
       password: dto.password,
     });
-    return {
-      access_token: tokens.accessToken,
-      refresh_token: tokens.refreshToken,
-    };
+    return toTokenResponse(tokens);
   }
 
   @Post('refresh')
   @HttpCode(200)
   async refresh(@Body() dto: RefreshTokenDto) {
     const tokens = await this.authService.refresh(dto.refresh_token);
-    return {
-      access_token: tokens.accessToken,
-      refresh_token: tokens.refreshToken,
-    };
+    return toTokenResponse(tokens);
   }
 
   @Post('logout')
@@ -74,10 +73,7 @@ export class AuthController {
       newEmail: dto.newEmail,
       newPassword: dto.newPassword,
     });
-    return {
-      access_token: tokens.accessToken,
-      refresh_token: tokens.refreshToken,
-    };
+    return toTokenResponse(tokens);
   }
 
   @Delete('account')

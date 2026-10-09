@@ -43,7 +43,7 @@ const isTimeZone = (v: unknown): v is string => {
 const inRange = (v: unknown, max: number): v is number =>
   typeof v === 'number' && Number.isFinite(v) && Math.abs(v) <= max;
 
-export function isUserLocation(value: unknown): value is UserLocation {
+function isUserLocation(value: unknown): value is UserLocation {
   if (!isRecord(value)) return false;
   return (
     inRange(value.lat, 90) &&

@@ -15,9 +15,6 @@ async function bootstrap() {
   const logger = new OtelLogger();
   const app = await NestFactory.create(UsersModule, { logger });
   app.use(createRequestLoggingMiddleware(logger));
-  // Only the Gateway calls this in practice (never the frontend directly), but CORS stays
-  // permissive for the Docker Compose dev phase, same rationale as Gateway's own main.ts.
-  app.enableCors({ origin: true });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
 
   installGracefulShutdown(app);

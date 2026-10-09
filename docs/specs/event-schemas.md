@@ -79,11 +79,15 @@ by `devops/kafka`'s `kafka-init` (auto-create is off). The table below, `KAFKA_T
 | Topic | Publisher | Consumers (group) | Notes |
 |---|---|---|---|
 | `users.user-state` | Users (register, `PATCH /users/me`, `PUT /users/me/location`) | Reminders (`reminders`: reschedule on a change) | compacted; tombstone on delete |
+| `frontend.releases` | `devops/android/apk.js publish` (when the newest release changes) | Gateway (`gateway`: `app-update` over `/ws`) | compacted, keyed by platform |
 
 Event rules:
-- Every message is keyed by `userId`, so one user's events stay in order (one partition per key).
-- Published only through the outbox (`addOutboxEvent` in the same transaction as the change, then
-  `OutboxRelay`): an event is never lost, but can arrive twice. Consumers must be idempotent.
+- Every message is keyed by what it's about (`userId`, or the platform for `frontend.releases`), so
+  its events stay in order (one partition per key).
+- A service publishes only through the outbox (`addOutboxEvent` in the same transaction as the
+  change, then `OutboxRelay`): an event is never lost, but can arrive twice. Consumers must be
+  idempotent. `frontend.releases` is the one exception — sent by a host script, best effort (see
+  its section).
 - A message failing its guard is logged and skipped, never retried. A handler that throws is
   retried, and blocks that partition until it succeeds.
 - Each consuming service has one group id from `KAFKA_CONSUMER_GROUPS`; a new group starts from the
@@ -114,6 +118,24 @@ interface UserStateMessage {
     tz: string;          // IANA time zone
     updatedAt: string;   // ISO 8601
   } | null;
+}
+```
+
+## `frontend.releases`
+
+The newest published release of the app, keyed by platform (`android`). `apk.js publish` sends it
+once `latest.json`'s newest release changes (never for `-test.N` builds), through the running
+`kafka` container (`kafka-console-producer.sh`; the broker isn't published to the host). Best
+effort: with the stack down nothing is sent, and apps find the release on their next start.
+Compacted, so Kafka keeps just the latest per platform. Gateway only uses it as a trigger — it
+broadcasts `app-update` with no version, and the app reads `latest.json` itself.
+
+```ts
+// libs/kafka-contracts/src/messages/frontend-release.ts
+interface FrontendReleaseMessage {
+  version: string;      // e.g. 0.4.0
+  versionCode: number;  // Android's (frontend/src/utils/versionCode.js)
+  publishedAt: string;  // ISO 8601
 }
 ```
 

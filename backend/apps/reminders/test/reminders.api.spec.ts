@@ -28,7 +28,7 @@ describe('reminders API (reminders)', () => {
         { provide: REMINDER_SERVICE, useClass: ReminderService },
         { provide: REMINDER_REPOSITORY, useValue: repo },
         {
-          // Scheduling has its own spec (reminder-scheduler.spec.ts); here it changes nothing.
+          // Scheduling has its own spec (reminder-scheduler.service.spec.ts); here it changes nothing.
           provide: REMINDER_SCHEDULER,
           useValue: {
             schedule: (r: Reminder) => Promise.resolve(r),
@@ -115,7 +115,7 @@ describe('reminders API (reminders)', () => {
     expect(repo.rows.size).toBe(1);
   });
 
-  it('ignores a location sent by an older client — it comes from the profile now', async () => {
+  it('ignores a location in the body — it comes from the profile', async () => {
     const res = await put({
       ...settings,
       lat: 32,

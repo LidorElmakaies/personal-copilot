@@ -1,3 +1,5 @@
+import { isIsoDate, isNonEmptyString } from './validators';
+
 /** A job on the `reminder-due` queue: one reminder's next firing. See docs/specs/event-schemas.md. */
 export interface ReminderDueMessage {
   reminderId: string;
@@ -6,12 +8,6 @@ export interface ReminderDueMessage {
   /** ISO 8601 — the candle lighting it's for; the notification expires then. */
   candleLighting: string;
 }
-
-const isNonEmptyString = (v: unknown): v is string =>
-  typeof v === 'string' && v.length > 0;
-
-const isIsoDate = (v: unknown): v is string =>
-  isNonEmptyString(v) && !Number.isNaN(Date.parse(v));
 
 export function isReminderDueMessage(
   value: unknown,
@@ -30,7 +26,7 @@ export function reminderDueJobId(reminderId: string, fireAt: Date): string {
   return `${reminderId}_${fireAt.getTime()}`;
 }
 
-// Retries: 30s, 1m, 2m, … — a Calendar or Redis hiccup at fire time shouldn't lose the reminder.
+// Retries: 30s, 1m, 2m, … — a Redis or database hiccup at fire time shouldn't lose the reminder.
 const ATTEMPTS = 8;
 const FIRST_RETRY_MS = 30_000;
 

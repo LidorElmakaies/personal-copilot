@@ -1,3 +1,5 @@
+import { isIsoDate, isNonEmptyString } from './validators';
+
 export type NotificationChannel = 'webpush';
 
 /** A job on the `notification-requested` queue. See docs/specs/event-schemas.md. */
@@ -20,12 +22,6 @@ export interface NotificationRequestedMessage {
 }
 
 const CHANNELS: readonly string[] = ['webpush'] satisfies NotificationChannel[];
-
-const isNonEmptyString = (v: unknown): v is string =>
-  typeof v === 'string' && v.length > 0;
-
-const isIsoDate = (v: unknown): v is string =>
-  isNonEmptyString(v) && !Number.isNaN(Date.parse(v));
 
 export function isNotificationRequestedMessage(
   value: unknown,

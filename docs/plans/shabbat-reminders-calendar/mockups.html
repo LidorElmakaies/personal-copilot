@@ -312,6 +312,33 @@ section.group{margin-top:44px}
 .oldRow .get{font:600 12px var(--sans);color:var(--accent);border:1px solid var(--cardBorder);border-radius:999px;padding:5px 11px}
 .oldRow .notes{grid-column:1/-1;font-size:11.5px}
 .firstTime{font-size:11.5px;color:var(--pending);background:var(--pendingBg);border-radius:10px;padding:8px 10px}
+/* in-app update (task 2.22) */
+.upIcon{width:52px;height:52px;border-radius:14px;overflow:hidden;flex:none}
+.upIcon svg{width:100%;height:100%;display:block}
+.verLine{display:flex;align-items:center;gap:8px;font:600 12px var(--mono);color:var(--muted)}
+.verLine b{color:var(--accent)}
+.verLine .arrow{color:var(--faint)}
+.upBanner{display:flex;align-items:center;gap:10px;background:var(--accentSoft);border:1px solid var(--cardBorder);border-radius:14px;padding:10px 12px}
+.upBanner .upIcon{width:34px;height:34px;border-radius:10px}
+.upBanner strong,.upBanner small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.upBanner strong{font-size:13px}
+.upBanner small{font-size:11px;color:var(--muted)}
+.upBanner .go{font:700 12px var(--sans);color:var(--bg);background:var(--accent);border-radius:999px;padding:6px 12px;flex:none}
+.upBanner .x{color:var(--faint);font-size:16px;line-height:1;flex:none}
+.upChip{display:inline-flex;align-items:center;gap:5px;font:700 11px var(--mono);padding:3px 9px;border-radius:999px;background:var(--accentSoft);color:var(--accent);border:1px solid var(--cardBorder)}
+.upChip svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2.6}
+.chips{display:flex;gap:6px;align-items:center}
+.upRow{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px;padding:8px 10px;border-radius:12px;background:var(--accentSoft);font-size:12px;color:var(--text)}
+.upRow b{font-family:var(--mono);color:var(--accent)}
+.upRow .more{font-weight:700;color:var(--accent);flex:none}
+.upFab{align-self:flex-end;position:relative;width:38px;height:38px;border-radius:12px;background:var(--card);border:1px solid var(--cardBorder);display:grid;place-items:center;color:var(--accent)}
+.upFab svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2.2}
+.upFab::after{content:"";position:absolute;top:-3px;right:-3px;width:10px;height:10px;border-radius:50%;background:var(--candle);border:2px solid var(--screen1)}
+.bar{height:8px;border-radius:4px;background:var(--cardBorderSoft);overflow:hidden}
+.bar i{display:block;height:100%;border-radius:4px;background:var(--accent)}
+.dlLine{display:flex;justify-content:space-between;font:600 12px var(--mono);color:var(--muted)}
+.phone .dim.bottom{align-items:flex-end;padding:0}
+.phone .dim.bottom .sheet{border-radius:22px 22px 0 0;padding:14px 16px 20px}
 .latestBadge{font:700 10px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--success);background:var(--successBg);border-radius:999px;padding:2px 8px}
 .tlRel{position:relative;padding-left:20px;display:flex;flex-direction:column;gap:14px}
 .tlRel::before{content:"";position:absolute;left:6px;top:6px;bottom:6px;width:2px;background:var(--cardBorderSoft)}
@@ -845,6 +872,197 @@ section.group{margin-top:44px}
         <ul><li>Lighter than D1; the newest is less prominent</li><li>Scales the same with 2 or 20 versions</li></ul>
       </div>
     </div>
+  </section>
+
+  <!-- ================= IN-APP UPDATE (task 2.22) ================= -->
+  <section class="group">
+    <div class="groupHead"><h2>In-app update prompt</h2><span>Task 2.22 · chosen: <b>U2 bottom sheet + K1 chip</b> · Android app only · reads <code>/apk/latest.json</code> on start and when the app comes back to the foreground · example: installed 0.1.1, newest 0.2.0</span></div>
+    <div class="row">
+
+      <div class="idea">
+        <div class="ideaLabel"><span class="tag">U1</span><h3>Dialog over the app</h3></div>
+        <div class="phone"><div class="screen center">
+          <div class="glow">
+            <div class="statusRow"><span class="loc">Tel Aviv</span><span class="chip">Live</span></div>
+            <div class="clock">10:42:18</div>
+            <div class="dates"><span class="dNum">9.10.2026</span><span class="dHeb he">כ״ז תשרי תשפ״ז</span></div>
+            <div class="divider"></div>
+            <div class="split"><div><span class="sub">Candle lighting</span><span class="big candle">17:57</span></div><div><span class="sub">Havdalah</span><span class="big">18:54</span></div></div>
+          </div>
+        </div>
+        <div class="tabbar" data-tab="home"></div>
+        <div class="dim"><div class="glow sheet">
+          <div class="upIcon"><svg viewBox="0 0 108 108" aria-hidden="true"><use href="#icApp"/></svg></div>
+          <h4>Update available</h4>
+          <div class="verLine"><span>0.1.1</span><span class="arrow">→</span><b>0.2.0</b></div>
+          <span class="lbl">What's new</span>
+          <ul class="notes"><li>New app icon</li><li>Reminder sheet closes by dragging or tapping outside</li><li>Logout ends the session on the server</li></ul>
+          <div class="btns"><span class="btn primary">Update</span><span class="btn">Later</span></div>
+        </div></div></div>
+        <p>The same centered dialog as the notifications prompt (N1, <code>ConfirmModal</code>) with the release notes inside. Hard to miss; one tap to update.</p>
+        <ul>
+          <li>Blocks the screen until you choose</li>
+          <li>Long notes scroll inside the dialog</li>
+        </ul>
+      </div>
+
+      <div class="idea">
+        <div class="ideaLabel"><span class="tag">U2</span><h3>Bottom sheet</h3></div>
+        <div class="phone"><div class="screen center">
+          <div class="glow">
+            <div class="statusRow"><span class="loc">Tel Aviv</span><span class="chip">Live</span></div>
+            <div class="clock">10:42:18</div>
+            <div class="dates"><span class="dNum">9.10.2026</span><span class="dHeb he">כ״ז תשרי תשפ״ז</span></div>
+            <div class="divider"></div>
+            <div class="split"><div><span class="sub">Candle lighting</span><span class="big candle">17:57</span></div><div><span class="sub">Havdalah</span><span class="big">18:54</span></div></div>
+          </div>
+        </div>
+        <div class="tabbar" data-tab="home"></div>
+        <div class="dim bottom"><div class="sheet glow">
+          <div class="grab"></div>
+          <div style="display:flex;gap:12px;align-items:center">
+            <div class="upIcon" style="width:44px;height:44px;border-radius:12px"><svg viewBox="0 0 108 108" aria-hidden="true"><use href="#icApp"/></svg></div>
+            <div><h4>Version 0.2.0 is available</h4><div class="verLine"><span>You have 0.1.1</span></div></div>
+          </div>
+          <span class="lbl">What's new</span>
+          <ul class="notes"><li>New app icon</li><li>Reminder sheet closes by dragging or tapping outside</li><li>Logout ends the session on the server</li></ul>
+          <div class="btns"><span class="btn primary">Update</span><span class="btn">Later</span></div>
+        </div></div></div>
+        <p>The same <code>BottomSheet</code> as the reminder offset sheet (R2). Drag down or tap outside = Later.</p>
+        <ul>
+          <li>Feels lighter than a dialog; the app stays visible above it</li>
+          <li>Easy to reach Update with a thumb</li>
+        </ul>
+      </div>
+
+      <div class="idea">
+        <div class="ideaLabel"><span class="tag">U3</span><h3>Banner at the top of Home</h3></div>
+        <div class="phone"><div class="screen">
+          <div class="upBanner">
+            <div class="upIcon"><svg viewBox="0 0 108 108" aria-hidden="true"><use href="#icApp"/></svg></div>
+            <div style="flex:1;min-width:0"><strong>Update to 0.2.0</strong><small>New app icon and 2 more</small></div>
+            <span class="go">Update</span><span class="x" aria-label="Later">✕</span>
+          </div>
+          <div class="glow">
+            <div class="statusRow"><span class="loc">Tel Aviv</span><span class="chip">Live</span></div>
+            <div class="clock">10:42:18</div>
+            <div class="dates"><span class="dNum">9.10.2026</span><span class="dHeb he">כ״ז תשרי תשפ״ז</span></div>
+            <div class="divider"></div>
+            <div class="split"><div><span class="sub">Candle lighting</span><span class="big candle">17:57</span></div><div><span class="sub">Havdalah</span><span class="big">18:54</span></div></div>
+          </div>
+        </div>
+        <div class="tabbar" data-tab="home"></div></div>
+        <p>No overlay: a slim banner above the clock card. ✕ = Later. Tapping the text opens the full notes.</p>
+        <ul>
+          <li>Never interrupts; easy to ignore, so updates may be missed</li>
+          <li>Only on Home; other tabs show nothing</li>
+        </ul>
+      </div>
+    </div>
+    <div class="groupHead" style="margin-top:36px"><h2 style="font-size:17px">After "Later": the way back</h2><span>Chosen: <b>K1</b>. The sheet shows once per version; after Later, something small stays on Home (no login needed) and tapping it reopens the U2 sheet.</span></div>
+    <div class="row">
+
+      <div class="idea">
+        <div class="ideaLabel"><span class="tag">K1</span><h3>Chip next to "Live"</h3></div>
+        <div class="phone"><div class="screen center">
+          <div class="glow">
+            <div class="statusRow"><span class="loc">Tel Aviv</span><span class="chips"><span class="upChip"><svg viewBox="0 0 24 24"><path d="M12 19V5"/><path d="M6 11l6-6 6 6"/></svg>0.2.0</span><span class="chip">Live</span></span></div>
+            <div class="clock">10:42:18</div>
+            <div class="dates"><span class="dNum">9.10.2026</span><span class="dHeb he">כ״ז תשרי תשפ״ז</span></div>
+            <div class="divider"></div>
+            <div class="split"><div><span class="sub">Candle lighting</span><span class="big candle">17:57</span></div><div><span class="sub">Havdalah</span><span class="big">18:54</span></div></div>
+          </div>
+        </div>
+        <div class="tabbar" data-tab="home"></div></div>
+        <p>A small chip in the card's top row, same shape as the Live chip: an up arrow and the new version.</p>
+        <ul><li>Smallest and quietest; fits what's already there</li><li>The version number alone may not say "update" to everyone</li></ul>
+      </div>
+
+      <div class="idea">
+        <div class="ideaLabel"><span class="tag">K2</span><h3>Line at the bottom of the card</h3></div>
+        <div class="phone"><div class="screen center">
+          <div class="glow">
+            <div class="statusRow"><span class="loc">Tel Aviv</span><span class="chip">Live</span></div>
+            <div class="clock">10:42:18</div>
+            <div class="dates"><span class="dNum">9.10.2026</span><span class="dHeb he">כ״ז תשרי תשפ״ז</span></div>
+            <div class="divider"></div>
+            <div class="split"><div><span class="sub">Candle lighting</span><span class="big candle">17:57</span></div><div><span class="sub">Havdalah</span><span class="big">18:54</span></div></div>
+            <div class="upRow"><span>Version <b>0.2.0</b> is available</span><span class="more">Update ›</span></div>
+          </div>
+        </div>
+        <div class="tabbar" data-tab="home"></div></div>
+        <p>A tinted line inside the card, under the times, saying it in words.</p>
+        <ul><li>Clearest of the three</li><li>Takes a bit more room on Home</li></ul>
+      </div>
+
+      <div class="idea">
+        <div class="ideaLabel"><span class="tag">K3</span><h3>Icon button with a dot</h3></div>
+        <div class="phone"><div class="screen center">
+          <span class="upFab" aria-label="Update available"><svg viewBox="0 0 24 24"><path d="M12 4v11"/><path d="M7 10l5 5 5-5"/><path d="M5 20h14"/></svg></span>
+          <div class="glow">
+            <div class="statusRow"><span class="loc">Tel Aviv</span><span class="chip">Live</span></div>
+            <div class="clock">10:42:18</div>
+            <div class="dates"><span class="dNum">9.10.2026</span><span class="dHeb he">כ״ז תשרי תשפ״ז</span></div>
+            <div class="divider"></div>
+            <div class="split"><div><span class="sub">Candle lighting</span><span class="big candle">17:57</span></div><div><span class="sub">Havdalah</span><span class="big">18:54</span></div></div>
+          </div>
+        </div>
+        <div class="tabbar" data-tab="home"></div></div>
+        <p>A download icon above the card's top-right corner, with an amber dot like an app badge.</p>
+        <ul><li>Familiar "something new" signal, keeps the card untouched</li><li>An icon alone needs a guess the first time</li></ul>
+      </div>
+    </div>
+
+    <div class="groupHead" style="margin-top:36px"><h2 style="font-size:17px">U2 after "Update": downloading inside the app</h2><span>The APK goes to the app's own cache, never Downloads; the new version deletes it on its first start. Only the bottom part of the sheet changes.</span></div>
+    <div class="row">
+      <div class="idea">
+        <div class="ideaLabel"><span class="tag">U2a</span><h3>Downloading</h3></div>
+        <div class="glow sheet" style="max-width:320px">
+          <div style="display:flex;gap:12px;align-items:center">
+            <div class="upIcon" style="width:44px;height:44px;border-radius:12px"><svg viewBox="0 0 108 108" aria-hidden="true"><use href="#icApp"/></svg></div>
+            <div><h4>Version 0.2.0 is available</h4><div class="verLine"><span>You have 0.1.1</span></div></div>
+          </div>
+          <span class="lbl">What's new</span>
+          <ul class="notes"><li>New app icon</li><li>Logout ends the session on the server</li></ul>
+          <div class="dlLine"><span>Downloading…</span><span>27 / 45 MB</span></div>
+          <div class="bar"><i style="width:60%"></i></div>
+          <div class="btns"><span class="btn">Cancel</span></div>
+        </div>
+        <p>Update and Later give way to a progress bar. Cancel stops it and deletes the partial file; the sheet stays closed (the chip remains).</p>
+        <ul><li>Closing the sheet (drag, tap outside) keeps the download going; the chip reopens it</li><li>When it finishes, Android's own install screen opens</li></ul>
+      </div>
+      <div class="idea">
+        <div class="ideaLabel"><span class="tag">U2b</span><h3>Allow installs (first time only)</h3></div>
+        <div class="glow sheet" style="max-width:320px">
+          <div style="display:flex;gap:12px;align-items:center">
+            <div class="upIcon" style="width:44px;height:44px;border-radius:12px"><svg viewBox="0 0 108 108" aria-hidden="true"><use href="#icApp"/></svg></div>
+            <div><h4>Version 0.2.0 is ready</h4><div class="verLine"><span>Downloaded · 45 MB</span></div></div>
+          </div>
+          <div class="hint" style="margin-top:0">Android needs your OK once: turn on "Allow from this source" for Personal Copilot, then come back.</div>
+          <div class="btns"><span class="btn primary">Install</span><span class="btn">Later</span></div>
+        </div>
+        <p>Shown only if Android hasn't allowed this app to install updates yet. Install opens the setting; back in the app, Install opens the install screen.</p>
+        <ul><li>Same state if you back out of the install screen: the file is kept, Install tries again</li></ul>
+      </div>
+      <div class="idea">
+        <div class="ideaLabel"><span class="tag">U2c</span><h3>Download failed</h3></div>
+        <div class="glow sheet" style="max-width:320px">
+          <div style="display:flex;gap:12px;align-items:center">
+            <div class="upIcon" style="width:44px;height:44px;border-radius:12px"><svg viewBox="0 0 108 108" aria-hidden="true"><use href="#icApp"/></svg></div>
+            <div><h4>Version 0.2.0 is available</h4><div class="verLine"><span>You have 0.1.1</span></div></div>
+          </div>
+          <div class="hint" style="margin-top:0;color:var(--error);background:var(--errorBg)">The download stopped. Check the connection and try again.</div>
+          <div class="btns"><span class="btn primary">Try again</span><span class="btn">Later</span></div>
+        </div>
+        <p>No connection or the server stopped answering; the partial file is deleted. (A damaged or wrongly signed APK is refused by Android's own install screen.)</p>
+      </div>
+    </div>
+
+    <ul style="margin-top:18px;color:var(--muted);font-size:13px;padding-left:18px">
+      <li><b>Update</b> downloads the APK inside the app (U2a–U2c) and opens Android's install screen. Updating keeps the login.</li>
+      <li><b>Later</b> remembers that version on this phone: the sheet doesn't open by itself again for it (only for a newer one), but the Home indicator (K1–K3) stays until you update and reopens the sheet on tap.</li>
+      <li>Shown only when <code>latest.json</code>'s <code>versionCode</code> is higher than the installed one, and never for <code>-test.N</code> builds. The web build (and the iPhone Home Screen app) never shows it.</li>
+    </ul>
   </section>
 
   <div class="plan">

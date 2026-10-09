@@ -1,6 +1,6 @@
 const { test, expect } = require('@playwright/test');
 
-// Turning on notifications (plan task 2.14): the after-login prompt, the Account card, log-out
+// Turning on notifications: the after-login prompt, the Account card, log-out
 // cleanup — Gateway mocked, the browser's PushManager/Notification stubbed (headless Chromium has no
 // push service). The service worker itself is service-worker.spec.js.
 

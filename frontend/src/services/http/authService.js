@@ -1,8 +1,7 @@
 import { URLS } from '../../config/urls';
 import { parseErrorMessage } from './apiError';
 
-// No Redux knowledge — calls Gateway only, never the Users Service directly. No getMe() — see
-// docs/specs/services.md#users.
+// No Redux knowledge — calls Gateway only. The user comes from the access token itself (utils/jwt).
 // firstName/lastName/phone are optional — undefined ones are left out of the body.
 export async function register({
   email,
@@ -11,7 +10,7 @@ export async function register({
   lastName,
   phone,
 }) {
-  const response = await fetch(`${URLS.auth.origin}/auth/register`, {
+  const response = await fetch(`${URLS.gateway}/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password, firstName, lastName, phone }),
@@ -21,7 +20,7 @@ export async function register({
 }
 
 export async function login({ email, password }) {
-  const response = await fetch(`${URLS.auth.origin}/auth/login`, {
+  const response = await fetch(`${URLS.gateway}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
@@ -32,7 +31,7 @@ export async function login({ email, password }) {
 
 // Revokes the refresh token on the server, so it can't mint new sessions after log-out.
 export async function logout(refreshToken) {
-  const response = await fetch(`${URLS.auth.origin}/auth/logout`, {
+  const response = await fetch(`${URLS.gateway}/auth/logout`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ refresh_token: refreshToken }),
@@ -40,15 +39,14 @@ export async function logout(refreshToken) {
   if (!response.ok) throw new Error(await parseErrorMessage(response));
 }
 
-// Authenticated by password-in-body, not a bearer token — deliberate on the backend side, see
-// CLAUDE.md.
+// Authenticated by the current password in the body. A new password signs out every other session.
 export async function updateAccount({
   email,
   currentPassword,
   newEmail,
   newPassword,
 }) {
-  const response = await fetch(`${URLS.auth.origin}/auth/account`, {
+  const response = await fetch(`${URLS.gateway}/auth/account`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, currentPassword, newEmail, newPassword }),
@@ -59,7 +57,7 @@ export async function updateAccount({
 
 // Immediate and permanent; the user's reminders and push subscriptions go with it.
 export async function deleteAccount({ email, currentPassword }) {
-  const response = await fetch(`${URLS.auth.origin}/auth/account`, {
+  const response = await fetch(`${URLS.gateway}/auth/account`, {
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, currentPassword }),

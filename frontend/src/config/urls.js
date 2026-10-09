@@ -6,27 +6,8 @@ if (!BASE_URL) {
 }
 
 export const URLS = {
-  base: BASE_URL,
-  auth: {
-    origin: BASE_URL,
-  },
-  calendar: {
-    origin: BASE_URL,
-  },
-  users: {
-    origin: BASE_URL,
-  },
-  notifications: {
-    origin: BASE_URL,
-  },
-  admin: {
-    origin: BASE_URL,
-  },
-  reminders: {
-    origin: BASE_URL,
-  },
-  ws: {
-    origin: BASE_URL,
-    path: '/ws',
-  },
+  gateway: BASE_URL, // every API call and /ws
+  wsPath: '/ws',
+  // The APK registry's folder (latest.json), baked in by `apk.js build` only — null on the web.
+  apkRegistry: process.env.EXPO_PUBLIC_APK_REGISTRY_URL || null,
 };

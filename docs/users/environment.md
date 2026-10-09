@@ -11,8 +11,7 @@ with defaults.
 - **`PASSWORD_PEPPER`** — mixed into every password hash (`infrastructure/hashing/salt-pepper-
   sha256.hasher.ts`: `sha256(pepper + salt + plaintext)`). Must stay identical across restarts, or
   every existing password hash stops verifying.
-- **`DATABASE_URL`** — Postgres connection string (database `personal_copilot`, kept through the
-  rename from Auth).
+- **`DATABASE_URL`** — Postgres connection string (database `personal_copilot`, schema `users`).
 - **`KAFKA_BROKERS`** — where profile and delete events go (`kafka:19092` in Docker, via
   `docker.env`). The service starts and works while Kafka is down; events wait in `outbox_events`
   and go out once it's back.

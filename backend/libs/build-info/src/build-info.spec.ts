@@ -23,7 +23,7 @@ describe('buildInfo', () => {
       service: 'users',
       version: '1.2.3',
       builtAt: '2026-10-05T18:00:00Z',
-      startedAt: expect.any(String),
+      startedAt: expect.any(String) as string,
     });
     expect(Date.parse(info.startedAt)).not.toBeNaN();
   });

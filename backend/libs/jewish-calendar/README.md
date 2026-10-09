@@ -1,6 +1,6 @@
 # `@app/jewish-calendar` — implementation notes
 
-All of the project's Jewish-calendar maths, as an in-process library (it was the Calendar Service).
+All of the project's Jewish-calendar maths, as an in-process library.
 Used by Gateway for `GET /calendar/shabbat` (Home) and by the Reminders scheduler — one place for
 every rule. See [`docs/specs/services.md`](../../../docs/specs/services.md#libsjewish-calendar).
 This file is the "why" behind decisions here that aren't obvious from the code.
@@ -22,7 +22,7 @@ Module` — add it to that list.
 ## Candle-lighting minutes are explicit (Israel 20 or a city's custom / 18 abroad)
 
 Hebcal treats `candleLightingMins: 18` as "the default" and silently swaps it for 20 in Israel, or
-a city custom (Jerusalem 40, Haifa and Zikhron Ya'akov 30) when it knows the city *by name* — it
+a city custom (Jerusalem 40, Haifa and Zikhron Ya'akov 30) when it knows the city _by name_ — it
 never does here, since we pass raw coordinates. So `ShabbatCalendar` passes the minutes itself and
 the swap never applies: 18 abroad; in Israel, `israel-city-customs.ts` matches the point to the
 nearest custom city within a radius of its center, else 20.

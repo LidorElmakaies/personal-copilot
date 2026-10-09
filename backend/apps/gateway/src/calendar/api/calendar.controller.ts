@@ -3,8 +3,8 @@ import type { IShabbatCalendar } from '@app/jewish-calendar';
 import { SHABBAT_CALENDAR } from '../../tokens';
 import { ShabbatQueryDto } from './dto/shabbat-query.dto';
 
-// Served by Gateway itself, not proxied: the maths is the shared @app/jewish-calendar lib, so
-// there's nothing for another service to add. Unguarded — Home works signed out.
+// Served by Gateway itself from the shared @app/jewish-calendar lib — there's nothing for another
+// service to add. Unguarded — Home works signed out.
 @Controller('calendar')
 export class CalendarController {
   constructor(

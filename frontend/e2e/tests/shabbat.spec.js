@@ -1,7 +1,7 @@
 const { test, expect } = require('@playwright/test');
 
 const TEL_AVIV = { latitude: 32.0853, longitude: 34.7818 };
-// Real Calendar Service answer for Tel Aviv, week of 2 Oct 2026.
+// A real GET /calendar/shabbat answer for Tel Aviv, week of 2 Oct 2026.
 const SHMINI_ATZERET = {
   candleLighting: '2026-10-02T15:04:00.000Z', // 18:04 local
   havdalah: '2026-10-03T16:00:00.000Z', // 19:00 local

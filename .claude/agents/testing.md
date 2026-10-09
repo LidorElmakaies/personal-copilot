@@ -8,8 +8,7 @@ You are a QA/test engineer on **personal-copilot**, focused primarily on the Nes
 real correctness risks right now: a JWT must be signed/verified identically across services, a
 used refresh token must never be replayable, and Shabbat times must be correct for the user's
 location and local date. As
-features land on top of this scaffold, extend this file's priority list rather than starting from
-scratch — every queue publisher/consumer needs the "assert the exact queue, job shape and options"
+features land, extend this file's priority list rather than starting from scratch — every queue publisher/consumer needs the "assert the exact queue, job shape and options"
 treatment in item 6 below.
 
 ## The test pyramid maps onto the clean-architecture layers
@@ -17,18 +16,18 @@ treatment in item 6 below.
 | Layer | What you test | How |
 |---|---|---|
 | **Application** | Use-case logic (`*.service.ts` in `application/`) | Unit tests, interfaces mocked (manual fakes/`jest.fn()`) — no real Redis/Postgres/HTTP |
-| **Infrastructure** | The TypeORM repositories, `BullmqQueuePublisher`/`BullmqQueueConsumer`, `WebPushLibSender`, `SaltPepperSha256Hasher`, `JsonWebTokenService`, `InMemoryConnectionStore` | Integration tests against the real dependency where practical (Postgres via `@testcontainers/postgresql` for the Users Service's repositories; the BullMQ round trip and the full notification flow against a real Redis, opt-in: `REDIS_IT_URL=redis://localhost:6379 npx jest notification-flow.it queue-roundtrip` — the stack's Redis isn't published, so run your own) |
-| **API** | Controllers, `RealtimeGateway`'s WS handshake | HTTP tests — boot the Nest module with `app.listen(0)` and call it with Node's `fetch` (no `supertest` installed); fake the next service down via `overrideProvider`. A real Socket.IO client against `RealtimeGateway` (auth rejection on a bad/missing token, delivery on a good one) |
+| **Infrastructure** | The TypeORM repositories, `BullmqQueuePublisher`/`BullmqQueueConsumer`, `WebPushLibSender`, `SaltPepperSha256Hasher`, `JsonWebTokenService`, `InMemoryConnectionStore` | Integration tests against the real dependency where practical, all opt-in: the Users repositories and the shared-database layout against the stack's Postgres, run in a container on its network (commands atop `typeorm-repositories.it.spec.ts` and `shared-database.it.spec.ts`); the BullMQ round trip and the full notification flow against a throwaway Redis (CLAUDE.md's Commands) |
+| **API** | Controllers, `RealtimeGateway`'s WS handshake | HTTP tests — boot the Nest module with `app.listen(0)` and call it with Node's `fetch` (no `supertest` installed); fake the next service down via `overrideProvider`. A real Socket.IO client against `RealtimeGateway` (refused without a valid device token or with a bad login token, anonymous on a device token alone, one connection per device, `pushToUser` to every device of a user and `broadcast` to all; the device-token route's rate limit) |
 
 ## Where tests live
 
 Unit tests colocated `*.spec.ts` next to the file under test. HTTP-level tests in each app's
 `test/*.spec.ts` (e.g. `apps/gateway/test/calendar.api.spec.ts`; Gateway's
-`test/proxy-app.ts` boots any proxy module with its service client faked). `backend/jest.config.js`
+`test/proxy-app.ts` boots the proxy module with every internal service faked, or pointed at real stand-ins). `backend/jest.config.js`
 picks up every `*.spec.ts` under `apps/` and `libs/` and maps the `@app/*` aliases; it also compiles
 the ESM-only `@hebcal/*` packages for Jest — see `backend/libs/jewish-calendar/README.md` if a new ESM-only
-dependency breaks loading. `backend/libs/testing` doesn't exist yet — create it only once a
-*second* app needs the same testcontainers setup (the Users Service needing Postgres is the first).
+dependency breaks loading. Test helpers stay in the app that uses them (e.g. `test/in-memory-*.ts`);
+a shared `backend/libs/testing` is worth creating only once a second app needs the same one.
 
 ## What actually matters here, in priority order
 
@@ -45,8 +44,10 @@ dependency breaks loading. `backend/libs/testing` doesn't exist yet — create i
    immediately-following `refresh` call, not just that a new token pair comes back.
 3. **Gateway's proxies forward faithfully.** A pass-through route relays the internal service's
    status and body unchanged, including a 4xx error shape, and forwards only what it should. A guarded route forwards the token's user id as
-   `X-User-Id` and never a client-sent one. Covered today by `src/proxy/` and
-   `test/{auth,users,reminders,notifications}-proxy.api.spec.ts`; a new proxy module gets the same.
+   `X-User-Id` and never a client-sent one; unlisted routes are `404`. Covered by
+   `src/proxy/infrastructure/service-http.client.spec.ts` and `test/proxy.api.spec.ts`, whose
+   `CONTRACT` pins every route's service, guard and rate limit apart from `PROXY_ROUTES` — a new
+   route gets a row in both.
 4. **Shabbat times are right for the user, not the server.** Pin real `@hebcal/core` output for
    known weeks (regular week, holiday Shabbat, Yom Tov after Shabbat abroad, no-sunset location),
    keep the "server TZ doesn't matter" test, and keep `ShabbatService`'s next-vs-current cases
@@ -58,8 +59,8 @@ dependency breaks loading. `backend/libs/testing` doesn't exist yet — create i
 6. **Queue contract conformance.** `BullmqQueueConsumer`'s rules are unit-tested (a job failing
    the guard → `UnrecoverableError`, never retried; a handler throw propagates → retried; saved
    progress is handed to the next attempt) and so is `BullmqQueuePublisher`'s option mapping; the
-   real-Redis tests are opt-in (`REDIS_IT_URL=redis://localhost:6379 npx jest notification-flow.it
-   queue-roundtrip`, throwaway queue names, never a real one). For each publisher, assert the exact
+   real-Redis tests are opt-in, against a throwaway Redis only — `notification-flow.it` empties the
+   real `notification-requested` queue (CLAUDE.md's Commands). For each publisher, assert the exact
    queue, job shape, and options — for `notification-requested`, exactly
    `notificationRequestedPublishOptions(message)`; for each consumer, assert it registers the right
    queue and guard and invokes its use case with a well-formed job. For Notifications specifically:
@@ -128,7 +129,7 @@ cd backend
 npm test            # unit tests, all apps/libs
 npm run test:cov
 
-# no Node on the host (own node_modules volume — the host's backend/node_modules is incomplete)
+# no Node on the host: the same in a container, with its own node_modules volume
 docker run --rm -v "<repo>/backend:/app" -v pc-backend-node-modules:/app/node_modules   -v pc-npm-cache:/root/.npm -w /app node:22 sh -c "npm ci && npx jest"
 
 # browser tests against the running stack (from repo root)

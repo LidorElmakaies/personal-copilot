@@ -43,11 +43,7 @@ describe('accounts and profiles (users)', () => {
         { provide: PROFILE_REPOSITORY, useValue: store.profileRepository },
         {
           provide: REFRESH_TOKEN_REPOSITORY,
-          useValue: {
-            create: () => Promise.resolve(),
-            findByTokenHash: () => Promise.resolve(null),
-            revoke: () => Promise.resolve(),
-          },
+          useValue: store.refreshTokenRepository,
         },
         { provide: PASSWORD_HASHER, useClass: SaltPepperSha256Hasher },
       ],
@@ -87,6 +83,196 @@ describe('accounts and profiles (users)', () => {
     const { access_token } = (await res.json()) as { access_token: string };
     return (jwt.decode(access_token) as { sub: string }).sub;
   }
+
+  type Tokens = { access_token: string; refresh_token: string };
+  const claims = (tokens: Tokens) =>
+    jwt.decode(tokens.access_token) as { sub: string; email: string };
+  const login = (email: string, password: string) =>
+    send('POST', '/auth/login', { email, password });
+  const refresh = (refresh_token: string) =>
+    send('POST', '/auth/refresh', { refresh_token });
+
+  describe('login, refresh, logout', () => {
+    it('logs in with the email in any case, and the token carries the account', async () => {
+      const userId = await register();
+      const res = await login('A@Example.com', 'password1');
+      expect(res.status).toBe(200);
+      expect(claims((await res.json()) as Tokens)).toMatchObject({
+        sub: userId,
+        email: 'a@example.com',
+        role: 'user',
+      });
+    });
+
+    it.each([
+      ['a wrong password', 'a@example.com', 'wrong'],
+      ['an unknown email', 'b@example.com', 'password1'],
+    ])('answers 401 for %s, with the same message', async (_n, email, pw) => {
+      await register();
+      const res = await login(email, pw);
+      expect(res.status).toBe(401);
+      expect(await res.json()).toMatchObject({
+        message: 'Invalid email or password',
+      });
+    });
+
+    it('rejects registering an email twice, in any case, with 409', async () => {
+      await register();
+      expect(
+        (
+          await send('POST', '/auth/register', {
+            email: 'A@EXAMPLE.COM',
+            password: 'password1',
+          })
+        ).status,
+      ).toBe(409);
+    });
+
+    it('refresh rotates: the new token works, the used one never again', async () => {
+      await register();
+      const first = (await (
+        await login('a@example.com', 'password1')
+      ).json()) as Tokens;
+
+      const res = await refresh(first.refresh_token);
+      expect(res.status).toBe(200);
+      const second = (await res.json()) as Tokens;
+      expect(second.refresh_token).not.toBe(first.refresh_token);
+
+      expect((await refresh(first.refresh_token)).status).toBe(401);
+      expect((await refresh(second.refresh_token)).status).toBe(200);
+    });
+
+    it('refresh answers 401 for a made-up token', async () => {
+      expect((await refresh('not-a-token')).status).toBe(401);
+    });
+
+    it('refresh answers 401 for an expired token', async () => {
+      await register();
+      const { refresh_token } = (await (
+        await login('a@example.com', 'password1')
+      ).json()) as Tokens;
+      for (const token of store.refreshTokens.values())
+        token.expiresAt = new Date(Date.now() - 1000);
+      expect((await refresh(refresh_token)).status).toBe(401);
+    });
+
+    it('logout revokes the refresh token; an unknown one is a no-op', async () => {
+      await register();
+      const { refresh_token } = (await (
+        await login('a@example.com', 'password1')
+      ).json()) as Tokens;
+
+      expect(
+        (await send('POST', '/auth/logout', { refresh_token })).status,
+      ).toBe(204);
+      expect((await refresh(refresh_token)).status).toBe(401);
+      expect(
+        (await send('POST', '/auth/logout', { refresh_token: 'unknown' }))
+          .status,
+      ).toBe(204);
+    });
+
+    it("a deleted account's refresh token no longer works", async () => {
+      await register();
+      const { refresh_token } = (await (
+        await login('a@example.com', 'password1')
+      ).json()) as Tokens;
+      await send('DELETE', '/auth/account', {
+        email: 'a@example.com',
+        currentPassword: 'password1',
+      });
+      expect((await refresh(refresh_token)).status).toBe(401);
+    });
+  });
+
+  describe('POST /auth/account', () => {
+    const update = (body: object) =>
+      send('POST', '/auth/account', {
+        email: 'a@example.com',
+        currentPassword: 'password1',
+        ...body,
+      });
+
+    it('changes the email and password together, and the new tokens carry the new email', async () => {
+      const userId = await register();
+
+      const res = await update({
+        newEmail: 'New@Example.com',
+        newPassword: 'password2',
+      });
+
+      expect(res.status).toBe(200);
+      expect(claims((await res.json()) as Tokens)).toMatchObject({
+        sub: userId,
+        email: 'new@example.com',
+      });
+      expect((await login('new@example.com', 'password2')).status).toBe(200);
+      expect((await login('new@example.com', 'password1')).status).toBe(401);
+      expect((await login('a@example.com', 'password2')).status).toBe(401);
+    });
+
+    it('a new password signs out every other session; the returned tokens keep working', async () => {
+      await register();
+      const otherDevice = (await (
+        await login('a@example.com', 'password1')
+      ).json()) as Tokens;
+
+      const res = await update({ newPassword: 'password2' });
+      const thisDevice = (await res.json()) as Tokens;
+
+      expect((await refresh(otherDevice.refresh_token)).status).toBe(401);
+      expect((await refresh(thisDevice.refresh_token)).status).toBe(200);
+    });
+
+    it('an email-only change keeps the other sessions', async () => {
+      await register();
+      const otherDevice = (await (
+        await login('a@example.com', 'password1')
+      ).json()) as Tokens;
+
+      await update({ newEmail: 'new@example.com' });
+
+      expect((await refresh(otherDevice.refresh_token)).status).toBe(200);
+    });
+
+    it('a password-only change still returns fresh tokens', async () => {
+      await register();
+      const res = await update({ newPassword: 'password2' });
+      expect(res.status).toBe(200);
+      expect(claims((await res.json()) as Tokens).email).toBe('a@example.com');
+      expect((await login('a@example.com', 'password2')).status).toBe(200);
+    });
+
+    it.each([
+      ['neither newEmail nor newPassword', {}, 400],
+      [
+        'a wrong current password',
+        { currentPassword: 'x', newPassword: 'password2' },
+        401,
+      ],
+      ['a short new password', { newPassword: 'short' }, 400],
+    ])('rejects %s and changes nothing', async (_n, body, status) => {
+      await register();
+      expect((await update(body)).status).toBe(status);
+      expect((await login('a@example.com', 'password1')).status).toBe(200);
+    });
+
+    it('keeping the same email (in another case) is not a conflict', async () => {
+      await register();
+      expect((await update({ newEmail: 'A@EXAMPLE.com' })).status).toBe(200);
+    });
+
+    it("rejects another account's email with 409, password untouched", async () => {
+      await register();
+      await register({ email: 'b@example.com' });
+      expect(
+        (await update({ newEmail: 'B@example.com', newPassword: 'password2' }))
+          .status,
+      ).toBe(409);
+      expect((await login('a@example.com', 'password1')).status).toBe(200);
+    });
+  });
 
   describe('register', () => {
     it('creates the profile with the optional details and announces it as version 1', async () => {
@@ -200,25 +386,6 @@ describe('accounts and profiles (users)', () => {
       );
       expect(store.profiles.get(userId)?.version).toBe(2);
       expect(store.profiles.has('other')).toBe(false);
-    });
-
-    it('gives an account from before profiles an empty profile, and creates it on the first write', async () => {
-      const legacy = store.addLegacyUser('old@example.com');
-
-      expect(
-        await (await send('GET', '/users/me', undefined, legacy.id)).json(),
-      ).toEqual({
-        firstName: null,
-        lastName: null,
-        phone: null,
-        location: null,
-      });
-      expect(store.profiles.has(legacy.id)).toBe(false);
-
-      await send('PATCH', '/users/me', { firstName: 'Old' }, legacy.id);
-      expect(store.stateEventsFor(legacy.id)).toEqual([
-        expect.objectContaining({ version: 1, firstName: 'Old' }),
-      ]);
     });
 
     it('answers 404 for a user that no longer exists (a still-valid token after delete)', async () => {

@@ -1,6 +1,6 @@
 const { test, expect } = require('@playwright/test');
 
-// The Web Push service worker (public/sw.js, plan task 2.14): a push delivered over CDP — as the
+// The Web Push service worker (public/sw.js): a push delivered over CDP — as the
 // browser's push service would — shows a notification built from the payload.
 
 // The default headless shell reports notifications as denied even when granted; full Chromium

@@ -4,7 +4,7 @@
     "declaration": false,
     "rootDir": "../..",
     "outDir": "../../dist",
-    "tsBuildInfoFile": "../../dist/.tsbuildinfo-auth"
+    "tsBuildInfoFile": "../../dist/.tsbuildinfo-users"
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "test", "**/*spec.ts"]

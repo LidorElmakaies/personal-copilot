@@ -4,10 +4,9 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { PROFILE_REPOSITORY, USER_REPOSITORY } from '../tokens';
+import { PROFILE_REPOSITORY } from '../tokens';
 import type { IProfileRepository } from '../infrastructure/interfaces/profile-repository.interface';
-import type { IUserRepository } from '../infrastructure/interfaces/user-repository.interface';
-import { EMPTY_PROFILE_DETAILS, type Profile } from '../models/profile';
+import type { Profile } from '../models/profile';
 import type {
   IProfileService,
   ProfileUpdate,
@@ -17,16 +16,12 @@ import type {
 export class ProfileService implements IProfileService {
   constructor(
     @Inject(PROFILE_REPOSITORY) private readonly profiles: IProfileRepository,
-    @Inject(USER_REPOSITORY) private readonly users: IUserRepository,
   ) {}
 
   async get(userId: string): Promise<Profile> {
     const profile = await this.profiles.findByUserId(userId);
-    if (profile) return profile;
-    if (!(await this.users.findById(userId))) {
-      throw new NotFoundException('Account not found');
-    }
-    return { userId, ...EMPTY_PROFILE_DETAILS, location: null, version: 0 };
+    if (!profile) throw new NotFoundException('Account not found');
+    return profile;
   }
 
   async update(userId: string, change: ProfileUpdate): Promise<Profile> {

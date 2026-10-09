@@ -6,14 +6,7 @@ decisions here that aren't obvious from the code or from that doc alone.
 
 ## Admin seed (`admin-seed.service.ts`)
 
-`ADMIN_EMAIL`/`ADMIN_PASSWORD` (`.env.example`) seed a `role: 'admin'` user on boot, once, if no
-user with that email already exists. It never touches an existing row — a restart must not revert
-a password that's since been changed by hand (or by a future "edit user" admin feature) back to
-whatever's still sitting in `.env`. To rotate the seed password itself, change `ADMIN_PASSWORD`
-before the very first boot, or update the row directly, rather than restarting the service.
-Hashed the same way as any other user (random salt + `PASSWORD_PEPPER` + SHA-256, see
-`SaltPepperSha256Hasher`) — `ADMIN_PASSWORD` only ever lives in `.env` as plaintext, same as any
-other secret in that file, and is never itself written to the database.
+A one-time seed, never a sync — see [`docs/users/environment.md`](../../../docs/users/environment.md#admin-seed-admin_email--admin_password).
 
 ## `synchronize: true` below production (`users.module.ts`)
 

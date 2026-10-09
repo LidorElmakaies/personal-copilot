@@ -1,13 +1,8 @@
 // Reads claims only — never verifies the signature, that's the server's job.
-export function decodeJwtPayload(token) {
+function decodeJwtPayload(token) {
   try {
     const [, payload] = token.split('.');
-    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
-    const json =
-      typeof atob === 'function'
-        ? atob(base64)
-        : Buffer.from(base64, 'base64').toString('utf-8'); // RN/Metro polyfills atob; fallback only
-    return JSON.parse(json);
+    return JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
   } catch {
     return null;
   }

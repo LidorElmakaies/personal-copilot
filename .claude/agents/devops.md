@@ -13,9 +13,9 @@ covered below.
 
 Two independent Compose projects, joined by a shared `observability` Docker network:
 - `devops/` — the app stack: `gateway` (the only *backend* service published to the host, port
-  8000), `users`, `reminders`, `notifications` (internal-only, no published ports,
+  8000, on `127.0.0.1` only), `users`, `reminders`, `notifications` (internal-only, no published ports,
   healthchecks on `/health`), `frontend` (published, port 8081 — a static web
-  export, not a backend service, see the `frontend` compose service's own comment), `postgres`
+  export, not a backend service; root `CLAUDE.md`'s "Key constraints"), `postgres`
   (one instance, one database, a schema per table-owning service, created by the one-shot `postgres-init`),
   `redis` (internal-only; hosts the BullMQ queues — `notification-requested` and `reminder-due`,
   from `backend/libs/queue-contracts` — AOF only, RDB off, `maxmemory 64mb` +
@@ -23,15 +23,19 @@ Two independent Compose projects, joined by a shared `observability` Docker netw
   fails the enqueue loudly instead). Keys are `bull:<queue>:*`; completed/failed jobs expire by
   age (`removeOnComplete`/`removeOnFail` in `libs/queue-client`), so usage stays ~2MB.
   `kafka` (internal-only, one KRaft node; topics created by the one-shot `kafka-init`).
-- `devops/tailscale/serve.sh` — not a compose project: puts `frontend` (`https://<pc>.ts.net`) and
+- `devops/tailscale/serve.js` — not a compose project: puts `frontend` (`https://<pc>.ts.net`) and
   `gateway` (`:8443`) behind Tailscale HTTPS for phone access. `tailscale serve` config persists
   on the host; `tailscale serve reset` removes it.
 - `devops/android/` — not a compose project: `Dockerfile` (the APK builder image), `apk.js`,
   `apk.test.js`. `node devops/android/apk.js build` builds in the image into
-  `devops/data/android/apk/`; `node devops/android/apk.js publish` publishes one into
-  `devops/data/apk/` (the registry `frontend` mounts read-only and serves at `/apk/`), directly or
+  `devops/data/android/apk/`, baking in `GATEWAY_PUBLIC_URL` and the update registry
+  (`APK_REGISTRY_URL`, default `https://<Gateway's host>/apk/`; both env or `devops/.env`);
+  `node devops/android/apk.js publish` publishes one into
+  `devops/data/apk/` (the registry `frontend` mounts read-only and serves at `/apk/`; a new newest
+  release is then announced on Kafka's `frontend.releases` through the running `kafka` container,
+  and Gateway tells open apps over `/ws`), directly or
   via a Node container when that folder is root-owned — see `frontend/README.md`'s `/apk/`
-  paragraph. Tests: `node --test devops/android/`.
+  paragraph. Tests: `node --test devops/android/apk.test.js`.
 - `devops/playwright/` — on-demand browser-test runner (not in the root `include:`), see
   `frontend/e2e/README.md`.
 - `devops/observability/` — `otel-collector`, `loki`, `prometheus`, `tempo`, `grafana`.
@@ -49,9 +53,10 @@ observability up first.
 
 - **Reuse existing shared infrastructure** — a new service that needs Postgres or Redis
   points at the existing `postgres`/`redis` container, it never gets its own instance. A
-  new BullMQ queue is just a new name in `libs/queue-contracts` on the same `redis`. A new database is one
-  more name in `postgres-init`'s loop (`devops/postgres/docker-compose.yml`), and the service
-  `depends_on` `postgres-init: service_completed_successfully`.
+  new BullMQ queue is just a new name in `libs/queue-contracts` on the same `redis`. A new service with tables gets
+  one more `CREATE SCHEMA IF NOT EXISTS` line in `postgres-init` (`devops/postgres/docker-compose.yml`)
+  in the shared `personal_copilot` database — never a database of its own — and `depends_on`
+  `users: service_healthy` if its tables reference `users.users`.
 - **Pin every image version, never `:latest`.** An unpinned image silently drifting onto an
   incompatible config/schema (Tempo's 2.x -> 3.x break is the canonical example — a real historical
   incident, not a hypothetical) is a genuine failure mode here, not hygiene. Check the exact

@@ -1,25 +1,9 @@
 // DI tokens for apps/gateway — string/Symbol tokens so Application-layer code depends only on an
 // interface, never a concrete Infrastructure class.
 
-// auth-proxy
-export const AUTH_PROXY_SERVICE = Symbol('AUTH_PROXY_SERVICE');
-export const AUTH_SERVICE_CLIENT = Symbol('AUTH_SERVICE_CLIENT');
-
-// notifications-proxy
-export const NOTIFICATIONS_PROXY_SERVICE = Symbol(
-  'NOTIFICATIONS_PROXY_SERVICE',
-);
-export const NOTIFICATIONS_SERVICE_CLIENT = Symbol(
-  'NOTIFICATIONS_SERVICE_CLIENT',
-);
-
-// users-proxy
-export const USERS_PROXY_SERVICE = Symbol('USERS_PROXY_SERVICE');
-export const USERS_SERVICE_CLIENT = Symbol('USERS_SERVICE_CLIENT');
-
-// reminders-proxy
-export const REMINDERS_PROXY_SERVICE = Symbol('REMINDERS_PROXY_SERVICE');
-export const REMINDERS_SERVICE_CLIENT = Symbol('REMINDERS_SERVICE_CLIENT');
+// proxy
+export const PROXY_SERVICE = Symbol('PROXY_SERVICE');
+export const SERVICE_CLIENTS = Symbol('SERVICE_CLIENTS');
 
 // realtime
 export const REALTIME_CONNECTION_SERVICE = Symbol(
@@ -27,7 +11,10 @@ export const REALTIME_CONNECTION_SERVICE = Symbol(
 );
 export const CONNECTION_STORE = Symbol('CONNECTION_STORE');
 
-// calendar (served here, not proxied — @app/jewish-calendar in-process)
+// app-update
+export const EVENT_CONSUMER = Symbol('IEventConsumer');
+
+// calendar (@app/jewish-calendar, in-process)
 export const SHABBAT_CALENDAR = Symbol('IShabbatCalendar');
 
 // admin

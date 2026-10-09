@@ -1,2 +1,8 @@
 # Browser tests run in their own container (devops/playwright), never part of the app image.
 e2e/
+# The image installs its own dependencies and builds its own export; local dev files stay out.
+node_modules/
+dist/
+.expo/
+android/
+.env

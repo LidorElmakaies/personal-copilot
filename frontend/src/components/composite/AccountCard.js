@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import Alert from '../base/feedback/Alert';
 import GlowCard from '../base/layout/GlowCard';
 import GradientButton from '../base/buttons/GradientButton';
+import FormActions from './FormActions';
 import InputField from '../base/form/InputField';
 import Row from '../base/layout/Row';
 import { selectUser, updateAccount } from '../../store/slices/authSlice';
@@ -12,7 +13,7 @@ import {
   PASSWORD_REQUIREMENTS_HINT,
 } from '../../utils/validation';
 
-// Composite component (GlowCard/Row/InputField/GradientButton/Alert) — the signed-in email; Edit
+// Composite component (GlowCard/Row/InputField/GradientButton/FormActions/Alert) — the signed-in email; Edit
 // opens the email/password form in place.
 export default function AccountCard() {
   const user = useSelector(selectUser);
@@ -128,22 +129,12 @@ function EditForm({ email: originalEmail, onDone }) {
             : `Update failed: ${result.error}`}
         </Alert>
       ) : null}
-      <View style={styles.actions}>
-        <GradientButton
-          label="Save"
-          onPress={handleSubmit}
-          loading={submitting}
-          disabled={!canSubmit}
-          style={styles.buttonFlex}
-          contentStyle={styles.buttonContent}
-        />
-        <GradientButton
-          label="Cancel"
-          onPress={onDone}
-          style={styles.buttonFlex}
-          contentStyle={styles.buttonContent}
-        />
-      </View>
+      <FormActions
+        onSave={handleSubmit}
+        onCancel={onDone}
+        saving={submitting}
+        canSave={canSubmit}
+      />
     </View>
   );
 }
@@ -151,7 +142,4 @@ function EditForm({ email: originalEmail, onDone }) {
 const styles = StyleSheet.create({
   rowButtonContent: { paddingHorizontal: 18, paddingVertical: 9 },
   form: { gap: 14 },
-  actions: { flexDirection: 'row', gap: 12 },
-  buttonFlex: { flex: 1 },
-  buttonContent: { paddingVertical: 10 },
 });

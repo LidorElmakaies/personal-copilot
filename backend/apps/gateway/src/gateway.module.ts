@@ -3,15 +3,13 @@ import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AdminModule } from './admin/admin.module';
-import { AuthProxyModule } from './auth-proxy/auth-proxy.module';
+import { AppUpdateModule } from './app-update/app-update.module';
 import { CalendarModule } from './calendar/calendar.module';
-import { NotificationsProxyModule } from './notifications-proxy/notifications-proxy.module';
+import { ProxyModule } from './proxy/proxy.module';
 import { RealtimeModule } from './realtime/realtime.module';
-import { RemindersProxyModule } from './reminders-proxy/reminders-proxy.module';
-import { UsersProxyModule } from './users-proxy/users-proxy.module';
 
-// Composes the self-contained modules below, plus global rate limiting (see main.ts for the
-// trust-proxy config that makes the guard's client IP correct behind Caddy/the SSH tunnel).
+// Composes the self-contained modules below, plus global rate limiting (keyed on the client IP
+// main.ts's trust-proxy setting resolves — see trust-proxy.ts).
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -26,13 +24,11 @@ import { UsersProxyModule } from './users-proxy/users-proxy.module';
         ],
       }),
     }),
-    AuthProxyModule,
-    UsersProxyModule,
-    NotificationsProxyModule,
-    RemindersProxyModule,
+    ProxyModule,
     CalendarModule,
     AdminModule,
     RealtimeModule,
+    AppUpdateModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

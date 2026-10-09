@@ -24,8 +24,10 @@ under them the candle-lighting reminder bell + offset sheet, `CandleReminder` + 
 Account tab (theme, notifications, email/password, profile, logout, delete account — one card
 component each — then `VersionInfo`) + a background location sync to the Users Service while signed in
 (`LocationSyncManager` → `profileSlice.syncLocation`) + Web Push opt-in for the web build
-(`public/sw.js`, `PushSubscriptionManager`, `notificationsSlice` — see
-`docs/specs/services.md#frontend`); there is no scraper/jobs/admin surface here — don't port that part of
+(`public/sw.js`, `PushSubscriptionManager`, `notificationsSlice`) + the Android APK's in-app
+update (`AppUpdateManager` → `appUpdateSlice`, `UpdateSheet`/`UpdateChip`) + an admins-only
+Admin tab (`SystemStatus` over `GET /admin/status`, `adminSlice`) — see
+`docs/specs/services.md#frontend`. There is no scraper/jobs surface here — don't port that part of
 `ask-my-crawl`'s frontend, only its theme/component/services conventions.
 
 A tab opts into requiring a session via `TABS`' `requiresAuth: true` entry in `(tabs)/_layout.js`
@@ -35,7 +37,9 @@ reopening the app on that tab) bypasses it, so a `requiresAuth` screen also need
 check. Both halves are generic, not Account-specific: `useRequireAuth()`
 (`src/hooks/useRequireAuth.js`) is the mount-time check, `RequireAuthNotice`
 (`src/components/composite/RequireAuthNotice.js`) is the logged-out fallback to render when it's false — see
-`(tabs)/account.js` for the pattern the next `requiresAuth` tab should follow.
+`(tabs)/account.js` for the pattern the next `requiresAuth` tab should follow. A tab for one role
+only sets `requiresRole: '<role>'` instead: it's left out of the bar for everyone else, and the
+screen checks again with `useHasRole` (`(tabs)/admin.js`); the server checks the role too.
 
 A signed-in HTTP call goes through `httpClient`'s `authorizedFetch`: a `401` for the current token
 signs out with `authSlice.notice` set (`SESSION_ENDED_NOTICE`), `AuthGate` takes the user to login
@@ -43,7 +47,7 @@ once and the login screen shows it. The hook is `setUnauthorizedHandler`, regist
 `src/store/index.js` so the service stays Redux-free. Don't hand-roll a bearer `fetch` that skips
 it. `selectUser(state)` → `{ id, email, role }` from the token, for anything role-dependent.
 
-## Theme system — three-layer pipeline, no Gluestack
+## Theme system — two layers, no Gluestack
 
 Unlike `ask-my-crawl`, there's no Gluestack layer here: nothing in this app renders an actual
 Gluestack component (its own `ThemeProvider.js` only feeds Gluestack a `colorMode` that nothing
@@ -53,11 +57,10 @@ need:
 1. **Redux state** (`themeSlice`): `mode = null | 'light' | 'dark'`. `null` means follow system.
 2. **Derivation** (`useAppTheme`): resolves `isDark`, returns `colors` palette and `colorMode`
    string.
-3. **Animation** (`ThemeAnimContext`): single `Animated.Value` (progress 0→1), 600ms
-   interpolations. `useNativeDriver: false` required for color interpolation.
 
-To theme a new component: import `useAppTheme` (and `useThemeAnim` only if it needs an animated
-color transition, e.g. a custom tab bar). Use `colors.*` for static values.
+A theme switch is instant; only `AmbientBackground` animates it (its own 600ms cross-fade between
+the two backdrops). To theme a new component: import `useAppTheme` and use `colors.*`. A component
+that wants its own transition animates it itself, the way `AmbientBackground` does.
 
 **Always use `useAppTheme()` for colors — never hardcode or import `src/theme/colors.js` directly
 in a screen/component.** (`AmbientBackground` and a themed tab bar are the two deliberate exceptions
@@ -73,7 +76,7 @@ two folders:
   use React Native primitives, Reanimated, `expo-blur`/`expo-linear-gradient`, and
   `useAppTheme()`/hooks. Grouped into subfolders by purpose: `background/` (`Meteors`, `Stars` —
   animated background-effect primitives), `buttons/` (`GradientButton`, `PillButton`), `feedback/`
-  (`Alert`, `Chip`, `VersionInfo` — status/feedback indicators), `form/` (`InputField`, `SelectField`, `Stepper`,
+  (`Alert`, `VersionInfo` — status/feedback indicators), `form/` (`InputField`, `SelectField`, `Stepper`,
   `Switch` — form input controls), `layout/` (`BottomSheet`, `GlowCard`, `Row` — layout/surface
   primitives). Props worth knowing:
   `Alert`'s `variant` (`error` default, `warning`, `success`); `Switch`'s `disabled` and
@@ -90,6 +93,8 @@ two folders:
 - **`composite/`** — built by composing one or more `base` (or other `composite`) components, flat
   (no subfolders). Currently: `AmbientBackground` (from `Meteors`, `Stars`), `ConfirmModal` (from
   `GlowCard` (solid), `GradientButton`; optional `icon`/`title` above the message),
+  `FormActions` (from `GradientButton` — the Save/Cancel pair under `AccountCard`'s and
+  `ProfileCard`'s edit forms),
   `NotificationsPrompt` (from `ConfirmModal` — Home's one-time "Turn on notifications?"),
   `ProfileFields` (from `InputField`, `SelectField` — optional
   name/phone fields, shared by register and `ProfileCard`), `RequireAuthNotice` (from
@@ -97,7 +102,10 @@ two folders:
   Home's Shabbat times; presentational, Home owns the Redux wiring and passes `now`, plus a
   `footer` shown only while there are times), `CandleReminder` (from `PillButton`, `BottomSheet`,
   `Stepper`, `GradientButton`, `Alert`, `ConfirmModal` — Home's reminder bell, passed as
-  `ShabbatSection`'s `footer`; owns its Redux wiring, the sheet's form is private), and the
+  `ShabbatSection`'s `footer`; owns its Redux wiring, the sheet's form is private), `UpdateSheet`
+  (from `BottomSheet`, `GradientButton`, `Alert` — the APK's update sheet, mounted app-wide by
+  `AppUpdateManager`), `UpdateChip` (Home's "↑ <version>" chip, reopens it), `SystemStatus`
+  (presentational — the Admin tab's list of services from `GET /admin/status`), and the
   Account tab's cards — `ThemeCard` (`GlowCard`, `Row`, `Switch`), `NotificationsCard`
   (`GlowCard`, `Row`, `Switch`, `Alert`), `AccountCard`, `ProfileCard`,
   `LogoutCard`, `DeleteAccountCard` (`GlowCard`, `Row`, `GradientButton`, plus `InputField`/
@@ -115,7 +123,7 @@ component definitions or business logic in a page file.
 ## Services layer — where all I/O lives
 
 Every network call (HTTP or WebSocket) and every device API (location, the browser's
-service worker/`Notification`/`PushManager`) lives in a plain module
+service worker/`Notification`/`PushManager`, the file system and Android intents) lives in a plain module
 under `src/services/`, split by transport (`http/`, `ws/`, `device/`) — never inline inside a thunk
 and never inside a component. Services
 know nothing about Redux (no `dispatch`, no reading state); thunks call the service and translate
@@ -125,27 +133,40 @@ when a component genuinely needs something no thunk/selector combination can giv
 
 ## Non-negotiables
 
-- Build-time values come from `src/config/`: `urls.js` (`EXPO_PUBLIC_GATEWAY_ORIGIN`, throws if
-  unset) and `version.js` (`VERSION { app, frontend, builtAt }` — set by `frontend/Dockerfile` from
+- Build-time values come from `src/config/`: `urls.js` (`URLS.gateway` from
+  `EXPO_PUBLIC_GATEWAY_ORIGIN`, throws if unset — every API call and `/ws`; `apkRegistry` from
+  `EXPO_PUBLIC_APK_REGISTRY_URL`, set only by `apk.js build`, `null` elsewhere) and `version.js`
+  (`VERSION { frontend, builtAt }` — set by `frontend/Dockerfile` or `apk.js build` from
   `version/versions.json`, `null` under `expo start`, shown as "dev"). Read them from there, not
   `process.env` elsewhere.
 - Always use `useAppTheme()` for colors — never hardcode or import `colors.js` directly in a
   screen/component.
 - Don't hand-write to AsyncStorage — redux-persist handles persisted slices (`auth` — tokens only, `theme`,
   `location` — `coords` only, `calendar` — `shabbat` only, `notifications` — `promptDismissed`
-  and `optedOut` only). `ws`, `profile` and `reminders` aren't persisted; `profile` and `reminders` are reset on
-  `clearAuth`/`deleteAccount` so one user's data never reaches the next.
+  and `optedOut` only, `appUpdate` — `dismissedVersionCode` only, `ws` — `deviceToken` only).
+  `profile`, `reminders` and `admin` aren't persisted, and are reset on `clearAuth`/`deleteAccount`
+  so one user's data never reaches the next.
 - `enableNotifications` must be dispatched synchronously from the tap handler —
   `Notification.requestPermission()` only prompts inside a user gesture, so it's the thunk's first
   await; don't put another await (or a confirm step) in front of it.
+- One Socket.IO connection, open signed in or not, always with the install's device token
+  (`wsSlice`, persisted; anonymous without a login token), managed only by
+  `RealtimeConnectionManager` → `wsSlice`. A feature listens with `socketService.on(event,
+  handler)` from a thunk and calls the returned unsubscribe in its effect cleanup (see
+  `appUpdateSlice.listenForUpdates`) — `socketService` doesn't hand out the socket itself: it's
+  replaced on sign-in/out and on return from the background, and only `on()` handlers carry over.
 - `notificationsSlice` must not import `authSlice` (`authSlice`'s `logOut`/`deleteAccount` import
   it — a cycle); it reads the token via `getState()`.
 - Provider order in `app/_layout.js` is load-bearing (`Provider` → `PersistGate` →
-  `ThemeAnimProvider` → `ThemedStatusBar`/`AuthGate`/`RealtimeConnectionManager`/
-  `LocationSyncManager`/`PushSubscriptionManager` → `Stack`) — adding a provider means
+  `ThemedStatusBar`/`AuthGate`/`RealtimeConnectionManager`/
+  `LocationSyncManager`/`PushSubscriptionManager` → `Stack` → `AppUpdateManager`, last so its
+  `UpdateSheet` renders over any screen) — adding a provider means
   deciding where it sits deliberately, not appending it wherever's convenient.
 - **The frontend only ever talks to Gateway, never the Users Service or any other backend service
-  directly** — see `.claude/memory/feedback_gateway_only_service_access.md`.
+  directly** — see `.claude/memory/feedback_gateway_only_service_access.md`. The single exception
+  is read-only static files: the APK's update check reads the registry's `latest.json` and APK
+  from the frontend's own Caddy (`/apk/`, `appUpdateService`). Every API call still goes to
+  Gateway.
 - **This project is a known stepping-stone style** — the user has said the whole look (space/glow/
   gradient) will eventually be replaced by a different, more animated ("3D") style. Don't treat
   today's palette/components as permanent brand decisions worth defending; do keep them internally

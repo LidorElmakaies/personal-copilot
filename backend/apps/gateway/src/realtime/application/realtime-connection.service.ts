@@ -11,8 +11,8 @@ export class RealtimeConnectionService implements IRealtimeConnectionService {
     private readonly connectionStore: IConnectionStore,
   ) {}
 
-  register(userId: string, socket: Socket): void {
-    this.connectionStore.set(userId, socket);
+  register(socket: Socket, deviceId: string, userId: string | null): void {
+    this.connectionStore.add(socket, deviceId, userId)?.disconnect(true);
   }
 
   unregister(socket: Socket): void {
@@ -24,9 +24,14 @@ export class RealtimeConnectionService implements IRealtimeConnectionService {
     event: string,
     payload: T,
   ): boolean {
-    const socket = this.connectionStore.get(userId);
-    if (!socket) return false;
-    socket.emit(event, payload);
-    return true;
+    const sockets = this.connectionStore.forUser(userId);
+    for (const socket of sockets) socket.emit(event, payload);
+    return sockets.length > 0;
+  }
+
+  broadcast<T extends object>(event: string, payload: T): number {
+    const sockets = this.connectionStore.all();
+    for (const socket of sockets) socket.emit(event, payload);
+    return sockets.length;
   }
 }

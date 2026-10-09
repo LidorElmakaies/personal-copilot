@@ -11,7 +11,7 @@
   equivalent, passed as a build `ARG` in `devops/frontend/docker-compose.yml` and baked into
   `EXPO_PUBLIC_GATEWAY_ORIGIN` inside the image (must be a build arg, not a runtime env var — the
   static web export has no server to read a runtime var from). For the phone browser, set it to
-  the HTTPS Gateway URL `devops/tailscale/serve.sh` prints (`https://<pc>.<tailnet>.ts.net:8443`) —
+  the HTTPS Gateway URL `devops/tailscale/serve.js` prints (`https://<pc>.<tailnet>.ts.net:8443`) —
   plain HTTP would make the browser block GPS. `http://localhost:8000` works for use on the PC
   only.
 

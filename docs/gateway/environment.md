@@ -8,21 +8,23 @@ full variable list with defaults.
   own `main.ts` when unset. Every backend app shares that same file and defaults to its own port
   (users `8001`, reminders `8003`, notifications `8004`) — setting `PORT` in the
   shared file would force them all onto the same port and break the proxies. Docker gets `8000` published via `devops/gateway/docker-compose.yml`'s `ports:`.
-- **`USERS_SERVICE_URL`** — internal-only proxy target for `/auth/*`. `http://localhost:8001`
-  locally; `http://users:8001` in Docker (set via `devops/gateway/docker-compose.yml`'s
-  `environment:`, since it needs the Docker network hostname, not `docker.env`'s shared value).
-- **`NOTIFICATIONS_SERVICE_URL`** — proxy target for `/notifications/*`. `http://localhost:8004`
-  locally; `http://notifications:8004` in Docker (same override).
-- **`REMINDERS_SERVICE_URL`** — proxy target for `/reminders/*` and `/calendar/*`. `http://localhost:8003` locally;
-  `http://reminders:8003` in Docker (same override). Gateway fails fast at boot if any service URL
-  is unset.
+- **`USERS_SERVICE_URL`**, **`REMINDERS_SERVICE_URL`**, **`NOTIFICATIONS_SERVICE_URL`** — where
+  `PROXY_ROUTES` forwards (`/auth/*` and `/users/me*` → Users, `/reminders*` → Reminders,
+  `/notifications/*` → Notifications), and where `GET /admin/status` asks each `/health`.
+  `http://localhost:8001` / `8003` / `8004` locally; `http://users:8001` etc. in Docker (set in
+  `devops/gateway/docker-compose.yml`'s `environment:`, since they need the Docker network
+  hostnames, not `docker.env`'s shared values). Gateway fails fast at boot if any is unset.
+- **`ADMIN_STATUS_TIMEOUT_MS`** — how long `GET /admin/status` waits for each `/health` before
+  calling that service `down` (default `2000`).
 - **`THROTTLE_TTL_MS` / `THROTTLE_LIMIT`** — global rate limit, all routes.
 - **`AUTH_THROTTLE_TTL_MS` / `AUTH_THROTTLE_LIMIT`** — tighter limit specifically on
-  `/auth/register`, `/auth/login`, `/auth/refresh`, `/auth/account`.
+  `/auth/register`, `/auth/login`, `/auth/refresh`, `/auth/account` and `/realtime/device`.
+- **`KAFKA_BROKERS`** — for `frontend.releases` (new app releases → `app-update` over `/ws`).
+  `kafka:19092` in Docker (`devops/docker.env`); a local run needs a broker on `localhost:9092`.
 - **`JWT_SECRET`** — must be byte-identical to the Users Service's copy (Users signs, Gateway verifies).
   In Docker this comes from `devops/.env` via an explicit `${JWT_SECRET}` in
   `devops/gateway/docker-compose.yml`'s `environment:`, not from `docker.env`.
 
 See [docs/users/environment.md](../users/environment.md) for the Users Service side of `JWT_SECRET`,
-and `docs/specs/architecture.md` for how `trust proxy` and the SSH-tunnel deployment interact with
-rate limiting.
+and `docs/specs/architecture.md` for how `trust proxy`, the `127.0.0.1`-only port and the proxies
+in front of Gateway interact with rate limiting.

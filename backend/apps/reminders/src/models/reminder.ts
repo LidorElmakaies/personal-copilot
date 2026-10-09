@@ -11,7 +11,7 @@ export interface Reminder {
   nextFireAt: Date | null;
 }
 
-/** What the user picks; the location comes from their profile (see UserLocation). */
+/** What the user picks; the location comes from their profile (`Coordinates`). */
 export interface ReminderSettings {
   offsetMinutes: number;
 }

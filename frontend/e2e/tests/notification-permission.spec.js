@@ -1,7 +1,6 @@
 const { test, expect } = require('@playwright/test');
 
-// Allowing notifications again in the browser's site settings while the app is open (plan task
-// 2.14 follow-up): the browser dropped the subscription when the site was blocked; once allowed
+// Allowing notifications again in the browser's site settings while the app is open: the browser dropped the subscription when the site was blocked; once allowed
 // again the app subscribes on its own (they weren't turned off in the app), no reload.
 // Real Chromium permissions (full Chromium — the headless shell reports notifications as denied);
 // only PushManager is stubbed, since headless Chromium has no push service. Gateway mocked.

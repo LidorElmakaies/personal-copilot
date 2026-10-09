@@ -1,6 +1,6 @@
 const { test, expect } = require('@playwright/test');
 
-// Admin tab (plan task 2.19): only admins see it, and it lists GET /admin/status. Gateway mocked,
+// Admin tab: only admins see it, and it lists GET /admin/status. Gateway mocked,
 // signed in with a fake token, same as session.spec.js.
 
 const CORS = {

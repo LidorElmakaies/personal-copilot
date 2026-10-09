@@ -29,7 +29,7 @@ export const updateProfile = createAsyncThunk(
 );
 
 // Below this, a GPS fix is "the same place" and isn't sent.
-export const LOCATION_SYNC_MIN_KM = 5;
+const LOCATION_SYNC_MIN_KM = 5;
 
 // Compares against the server's saved location, not a local "last sent" — see
 // docs/specs/services.md#frontend. Resolves with the updated profile, or null if nothing was sent.

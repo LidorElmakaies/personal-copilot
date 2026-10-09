@@ -6,7 +6,6 @@ import { OUTBOX_RELAY } from '../../tokens';
 import type { Profile, ProfileChange } from '../../models/profile';
 import type { IProfileRepository } from '../interfaces/profile-repository.interface';
 import { ProfileEntity } from '../../entities/profile.entity';
-import { UserEntity } from '../../entities/user.entity';
 import { addUserStateEvent } from './user-events';
 
 export function toProfile(p: ProfileEntity): Profile {
@@ -41,24 +40,12 @@ export class TypeOrmProfileRepository implements IProfileRepository {
 
   async update(userId: string, change: ProfileChange): Promise<Profile | null> {
     const saved = await this.repo.manager.transaction(async (m) => {
-      // Share-locks the user so a concurrent account delete can't slip in between.
-      const user = await m.findOne(UserEntity, {
-        where: { id: userId },
-        lock: { mode: 'pessimistic_read' },
-      });
-      if (!user) return null;
-
-      await m
-        .createQueryBuilder()
-        .insert()
-        .into(ProfileEntity)
-        .values({ userId, version: 0 })
-        .orIgnore()
-        .execute();
-      const profile = await m.findOneOrFail(ProfileEntity, {
+      // An account delete removes this row first, so it waits for this write, or this finds nothing.
+      const profile = await m.findOne(ProfileEntity, {
         where: { userId },
         lock: { mode: 'pessimistic_write' },
       });
+      if (!profile) return null;
 
       if (change.firstName !== undefined) profile.firstName = change.firstName;
       if (change.lastName !== undefined) profile.lastName = change.lastName;

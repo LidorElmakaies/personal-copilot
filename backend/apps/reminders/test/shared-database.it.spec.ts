@@ -13,8 +13,11 @@ import { UsersProfileEntity, UsersUserEntity } from '@app/users-schema';
 import { TypeOrmUserLocationReader } from '../src/infrastructure/postgres/typeorm-user-location.reader';
 
 // Opt-in: needs a real Postgres. Builds the shared layout (users/reminders/notifications schemas,
-// each service syncing only its own) in a throwaway database, dropped afterwards.
-//   SHARED_DB_IT_URL=postgres://postgres:postgres@localhost:5432/postgres npx jest shared-database.it
+// each service syncing only its own) in a throwaway database, dropped afterwards. The stack's
+// Postgres isn't published to the host, so from backend/, on its Docker network:
+//   docker run --rm --network devops_personal-copilot -v "$PWD":/app -w /app \
+//     -e SHARED_DB_IT_URL=postgres://postgres:postgres@postgres:5432/postgres \
+//     node:22-alpine npx jest shared-database.it
 const adminUrl = process.env.SHARED_DB_IT_URL;
 const maybe = adminUrl ? describe : describe.skip;
 

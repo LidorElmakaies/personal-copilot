@@ -1,6 +1,6 @@
 const { test, expect } = require('@playwright/test');
 
-// Candle-lighting reminder (plan task 2.15): the bell under Home's Shabbat times and its offset
+// Candle-lighting reminder: the bell under Home's Shabbat times and its offset
 // sheet. Gateway mocked; clock starts on Sun 27 Sep 2026, candle lighting Fri 2 Oct 18:04 (local).
 
 const TEL_AVIV = { latitude: 32.0853, longitude: 34.7818 };

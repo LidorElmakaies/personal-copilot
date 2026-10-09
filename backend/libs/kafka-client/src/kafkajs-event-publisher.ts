@@ -3,8 +3,6 @@ import { ConfigService } from '@nestjs/config';
 import { Kafka, Producer } from 'kafkajs';
 import type { IEventPublisher } from './event-publisher.interface';
 
-// Raw kafkajs Producer, not @nestjs/microservices' ClientKafka — that's built around request/reply
-// topics, which fire-and-forget `emit` has no use for.
 // Connects on first publish, not at boot, so a service still starts while Kafka is down.
 @Injectable()
 export class KafkajsEventPublisher implements IEventPublisher, OnModuleDestroy {

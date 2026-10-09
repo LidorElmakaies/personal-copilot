@@ -1,6 +1,6 @@
 const { test, expect } = require('@playwright/test');
 
-// A session the server rejects (plan task 2.17): a 401 on a signed-in call signs out and the login
+// A session the server rejects: a 401 on a signed-in call signs out and the login
 // screen says why — instead of the app staying "signed in" with every call failing. Gateway mocked.
 
 const CORS = {

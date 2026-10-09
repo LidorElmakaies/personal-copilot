@@ -21,19 +21,19 @@ backend/
   apps/
     gateway/            # the only BACKEND service reachable from outside the Docker network
                         # (published to the host, reachable over Tailscale from your phone).
-                        # src/auth-proxy/: thin pass-through to Users Service, one hardcoded route
-                        # per operation (not a wildcard) — register/login/refresh/logout/account.
-                        # No /me, see JwtPayload's doc comment in @app/auth-kernel for why.
-                        # src/realtime/: Socket.IO at /ws, generic connection plumbing — no
-                        # feature pushes anything over it yet, see services.md#gateway for the
-                        # IRealtimeConnectionService.pushToUser entry point a future one uses.
-                        # src/users-proxy/, src/reminders-proxy/: /users/me*, /reminders*
-                        # (JwtAuthGuard, user id forwarded as X-User-Id).
-                        # src/notifications-proxy/: vapid-public-key (open) + subscriptions
-                        # (JwtAuthGuard, user id forwarded as X-User-Id — see services.md).
-                        # src/proxy/: the one shared forwarder every *-proxy module uses
-                        # (createServiceHttpClient + writeProxyResponse) — a new proxied service
-                        # gets a new *-proxy module on top of it, never its own HTTP client copy.
+                        # src/proxy/: every route forwarded to Users/Reminders/Notifications —
+                        # one row each in proxy.routes.ts (method, path, service, auth: 'user'
+                        # → JwtAuthGuard + X-User-Id, throttle: 'strict'); ProxyController makes
+                        # each row a real Nest route, unlisted → 404. A new forwarded route is a
+                        # new row (and its CONTRACT row in test/proxy.api.spec.ts).
+                        # src/realtime/: POST /realtime/device + Socket.IO at /ws (a device
+                        # token, plus the user's once signed in; one connection per device); a
+                        # feature injects IRealtimeConnectionService's
+                        # pushToUser/broadcast — see services.md#gateway.
+                        # src/app-update/: no routes — consumes Kafka's frontend.releases,
+                        # broadcasts `app-update` on a new release.
+                        # src/admin/: GET /admin/status (AdminGuard) — Gateway's own version
+                        # plus each internal service's /health, asked in parallel.
                         # Thin pass-through everywhere — never business logic. A new feature's
                         # HTTP surface gets its own self-contained module here, same shape.
                         # The one exception: src/calendar/ serves GET /calendar/shabbat itself,
@@ -46,14 +46,16 @@ backend/
                         # { sub, role, email }). account (one endpoint, both newEmail/newPassword
                         # optional, at least one required) is body-driven (current password
                         # proves identity), not JwtAuthGuard-gated, and always reissues tokens
-                        # since email may have changed. Postgres via TypeORM, salt+pepper+SHA-256
+                        # since email may have changed; a new password revokes every refresh
+                        # token the user has. Emails are unique by the DB constraint alone
+                        # (EmailTakenError → 409), no lookup first. Postgres via TypeORM, salt+pepper+SHA-256
                         # hashing. UserRole is 'user' | 'admin' (USER_ROLES); the only admin is
                         # the one-time AdminSeedService account. JwtAuthGuard admits both roles;
                         # an admin-only route uses AdminGuard (403 for a user) — see services.md#users.
     reminders/           # Per-user reminders (schema `reminders`); reads the location from users.profiles.
                         # Schedules them as delayed reminder-due jobs (ReminderScheduler + a 15-min
                         # ReminderSweeper); next candle lighting from @app/jewish-calendar,
-                        # in-process. No Calendar Service — Gateway serves Home's Shabbat times.
+                        # in-process; Gateway serves Home's Shabbat times from it too.
     notifications/       # Schema `notifications`. Push subscriptions + VAPID public key; processes
                         # notification-requested jobs (consume-only; drops expired) → each
                         # INotificationChannel.deliver(userId, content, expiresAt, progress).
@@ -114,7 +116,7 @@ in `application/exceptions/<name>.exception.ts`.
 
 Application-layer code depends **only on interfaces**, injected via a string/Symbol DI token
 declared in that app's own `src/tokens.ts` — never a concrete Infrastructure class directly. Follow
-the existing pattern exactly (see `apps/gateway/src/auth-proxy/` for the smallest complete
+the existing pattern exactly (see `apps/gateway/src/admin/` for a small complete
 example): `{ provide: TOKEN, useClass: Impl }` when the class's own constructor already has
 everything it needs via `@Inject`, `{ provide: TOKEN, useFactory: ..., inject: [...] }` when it
 doesn't (e.g. `new BullmqQueueConsumer(config)` in `apps/notifications/src/notifications.module.ts`).

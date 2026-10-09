@@ -14,7 +14,11 @@ import {
 } from '../tokens';
 import type { IPasswordHasher } from '../infrastructure/interfaces/password-hasher.interface';
 import type { IRefreshTokenRepository } from '../infrastructure/interfaces/refresh-token-repository.interface';
-import type { IUserRepository } from '../infrastructure/interfaces/user-repository.interface';
+import {
+  EmailTakenError,
+  type CredentialsChange,
+  type IUserRepository,
+} from '../infrastructure/interfaces/user-repository.interface';
 import type { User } from '../models/user';
 import type {
   AuthTokens,
@@ -28,6 +32,17 @@ import type {
 const ACCESS_TOKEN_TTL = '15m';
 const REFRESH_TOKEN_TTL_DAYS = 30;
 
+async function conflictIfEmailTaken<T>(write: Promise<T>): Promise<T> {
+  try {
+    return await write;
+  } catch (err) {
+    if (err instanceof EmailTakenError) {
+      throw new ConflictException(err.message);
+    }
+    throw err;
+  }
+}
+
 @Injectable()
 export class AuthService implements IAuthService {
   constructor(
@@ -40,24 +55,21 @@ export class AuthService implements IAuthService {
 
   async register(input: RegisterInput): Promise<AuthTokens> {
     const email = input.email.toLowerCase();
-    const existing = await this.users.findByEmail(email);
-    if (existing) {
-      throw new ConflictException('Email is already registered');
-    }
-
     const { hash, salt } = this.hasher.hash(input.password);
-    const user = await this.users.create(
-      {
-        email,
-        passwordHash: hash,
-        passwordSalt: salt,
-        role: 'user',
-      },
-      {
-        firstName: input.firstName ?? null,
-        lastName: input.lastName ?? null,
-        phone: input.phone ?? null,
-      },
+    const user = await conflictIfEmailTaken(
+      this.users.create(
+        {
+          email,
+          passwordHash: hash,
+          passwordSalt: salt,
+          role: 'user',
+        },
+        {
+          firstName: input.firstName ?? null,
+          lastName: input.lastName ?? null,
+          phone: input.phone ?? null,
+        },
+      ),
     );
 
     return this.issueTokens(user.id, user.email, user.role);
@@ -108,25 +120,18 @@ export class AuthService implements IAuthService {
       input.currentPassword,
     );
 
-    let finalEmail = user.email;
-    if (input.newEmail) {
-      const newEmail = input.newEmail.toLowerCase();
-      const existing = await this.users.findByEmail(newEmail);
-      if (existing && existing.id !== user.id) {
-        throw new ConflictException('Email is already registered');
-      }
-      await this.users.updateEmail(user.id, newEmail);
-      finalEmail = newEmail;
-    }
-
+    const change: CredentialsChange = {};
+    if (input.newEmail) change.email = input.newEmail.toLowerCase();
     if (input.newPassword) {
       const { hash, salt } = this.hasher.hash(input.newPassword);
-      await this.users.updatePassword(user.id, hash, salt);
-      // Not revoking existing refresh tokens on password change — possible future hardening.
+      change.passwordHash = hash;
+      change.passwordSalt = salt;
     }
+    // A new password also signs out every other session: their refresh tokens are revoked.
+    await conflictIfEmailTaken(this.users.updateCredentials(user.id, change));
 
     // Always reissue, even on a password-only change — see docs/specs/services.md#users.
-    return this.issueTokens(user.id, finalEmail, user.role);
+    return this.issueTokens(user.id, change.email ?? user.email, user.role);
   }
 
   async deleteAccount(input: DeleteAccountInput): Promise<void> {

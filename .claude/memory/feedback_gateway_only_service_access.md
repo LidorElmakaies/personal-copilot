@@ -1,6 +1,6 @@
 ---
 name: feedback_gateway_only_service_access
-description: "Hard rule for personal-copilot, carried over from askmycrawl: nothing external ever reaches auth (or any future internal service) directly — only Gateway (frontend excepted, it's a static web export, not a backend service). Internal service-to-service calls (BullMQ queues on Redis, and Gateway->Auth HTTP) are unaffected."
+description: "Hard rule for personal-copilot, carried over from askmycrawl: nothing external ever reaches users (or any other internal service) directly — only Gateway (frontend excepted, it's a static web export, not a backend service). Internal service-to-service calls (BullMQ queues, Kafka, Gateway->service HTTP) are unaffected."
 metadata:
   node_type: memory
   type: feedback
@@ -17,7 +17,9 @@ stop and ask first.
 export, served by Caddy). It's not a backend service and this rule doesn't restrict it, but the
 rule it enforces on the frontend's *code* is the mirror image: the frontend only ever calls
 `gateway`, never `users` (or any future backend service) directly, even though nothing stops it at
-the network level the way an unpublished port does for a browser.
+the network level the way an unpublished port does for a browser. The one exception is read-only
+static files: the Android app's update check fetches `latest.json` and the APK from the frontend's
+own Caddy (`/apk/`) — no API call ever bypasses Gateway.
 
 **Does not restrict internal service-to-service calls** — Gateway's plain-HTTP call to `users`, and
 whatever BullMQ queue publisher/consumer wiring a feature adds between internal services, is the
@@ -27,7 +29,7 @@ touches.
 **Why:** same reasoning as [[askmycrawl-project]]'s original — the user wants a single, deliberate
 boundary between "reachable from outside" and "internal", enforced structurally (only one backend
 service exposed) rather than left to convention. This project goes one step further than
-askmycrawl's own precedent: `auth`'s port is never published at all, not even as documented debt —
+askmycrawl's own precedent: `users`' port is never published at all, not even as documented debt —
 askmycrawl's Auth Service still exposes `8001:8001` as a known-but-unfixed exception; this project
 started without that exception since there's no legacy reason to carry it.
 

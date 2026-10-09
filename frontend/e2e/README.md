@@ -25,7 +25,7 @@ starts the clock at a fixed time with `page.clock.install` + `resume` rather tha
 `setFixedTime`, since a frozen clock also stops the bottom sheet's JS slide-in animation.
 `tests/apk-registry.spec.js` checks the published APK registry at `/apk/` read-only (headers, the
 page lists `releases.json`) and skips where nothing is published; the publisher itself is tested by
-`node --test devops/android/`.
+`node --test devops/android/apk.test.js`.
 
 Output lands in this folder (gitignored): `screenshots/` (explicit captures), `test-results/`
 (per-test screenshot, plus trace/video on failure), `playwright-report/` (HTML report).

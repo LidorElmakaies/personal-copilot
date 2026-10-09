@@ -12,7 +12,7 @@ import AmbientBackground from '../../src/components/composite/AmbientBackground'
 import CandleReminder from '../../src/components/composite/CandleReminder';
 import NotificationsPrompt from '../../src/components/composite/NotificationsPrompt';
 import ShabbatSection from '../../src/components/composite/ShabbatSection';
-import Chip from '../../src/components/base/feedback/Chip';
+import UpdateChip from '../../src/components/composite/UpdateChip';
 import GlowCard from '../../src/components/base/layout/GlowCard';
 import { useAppTheme } from '../../src/hooks/useAppTheme';
 import { fetchShabbat } from '../../src/store/slices/calendarSlice';
@@ -35,7 +35,6 @@ function formatHebrewDate(date) {
 export default function HomeScreen() {
   const { colors } = useAppTheme();
   const dispatch = useDispatch();
-  const wsStatus = useSelector((state) => state.ws.status);
   const location = useSelector((state) => state.location);
   const calendar = useSelector((state) => state.calendar);
   const [now, setNow] = useState(() => new Date());
@@ -61,7 +60,6 @@ export default function HomeScreen() {
     if (shabbatEnded) dispatch(fetchShabbat());
   }, [shabbatEnded, dispatch]);
 
-  const isLive = wsStatus === 'connected';
   const time = `${pad2(now.getHours())}:${pad2(now.getMinutes())}:${pad2(now.getSeconds())}`;
   const numericDate = formatNumericDate(now);
   const weekday = now.toLocaleDateString('en-US', { weekday: 'long' });
@@ -78,10 +76,7 @@ export default function HomeScreen() {
       <ScrollView contentContainerStyle={styles.container}>
         <GlowCard style={styles.panel}>
           <View style={styles.statusRow}>
-            <Chip
-              label={isLive ? 'Live' : 'Disconnected'}
-              variant={isLive ? 'online' : 'error'}
-            />
+            <UpdateChip />
           </View>
 
           <Text

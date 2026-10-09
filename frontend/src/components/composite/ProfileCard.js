@@ -4,12 +4,13 @@ import { useDispatch, useSelector } from 'react-redux';
 import Alert from '../base/feedback/Alert';
 import GlowCard from '../base/layout/GlowCard';
 import GradientButton from '../base/buttons/GradientButton';
+import FormActions from './FormActions';
 import ProfileFields from './ProfileFields';
 import Row from '../base/layout/Row';
 import { fetchProfile, updateProfile } from '../../store/slices/profileSlice';
 import { fromE164, phoneError, toE164 } from '../../utils/phone';
 
-// Composite component (GlowCard/Row/GradientButton/ProfileFields/Alert) — name and phone; Edit
+// Composite component (GlowCard/Row/GradientButton/ProfileFields/FormActions/Alert) — name and phone; Edit
 // opens the profile form in place. Fetches the profile on mount, so render it only signed in.
 export default function ProfileCard() {
   const dispatch = useDispatch();
@@ -94,22 +95,12 @@ function EditForm({ profile, onDone }) {
     <View style={styles.form}>
       <ProfileFields value={details} onChange={setDetails} />
       {error ? <Alert variant="error">{`Save failed: ${error}`}</Alert> : null}
-      <View style={styles.actions}>
-        <GradientButton
-          label="Save"
-          onPress={handleSubmit}
-          loading={submitting}
-          disabled={!canSubmit}
-          style={styles.buttonFlex}
-          contentStyle={styles.buttonContent}
-        />
-        <GradientButton
-          label="Cancel"
-          onPress={onDone}
-          style={styles.buttonFlex}
-          contentStyle={styles.buttonContent}
-        />
-      </View>
+      <FormActions
+        onSave={handleSubmit}
+        onCancel={onDone}
+        saving={submitting}
+        canSave={canSubmit}
+      />
     </View>
   );
 }
@@ -126,7 +117,4 @@ function profileSubtitle(profile, status, error) {
 const styles = StyleSheet.create({
   rowButtonContent: { paddingHorizontal: 18, paddingVertical: 9 },
   form: { gap: 14 },
-  actions: { flexDirection: 'row', gap: 12 },
-  buttonFlex: { flex: 1 },
-  buttonContent: { paddingVertical: 10 },
 });

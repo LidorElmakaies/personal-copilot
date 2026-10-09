@@ -1,17 +1,24 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AuthTokenService } from './auth-token.service';
+import { DeviceTokenService } from './device-token.service';
 import { JsonWebTokenService } from './jsonwebtoken.service';
-import { AUTH_TOKEN_SERVICE, JWT_SERVICE } from './tokens';
+import {
+  AUTH_TOKEN_SERVICE,
+  DEVICE_TOKEN_SERVICE,
+  JWT_SERVICE,
+} from './tokens';
 
 // Users Service imports this for JWT_SERVICE (signs); Gateway imports it for
-// AUTH_TOKEN_SERVICE/JwtAuthGuard (verifies — its HTTP guard and the WS handshake).
+// AUTH_TOKEN_SERVICE/JwtAuthGuard (verifies — its HTTP guard and the WS handshake) and
+// DEVICE_TOKEN_SERVICE (issues and verifies /ws device tokens).
 @Module({
   imports: [ConfigModule],
   providers: [
     { provide: JWT_SERVICE, useClass: JsonWebTokenService },
     { provide: AUTH_TOKEN_SERVICE, useClass: AuthTokenService },
+    { provide: DEVICE_TOKEN_SERVICE, useClass: DeviceTokenService },
   ],
-  exports: [JWT_SERVICE, AUTH_TOKEN_SERVICE],
+  exports: [JWT_SERVICE, AUTH_TOKEN_SERVICE, DEVICE_TOKEN_SERVICE],
 })
 export class AuthKernelModule {}

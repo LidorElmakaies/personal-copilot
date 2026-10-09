@@ -18,9 +18,11 @@ services:
       - NOTIFICATIONS_SERVICE_URL=http://notifications:8004
       - REMINDERS_SERVICE_URL=http://reminders:8003
     # The only service published to the host (see
-    # .claude/memory/feedback_gateway_only_service_access.md).
+    # .claude/memory/feedback_gateway_only_service_access.md) — on 127.0.0.1 only: phones reach it
+    # through tailscale serve, the cloud through the SSH tunnel, both local. That's what lets
+    # Gateway trust X-Forwarded-For (backend/apps/gateway/src/trust-proxy.ts).
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     depends_on:
       users:
         condition: service_healthy

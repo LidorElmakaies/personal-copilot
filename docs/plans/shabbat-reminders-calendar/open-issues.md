@@ -22,6 +22,16 @@ The plan's own open questions (holiday eves, location denied) stay in [`plan.md`
   `echo 'vm.overcommit_memory = 1' | sudo tee /etc/sysctl.d/99-redis.conf && sudo sysctl --system`,
   then `docker compose restart redis` from `devops/`.
 
+- [x] **Gateway can't see the real client IP behind Docker.** *Fixed in plan task 2.22b.* Every
+  connection reaches Gateway from the Docker bridge (`172.19.0.1`, checked 2026-10-09), never from
+  loopback, so `trust proxy: 'loopback'` (`main.ts`) and `/ws`'s `clientIp` never read
+  `X-Forwarded-For`. All Tailscale clients share one HTTP rate-limit budget (100/min, and 5/min
+  for login/register — one person's typos can lock everyone out for a minute) and one WS
+  per-IP cap (20). Port 8000 is published on every interface, so trusting the bridge as-is would
+  let a direct caller spoof the header.
+  *Fix:* publish Gateway on `127.0.0.1:8000` only (Tailscale serve and the SSH tunnel both arrive
+  from localhost), then trust the Docker bridge as a proxy in Express and in `clientIp`.
+
 ## Notifications: contract and validation
 
 - [ ] **Timestamps without a time zone are accepted.** `expiresAt`/`requestedAt` are checked with

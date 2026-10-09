@@ -61,6 +61,12 @@ caught every mention.) Specifically, each pass should also check:
   diagram — and vice versa (no doc section for a service that no longer exists).
 - Every `.env.example` var mentioned in `CLAUDE.md`'s setup instructions still exists in the actual
   `.env.example` files.
+- **`libs/kafka-contracts/src/topics.ts`'s `KAFKA_TOPICS`**, `devops/kafka`'s `kafka-init` list and
+  `event-schemas.md`'s Kafka sections name the exact same topics.
+- Every top-level path Gateway serves (`PROXY_ROUTES` plus its own controllers) is in
+  `frontend/Caddyfile`'s `@gateway` matcher — a missing one 404s only in the cloud deployment.
+- Every variable a service reads (`config.get`/`getOrThrow`, `process.env`) is in its
+  `docs/<service>/environment.md`, and nothing documented there is gone from the code.
 
 ## Diagrams — Mermaid, in `docs/specs/architecture.md`
 

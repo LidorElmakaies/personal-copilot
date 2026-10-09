@@ -14,4 +14,8 @@ export interface JwtPayload {
 export interface IJwtService {
   sign(payload: JwtPayload, expiresIn: string): string;
   verify(token: string): JwtPayload | null;
+  /** A device token: `{ sub: deviceId, typ: 'device' }`, no expiry — never a user's access token. */
+  signDevice(deviceId: string): string;
+  /** The device id, or null unless it's a valid device token. */
+  verifyDevice(token: string): string | null;
 }

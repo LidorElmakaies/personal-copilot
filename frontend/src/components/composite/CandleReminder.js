@@ -17,19 +17,11 @@ import {
   saveCandleReminder,
   turnOffCandleReminder,
 } from '../../store/slices/remindersSlice';
+import { formatDay, formatTime } from '../../utils/time';
 
 const PRESETS = [30, 60, 90, 120, 180];
 const DEFAULT_OFFSET = 90;
 
-const pad2 = (n) => String(n).padStart(2, '0');
-const formatTime = (date) =>
-  `${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
-const formatDay = (date) =>
-  date.toLocaleDateString('en-GB', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-  });
 function formatOffset(minutes) {
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
@@ -243,7 +235,7 @@ function NotificationsNudge() {
   );
   if (subscribed) return null;
 
-  // The non-web "coming soon" is a stopgap until the APK's ntfy channel (plan task 2.25).
+  // The non-web "coming soon" stands until the Android app has a notification channel of its own.
   const message =
     permission === 'denied'
       ? "Notifications are blocked for this site in the browser, so the reminder won't reach you here."

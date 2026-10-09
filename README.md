@@ -21,7 +21,7 @@ One-time setup on this PC:
 ```bash
 curl -fsSL https://tailscale.com/install.sh | sh     # install
 sudo tailscale up                                      # log in (opens a browser link)
-sudo tailscale set --operator=$USER                    # lets serve.sh run without sudo
+sudo tailscale set --operator=$USER                    # lets serve.js run without sudo
 ```
 
 In the Tailscale admin console (DNS page), turn on **MagicDNS** and **HTTPS Certificates**. Install
@@ -30,7 +30,7 @@ Tailscale on your phone and log in with the same account.
 Then, with the stack running:
 
 ```bash
-devops/tailscale/serve.sh     # prints your https://<pc>.ts.net URLs
+node devops/tailscale/serve.js     # prints your https://<pc>.ts.net URLs
 ```
 
 Set the printed Gateway URL as `GATEWAY_PUBLIC_URL` in `devops/.env`, rebuild the frontend
@@ -53,7 +53,7 @@ Docker (nothing else to install):
 ```bash
 node devops/android/apk.js build     # → devops/data/android/apk/personal-copilot-<version>.apk
 node devops/android/apk.js publish "Release note" "Another note"   # → https://<pc>.ts.net/apk/
-node --test devops/android/          # the publisher's tests, on the host
+node --test devops/android/apk.test.js          # the publisher's tests, on the host
 ```
 
 It talks to `GATEWAY_PUBLIC_URL` from `devops/.env`, which must be the HTTPS tailnet URL (see
@@ -77,11 +77,21 @@ installs from Chrome, and Google Play Protect may block the app as from an unkno
 More details → Install anyway (the page says so too). `publish` writes `devops/data/apk/` directly, or through a `node:22-alpine`
 container when that folder isn't writable (root-owned on Linux, since Docker created it).
 
+**Updates.** Once installed, the app checks the registry's `latest.json` at start, whenever it
+comes back to the foreground, and right after a publish while it's open (`apk.js publish`
+announces the release on Kafka, and Gateway tells every open app over its WebSocket). When a newer version is published, a
+sheet with its release notes opens by itself (once per version; after Later, an "↑ <version>" chip on Home reopens it). Update
+downloads the APK inside the app and opens Android's installer — the first time, Android asks to
+allow installs from Personal Copilot. Only releases count: `-test.N` builds never reach
+`latest.json`. The registry address is baked in at build time: `APK_REGISTRY_URL` (env or
+`devops/.env`), else `https://<GATEWAY_PUBLIC_URL's host>/apk/` — the frontend's HTTPS address as
+`devops/tailscale/serve.js` publishes it.
+
 ## Versions
 
-Every version (the app's and each component's) is in `version/versions.json`; `scripts/version.sh`
-shows and bumps them (rules in CLAUDE.md's "Versions"). The Account tab shows the app and
-frontend versions; backend services report theirs on their internal `/health`.
+Every component's version is in `version/versions.json`; `node scripts/version.js` shows and bumps them
+(rules in CLAUDE.md's "Versions"). The Account tab shows the frontend's version; backend services
+report theirs on their internal `/health`, and the Admin tab (admins only) lists them all.
 
 ## Git rule for Claude and every agent
 

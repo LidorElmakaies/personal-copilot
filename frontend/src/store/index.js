@@ -12,6 +12,7 @@ import {
 } from 'redux-persist';
 import { setUnauthorizedHandler } from '../services/http/httpClient';
 import adminReducer from './slices/adminSlice';
+import appUpdateReducer from './slices/appUpdateSlice';
 import authReducer, {
   clearAuth,
   SESSION_ENDED_NOTICE,
@@ -47,6 +48,18 @@ const notificationsPersistConfig = {
   whitelist: ['promptDismissed', 'optedOut'], // the rest is read from the browser on every start
 };
 
+const appUpdatePersistConfig = {
+  key: 'appUpdate',
+  storage: AsyncStorage,
+  whitelist: ['dismissedVersionCode'], // the release itself is re-read on every start
+};
+
+const wsPersistConfig = {
+  key: 'ws',
+  storage: AsyncStorage,
+  whitelist: ['deviceToken'], // this install's /ws identity, kept across restarts and sign-outs
+};
+
 const authPersistConfig = {
   key: 'auth',
   storage: AsyncStorage,
@@ -57,7 +70,7 @@ export const store = configureStore({
   reducer: {
     theme: persistReducer(themePersistConfig, themeReducer),
     auth: persistReducer(authPersistConfig, authReducer),
-    ws: wsReducer, // ephemeral — connection status shouldn't survive a reload
+    ws: persistReducer(wsPersistConfig, wsReducer),
     location: persistReducer(locationPersistConfig, locationReducer),
     calendar: persistReducer(calendarPersistConfig, calendarReducer),
     profile: profileReducer, // not persisted — fetched when needed (profileSlice)
@@ -67,6 +80,7 @@ export const store = configureStore({
       notificationsPersistConfig,
       notificationsReducer,
     ),
+    appUpdate: persistReducer(appUpdatePersistConfig, appUpdateReducer),
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

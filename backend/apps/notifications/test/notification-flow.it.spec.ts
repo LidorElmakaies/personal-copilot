@@ -14,8 +14,8 @@ import { WebPushChannel } from '../src/infrastructure/webpush/web-push.channel';
 import { redisConnectionFromUrl } from '@app/queue-client';
 import { InMemoryPushSubscriptionRepository } from './in-memory-push-subscription.repository';
 
-// Opt-in, real BullMQ; empties the real queue name, so point it at a throwaway Redis only.
-// REDIS_IT_URL=redis://127.0.0.1:6390 npx jest notification-flow.it
+// Opt-in, real BullMQ; empties the real queue name, so point it at a throwaway Redis only (see
+// CLAUDE.md's Commands). REDIS_IT_URL=redis://127.0.0.1:6390 npx jest notification-flow.it
 const url = process.env.REDIS_IT_URL;
 const maybe = url ? describe : describe.skip;
 

@@ -1,6 +1,6 @@
 import { ShabbatCalendar } from './shabbat-calendar';
 
-// nextCandleLighting over the real @hebcal/core calculator (was the Calendar Service's API test).
+// nextCandleLighting over the real @hebcal/core calculator.
 describe('ShabbatCalendar.nextCandleLighting (real hebcal)', () => {
   const calendar = new ShabbatCalendar();
   const TEL_AVIV = {

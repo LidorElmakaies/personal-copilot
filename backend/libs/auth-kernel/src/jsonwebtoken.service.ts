@@ -8,6 +8,10 @@ import {
   type UserRole,
 } from './interfaces/jwt-service.interface';
 
+// A device token carries no role, so verify() (user tokens) refuses it; verifyDevice() refuses
+// anything without this type, so a user token is never a device token either.
+const DEVICE_TOKEN_TYPE = 'device';
+
 // The only class allowed to import `jsonwebtoken` — see backend.md's non-negotiables.
 @Injectable()
 export class JsonWebTokenService implements IJwtService {
@@ -37,6 +41,29 @@ export class JsonWebTokenService implements IJwtService {
       };
     } catch {
       // Expired, malformed, or bad signature — all treated the same: unauthenticated.
+      return null;
+    }
+  }
+
+  signDevice(deviceId: string): string {
+    return jwt.sign(
+      { sub: deviceId, typ: DEVICE_TOKEN_TYPE },
+      this.getSecret(),
+    );
+  }
+
+  verifyDevice(token: string): string | null {
+    try {
+      const decoded = jwt.verify(token, this.getSecret());
+      if (
+        typeof decoded === 'string' ||
+        decoded.typ !== DEVICE_TOKEN_TYPE ||
+        !decoded.sub
+      ) {
+        return null;
+      }
+      return String(decoded.sub);
+    } catch {
       return null;
     }
   }

@@ -340,21 +340,57 @@ and ntfy", "Phones" and "Ready to move to the cloud" under Decisions.
 - [ ] **2.21c Play Protect: stop the "unknown developer" block** (Android only). Installing or
   updating from the registry page, Google Play Protect blocks the APK ("blocked to protect your
   device — Play Protect doesn't recognise this developer"); only More details → Install anyway gets
-  past it. (adb installs don't trigger it, which is why 2.20 never saw it.) Submit the app to
-  Google's Play Protect review (the developer appeal form, with the release signing key's
-  certificate) so it's recognised, and check what Android's developer verification for sideloaded
-  apps requires of us. Until then the page's hint tells users how to get past the warning.
+  past it. (adb installs don't trigger it, which is why 2.20 never saw it.) Register through
+  Android developer verification: a limited distribution account (personal, free, up to 20
+  devices) in the Android Developer Console, the package `com.lidor.personalcopilot` with the
+  release key's SHA-256 (`8D:94:1D:…:CB:50:C9`), and each phone added on the Devices page. (The
+  Play Protect appeal form doesn't apply — Google says appeals don't remove the unknown-developer
+  prompt.) Until then the page's hint tells users how to get past the warning.
+  **Status (2026-10-09): registered and verified, phone added — still blocked.** A fresh install of
+  0.1.1 from `/apk/` right after verification still showed "blocked… Play Protect hasn't seen apps
+  from this developer". Possibly propagation delay. **Recheck on or after 2026-10-11** with the
+  next APK version as an update from `/apk/`; if still blocked, Play Protect's warning may not
+  follow the registration until global enforcement (2027) — keep the page's hint.
   *Check:* a fresh install of the newest APK from `/apk/` on a phone with Play Protect on shows
   no block.
-- [ ] **2.22 In-app update prompt** (Android only). On start and when the app comes back to the
+- [x] **2.22 In-app update prompt** (Android only). On start and when the app comes back to the
   foreground, the APK fetches `/apk/latest.json`; if its `versionCode` is newer than the installed
-  one (`expo-application`), a prompt: "Version 1.3.0 is available · What's new · Update / Later".
-  Update opens the APK's URL, Android downloads it and asks to install (the first time it asks to
-  allow installs from that browser). "Later" waits for the next version. The web build — and so the
+  one (computed from the frontend version baked into the build, `src/utils/versionCode.js` — no native module), a prompt: "Version 1.3.0 is available · What's new · Update / Later".
+  Update downloads the APK inside the app, into its cache (never Downloads; the new version deletes
+  it on first start), with progress and Cancel, then opens Android's install screen (the first time
+  it asks to allow installs from Personal Copilot) — mockups U2a–c. "Later" doesn't reopen the sheet for that version. The web build — and so the
   iPhone's Home Screen app — never shows it (it's always the newest). Only release versions are
-  offered; `-test.N` builds are installed by hand from the registry page. **New UI → mockup first.**
+  offered; `-test.N` builds are installed by hand from the registry page. **New UI → mockup first**
+  (chosen: **U2** bottom sheet + **K1** chip in `mockups.html`). The sheet opens by itself once per
+  version; after Later, a small "↑ 0.2.0" chip next to Home's Live chip stays until the update is
+  installed, and tapping it reopens the sheet — no login needed.
   *Check:* install 0.4.0, publish 0.4.1 — the prompt shows; Update installs over it keeping the
   login; 0.4.1 shows no prompt.
+  *Done 2026-10-09:* 0.2.0-test.1 → no prompt; 0.2.0 published → sheet + chip; Update (browser) installed
+  0.2.0; 0.2.1 published → in-app download installed it, nothing in Downloads. Not yet seen: the
+  progress bar/Cancel on a slow connection, and login kept (the phone was signed out).
+- [x] **2.22b Gateway pushes app updates over WebSocket** (Android only for the sheet). The app
+  always connects to Gateway's `/ws`, signed in or not, with its **device token** — a signed,
+  anonymous identity per install from `POST /realtime/device` (strict rate limit), kept for good;
+  plus its login token once signed in. Without a login token the connection is anonymous: it only
+  receives broadcasts. One connection per device — a newer one (a network switch, another tab)
+  closes the old at once; how many one client can hold is bounded by the device-token rate limit.
+  `apk.js publish` announces a new newest release on Kafka (`frontend.releases`, compacted; the
+  script runs the producer inside the `kafka` container, whose port stays unpublished), and
+  Gateway broadcasts `app-update` (empty payload); the app answers with the same `checkForUpdate`
+  as on start, so `latest.json` stays the only source of truth. No `app` version any more — the
+  frontend's own version is the release. Start and return-to-foreground checks stay — a closed app
+  has no socket. Home's Live chip is gone; the update chip took its place.
+  Also fixed the real client IP (found here): Gateway's port is published on `127.0.0.1` only and
+  `src/trust-proxy.ts`'s `TRUST_PROXY` (loopback + private networks) is Express's `trust proxy`,
+  so the rate limits key on each client.
+  *Tests:* device token issued and rate-limited; four kinds of bad device token and a bad login
+  token refused; anonymous gets broadcasts but no user pushes; a push reaches every device of the
+  user; the same device's new connection replaces the old; the release consumer broadcasts.
+  *Done 2026-10-09:* the tailnet IP's port 8000 refuses connections; a published release reached an
+  open connection over Kafka → `/ws` in 1.3 s; the phone (0.4.0-test.2) holds one connection while
+  open and none in the background. Not yet watched: the sheet opening on the phone right after a
+  publish — next release (0.4.0).
 - [ ] **2.23 ntfy server** (Android only). `devops/ntfy/` (the official `binwiederhier/ntfy`
   image, pinned version), its config in `devops/ntfy/server.yml`, data under `devops/data/ntfy/`
   (auth database + message cache — back it up with the rest of `devops/data/`). **Locked down so

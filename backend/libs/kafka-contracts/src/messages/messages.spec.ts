@@ -1,3 +1,4 @@
+import { isFrontendReleaseMessage } from './frontend-release';
 import { isUserStateMessage } from './user-state';
 
 describe('isUserStateMessage', () => {
@@ -57,5 +58,28 @@ describe('isUserStateMessage', () => {
     ],
   ])('rejects %s', (_name, value) => {
     expect(isUserStateMessage(value)).toBe(false);
+  });
+});
+
+describe('isFrontendReleaseMessage', () => {
+  const valid = {
+    version: '0.4.0',
+    versionCode: 40099,
+    publishedAt: '2026-10-09T12:00:00Z',
+  };
+
+  it('accepts a release', () => {
+    expect(isFrontendReleaseMessage(valid)).toBe(true);
+  });
+
+  it.each([
+    ['null', null],
+    ['no version', { ...valid, version: '' }],
+    ['a fractional versionCode', { ...valid, versionCode: 1.5 }],
+    ['a versionCode of 0', { ...valid, versionCode: 0 }],
+    ['a versionCode as a string', { ...valid, versionCode: '40099' }],
+    ['no publishedAt', { ...valid, publishedAt: undefined }],
+  ])('rejects %s', (_name, value) => {
+    expect(isFrontendReleaseMessage(value)).toBe(false);
   });
 });

@@ -7,10 +7,14 @@ import { RefreshTokenEntity } from '../src/entities/refresh-token.entity';
 import { UserEntity } from '../src/entities/user.entity';
 import { TypeOrmProfileRepository } from '../src/infrastructure/postgres/typeorm-profile.repository';
 import { TypeOrmUserRepository } from '../src/infrastructure/postgres/typeorm-user.repository';
+import { EmailTakenError } from '../src/infrastructure/interfaces/user-repository.interface';
 import { EMPTY_PROFILE_DETAILS } from '../src/models/profile';
 
-// Opt-in: needs a real Postgres. Runs in its own throwaway schema, dropped afterwards.
-//   USERS_IT_DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres npx jest typeorm-repositories.it
+// Opt-in: needs a real Postgres. Runs in its own throwaway schema, dropped afterwards. The stack's
+// Postgres isn't published to the host, so from backend/, on its Docker network:
+//   docker run --rm --network devops_personal-copilot -v "$PWD":/app -w /app \
+//     -e USERS_IT_DATABASE_URL=postgres://postgres:postgres@postgres:5432/personal_copilot \
+//     node:22-alpine npx jest typeorm-repositories.it
 const url = process.env.USERS_IT_DATABASE_URL;
 const maybe = url ? describe : describe.skip;
 
@@ -121,21 +125,73 @@ maybe('Users Service repositories (real Postgres)', () => {
     });
   });
 
-  it('creates a missing profile on the first write (an account from before profiles)', async () => {
-    const legacy = await ds.getRepository(UserEntity).save({
-      email: 'old@example.com',
-      passwordHash: 'h',
-      passwordSalt: 's',
-      role: 'user',
+  it('changes the email and password in one update', async () => {
+    const user = await newUser();
+    await users.updateCredentials(user.id, {
+      email: 'b@example.com',
+      passwordHash: 'h2',
+      passwordSalt: 's2',
     });
+    expect(await users.findById(user.id)).toMatchObject({
+      email: 'b@example.com',
+      passwordHash: 'h2',
+      passwordSalt: 's2',
+    });
+  });
 
-    expect(await profiles.findByUserId(legacy.id)).toBeNull();
-    expect(await profiles.update(legacy.id, { lastName: 'Old' })).toMatchObject(
-      {
-        lastName: 'Old',
-        version: 1,
-      },
-    );
+  it('two registrations of one email at once: one wins, the other gets EmailTakenError', async () => {
+    const results = await Promise.allSettled([newUser(), newUser()]);
+    expect(results.map((r) => r.status).sort()).toEqual([
+      'fulfilled',
+      'rejected',
+    ]);
+    const rejected = results.find((r) => r.status === 'rejected');
+    expect(rejected?.reason).toBeInstanceOf(EmailTakenError);
+    expect(await ds.getRepository(UserEntity).count()).toBe(1);
+    expect(await outbox()).toHaveLength(1);
+  });
+
+  it('an email taken by another account fails the whole update with EmailTakenError', async () => {
+    const user = await newUser();
+    await newUser('b@example.com');
+    await expect(
+      users.updateCredentials(user.id, {
+        email: 'b@example.com',
+        passwordHash: 'h2',
+        passwordSalt: 's2',
+      }),
+    ).rejects.toBeInstanceOf(EmailTakenError);
+    expect(await users.findById(user.id)).toMatchObject({
+      email: 'a@example.com',
+      passwordHash: 'h',
+    });
+  });
+
+  it("a new password revokes the user's refresh tokens, an email change doesn't", async () => {
+    const user = await newUser();
+    const other = await newUser('b@example.com');
+    const tokens = ds.getRepository(RefreshTokenEntity);
+    const save = (userId: string, tokenHash: string) =>
+      tokens.save({
+        userId,
+        tokenHash,
+        expiresAt: new Date(Date.now() + 60_000),
+        revokedAt: null,
+      });
+    await save(user.id, 't1');
+    await save(other.id, 't2');
+    const revoked = async (tokenHash: string) =>
+      (await tokens.findOneByOrFail({ tokenHash })).revokedAt !== null;
+
+    await users.updateCredentials(user.id, { email: 'c@example.com' });
+    expect(await revoked('t1')).toBe(false);
+
+    await users.updateCredentials(user.id, {
+      passwordHash: 'h2',
+      passwordSalt: 's2',
+    });
+    expect(await revoked('t1')).toBe(true);
+    expect(await revoked('t2')).toBe(false);
   });
 
   it('returns null, and writes nothing, for a user that does not exist', async () => {

@@ -10,12 +10,11 @@ The only backend service reachable from outside the Docker network — directly 
 tunnel from a Caddy instance on the public internet. HTTP + WebSocket.
 
 - `POST /auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout`, `/auth/account`,
-  `DELETE /auth/account` — one hardcoded route per operation, not a wildcard proxy; each forwards to
-  the identically-named Users Service route with the body untouched. No guard on any of them (for
+  `DELETE /auth/account` → the Users Service route of the same name, body untouched. No guard on any of them (for
   the first four, that's how you get a token in the first place; `account` is body-driven the same
   way — see `apps/users` below).
 - `GET /users/me`, `PATCH /users/me`, `PUT /users/me/location` (`JwtAuthGuard`) → Users Service's
-  routes of the same name (`users-proxy`). Body relayed untouched. No `GET /me` — there's nothing left for it to return that the
+  routes of the same name. Body relayed untouched. No `GET /me` — there's nothing left for it to return that the
   client can't already decode from its own access token (see `apps/users`'s note below).
 - `GET /calendar/shabbat?lat&lon&tz` — **served by Gateway itself, not proxied** (`src/calendar/`):
   the Shabbat in progress, otherwise the next one, for that location, computed in-process with
@@ -47,27 +46,58 @@ tunnel from a Caddy instance on the public internet. HTTP + WebSocket.
   headers are never passed through, so a client can't supply its own. The internal service reads
   it with `@ForwardedUserId()` (401 if absent) and trusts it because only Gateway can reach it, so
   no internal service needs `JWT_SECRET`.
-- Every proxy module (`auth-proxy`, `users-proxy`, `notifications-proxy`, `reminders-proxy`) is built on one shared forwarder in
-  `src/proxy/`: `ServiceHttpClient` (one instance per internal service, base URL from
-  `<SERVICE>_SERVICE_URL`), `writeProxyResponse`, and the `ProxyRequest`/`ProxyResponse` types. An
-  unreachable service answers `502 { error: { code: '<service>_unreachable', message } }`.
+- Every forwarded route above (`/auth/*`, `/users/me*`, `/reminders*`, `/notifications/*`) is one
+  row of `PROXY_ROUTES` (`src/proxy/proxy.routes.ts`): method, path (the same on Gateway and the
+  service), target service, `auth: 'user'` (`JwtAuthGuard` + `X-User-Id`) or `'none'`, and
+  `throttle: 'strict'` where it applies. `ProxyController` turns each row into its own Nest route,
+  so anything unlisted is a `404` — never a wildcard. `ProxyService` sends it through that service's
+  `ServiceHttpClient` (base URL from `<SERVICE>_SERVICE_URL`); an unreachable service answers
+  `502 { error: { code: '<service>_unreachable', message } }`. Adding a route is one row there,
+  plus the same row in `test/proxy.api.spec.ts`'s `CONTRACT`.
 - Global rate limiting (`@nestjs/throttler`, `THROTTLE_TTL_MS`/`THROTTLE_LIMIT`, default
-  60s/100req) plus a tighter limit on `register`/`login`/`refresh`/`account` (both methods)
+  60s/100req) plus a tighter limit on `register`/`login`/`refresh`/`account` (both methods) and
+  `/realtime/device`
   (`AUTH_THROTTLE_TTL_MS`/`AUTH_THROTTLE_LIMIT`, default 60s/5req) — those are the brute-force
   targets now that Gateway can be reached from the open internet via the cloud path (password
   guessing, email enumeration, refresh/session abuse). `logout`, `/calendar/*`,
   `/notifications/*`, `/reminders/*` and `/users/me*` stay on the global default (`logout` needs a valid refresh token already, so
   hammering it gains nothing); see
   `backend/apps/gateway/README.md` for the full reasoning behind the two-tier split. Keyed on
-  client IP; `main.ts` sets `app.set('trust proxy', 'loopback')` so that IP is correct behind the
-  SSH tunnel without letting a directly-reached connection spoof it — see `architecture.md`.
-- `src/realtime/` — Socket.IO at path `/ws` (token in the handshake's `auth.token`, verified the
-  same way as the HTTP guard). Generic plumbing: no feature pushes anything over it yet.
-  `IRealtimeConnectionService.pushToUser(userId, event, payload)` is the entry point a future
-  feature module injects (import `RealtimeModule`) to reach a specific user's live connection —
-  returns `false`, not an error, if they have none open. In-memory connection store, single
-  Gateway replica only (this project's actual scale) — a Redis-backed store (Socket.IO's official
-  Redis adapter) is the upgrade path if that ever changes.
+  client IP: `main.ts` sets `trust proxy` to `src/trust-proxy.ts`'s `TRUST_PROXY` (loopback +
+  private networks — safe because the port is published on `127.0.0.1` only), so that IP is the
+  one `tailscale serve` or the SSH tunnel forwarded — see `architecture.md`.
+- `src/realtime/` — the app's live connection.
+  - `POST /realtime/device` (open; `authStrictThrottlePolicy`) → `201 { device_token }`: a new
+    device id, signed by `@app/auth-kernel`'s `DeviceTokenService` (`{ sub, typ: 'device' }`, no
+    expiry). Each app install fetches one once and keeps it. A device token is never accepted as a
+    user token, nor the reverse.
+  - Socket.IO at path `/ws`. Handshake `auth.deviceToken` is required; `auth.token` (the access
+    token) is added once signed in, verified the same way as the HTTP guard. A Socket.IO middleware
+    refuses before connecting, with `connect_error` messages `device_token_invalid` (missing or
+    not a device token) or `token_invalid` (a login token that fails). No login token → an
+    anonymous connection that gets broadcasts only.
+  - One connection per device: a newer one from the same device closes the previous at once (a
+    phone that switched networks reconnects before its old connection would time out). So a
+    client holds as many connections as it has device tokens, which the rate limit on
+    `POST /realtime/device` bounds — HTTP's limiter doesn't otherwise see WS.
+  - A feature module imports `RealtimeModule` and injects `IRealtimeConnectionService`:
+    `pushToUser(userId, event, payload)` — to every device the user is signed in on; returns
+    `false`, not an error, if none — and `broadcast(event, payload)` — to every open connection,
+    signed in or not; returns how many.
+
+  In-memory connection store, single Gateway replica only (this
+  project's actual scale) — a Redis-backed store (Socket.IO's official Redis adapter) is the
+  upgrade path if that ever changes.
+
+  Events sent today:
+
+  | Event | To | Payload | Sent when |
+  |---|---|---|---|
+  | `app-update` | `broadcast` | `{}` | a new Android release is published (below) |
+- `src/app-update/` — no routes. `FrontendReleaseConsumer` (Kafka `frontend.releases`, group
+  `gateway`) → `AppUpdateNotifierService` broadcasts `app-update`. No version in the payload —
+  Gateway's public surface never exposes versions; the app re-reads `latest.json` itself. See
+  `event-schemas.md#frontendreleases`.
 - CORS is permissive (`origin: true`, reflects any origin) on both HTTP and the WS handshake —
   both the local frontend build (different origin than Gateway during dev) and the cloud path
   (same-origin via Caddy's reverse proxy, so this doesn't come into play there) work either way.
@@ -91,9 +121,11 @@ HTTP, internal-only — never published to the host, only Gateway calls it.
 - `POST /auth/logout` — `{ refresh_token }` → revokes it.
 - `POST /auth/account` — `{ email, currentPassword, newEmail?, newPassword? }` → fresh
   `{ access_token, refresh_token }`. Verifies `currentPassword` the same way `login` verifies a
-  password, then applies whichever of `newEmail`/`newPassword` is present in one atomic update
-  (`newEmail` uniqueness-checked, `409 Conflict`, same as `register`; `newPassword` hashed the same
-  way as at registration). Throws `400 Bad Request` if neither field is set. One endpoint covering
+  password, then applies whichever of `newEmail`/`newPassword` is present in one transaction
+  (`newEmail` taken by another account → `409 Conflict`, same as `register`; `newPassword` hashed
+  the same way as at registration, and it revokes every refresh token the user has, so every other
+  session ends at its next refresh — within 15 min, as its access token expires — while the caller
+  carries on with the returned pair). Throws `400 Bad Request` if neither field is set. One endpoint covering
   both fields rather than two — the frontend's `AccountCard` form submits whichever field(s)
   changed in a single call, and an atomic request structurally rules out a caller ever
   authenticating a second sequential call with an already-stale password, something two separate
@@ -105,7 +137,7 @@ HTTP, internal-only — never published to the host, only Gateway calls it.
   access token issued before keeps passing `JwtAuthGuard` until it expires (≤ 15 min), but every
   `/users/me` call with it answers `404`.
 - `GET /users/me` → `{ firstName, lastName, phone, location: { lat, lon, tz, updatedAt } | null }`
-  (user from `X-User-Id`). An account from before profiles gets all `null`s.
+  (user from `X-User-Id`); `404` for a user that no longer exists.
 - `PATCH /users/me` — any of `{ firstName, lastName, phone }`; only the fields sent change, `null`
   clears one, none at all → `400`. Names are trimmed, 1–100 chars, English or Hebrew letters only with single spaces between words
   (`NAME_PATTERN` in `@app/kafka-contracts`, also applied by register); `phone` in international format
@@ -118,9 +150,10 @@ HTTP, internal-only — never published to the host, only Gateway calls it.
 the user): `first_name`, `last_name`, `phone`, `lat`, `lon`, `tz`, `location_updated_at`,
 `version`. Every write locks the row, bumps `version`, and saves the full state as a
 `users.user-state` event in the same transaction (the outbox, see `libs/kafka-client`), so a change
-is never published without being saved or saved without being published. A missing profile (an
-account from before profiles) is created on its first write. A write for a user that no longer
-exists answers `404` and creates nothing.
+is never published without being saved or saved without being published. Every account has one
+from the moment it's created (`register` and the admin seed make both in one transaction). A write
+for a user that no longer exists answers `404` and creates nothing: account deletion removes the
+profile row first, so a write either finishes before it or finds nothing.
 
 None of these return a `user` object — the access token itself carries `{ sub, role, email }`
 (`@app/auth-kernel`'s `JwtPayload`), so there's nothing left for a `GET /me` endpoint to return
@@ -140,6 +173,10 @@ only `'admin'` is the one `AdminSeedService` creates once at boot from `ADMIN_EM
 (anything else → unauthenticated), so the admin signs in and uses every `JwtAuthGuard` route and the
 WS handshake like any user. `AdminGuard` (same lib) is `JwtAuthGuard` plus `role === 'admin'`: no or
 a bad token → `401`, a non-admin → `403 Admins only`. Used by Gateway's `GET /admin/status`.
+
+An email is unique by the `users.email` constraint alone: `register` and `account` write and turn a
+duplicate-key error into `409`, with no lookup first, so two requests for one email at the same
+moment can't both pass a check.
 
 Refresh tokens are stored as a plain SHA-256 hash (no salt/pepper) — sufficient since a refresh
 token is already a high-entropy random value, not human-guessable like a password, so this only
@@ -236,8 +273,8 @@ push-service error.
   short by `expiresAt`). A failing database call also throws, so it's retried too.
 
 Nothing about a notification is stored beyond its jobs: BullMQ keeps completed jobs for 24 h and
-failed ones for 7 days (inspect with any Redis client against the `bull:notification-requested:*`
-keys).
+failed ones for 7 days (inspect with `docker compose exec redis redis-cli` from `devops/`, under the
+`bull:notification-requested:*` keys).
 
 ## frontend
 
@@ -248,9 +285,7 @@ logging in" link (routes to `/`) for whoever lands there without wanting to auth
 - `(tabs)/index` (Home — the landing tab, no session required: live clock, today's Gregorian date,
   and today's Hebrew/Jewish date via `@hebcal/hdate`, chosen over `Intl`'s `'he-u-ca-hebrew'`
   calendar extension because Hermes's bundled ICU data isn't guaranteed to include non-Gregorian
-  calendar tables on-device — see `frontend/README.md`; a live/disconnected connection chip read
-  straight from `wsSlice.status`, which stays "Disconnected" while signed out since the socket
-  only opens with a token). Under the clock, `ShabbatSection` shows the current/next Shabbat for
+  calendar tables on-device — see `frontend/README.md`). Under the clock, `ShabbatSection` shows the current/next Shabbat for
   the device's location: a label (holiday or parasha, or "Shabbat Shalom" while it's in progress),
   candle lighting and Havdalah with their dates, and a countdown to whichever comes next. "In
   progress" and the countdown are computed from the device clock against the two returned times
@@ -300,9 +335,15 @@ logging in" link (routes to `/`) for whoever lands there without wanting to auth
   bypasses that entirely, so `AccountScreen` also calls `useRequireAuth()` on mount and renders
   `RequireAuthNotice` in that case — both are generic (`src/hooks/`, `src/components/composite/`),
   reusable by any future `requiresAuth` tab, not Account-specific. Below the cards, `VersionInfo`
-  (`base/feedback/`): "Personal Copilot <app>" and "Frontend <version> ·
-  built <date>" from `src/config/version.js` — "dev" when not built by the Dockerfile (see
-  [Versions](#versions)).
+  (`base/feedback/`): "Personal Copilot <frontend version>" and "built <date>" from
+  `src/config/version.js` — "dev", and no date, when not built by the Dockerfile or `apk.js build`
+  (see [Versions](#versions)).
+- `(tabs)/admin` — admins only: `requiresRole: 'admin'` in `TABS` leaves the tab out of the bar for
+  everyone else, and the screen checks again (`useRequireAuth`, `useHasRole('admin')`) for a direct
+  link, showing `RequireAuthNotice` otherwise; the server checks the role too (`AdminGuard`).
+  `SystemStatus` lists `GET /admin/status` (`adminSlice.fetchSystemStatus`, not persisted, reset on
+  sign-out): each service up/down with its version, build time and uptime. Refreshed on every
+  visit, by its button and by pull; `VersionInfo` below it.
 - **Location sync** — `app/_layout.js`'s `LocationSyncManager` dispatches `profileSlice`'s
   `syncLocation` whenever the user is signed in and `locationSlice.status` is `'ready'` (a fresh
   GPS fix this session — the persisted last-known `coords` alone never trigger it).
@@ -362,29 +403,69 @@ logging in" link (routes to `/`) for whoever lands there without wanting to auth
   `null`) isn't persisted either; `CandleReminder` fetches `GET /reminders` whenever an access
   token appears, and it's reset on `clearAuth` and a successful `deleteAccount`. Turning off keeps
   the offset (the server does too), so the sheet reopens on it.
+- **App update** (Android APK only — `appUpdateSlice` does nothing on the web, or when
+  `URLS.apkRegistry`/`EXPO_PUBLIC_FRONTEND_VERSION` isn't baked in). `app/_layout.js`'s
+  `AppUpdateManager` dispatches `deleteOldUpdates` and `checkForUpdate` at start, and
+  `checkForUpdate` again whenever `AppState` returns to `active` and on Gateway's `app-update`
+  over `/ws` (`listenForUpdates`, via `socketService.on`). The check fetches the registry's
+  `latest.json` (`appUpdateService`, `cache: 'no-store'`; a relative `url` resolved against the
+  registry folder) and compares its `versionCode` with the installed one —
+  `src/utils/versionCode.js` applied to the baked frontend version; a failed check is ignored. No
+  login needed.
+  - Newer → `latest` is set, `UpdateSheet` (composite, a `BottomSheet` mounted app-wide by
+    `AppUpdateManager`, so it opens over any tab) opens by itself once per version: Later, Update
+    and Install all set `dismissedVersionCode` (the slice's only persisted field). `UpdateChip`
+    ("↑ <version>", top right of Home's clock card) stays while `latest` is set and reopens the sheet.
+  - Update → `installUpdate`: unless the APK is already in the cache, downloads `latest.url` into
+    `<cache>/updates/<versionCode>.part` (`expo-file-system`, progress throttled to one dispatch per
+    percent), renames it to `.apk` when complete, then opens Android's installer
+    (`expo-intent-launcher`, `ACTION_VIEW` on the file's `content://` URI with read permission;
+    `REQUEST_INSTALL_PACKAGES` in `app.json`). `download.status`: `idle` → `downloading` (progress
+    bar + Cancel, which returns to `idle` and closes the sheet) → `ready` (the file is cached; the
+    sheet says to turn on "Allow from this source" if Android asks, and Install reopens the installer) or
+    `failed` (Try again). Closing the sheet mid-download doesn't stop it. A successful install
+    restarts the app.
+  - `deleteOldUpdates` (start) deletes every `.part` and every APK at or below the installed
+    `versionCode`. Update files never go to Downloads.
 
-Talks only to Gateway (`EXPO_PUBLIC_GATEWAY_ORIGIN`, baked in at build time, required —
-`src/config/urls.js` throws at load if it's unset) — never the Users Service or any other backend
-service directly.
+Talks only to Gateway for every API call (`EXPO_PUBLIC_GATEWAY_ORIGIN`, baked in at build time,
+required — `src/config/urls.js` throws at load if it's unset) — never the Users Service or any
+other backend service directly. The one other origin it reads is the APK registry
+(`URLS.apkRegistry`, `EXPO_PUBLIC_APK_REGISTRY_URL`): static, read-only files (`latest.json` and
+the APK) served by the frontend's own Caddy at `/apk/` — not a backend service and no API, see
+`frontend/README.md`'s `/apk/` paragraph.
 
-Themed via a three-layer pipeline (`themeSlice` → `useAppTheme()` → `ThemeAnimContext`) and shared
+Themed via `themeSlice` → `useAppTheme()` and shared
 components under `src/components/base/` (grouped into `background`/`buttons`/`feedback`/`form`/
 `layout` subfolders by purpose) and `src/components/composite/` (the Account cards above,
-`AmbientBackground`, `CandleReminder`, `ConfirmModal`, `NotificationsPrompt`, `ProfileFields`,
-`RequireAuthNotice`, `ShabbatSection`) — see `.claude/agents/frontend.md` for the base/composite split, the full
+`AmbientBackground`, `CandleReminder`, `ConfirmModal`, `FormActions`, `NotificationsPrompt`, `ProfileFields`,
+`RequireAuthNotice`, `ShabbatSection`, `SystemStatus`, `UpdateChip`, `UpdateSheet`) — see `.claude/agents/frontend.md` for the base/composite split, the full
 convention, and why there's no Gluestack layer here.
 
 `src/services/` is split by transport: `http/` (fetch-based calls — `authService`,
-`usersService` for `/users/me*`, `remindersService` for `/reminders*`, `notificationsService` for
-`/notifications/*`), `ws/`
+`usersService` for `/users/me*`, `calendarService` for `/calendar/shabbat`, `remindersService` for
+`/reminders*`, `notificationsService` for `/notifications/*`, `adminService` for `/admin/status`,
+`realtimeService` for the device token, `appUpdateService` for the APK registry's `latest.json`;
+signed-in calls go through `httpClient`'s `authorizedFetch`), `ws/`
 (`socketService`, a single shared Socket.IO connection), and `device/` (`locationService` —
 `expo-location` permission + position, plus the device's IANA time zone; `pushService` — the
-browser's service worker, `Notification` permission and `PushManager`). `wsSlice`'s `connectWebSocket`/
-`disconnectWebSocket` thunks open/close it as `authSlice.accessToken` appears/goes
-(`app/_layout.js`'s `RealtimeConnectionManager`); a new token while one is open (e.g. after
-`updateAccount`) keeps the connection and only replaces the token its next reconnect sends — generic plumbing, same as Gateway's `/ws`; no
-feature listens for a specific event yet. A future feature attaches its own listener via
-`socketService.getSocket()` rather than opening a second connection.
+browser's service worker, `Notification` permission and `PushManager`; `apkInstallerService` —
+the update APK's download into the app cache, Android's installer, and cleanup).
+
+The Socket.IO connection is open signed in or not, always with this install's device token:
+`wsSlice` fetches it once (`realtimeService.requestDeviceToken`, `POST /realtime/device`) and
+persists it; if Gateway refuses it (`device_token_invalid`, e.g. after a `JWT_SECRET` change), it
+fetches a new one and reconnects. Without a login token the connection is anonymous and gets
+Gateway's broadcasts only. `app/_layout.js`'s `RealtimeConnectionManager` dispatches `wsSlice`'s
+`connectWebSocket` whenever `authSlice.accessToken` changes and the app isn't in the background:
+signing in or out changes identity, so it reconnects; a new token for the same session (refresh,
+`updateAccount`) keeps the connection and only replaces the token its next reconnect sends. It
+calls `disconnectWebSocket` when `AppState` goes to `background` and `connectWebSocket` again on
+`active`. Features subscribe with `socketService.on(event, handler)` (returns the unsubscribe),
+which re-attaches the handler to every new connection — never a second connection.
+`appUpdateSlice.listenForUpdates` (`app-update`) is the one listener today. A device has one
+connection, so in the browser only one tab holds it: another tab connecting closes it, and it opens
+a new one when it's shown again.
 
 `authSlice` stores the `refreshToken` that register/login return and uses it only for `logOut`'s
 revoke — no refresh thunk exists, since the 15-min access token is short enough that logging in
@@ -392,18 +473,18 @@ again is an acceptable v1.
 
 ## Versions
 
-`version/versions.json` (repo root) holds every version: `app` and one per deployable component
-(`frontend`, `gateway`, `users`, `reminders`, `notifications`). Bumped only by `scripts/version.sh`
-(bump rules: `CLAUDE.md`'s "Versions" section):
+`version/versions.json` (repo root) holds one version per deployable component (`frontend`,
+`gateway`, `users`, `reminders`, `notifications`), each its own. Bumped only by
+`node scripts/version.js` (bump rules: `CLAUDE.md`'s "Versions" section; tests:
+`node --test scripts/version.test.js`):
 
-- `scripts/version.sh` — prints the file.
-- `scripts/version.sh <component> major|minor|patch [--test]` — bumps the component and `app` the
-  same way; `--test` gives the next `-test.N` of that bump (`1.2.0` → `1.3.0-test.1` →
-  `1.3.0-test.2`).
-- `scripts/version.sh <component> release` — drops `-test.N` from both.
+- `node scripts/version.js` — prints the file.
+- `node scripts/version.js <component> major|minor|patch [--test]` — bumps the component; `--test`
+  gives the next `-test.N` of that bump (`1.2.0` → `1.3.0-test.1` → `1.3.0-test.2`).
+- `node scripts/version.js <component> release` — drops `-test.N`.
 
 Minor and patch must stay ≤ 99 and `N` ≤ 98 (room for an Android `versionCode`). Never runs git;
-prints the `git tag v<app>` to add after committing.
+prints the `git tag <component>-v<version>` to add after committing.
 
 Images get the folder as a separate build context named `version` (see `architecture.md`'s
 "Compose / build layout"). Each backend image copies only its own entry to
@@ -415,8 +496,8 @@ Notifications answer `GET /health` (compose healthcheck; internal-only) with:
   "builtAt": "2026-10-05T18:00:00Z", "startedAt": "2026-10-05T18:02:11.123Z" }
 ```
 
-(`@app/build-info`, see below.) The frontend image bakes in `app`, `frontend` and its build time
-(`EXPO_PUBLIC_APP_VERSION`/`EXPO_PUBLIC_FRONTEND_VERSION`/`EXPO_PUBLIC_BUILT_AT`), shown by the
+(`@app/build-info`, see below.) The frontend image bakes in its version and build time
+(`EXPO_PUBLIC_FRONTEND_VERSION`/`EXPO_PUBLIC_BUILT_AT`), shown by the
 Account tab's `VersionInfo` (and at the bottom of the Admin tab, which lists every backend
 service's version from `GET /admin/status`).
 

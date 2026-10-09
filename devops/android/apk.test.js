@@ -1,4 +1,5 @@
-// Tests apk.js's publish() against temp folders: node --test devops/android
+// Tests apk.js's publish() against temp folders, the release event it sends, and the versionCode it
+// shares with the app: node --test devops/android/apk.test.js
 'use strict';
 const { test, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
@@ -6,7 +7,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
-const { publish: publishApk, Refusal } = require('./apk.js');
+const { publish: publishApk, releaseEvent, Refusal } = require('./apk.js');
 
 let IN, OUT;
 const at = (dir, f) => path.join(dir, f);
@@ -206,4 +207,60 @@ test('the page tells how to get past the install warnings', () => {
   ok('0.1.0', 'First build');
   assert.match(html(), /allow installs from Chrome once/);
   assert.match(html(), /More details → Install anyway/);
+});
+
+// versionCode lives with the app (frontend/src/utils/versionCode.js): app.config.js stamps it on the
+// APK, publish writes it to latest.json, the app compares the two.
+const { versionCode } = require('../../frontend/src/utils/versionCode.js');
+
+test('versionCode: test builds sort below their release, releases below the next patch', () => {
+  assert.equal(versionCode('1.3.0-test.2'), 1030002);
+  assert.equal(versionCode('1.3.0'), 1030099);
+  assert.equal(versionCode('1.3.1-test.1'), 1030101);
+  const order = ['0.9.9', '1.3.0-test.1', '1.3.0-test.2', '1.3.0', '1.3.1-test.1', '1.3.1', '1.10.0', '2.0.0-test.1'];
+  const codes = order.map(versionCode);
+  assert.deepEqual([...codes].sort((a, b) => a - b), codes);
+});
+
+test('versionCode: rejects anything but MAJOR.MINOR.PATCH[-test.N]', () => {
+  for (const bad of ['', '1.3', '1.3.0.1', 'v1.3.0', '1.3.0-beta.1', '1.3.0-test', '1.3.0-test.x', ' 1.3.0', undefined]) {
+    assert.throws(() => versionCode(bad), /not MAJOR\.MINOR\.PATCH\[-test\.N\]/, String(bad));
+  }
+});
+
+test('app.config.js stamps versionCode from FRONTEND_VERSION, app.json as is without it', () => {
+  const appConfig = require('../../frontend/app.config.js');
+  const config = { name: 'x', android: { package: 'p' } };
+  const saved = process.env.FRONTEND_VERSION;
+  try {
+    delete process.env.FRONTEND_VERSION;
+    assert.deepEqual(appConfig({ config }), config);
+    process.env.FRONTEND_VERSION = '1.3.0-test.2';
+    const out = appConfig({ config });
+    assert.equal(out.version, '1.3.0-test.2');
+    assert.deepEqual(out.android, { package: 'p', versionCode: 1030002 });
+  } finally {
+    if (saved === undefined) delete process.env.FRONTEND_VERSION;
+    else process.env.FRONTEND_VERSION = saved;
+  }
+});
+
+test("the release event is latest.json's version, versionCode and publish time, keyed by platform", () => {
+  const latest = {
+    version: '0.4.0',
+    versionCode: 40099,
+    url: '/apk/personal-copilot-0.4.0.apk',
+    sha256: 'abc',
+    notes: ['Something new'],
+    publishedAt: '2026-10-09T12:00:00Z',
+  };
+  const { key, value } = releaseEvent(latest);
+  assert.equal(key, 'android');
+  assert.deepEqual(JSON.parse(value), {
+    version: '0.4.0',
+    versionCode: 40099,
+    publishedAt: '2026-10-09T12:00:00Z',
+  });
+  // One line: kafka-console-producer reads one message per line.
+  assert.ok(!value.includes('\n'));
 });

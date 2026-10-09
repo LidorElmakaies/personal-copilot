@@ -133,14 +133,11 @@ React Native. Real implementation:
 | `.btn--glass` / `.btn--glass-danger` | Restyle of `GradientButton` (`src/components/base/buttons/`) — glass instead of gradient fill, `variant="danger"` prop for the tint |
 | Bottom tab bar | New component — Expo Router `(tabs)` already provides the routing; this is the visual chrome around it |
 | Ambient wash background | Further refinement of the already-live `AmbientBackground.js` (`src/components/composite/`) — see "Background / ambient motion" above for what's built vs. what this row still requires |
-| Theme switch | Already exists (`themeSlice`, `useAppTheme()`, `ThemeAnimContext`) — this design doesn't change the pipeline, only what it themes |
-| Tab-switch fade | `react-native-reanimated` `entering`/`exiting` (or `moti`) on the focused screen, ~180ms |
+| Theme switch | Already exists (`themeSlice`, `useAppTheme()`) — this design doesn't change the pipeline, only what it themes |
+| Tab-switch fade | `react-native-reanimated` `entering`/`exiting` on the focused screen, ~180ms |
 | Stat tile | New component — doesn't exist in `src/components/` yet |
-| Chip, Switch, Row | Already exist (`src/components/base/{feedback,form,layout}/`) in the current space/glow look — this design only restyles them onto glass tokens |
-
-`react-native-gesture-handler` and `moti` stay in `package.json` from the earlier draft; gesture
-handling has no role in this design (nothing to pan/pinch), keep the dependency only if `moti` ends
-up used for enter/exit, drop it otherwise.
+| Switch, Row | Already exist (`src/components/base/{form,layout}/`) in the current space/glow look — this design only restyles them onto glass tokens |
+| Chip | New component — none in `src/components/` (the old one went with Home's connection chip) |
 
 ## Explored and rejected
 

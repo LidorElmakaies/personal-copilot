@@ -2,8 +2,8 @@
 
 Expo/React Native app — optional login/register (the app doesn't gate itself on a session), a Home
 tab (clock, dates, Shabbat times for the device's location, and a candle-lighting reminder bell),
-and an auth-gated Account tab
-(theme, notifications, email/password, profile, logout, delete account). See the root
+an auth-gated Account tab (theme, notifications, email/password, profile, logout, delete account),
+and an Admin tab of service status that only admins see. See the root
 [CLAUDE.md](../CLAUDE.md) for architecture, [.claude/agents/frontend.md](../.claude/agents/frontend.md)
 for the conventions to follow when changing anything here.
 
@@ -19,18 +19,18 @@ with `EXPO_PUBLIC_GATEWAY_ORIGIN` pointing at the PC's tailnet IP. Browser tests
 [`e2e/`](e2e/README.md) (Playwright, runs in a container).
 
 Matches the sibling project it's modeled on (`ask-my-crawl`) for theme/component conventions — the
-same three-layer theme pipeline (`themeSlice` → `useAppTheme()` → `ThemeAnimContext`, 600ms
-transitions), minus the Gluestack layer underneath `ask-my-crawl`'s own pipeline — nothing here
+same theme pipeline (`themeSlice` → `useAppTheme()`; `AmbientBackground` cross-fades its two
+backdrops in 600ms on a switch), minus the Gluestack layer underneath `ask-my-crawl`'s own pipeline — nothing here
 renders an actual Gluestack component, so it wasn't carried over. The current look (space/glow/
 gradient) is a known stepping-stone, expected to be replaced by a different, more animated style
 later — keep it internally consistent until then rather than treating it as a fixed brand.
 
 `src/components/` splits into `base/` (primitives, grouped into subfolders by purpose:
 `background/` — `Meteors`, `Stars`; `buttons/` — `GradientButton`, `PillButton`; `feedback/` —
-`Alert`, `Chip`, `VersionInfo`; `form/` — `InputField`, `SelectField`, `Stepper`, `Switch`; `layout/` —
+`Alert`, `VersionInfo`; `form/` — `InputField`, `SelectField`, `Stepper`, `Switch`; `layout/` —
 `BottomSheet`, `GlowCard`, `Row`) and `composite/` (built from one or more base/composite
 components — `AmbientBackground`, `CandleReminder`, `ConfirmModal`,
-`NotificationsPrompt`, `ProfileFields`, `RequireAuthNotice`, `ShabbatSection`, and the Account
+`FormActions`, `NotificationsPrompt`, `ProfileFields`, `RequireAuthNotice`, `ShabbatSection`, `SystemStatus`, `UpdateChip`, `UpdateSheet`, and the Account
 tab's `ThemeCard`, `NotificationsCard`, `AccountCard`, `ProfileCard`, `LogoutCard`, `DeleteAccountCard`). See `.claude/agents/frontend.md` for the classification rule when adding one.
 
 Same Redux Toolkit + services-layer + Expo Router conventions otherwise: all I/O lives in
@@ -40,17 +40,23 @@ thunks in `src/store/slices/`, never inline in a component.
 
 ## Version
 
-`src/config/version.js` exposes the `app` and `frontend` versions and the build time, which
-`Dockerfile` reads from `version/versions.json` into `EXPO_PUBLIC_*` vars (so `expo start` shows
+`src/config/version.js` exposes the frontend's version and build time, which `Dockerfile` (and
+`apk.js build`) reads from `version/versions.json` into `EXPO_PUBLIC_*` vars (so `expo start` shows
 "dev"); the Account tab's `VersionInfo` shows them. See `docs/specs/services.md#versions`.
 
 ## Android app
 
 `node devops/android/apk.js build` builds the release APK in Docker (`expo prebuild --platform
 android`, then Gradle) — see the root README. `app.json` holds the Android identity
-(`com.lidor.personalcopilot`, which must never change, plus the permissions); `app.config.js`
-adds the version and Android's `versionCode`, both from `FRONTEND_VERSION`, which the build
-script sets (unset for the web build and `expo start`). `plugins/withReleaseSigning.js` switches
+(`com.lidor.personalcopilot`, which must never change, plus the permissions —
+`REQUEST_INSTALL_PACKAGES` is for the in-app update); `app.config.js` adds the version and
+Android's `versionCode`, both from `FRONTEND_VERSION`, which the build script sets (unset for the
+web build and `expo start`). `src/utils/versionCode.js` is the one `versionCode()` — CommonJS,
+since `app.config.js` and `devops/android/apk.js` load it in plain Node; the app uses it too, on
+the baked `EXPO_PUBLIC_FRONTEND_VERSION`, to compare itself with the registry's `latest.json`.
+The build also bakes `EXPO_PUBLIC_APK_REGISTRY_URL` (`URLS.apkRegistry`), where that check looks;
+the web build never checks. Update APKs download to the app's cache (`updates/<versionCode>.apk`,
+via a `.part` file) and are deleted once installed — see `docs/specs/services.md#frontend`. `plugins/withReleaseSigning.js` switches
 the generated `android/app/build.gradle` from debug to release signing, with the key taken from env
 vars only the build sets. `react-native-worklets` is a direct dependency so Reanimated 4's native
 part links. `android/` is generated and git-ignored.
@@ -58,7 +64,7 @@ part links. `android/` is generated and git-ignored.
 ## App icon
 
 One source, `assets/icon/icon.svg`, on Android's 108×108 adaptive-icon canvas with two layers
-(`#background`, `#foreground`). `devops/icons/render-icons.sh` renders every PNG from it in the
+(`#background`, `#foreground`). `node devops/icons/render.js` renders every PNG from it in the
 pinned Playwright image: the Android adaptive layers, `icon.png`, the splash image
 (`expo-splash-screen` plugin in `app.json`), the favicon (`web.favicon`) and the web set in
 `public/icons/`. Edit the SVG, re-run the script, rebuild. Keep anything that matters inside the
@@ -103,8 +109,8 @@ native substitution) — see `docs/specs/architecture.md#system-topology` for th
 
 - **Local/Tailscale** (default, no env overrides): `SITE_ADDRESS` is bare `:80` — a hostless
   address disables Caddy's automatic HTTPS entirely, since there's no domain to request a cert for.
-  `GATEWAY_UPSTREAM` defaults to `gateway:8000` (Docker network DNS), but the `/auth/*`,
-  `/calendar/*`, `/users/*`, `/reminders*`, `/notifications/*`, `/ws*` reverse-proxy blocks go unused in this mode — the browser calls Gateway's
+  `GATEWAY_UPSTREAM` defaults to `gateway:8000` (Docker network DNS), but the `@gateway`
+  reverse proxy (every Gateway route) goes unused in this mode — the browser calls Gateway's
   own Tailscale HTTPS URL directly, baked into the build at `GATEWAY_PUBLIC_URL`. HTTPS itself comes
   from `tailscale serve` in front of this container, not from Caddy.
 - **Cloud/Hetzner**: `docker-compose.cloud.yml` overrides `SITE_ADDRESS` to a real domain, which
@@ -129,8 +135,9 @@ same block just 404s.
 `node devops/android/apk.js publish` writes it (directly, or via a Node container when `devops/data/apk` is root-owned):
 every published APK, `releases.json` (each version's `version`, `versionCode`, `file`, `sha256`,
 `size`, `publishedAt`, `notes`), `latest.json` (`{version, versionCode, url: "/apk/<file>", sha256,
-notes, publishedAt}` for the newest release — never a `-test.N` build; absent until there is one)
+notes, publishedAt}` for the newest release — never a `-test.N` build; absent until there is one;
+the installed app's update check reads it)
 and `index.html`, a static download page: every version newest first, light/dark via
 `prefers-color-scheme`, the icon inlined from `assets/icon/icon.svg`, times in the phone's local
-time. Versions sort by `app.config.js`'s exported `versionCode()`. A published version's file
+time. Versions sort by `src/utils/versionCode.js`'s `versionCode()`. A published version's file
 never changes — publishing a different one under it fails.

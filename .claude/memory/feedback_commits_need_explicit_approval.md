@@ -13,11 +13,11 @@ files proactively, and never run `git commit` or `git push` proactively — not 
 review" as a middle ground.
 
 An earlier instruction to "create a commit" is **not** standing permission to actually execute the
-commit. Prepare it (stage the intended files, draft the commit message), show the user the message,
-and wait for an explicit "ok"/"commit"/"yes" before running `git commit`. This applies even
+commit. Draft the commit message, show it, and wait for an explicit "ok"/"commit"/"yes"; stage only
+when the user says to stage — they usually stage themselves. This applies even
 mid-task, even if committing was the literal thing just asked for a moment earlier.
 
 **How to apply:** after making file changes, describe what's ready (`git status`/`git diff`,
-read-only) and, even when asked to prepare a commit, draft the message and show it — then wait for
-explicit confirmation before actually running `git commit`. Never chain commit -> push without the
+read-only) and leave everything unstaged. Even when asked to prepare a commit, draft the message and
+show it — then wait for explicit confirmation before running `git add` or `git commit`. Never chain commit -> push without the
 same explicit per-action confirmation.

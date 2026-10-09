@@ -5,14 +5,16 @@
 //   node devops/android/apk.js publish --version 0.1.0 "Note"
 //
 // The version is `frontend` in version/versions.json; Android's versionCode comes from it
-// (frontend/app.config.js). `build` runs in Docker (the Android SDK lives only in the image,
+// (frontend/src/utils/versionCode.js). `build` runs in Docker (the Android SDK lives only in the image,
 // Dockerfile here); `publish` writes directly, or through a Node container when devops/data/apk is
-// root-owned (Docker created it on Linux). Tests: node --test devops/android
+// root-owned (Docker created it on Linux), then — when the newest release changed — tells open apps
+// through Kafka (`frontend.releases`). Tests: node --test devops/android/apk.test.js
 'use strict';
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { spawnSync } = require('child_process');
+const { parseEnv } = require('util'); // Node ≥ 20.12
 
 const ROOT = path.resolve(__dirname, '../..');
 const IMAGE = 'personal-copilot-android-builder';
@@ -35,18 +37,24 @@ function frontendVersion() {
 
 // ---- build ----
 
+// From the environment, else devops/.env; '' when neither has it.
+function setting(name) {
+  if (process.env[name]) return process.env[name];
+  const file = path.join(ROOT, 'devops/.env');
+  return fs.existsSync(file) ? (parseEnv(fs.readFileSync(file, 'utf8'))[name] ?? '') : '';
+}
+
 function build() {
-  const versions = JSON.parse(fs.readFileSync(path.join(ROOT, 'version/versions.json'), 'utf8'));
-  let gateway = process.env.GATEWAY_PUBLIC_URL;
-  if (!gateway) {
-    const env = fs.existsSync(path.join(ROOT, 'devops/.env')) ? fs.readFileSync(path.join(ROOT, 'devops/.env'), 'utf8') : '';
-    gateway = (/^GATEWAY_PUBLIC_URL=(.*)$/m.exec(env) || [])[1]?.trim() ?? '';
-  }
+  const version = frontendVersion();
+  const gateway = setting('GATEWAY_PUBLIC_URL');
   if (!gateway.startsWith('https://'))
     throw new Refusal(
       `GATEWAY_PUBLIC_URL must be the HTTPS Gateway URL (devops/.env), got '${gateway}'.\n` +
         "Android blocks plain HTTP. See README's 'Phone access (Tailscale HTTPS)'.",
     );
+  // Where the app looks for updates (latest.json). Default: the frontend's address, i.e. Gateway's
+  // host on the default port — how devops/tailscale/serve.js publishes the two.
+  const registry = setting('APK_REGISTRY_URL') || `https://${new URL(gateway).hostname}/apk/`;
   const abis = process.env.ANDROID_ABIS || 'arm64-v8a';
   const data = path.join(ROOT, 'devops/data/android');
 
@@ -61,22 +69,22 @@ function build() {
     console.log('APK can update the installed app.');
   }
 
-  console.log(`Building Personal Copilot ${versions.frontend} for ${gateway} ...`);
+  console.log(`Building Personal Copilot ${version} for ${gateway}, updates from ${registry} ...`);
   inImage(
     '-v', `${path.join(ROOT, 'frontend')}:/src:ro`,
     '-v', 'pc-android-sdk:/opt/android-sdk',
     '-v', 'pc-android-gradle:/root/.gradle',
     '-v', 'pc-npm-cache:/root/.npm',
-    '-e', `FRONTEND_VERSION=${versions.frontend}`,
+    '-e', `FRONTEND_VERSION=${version}`,
     '-e', `ANDROID_ABIS=${abis}`,
     '-e', `EXPO_PUBLIC_GATEWAY_ORIGIN=${gateway}`,
-    '-e', `EXPO_PUBLIC_APP_VERSION=${versions.app}`,
-    '-e', `EXPO_PUBLIC_FRONTEND_VERSION=${versions.frontend}`,
+    '-e', `EXPO_PUBLIC_APK_REGISTRY_URL=${registry}`,
+    '-e', `EXPO_PUBLIC_FRONTEND_VERSION=${version}`,
     '-e', `EXPO_PUBLIC_BUILT_AT=${new Date().toISOString().replace(/\.\d+Z$/, 'Z')}`,
     IMAGE, 'node', '/tools/apk.js', 'inside-build',
   );
   const suffix = abis === 'arm64-v8a' ? '' : '-emulator';
-  console.log(`Done: devops/data/android/apk/personal-copilot-${versions.frontend}${suffix}.apk`);
+  console.log(`Done: devops/data/android/apk/personal-copilot-${version}${suffix}.apk`);
   console.log('(Back up devops/data/android/release.keystore and keystore.properties if you haven\'t.)');
 }
 
@@ -138,7 +146,7 @@ function writeAtomic(file, data) {
 function publish({ version, notes = [], built = BUILT, registry = REGISTRY, icon = ICON }) {
   notes = notes.map((n) => n.trim()).filter(Boolean);
   if (!version) throw new Refusal('usage: node devops/android/apk.js publish [--version X] "note" ...');
-  const { versionCode } = require(path.join(ROOT, 'frontend/app.config.js'));
+  const { versionCode } = require(path.join(ROOT, 'frontend/src/utils/versionCode.js'));
   let code;
   try {
     code = versionCode(version);
@@ -166,7 +174,7 @@ function publish({ version, notes = [], built = BUILT, registry = REGISTRY, icon
       throw new Refusal(
         `${version} is already published with a different APK (sha256 ${existing.sha256.slice(0, 12)}…, ` +
           `this one ${sha256.slice(0, 12)}…). Published versions never change — bump the version ` +
-          '(scripts/version.sh frontend patch) and build again.',
+          '(node scripts/version.js frontend patch) and build again.',
       );
     if (!fs.existsSync(dest)) {
       if (!haveBuild) throw new Refusal(`${file} is missing from devops/data/apk/ and devops/data/android/apk/.`);
@@ -216,19 +224,61 @@ function publishCli(args) {
     version = args[1];
     args = args.slice(2);
   }
+  const before = readLatest();
   try {
     fs.mkdirSync(REGISTRY, { recursive: true });
     fs.accessSync(REGISTRY, fs.constants.W_OK);
-  } catch {
+    console.log(publish({ version, notes: args }));
+  } catch (e) {
+    if (e instanceof Refusal) throw e;
     // Root-owned (Docker made it): publish from a container, as root.
     console.log('devops/data/apk/ is not writable here — publishing through a Node container.');
     run('docker', [
       'run', '--rm', '-v', `${ROOT}:/repo:ro`, '-v', `${REGISTRY}:/repo/devops/data/apk`,
-      'node:22-alpine', 'node', '/repo/devops/android/apk.js', 'publish', '--version', version, ...args,
+      'node:22-alpine', 'node', '/repo/devops/android/apk.js', 'inside-publish', version, ...args,
     ]);
-    return;
   }
-  console.log(publish({ version, notes: args }));
+  const after = readLatest();
+  if (after && after.versionCode !== before?.versionCode) announce(after);
+}
+
+// Inside the Node container publishCli falls back to: just the registry, no announcement.
+function insidePublish([version, ...notes]) {
+  console.log(publish({ version, notes }));
+}
+
+function readLatest(registry = REGISTRY) {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(registry, 'latest.json'), 'utf8'));
+  } catch {
+    return null;
+  }
+}
+
+// ---- telling open apps ----
+
+const RELEASES_TOPIC = 'frontend.releases';
+
+// The `frontend.releases` message for a new newest release (backend/libs/kafka-contracts'
+// FrontendReleaseMessage), keyed by platform.
+function releaseEvent(latest) {
+  const { version, versionCode, publishedAt } = latest;
+  return { key: 'android', value: JSON.stringify({ version, versionCode, publishedAt }) };
+}
+
+// Through the running stack's Kafka container (its broker isn't published to the host); Gateway
+// consumes it and tells every open app. Best effort: with the stack down, apps see the release on
+// their next start anyway.
+function announce(latest) {
+  const { key, value } = releaseEvent(latest);
+  const r = spawnSync('docker', [
+    'compose', '-f', path.join(ROOT, 'devops/docker-compose.yml'), 'exec', '-T', 'kafka',
+    '/opt/kafka/bin/kafka-console-producer.sh', '--bootstrap-server', 'kafka:19092',
+    '--topic', RELEASES_TOPIC, '--reader-property', 'parse.key=true', '--reader-property', 'key.separator=|',
+  ], { input: `${key}|${value}\n`, stdio: ['pipe', 'ignore', 'pipe'] });
+  if (r.error || r.status !== 0)
+    console.warn(`Couldn't announce ${latest.version} on Kafka (is the stack running?) — open apps will see it on their next start.`);
+  else console.log(`Announced ${latest.version} to open apps (Kafka ${RELEASES_TOPIC}).`);
 }
 
 // ---- the download page ----
@@ -337,11 +387,17 @@ document.querySelectorAll('time[datetime]').forEach(function (t) {
 
 // ---- command line ----
 
-module.exports = { publish, Refusal };
+module.exports = { publish, releaseEvent, Refusal };
 
 if (require.main === module) {
   const [command, ...args] = process.argv.slice(2);
-  const commands = { build, publish: () => publishCli(args), 'inside-build': insideBuild, 'inside-genkey': insideGenkey };
+  const commands = {
+    build,
+    publish: () => publishCli(args),
+    'inside-publish': () => insidePublish(args),
+    'inside-build': insideBuild,
+    'inside-genkey': insideGenkey,
+  };
   try {
     if (!commands[command]) throw new Refusal('usage: node devops/android/apk.js build | publish [--version X] "note" ...');
     commands[command]();

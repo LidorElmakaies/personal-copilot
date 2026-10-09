@@ -1,9 +1,11 @@
 import { randomUUID } from 'crypto';
 import { KAFKA_TOPICS } from '@app/kafka-contracts';
 import type { IProfileRepository } from '../src/infrastructure/interfaces/profile-repository.interface';
-import type {
-  CreateUserInput,
-  IUserRepository,
+import type { IRefreshTokenRepository } from '../src/infrastructure/interfaces/refresh-token-repository.interface';
+import {
+  EmailTakenError,
+  type CreateUserInput,
+  type IUserRepository,
 } from '../src/infrastructure/interfaces/user-repository.interface';
 import { toUserStateMessage } from '../src/infrastructure/postgres/user-events';
 import type {
@@ -11,6 +13,7 @@ import type {
   ProfileChange,
   ProfileDetails,
 } from '../src/models/profile';
+import type { RefreshToken } from '../src/models/refresh-token';
 import type { User } from '../src/models/user';
 
 export interface RecordedEvent {
@@ -23,10 +26,14 @@ export interface RecordedEvent {
 export class InMemoryStore {
   readonly users = new Map<string, User>();
   readonly profiles = new Map<string, Profile>();
+  readonly refreshTokens = new Map<string, RefreshToken>();
   readonly events: RecordedEvent[] = [];
 
   readonly userRepository: IUserRepository = {
     create: (input: CreateUserInput, details: ProfileDetails) => {
+      if (this.emailTaken(input.email)) {
+        return Promise.reject(new EmailTakenError());
+      }
       const now = new Date();
       const user: User = {
         id: randomUUID(),
@@ -48,17 +55,22 @@ export class InMemoryStore {
       Promise.resolve(
         [...this.users.values()].find((u) => u.email === email) ?? null,
       ),
-    updatePassword: (userId, passwordHash, passwordSalt) => {
-      Object.assign(this.users.get(userId)!, { passwordHash, passwordSalt });
-      return Promise.resolve();
-    },
-    updateEmail: (userId, email) => {
-      Object.assign(this.users.get(userId)!, { email });
+    updateCredentials: (userId, change) => {
+      if (change.email && this.emailTaken(change.email, userId)) {
+        return Promise.reject(new EmailTakenError());
+      }
+      Object.assign(this.users.get(userId)!, change);
+      if (change.passwordHash) {
+        for (const token of this.refreshTokens.values())
+          if (token.userId === userId) token.revokedAt ??= new Date();
+      }
       return Promise.resolve();
     },
     delete: (userId) => {
       if (this.users.delete(userId)) {
         this.profiles.delete(userId);
+        for (const [id, token] of this.refreshTokens)
+          if (token.userId === userId) this.refreshTokens.delete(id);
         this.events.push({
           topic: KAFKA_TOPICS.USER_STATE,
           key: userId,
@@ -73,15 +85,8 @@ export class InMemoryStore {
     findByUserId: (userId) =>
       Promise.resolve(this.profiles.get(userId) ?? null),
     update: (userId, change: ProfileChange) => {
-      if (!this.users.has(userId)) return Promise.resolve(null);
-      const current = this.profiles.get(userId) ?? {
-        userId,
-        firstName: null,
-        lastName: null,
-        phone: null,
-        location: null,
-        version: 0,
-      };
+      const current = this.profiles.get(userId);
+      if (!current) return Promise.resolve(null);
       const next: Profile = {
         ...current,
         ...Object.fromEntries(
@@ -94,20 +99,35 @@ export class InMemoryStore {
     },
   };
 
-  /** Adds an account from before profiles existed: a user without a profile row. */
-  addLegacyUser(email: string): User {
-    const now = new Date();
-    const user: User = {
-      id: randomUUID(),
-      email,
-      passwordHash: 'x',
-      passwordSalt: 'x',
-      role: 'user',
-      createdAt: now,
-      updatedAt: now,
-    };
-    this.users.set(user.id, user);
-    return user;
+  readonly refreshTokenRepository: IRefreshTokenRepository = {
+    create: (userId, tokenHash, expiresAt) => {
+      const token: RefreshToken = {
+        id: randomUUID(),
+        userId,
+        tokenHash,
+        expiresAt,
+        revokedAt: null,
+        createdAt: new Date(),
+      };
+      this.refreshTokens.set(token.id, token);
+      return Promise.resolve(token);
+    },
+    findByTokenHash: (tokenHash) =>
+      Promise.resolve(
+        [...this.refreshTokens.values()].find(
+          (t) => t.tokenHash === tokenHash,
+        ) ?? null,
+      ),
+    revoke: (id) => {
+      this.refreshTokens.get(id)!.revokedAt = new Date();
+      return Promise.resolve();
+    },
+  };
+
+  private emailTaken(email: string, exceptUserId?: string): boolean {
+    return [...this.users.values()].some(
+      (u) => u.email === email && u.id !== exceptUserId,
+    );
   }
 
   stateEventsFor(userId: string) {

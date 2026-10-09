@@ -18,3 +18,14 @@ test('account tab asks to log in while signed out', async ({ page }) => {
   await settle(page);
   await page.screenshot({ path: 'screenshots/account-signed-out.png' });
 });
+
+// The in-app update prompt is Android-only: the web build never asks the APK registry and shows no chip.
+test('web home has no update chip and never fetches latest.json', async ({ page }) => {
+  const asked = [];
+  page.on('request', (r) => r.url().includes('latest.json') && asked.push(r.url()));
+  await page.goto('/');
+  await expect(page.getByText(/^\d{2}:\d{2}:\d{2}$/)).toBeVisible();
+  await page.waitForTimeout(1500);
+  await expect(page.getByRole('button', { name: /^Update to / })).toHaveCount(0);
+  expect(asked).toEqual([]);
+});

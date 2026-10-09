@@ -12,7 +12,7 @@ import {
 } from '../../store/slices/notificationsSlice';
 
 const SUBTITLES = {
-  // The Android app gets its own channel (ntfy) in plan task 2.25; Web Push is browser-only.
+  // Web Push is browser-only; the Android app has no notification channel yet.
   unsupported:
     Platform.OS === 'web'
       ? "This browser can't receive push notifications"

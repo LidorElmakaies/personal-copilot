@@ -13,6 +13,7 @@ import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import { GatewayModule } from './gateway.module';
+import { TRUST_PROXY } from './trust-proxy';
 
 async function bootstrap() {
   const logger = new OtelLogger();
@@ -23,8 +24,8 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   // Permissive CORS — see docs/specs/services.md#gateway.
   app.enableCors({ origin: true });
-  // Why loopback specifically: docs/specs/architecture.md#system-topology. Don't broaden this.
-  app.set('trust proxy', 'loopback');
+  // Who may forward the client's IP: trust-proxy.ts, docs/specs/architecture.md#system-topology.
+  app.set('trust proxy', TRUST_PROXY);
   app.useWebSocketAdapter(new IoAdapter(app));
 
   installGracefulShutdown(app);
