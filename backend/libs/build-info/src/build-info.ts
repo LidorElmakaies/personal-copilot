@@ -16,10 +16,9 @@ const startedAt = new Date().toISOString();
 // from backend/ it's the repo's own ../version.
 function versionDir(): string | null {
   const candidates = [
-    process.env.VERSION_DIR,
     join(process.cwd(), 'version'),
     join(process.cwd(), '..', 'version'),
-  ].filter((dir): dir is string => !!dir);
+  ];
   return (
     candidates.find((dir) => existsSync(join(dir, 'versions.json'))) ?? null
   );

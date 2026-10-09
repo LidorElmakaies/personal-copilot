@@ -4,6 +4,8 @@ Read from `backend/.env` locally (`npx nest start gateway`), or from `devops/doc
 `devops/gateway/docker-compose.yml`'s `environment:` in Docker. See `backend/.env.example` for the
 full variable list with defaults.
 
+Shared by every backend app (OpenTelemetry): [docs/backend/environment.md](../backend/environment.md).
+
 - **`PORT`** — deliberately not set in the shared `backend/.env`. Gateway defaults to `8000` in its
   own `main.ts` when unset. Every backend app shares that same file and defaults to its own port
   (users `8001`, reminders `8003`, notifications `8004`) — setting `PORT` in the
@@ -24,11 +26,6 @@ full variable list with defaults.
 - **`JWT_SECRET`** — must be byte-identical to the Users Service's copy (Users signs, Gateway verifies).
   In Docker this comes from `devops/.env` via an explicit `${JWT_SECRET}` in
   `devops/gateway/docker-compose.yml`'s `environment:`, not from `docker.env`.
-- **`OTEL_EXPORTER_OTLP_ENDPOINT`** — same as every backend app; see root `CLAUDE.md`.
-- **`OTEL_SERVICE_NAME`** — `gateway`, set in `devops/gateway/docker-compose.yml`. When set, the OTel SDK
-  exports it as `service.name` in place of `main.ts`'s `startOtel('gateway')`, so keep the two equal.
-- **`VERSION_DIR`** — optional: where `@app/build-info` looks for `versions.json` and `built-at` first
-  (unset everywhere; see [services.md](../specs/services.md#libsbuild-info)).
 
 See [docs/users/environment.md](../users/environment.md) for the Users Service side of `JWT_SECRET`,
 and `docs/specs/architecture.md` for how `trust proxy`, the `127.0.0.1`-only port and the proxies

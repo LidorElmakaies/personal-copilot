@@ -256,10 +256,10 @@ scripts/docs-check.js     docs drift check (+ docs-check.test.js) — see Comman
 
 1. `cd devops/observability && docker compose up -d` (telemetry stack must exist first —
    `devops/docker-compose.yml` references its network as `external: true`).
-2. `cd devops && cp .env.example .env` and set real random `JWT_SECRET`/`PASSWORD_PEPPER`.
+2. `cd devops && cp .env.example .env` and set a real random `JWT_SECRET`.
    `GATEWAY_PUBLIC_URL`: `http://localhost:8000` for use on this PC only, or the HTTPS tailnet URL
    from step 4 for your phone. Also `cp backend/.env.example backend/.env` (every container reads
-   it): same `JWT_SECRET`/`PASSWORD_PEPPER`, and `VAPID_*` keys from `npx web-push
+   it): the same `JWT_SECRET`, a real random `PASSWORD_PEPPER`, and `VAPID_*` keys from `npx web-push
    generate-vapid-keys` — without them Notifications won't boot, so Gateway (which waits for it to be healthy) won't either.
 3. `docker compose up -d --build`.
 4. Phone access: run `node devops/tailscale/serve.js` once (see README's "Phone access (Tailscale

@@ -113,6 +113,6 @@ node scripts/docs-check.js --changed   # from the repo root
 Run it at the end of every task: it lists the docs the uncommitted changes should update (its
 `DOCS_MAP`), each with the files that pulled it in, then runs every drift check. Review each listed
 doc, update it to describe the new current state, and rerun until it passes — **a task isn't done
-while it fails**. A changed path it maps to no doc is listed too; add a `DOCS_MAP` row if one
-should map. Sanity-check any Mermaid block renders (balanced brackets, valid arrow syntax) before
+while it fails**. A changed path it maps to no doc is listed too: if it should map, add the row to `DOCS_MAP` yourself
+— it's a data table at the top of the script, one line per row, the one part of it you may edit. Sanity-check any Mermaid block renders (balanced brackets, valid arrow syntax) before
 considering the pass done.

@@ -28,6 +28,12 @@ const BASE = {
   'docs/specs/event-schemas.md':
     '# Queues\n\n| Queue | Notes |\n|---|---|\n| `reminder-due` | x |\n\n## `reminder-due`\n\n# Kafka events\n\n| Topic | Notes |\n|---|---|\n| `users.user-state` | x |\n\n## `users.user-state`\n',
   'frontend/Caddyfile': '{\n\t@gateway path /auth/* /calendar/* /ws*\n}\n',
+  'devops/docker-compose.yml': 'include:\n  - path: gateway/docker-compose.yml\n',
+  'devops/gateway/docker-compose.yml': 'services:\n  gateway:\n    extends:\n      file: ../common.yml\n    environment:\n      - JWT_SECRET=${JWT_SECRET}\n',
+  'devops/common.yml': 'x:\n  image: ${IMAGE_TAG:-1}\n',
+  'devops/android/apk.js': "const url = setting('APK_URL');\n",
+  'devops/.env.example': 'JWT_SECRET=x\nIMAGE_TAG=1\n# APK_URL=\n',
+  'docs/devops/environment.md': '`JWT_SECRET`, `IMAGE_TAG` and `APK_URL`.\n',
   'docs/specs/services.md': '# Services\n\n## gateway\n\n## frontend\n\n## Versions\n\n## libs/lib1\n',
   'docs/specs/architecture.md':
     '# Architecture\n\n## System topology\n\n```mermaid\nflowchart LR\n    subgraph Home["Home PC"]\n        Gateway["gateway\\n:8000"]\n        Frontend["frontend"]\n        Postgres[("postgres")]\n    end\n```\n',
@@ -84,6 +90,30 @@ test('Kafka topics: code, kafka-init and event-schemas must hold the same set', 
 test('queues: QUEUES and event-schemas sections and table must hold the same set', () => {
   const missing = run('queues agree', { 'docs/specs/event-schemas.md': BASE['docs/specs/event-schemas.md'].replace('| `reminder-due` | x |\n', '') });
   assert.deepStrictEqual(missing, ['docs/specs/event-schemas.md:1 the queue table lacks `reminder-due` (backend/libs/queue-contracts/src/queues.ts:2)']);
+});
+
+test('env: a var a shared lib reads may be documented once on the shared page instead', () => {
+  const appDoc = '- **`PORT`** — x\n- **`SVC_URL`** — y\n';
+  assert.deepStrictEqual(run('env vars documented', { 'docs/gateway/environment.md': appDoc, 'docs/backend/environment.md': '- **`LIB_VAR`** — z\n' }), []);
+  // an app's own read still belongs on its page, and the shared page lists only what a lib reads
+  const misplaced = run('env vars documented', { 'docs/gateway/environment.md': '- **`LIB_VAR`** / **`SVC_URL`** — y\n', 'docs/backend/environment.md': '- **`PORT`** — x\n- **`GONE`** — z\n' });
+  assert.deepStrictEqual(misplaced, [
+    "docs/gateway/environment.md:1 PORT (read at backend/apps/gateway/src/main.ts:2) isn't documented",
+    'docs/backend/environment.md:1 PORT is documented but no shared lib an app uses reads it',
+    'docs/backend/environment.md:2 GONE is documented but no shared lib an app uses reads it',
+  ]);
+});
+
+test('devops/.env: what compose and devops scripts read must be in .env.example and documented, and nothing more', () => {
+  const missing = run('devops/.env agrees', { 'devops/.env.example': 'JWT_SECRET=x\nIMAGE_TAG=1\n' });
+  assert.deepStrictEqual(missing, ["devops/.env.example:1 APK_URL (read at devops/android/apk.js:1) isn't in it"]);
+  const stale = run('devops/.env agrees', { 'devops/.env.example': `${BASE['devops/.env.example']}OLD=1\n` });
+  assert.deepStrictEqual(stale, ['devops/.env.example:4 OLD is set but no compose file or devops script reads it']);
+  const undocumented = run('devops/.env agrees', { 'docs/devops/environment.md': '`JWT_SECRET`\n' });
+  assert.deepStrictEqual(undocumented, [
+    "docs/devops/environment.md:1 IMAGE_TAG (read at devops/common.yml:2) isn't documented",
+    "docs/devops/environment.md:1 APK_URL (read at devops/android/apk.js:1) isn't documented",
+  ]);
 });
 
 test("Caddy: every Gateway path must match @gateway", () => {

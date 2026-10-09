@@ -255,11 +255,11 @@ ol.steps b{color:var(--ink)}
         <rect x="696" y="970" width="80" height="50" rx="8" fill="var(--violetSoft)" stroke="var(--violet)" stroke-opacity=".7"/>
         <text x="708" y="992" class="t-vio" font-size="12.5">Push</text>
         <text x="708" y="1008" class="t-mono">Web Push</text>
-        <rect x="782" y="970" width="80" height="50" rx="8" fill="none" stroke="var(--faint)" stroke-dasharray="2 3"/>
-        <text x="794" y="992" class="t-faint" font-size="12.5" font-weight="600">Email</text>
-        <text x="794" y="1008" class="t-mono">future</text>
+        <rect x="782" y="970" width="80" height="50" rx="8" fill="var(--violetSoft)" stroke="var(--violet)" stroke-opacity=".7"/>
+        <text x="794" y="992" class="t-vio" font-size="12.5">Android</text>
+        <text x="794" y="1008" class="t-mono">FCM</text>
         <rect x="868" y="970" width="80" height="50" rx="8" fill="none" stroke="var(--faint)" stroke-dasharray="2 3"/>
-        <text x="880" y="992" class="t-faint" font-size="12.5" font-weight="600">SMS</text>
+        <text x="880" y="992" class="t-faint" font-size="12.5" font-weight="600">Email/SMS</text>
         <text x="880" y="1008" class="t-mono">future</text>
         <rect x="696" y="1030" width="253" height="34" rx="8" fill="var(--soft)" stroke="var(--line)"/>
         <text x="708" y="1052" class="t-mono">schema notifications · FK → users</text>
@@ -317,7 +317,8 @@ ol.steps b{color:var(--ink)}
         <p class="role">How to reach you.</p>
         <ul>
           <li>Processes <code>notification-requested</code> jobs from the queue, sending to each of your devices and retrying the job for any it couldn't reach</li>
-          <li>Knows your browser push subscriptions (later: email address, phone number)</li>
+          <li>Knows your browser push subscriptions and your Android app installs (later: email address, phone number)</li>
+          <li>Android app: sends through Google's FCM, each message encrypted with a key only that phone holds — Google sees timing and size, never the text. Nothing exposed: only outbound calls to Google</li>
           <li>One adapter per channel behind <code>INotificationChannel</code>. Email or SMS is a new adapter, with no change to Reminders.</li>
           <li>Any future service can send you a notification the same way</li>
         </ul>
@@ -455,6 +456,7 @@ next_fire_at  2026-10-02 16:34 local
       <li><b>Frontend account + location:</b> name and phone at register and on the Account tab, delete account, location sent after a real move.</li>
       <li><b>Reminder scheduler:</b> BullMQ delayed jobs, moved when the offset or your location changes.</li>
       <li><b>Frontend reminders:</b> a service worker + "Turn on notifications", the bell button and offset sheet on the Home card, <code>remindersSlice</code>.</li>
+      <li><b>Android app reminders (FCM):</b> a free Firebase project; prove an encrypted message is decrypted and shown with the app swiped away; then the FCM channel (<code>fcm_devices</code>, one key per phone) and "Turn on notifications" in the APK. If the encrypted path isn't reliable: a plain "You have a new notification" from FCM, and the app reads the real one over its <code>/ws</code> when opened.</li>
     </ol>
   </section>
 </div>

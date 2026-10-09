@@ -95,7 +95,7 @@ report theirs on their internal `/health`, and the Admin tab (admins only) lists
 
 ## Docs drift check
 
-`node scripts/docs-check.js` checks the docs against the code (paths they name, env vars, Kafka
+`node scripts/docs-check.js` checks the docs against the code (paths they name, env vars incl. `devops/.env`, Kafka
 topics, queues, Caddy's Gateway routes, services, version components, no plan references) and exits
 1 on drift; `--changed` first lists the docs your uncommitted changes should update.
 

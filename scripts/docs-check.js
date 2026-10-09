@@ -17,7 +17,7 @@ const ROOT = path.join(__dirname, '..');
 // if that file exists. A label after ` — ` names the section to look at.
 const DOCS_MAP = [
   { match: /^backend\/apps\/([^/]+)\//, docs: ([, app]) => [`docs/specs/services.md — ## ${app}`, `docs/${app}/environment.md`, `backend/apps/${app}/README.md?`, `CLAUDE.md — What's implemented: ${app}`, '.claude/agents/backend.md'] },
-  { match: /^backend\/libs\/([^/]+)\//, docs: ([, lib]) => [`docs/specs/services.md — ## libs/${lib}`, `backend/libs/${lib}/README.md?`, 'CLAUDE.md — Architecture', '.claude/agents/backend.md'] },
+  { match: /^backend\/libs\/([^/]+)\//, docs: ([, lib]) => [`docs/specs/services.md — ## libs/${lib}`, `backend/libs/${lib}/README.md?`, 'docs/backend/environment.md', 'CLAUDE.md — Architecture', '.claude/agents/backend.md'] },
   { match: /^backend\/\.env\.example$/, docs: () => ['docs/<app>/environment.md — each app reading a changed variable', 'CLAUDE.md — First run'] },
   { match: /^devops\/(?:([^/]+)\/)?/, docs: ([, dir]) => ['docs/specs/architecture.md — System topology, Compose & build layout', 'docs/devops/environment.md', ...(dir ? [`docs/${dir}/environment.md?`] : []), '.claude/agents/devops.md'] },
   { match: /^frontend\/(src|app)\//, docs: () => ['docs/specs/services.md — ## frontend', 'frontend/README.md', '.claude/agents/frontend.md', "CLAUDE.md — What's implemented: frontend"] },
@@ -251,10 +251,15 @@ function documentedVars(text) {
   return vars;
 }
 
+// Vars a shared lib reads may be documented once here instead of on each app's page.
+const SHARED_ENV_DOC = 'docs/backend/environment.md';
+
 function checkEnv(ctx) {
   const out = [];
   const example = ctx.read('backend/.env.example');
   if (example === null) out.push(problem('backend/.env.example', 1, 'missing'));
+  const shared = documentedVars(ctx.read(SHARED_ENV_DOC) ?? '');
+  const libReads = new Set();
   for (const app of backendApps(ctx)) {
     const reads = envReads(ctx, appSources(ctx, app));
     const docPath = `docs/${app}/environment.md`;
@@ -265,7 +270,9 @@ function checkEnv(ctx) {
     }
     const documented = documentedVars(doc);
     for (const [v, where] of reads) {
-      if (!documented.has(v)) out.push(problem(docPath, 1, `${v} (read at ${where}) isn't documented`));
+      const fromLib = where.startsWith('backend/libs/');
+      if (fromLib) libReads.add(v);
+      if (!documented.has(v) && !(fromLib && shared.has(v))) out.push(problem(docPath, 1, `${v} (read at ${where}) isn't documented`));
       if (example !== null && !new RegExp(`\\b${v}\\b`).test(example)) {
         out.push(problem('backend/.env.example', 1, `${v} (read at ${where}) isn't in it`));
       }
@@ -274,8 +281,47 @@ function checkEnv(ctx) {
       if (!reads.has(v)) out.push(problem(docPath, line, `${v} is documented but ${app} never reads it`));
     }
   }
+  for (const [v, line] of shared) {
+    if (!libReads.has(v)) out.push(problem(SHARED_ENV_DOC, line, `${v} is documented but no shared lib an app uses reads it`));
+  }
   const seen = new Set();
   return out.filter((p) => !seen.has(p.file + p.message) && seen.add(p.file + p.message));
+}
+
+/** Vars `devops/.env` feeds: `${VAR}` in the app stack's compose files, and `setting('VAR')` in devops/ scripts. */
+function devopsEnvReads(ctx) {
+  const stack = ctx.read('devops/docker-compose.yml') ?? '';
+  const compose = [...stack.matchAll(/^\s*-\s*path:\s*(\S+)/gm)].map((m) => `devops/${m[1]}`);
+  for (const f of [...compose]) {
+    for (const [, ext] of (ctx.read(f) ?? '').matchAll(/^\s*file:\s*(\S+)/gm)) compose.push(path.posix.join(path.posix.dirname(f), ext));
+  }
+  const scripts = ctx.files.filter((f) => /^devops\/[^/]+\/[^/]+\.js$/.test(f) && !f.endsWith('.test.js'));
+  const reads = new Map();
+  for (const f of [...new Set(compose), 'devops/docker-compose.yml', ...scripts]) {
+    const text = ctx.read(f) ?? '';
+    const re = f.endsWith('.js') ? /\bsetting\(\s*'([A-Z][A-Z0-9_]*)'/g : /\$\{([A-Z][A-Z0-9_]*)/g;
+    for (const m of text.matchAll(re)) reads.has(m[1]) || reads.set(m[1], `${f}:${lineAt(text, m.index)}`);
+  }
+  return reads;
+}
+
+function checkDevopsEnv(ctx) {
+  const out = [];
+  const exampleFile = 'devops/.env.example';
+  const example = ctx.read(exampleFile);
+  if (example === null) return [problem(exampleFile, 1, 'missing')];
+  const docFile = 'docs/devops/environment.md';
+  const doc = ctx.read(docFile) ?? '';
+  const reads = devopsEnvReads(ctx);
+  for (const [v, where] of reads) {
+    if (!new RegExp(`\\b${v}\\b`).test(example)) out.push(problem(exampleFile, 1, `${v} (read at ${where}) isn't in it`));
+    if (!doc.includes(`\`${v}\``)) out.push(problem(docFile, 1, `${v} (read at ${where}) isn't documented`));
+  }
+  example.split('\n').forEach((line, i) => {
+    const m = /^\s*#?\s*([A-Z][A-Z0-9_]*)=/.exec(line);
+    if (m && !reads.has(m[1])) out.push(problem(exampleFile, i + 1, `${m[1]} is set but no compose file or devops script reads it`));
+  });
+  return out;
 }
 
 // ── c, d. Kafka topics and BullMQ queues ────────────────────────────────────
@@ -448,6 +494,7 @@ function checkPlanRefs(ctx) {
 const CHECKS = {
   'doc paths exist': checkPaths,
   'env vars documented': checkEnv,
+  'devops/.env agrees': checkDevopsEnv,
   'Kafka topics agree': checkTopics,
   'queues agree': checkQueues,
   'Caddy covers Gateway': checkCaddy,

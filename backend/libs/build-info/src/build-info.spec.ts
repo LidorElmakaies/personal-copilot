@@ -1,22 +1,27 @@
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { buildInfo } from './build-info';
 
+// A temp working directory with a version/ folder in it, as in an image.
+function versionFolder(): string {
+  const cwd = mkdtempSync(join(tmpdir(), 'build-info-'));
+  jest.spyOn(process, 'cwd').mockReturnValue(cwd);
+  const dir = join(cwd, 'version');
+  mkdirSync(dir);
+  return dir;
+}
+
 describe('buildInfo', () => {
-  const original = process.env.VERSION_DIR;
-  afterEach(() => {
-    process.env.VERSION_DIR = original;
-  });
+  afterEach(() => jest.restoreAllMocks());
 
   it('reads the service version and build time from the version folder', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'version-'));
+    const dir = versionFolder();
     writeFileSync(
       join(dir, 'versions.json'),
       JSON.stringify({ app: '1.4.0', users: '1.2.3' }),
     );
     writeFileSync(join(dir, 'built-at'), '2026-10-05T18:00:00Z\n');
-    process.env.VERSION_DIR = dir;
 
     const info = buildInfo('users');
     expect(info).toEqual({
@@ -29,9 +34,8 @@ describe('buildInfo', () => {
   });
 
   it('reports null for an unknown service and a missing build time', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'version-'));
+    const dir = versionFolder();
     writeFileSync(join(dir, 'versions.json'), JSON.stringify({ app: '1.0.0' }));
-    process.env.VERSION_DIR = dir;
 
     expect(buildInfo('nope')).toMatchObject({ version: null, builtAt: null });
   });

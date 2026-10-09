@@ -4,6 +4,8 @@ Read from `backend/.env` locally (`npx nest start users`), or from `devops/docke
 `devops/users/docker-compose.yml` in Docker. See `backend/.env.example` for the full variable list
 with defaults.
 
+Shared by every backend app (OpenTelemetry): [docs/backend/environment.md](../backend/environment.md).
+
 - **`PORT`** — deliberately not set in the shared `backend/.env`. Users defaults to `8001` in its
   own `main.ts` when unset — see [docs/gateway/environment.md](../gateway/environment.md) for why
   this file never sets `PORT` directly.
@@ -17,11 +19,6 @@ with defaults.
   and go out once it's back.
 - **`NODE_ENV`** — anything but `production` lets TypeORM sync the `users` tables at boot (see
   `backend/apps/users/README.md`).
-- **`OTEL_EXPORTER_OTLP_ENDPOINT`** — same as every backend app; see root `CLAUDE.md`.
-- **`OTEL_SERVICE_NAME`** — `users`, set in `devops/users/docker-compose.yml`. When set, the OTel SDK
-  exports it as `service.name` in place of `main.ts`'s `startOtel('users')`, so keep the two equal.
-- **`VERSION_DIR`** — optional: where `@app/build-info` looks for `versions.json` and `built-at` first
-  (unset everywhere; see [services.md](../specs/services.md#libsbuild-info)).
 
 ## Admin seed (`ADMIN_EMAIL` / `ADMIN_PASSWORD`)
 

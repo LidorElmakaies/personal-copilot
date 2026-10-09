@@ -3,6 +3,8 @@
 Read from `backend/.env` locally (`npx nest start notifications`), or from `devops/docker.env` +
 `devops/notifications/docker-compose.yml` in Docker.
 
+Shared by every backend app (OpenTelemetry): [docs/backend/environment.md](../backend/environment.md).
+
 - **`PORT`** — not set in the shared `backend/.env`; defaults to `8004` in `main.ts` (see
   [docs/gateway/environment.md](../gateway/environment.md) for why no app sets `PORT` there).
 - **`DATABASE_URL`** — the shared database (`personal_copilot`); this service uses the `notifications`
@@ -21,8 +23,3 @@ Read from `backend/.env` locally (`npx nest start notifications`), or from `devo
   own Redis on `localhost:6379`. Required at boot.
 - **`NODE_ENV`** — anything but `production` lets TypeORM sync the `notifications` tables at boot (see
   `backend/apps/users/README.md`).
-- **`OTEL_EXPORTER_OTLP_ENDPOINT`** — same as every backend app; see root `CLAUDE.md`.
-- **`OTEL_SERVICE_NAME`** — `notifications`, set in `devops/notifications/docker-compose.yml`. When set, the OTel SDK
-  exports it as `service.name` in place of `main.ts`'s `startOtel('notifications')`, so keep the two equal.
-- **`VERSION_DIR`** — optional: where `@app/build-info` looks for `versions.json` and `built-at` first
-  (unset everywhere; see [services.md](../specs/services.md#libsbuild-info)).

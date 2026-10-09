@@ -504,7 +504,7 @@ service's version from `GET /admin/status`).
 ## libs/build-info
 
 `buildInfo(service)` → `{ service, version, builtAt, startedAt }`. Reads `versions.json` and
-`built-at` from the first of `$VERSION_DIR`, `./version`, `../version` that has a `versions.json` —
+`built-at` from the first of `./version`, `../version` that has a `versions.json` —
 so a local `nest start` from `backend/` reads the repo's own file, with `builtAt` `null` (nothing
 writes `built-at` outside Docker). Missing entry or file → `null`. `startedAt` is fixed at module
 load.
