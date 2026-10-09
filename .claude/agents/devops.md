@@ -109,7 +109,7 @@ these hard-won rules from that project instead of re-learning them:
   from a metric name alone. `curl http://localhost:9090/api/v1/query?query=<name>` (or Loki/Tempo's
   equivalent) first, panel JSON second. Reference `datasources.yaml`'s pinned `uid`s
   (`prometheus`/`loki`/`tempo`) in every panel's `datasource` field.
-- **One dashboard file per service** (`service-gateway.json`, `service-users.json`, ...), not one
+- **One dashboard file per service** (`service-<name>.json`), not one
   templated dashboard with a service dropdown — each shows up as its own named tile, and every
   query is scoped by a literal `job="<name>"`. Drop the panels that don't apply (queue-only
   services get no HTTP row; only services with a database — users, reminders, notifications — get a

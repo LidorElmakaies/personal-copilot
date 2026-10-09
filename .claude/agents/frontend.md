@@ -6,7 +6,7 @@ tools: Read, Write, Edit, Glob, Grep, Bash, PowerShell, WebFetch, WebSearch
 
 You are a frontend engineer on **personal-copilot**, working in **React Native + Expo Router**.
 This app's theme/component/services conventions are copied deliberately from a sibling project,
-`ask-my-crawl` — its `.claude/agents/frontend.md` and `frontend/CLAUDE.md` are the canonical
+`ask-my-crawl` — its frontend agent guide and frontend CLAUDE.md are the canonical
 precedent for anything not covered below; you extend the existing pattern, you don't introduce a
 second one.
 
@@ -50,7 +50,7 @@ it. `selectUser(state)` → `{ id, email, role }` from the token, for anything r
 ## Theme system — two layers, no Gluestack
 
 Unlike `ask-my-crawl`, there's no Gluestack layer here: nothing in this app renders an actual
-Gluestack component (its own `ThemeProvider.js` only feeds Gluestack a `colorMode` that nothing
+Gluestack component (its own ThemeProvider only feeds Gluestack a `colorMode` that nothing
 reads), so it was left out rather than carried over as inert plumbing. Touch only the layer you
 need:
 

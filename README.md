@@ -93,6 +93,12 @@ Every component's version is in `version/versions.json`; `node scripts/version.j
 (rules in CLAUDE.md's "Versions"). The Account tab shows the frontend's version; backend services
 report theirs on their internal `/health`, and the Admin tab (admins only) lists them all.
 
+## Docs drift check
+
+`node scripts/docs-check.js` checks the docs against the code (paths they name, env vars, Kafka
+topics, queues, Caddy's Gateway routes, services, version components, no plan references) and exits
+1 on drift; `--changed` first lists the docs your uncommitted changes should update.
+
 ## Git rule for Claude and every agent
 
 **Never stage or commit anything unless the user explicitly says so** ("stage this", "commit

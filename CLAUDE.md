@@ -90,6 +90,7 @@ docs/specs/               services.md, event-schemas.md (Kafka events, queue job
 docs/plans/               staged feature plans + their HTML design pages
 version/versions.json     every version (one per component) — see "Versions" above
 scripts/version.js        the only way to bump them (Node, + version.test.js)
+scripts/docs-check.js     docs drift check (+ docs-check.test.js) — see Commands
 ```
 
 ## What's implemented
@@ -299,6 +300,13 @@ Frontend (run from `frontend/`):
 npm install
 npx expo start          # Expo Go / dev client
 npx expo start --web
+```
+
+Docs drift check (from the repo root, plain Node — a task isn't done while it fails):
+```bash
+node scripts/docs-check.js            # every doc ↔ code check; file:line for each problem, exit 1 if any
+node scripts/docs-check.js --changed  # first lists the docs your uncommitted changes touch (DOCS_MAP)
+node --test scripts/                  # tests of version.js and docs-check.js
 ```
 
 Full stack: see "First run" above — same two-command sequence (`devops/observability` before

@@ -391,6 +391,17 @@ and ntfy", "Phones" and "Ready to move to the cloud" under Decisions.
   open connection over Kafka → `/ws` in 1.3 s; the phone (0.4.0-test.2) holds one connection while
   open and none in the background. Not yet watched: the sheet opening on the phone right after a
   publish — next release (0.4.0).
+- [x] **2.22c Docs drift check** (tooling). `node scripts/docs-check.js` checks the docs against
+  the code — every path a doc names exists; each backend app's env vars ↔ its `environment.md` ↔
+  `backend/.env.example`; Kafka topics, queues, Caddy's `@gateway` routes, services and version
+  components agree; no plan references outside `docs/plans/` — and exits 1 on drift. `--changed`
+  first lists the docs the uncommitted changes should update (`DOCS_MAP`). The docs agent runs it
+  at the end of every task; a task isn't done while it fails.
+  *Tests:* `node --test scripts/` — a passing and a failing fixture per check, the `--changed`
+  mapping, CRLF and non-ASCII paths.
+  *Done 2026-10-09:* its first run found and fixed `reminder-due` filed under Kafka in
+  `event-schemas.md`, env vars missing from the four `environment.md` pages, and stale paths in
+  the agent guides.
 - [ ] **2.23 ntfy server** (Android only). `devops/ntfy/` (the official `binwiederhier/ntfy`
   image, pinned version), its config in `devops/ntfy/server.yml`, data under `devops/data/ntfy/`
   (auth database + message cache — back it up with the rest of `devops/data/`). **Locked down so

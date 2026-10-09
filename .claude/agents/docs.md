@@ -68,6 +68,10 @@ caught every mention.) Specifically, each pass should also check:
 - Every variable a service reads (`config.get`/`getOrThrow`, `process.env`) is in its
   `docs/<service>/environment.md`, and nothing documented there is gone from the code.
 
+`node scripts/docs-check.js` automates every bullet above except the `CLAUDE.md` ↔ `.env.example`
+one, plus that each path and link a doc names exists and that nothing outside
+`docs/plans/` cites plan progress. The proper-noun grep beyond paths stays manual.
+
 ## Diagrams — Mermaid, in `docs/specs/architecture.md`
 
 - **One system-topology diagram** (`flowchart`): every service, BullMQ queue / Redis, the
@@ -102,5 +106,13 @@ history that belongs in `docs/specs/`. Rules:
 
 ## Commands
 
-No build step — this is prose and diagrams. After a doc update, sanity-check any Mermaid block
-renders (balanced brackets, valid arrow syntax) before considering the pass done.
+```bash
+node scripts/docs-check.js --changed   # from the repo root
+```
+
+Run it at the end of every task: it lists the docs the uncommitted changes should update (its
+`DOCS_MAP`), each with the files that pulled it in, then runs every drift check. Review each listed
+doc, update it to describe the new current state, and rerun until it passes — **a task isn't done
+while it fails**. A changed path it maps to no doc is listed too; add a `DOCS_MAP` row if one
+should map. Sanity-check any Mermaid block renders (balanced brackets, valid arrow syntax) before
+considering the pass done.

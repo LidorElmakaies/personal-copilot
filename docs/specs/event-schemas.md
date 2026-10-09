@@ -67,6 +67,29 @@ it once. The Notification Service saves one progress key per device reached,
 `webpush:<subscriptionId>` = `true`; a retry skips those (see
 [services.md](services.md#notifications)).
 
+## `reminder-due`
+
+One reminder's next firing, as a delayed job. Published and processed only by the Reminders
+Service; the `reminders` row stays the source of truth.
+
+```ts
+// libs/queue-contracts/src/messages/reminder-due.ts
+interface ReminderDueMessage {
+  reminderId: string;
+  fireAt: string;          // ISO 8601: candle lighting − offset; must still equal the row's next_fire_at
+  candleLighting: string;  // ISO 8601: the notification's expiresAt
+}
+```
+
+- The job id is per reminder and fire time, so scheduling the same firing twice (a restart, a
+  repeated profile event) adds it once. When the time moves (new offset, new location), the old
+  job is removed and a new one added.
+- When it runs: nothing if the reminder is gone (account deleted), off, or its `next_fire_at` no
+  longer equals `fireAt` (moved since). Otherwise it publishes `notification-requested`
+  (`notificationId = reminder-<reminderId>-<candleLighting ms>`, `expiresAt` = candle lighting;
+  skipped if candle lighting already passed) and queues the following week's job. A retry repeats
+  both safely — each is deduplicated.
+
 # Kafka events
 
 Facts any number of services may react to go on Kafka topics, via `@app/kafka-client` (see
@@ -138,26 +161,3 @@ interface FrontendReleaseMessage {
   publishedAt: string;  // ISO 8601
 }
 ```
-
-## `reminder-due`
-
-One reminder's next firing, as a delayed job. Published and processed only by the Reminders
-Service; the `reminders` row stays the source of truth.
-
-```ts
-// libs/queue-contracts/src/messages/reminder-due.ts
-interface ReminderDueMessage {
-  reminderId: string;
-  fireAt: string;          // ISO 8601: candle lighting − offset; must still equal the row's next_fire_at
-  candleLighting: string;  // ISO 8601: the notification's expiresAt
-}
-```
-
-- The job id is per reminder and fire time, so scheduling the same firing twice (a restart, a
-  repeated profile event) adds it once. When the time moves (new offset, new location), the old
-  job is removed and a new one added.
-- When it runs: nothing if the reminder is gone (account deleted), off, or its `next_fire_at` no
-  longer equals `fireAt` (moved since). Otherwise it publishes `notification-requested`
-  (`notificationId = reminder-<reminderId>-<candleLighting ms>`, `expiresAt` = candle lighting;
-  skipped if candle lighting already passed) and queues the following week's job. A retry repeats
-  both safely — each is deduplicated.

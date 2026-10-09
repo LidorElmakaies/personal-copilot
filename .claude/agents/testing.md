@@ -27,7 +27,7 @@ Unit tests colocated `*.spec.ts` next to the file under test. HTTP-level tests i
 picks up every `*.spec.ts` under `apps/` and `libs/` and maps the `@app/*` aliases; it also compiles
 the ESM-only `@hebcal/*` packages for Jest — see `backend/libs/jewish-calendar/README.md` if a new ESM-only
 dependency breaks loading. Test helpers stay in the app that uses them (e.g. `test/in-memory-*.ts`);
-a shared `backend/libs/testing` is worth creating only once a second app needs the same one.
+a shared testing lib under `backend/libs/` is worth creating only once a second app needs the same one.
 
 ## What actually matters here, in priority order
 

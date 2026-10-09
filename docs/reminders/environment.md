@@ -15,3 +15,7 @@ Read from `backend/.env` locally (`npx nest start reminders`), or from `devops/d
 - **`NODE_ENV`** — anything but `production` lets TypeORM sync the `reminders` tables at boot (see
   `backend/apps/users/README.md`).
 - **`OTEL_EXPORTER_OTLP_ENDPOINT`** — same as every backend app; see root `CLAUDE.md`.
+- **`OTEL_SERVICE_NAME`** — `reminders`, set in `devops/reminders/docker-compose.yml`. When set, the OTel SDK
+  exports it as `service.name` in place of `main.ts`'s `startOtel('reminders')`, so keep the two equal.
+- **`VERSION_DIR`** — optional: where `@app/build-info` looks for `versions.json` and `built-at` first
+  (unset everywhere; see [services.md](../specs/services.md#libsbuild-info)).
