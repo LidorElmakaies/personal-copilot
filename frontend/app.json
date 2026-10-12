@@ -49,6 +49,7 @@
           "backgroundColor": "#0a0c0f"
         }
       ],
+      "expo-notifications",
       "./plugins/withReleaseSigning"
     ]
   }

@@ -421,7 +421,7 @@ move to the cloud" under Decisions.
   Also on 2026-10-12, a new release signing key was made on the Windows PC (`CB:EA:BC:…:55:12:8A`):
   the registered one (`8D:94…`) is only on the Linux PC. The phone needs one uninstall before
   the next APK, and 2.21c needs the new fingerprint registered.
-- [ ] **2.23b Prove encrypted delivery** (Android only, a throwaway test). A test build of the APK
+- [x] **2.23b Prove encrypted delivery** (Android only, a throwaway test). A test build of the APK
   with `expo-notifications` + a background task that decrypts an AES-256-GCM data-only message with
   a key stored on the phone and shows it as a notification; a host script sends one such message
   through FCM with the service-account key. *Check, on the phone:* it shows within seconds with
@@ -435,6 +435,15 @@ move to the cloud" under Decisions.
   `expiresAt`), and the app reads it over its `/ws` connection when opened (from the tap or on its
   own) — Gateway pushes the user's pending ones on connect — and shows it in the app. Then 2.24
   stores no device key and sends the plain message; 2.25 drops the background task.
+  *Done 2026-10-12 — decision: encrypted, 2.24/2.25 as written.* On the S23 Ultra (stand-in key
+  build), every case decrypted and showed within ~1 s: open, background, swiped away (no process —
+  Android started it for the message), and screen off + process killed + forced deep idle
+  (`dumpsys deviceidle force-idle`). 149–154 bytes of ciphertext per message. Learned: the
+  `expo-notifications` background task also runs with the app open (no separate listener needed),
+  it must be defined in a module the entry loads before `expo-router/entry` (headless runs), and
+  the payload arrives as `data.{…fields}` with `dataString: null`. Probe code removed; kept the
+  `expo-notifications`, `expo-task-manager`, `expo-crypto`, `@noble/ciphers` deps and the
+  `expo-notifications` plugin for 2.25.
 - [ ] **2.24 Notification Service: FCM channel.** `fcm_devices` table (`user_id` → `users.users`
   `ON DELETE CASCADE`, the FCM `token` (unique), the device's 256-bit `key`, timestamps).
   `PUT /notifications/fcm-devices` `{ token, key }` (JWT, through Gateway) adds or updates a
