@@ -91,7 +91,12 @@ key (AES-256-GCM). The app's background task decrypts it and shows it, even with
 away. An unregistered or invalid token deletes the device. Details:
 [services.md](services.md#notifications).
 
-To send one by hand (e.g. to test a device), from `devops/` (replace the user id with a registered
+To check delivery without waiting for Friday, from the repo root: `node scripts/fire-reminder.js
+<email> [minutes=2]` queues the notification that user's candle-lighting reminder will send (same
+text and `expiresAt`, its own `notificationId`, so the real reminder still fires), delayed by the
+given minutes — time to lock the phone or swipe the app away.
+
+To send any one by hand (e.g. to test a device), from `devops/` (replace the user id with a registered
 user's `sub`):
 
 ```bash

@@ -197,7 +197,7 @@ scripts/docs-check.js     docs drift check (+ docs-check.test.js) — see Comman
   set/change/turn off the candle-lighting reminder's offset via `GET /reminders` and
   `PUT`/`DELETE /reminders/shabbat-candles` (`remindersSlice`, not persisted, reset on sign-out) —
   signed out, the bell asks to log in instead), `(tabs)/account`
-  (a heading plus `ThemeCard`, `NotificationsCard` (this browser's push on/off), `AccountCard`
+  (a heading plus `ThemeCard`, `NotificationsCard` (this browser's or phone's notifications on/off), `AccountCard`
   (edit email/password), `ProfileCard` (name/phone via
   `GET`/`PATCH /users/me`, fetched on mount), `LogoutCard` (`logOut`), `DeleteAccountCard` (password, then
   `DELETE /auth/account`, signs out), then `VersionInfo` (frontend version, build time) — each card keeps its form private, and signing out unmounts
@@ -223,11 +223,15 @@ scripts/docs-check.js     docs drift check (+ docs-check.test.js) — see Comman
   A `401` on any signed-in call (`authorizedFetch`) for the current token signs out with a notice:
   `AuthGate` takes the user to login once, which shows "Your session ended — please log in again."
   until they leave it; expiry and Log Out sign out silently (Log Out also revokes the refresh token, best effort).
-  Notifications (web build only): `frontend/public/sw.js` shows each push (`tag` =
+  Notifications (Web Push on the web, FCM on the Android app — `fcmService.android.js` registers
+  the phone's FCM token + a key kept in `expo-secure-store` via `PUT /notifications/fcm-devices`,
+  `fcmReceiver.android.js`, loaded by the `index.js` entry, decrypts and shows each message even
+  with the app swiped away; same slice and screens, Android wording + Open settings): web —
+  `frontend/public/sw.js` shows each push (`tag` =
   `notificationId`) and opens/focuses the app on tap; `PushSubscriptionManager` (`app/_layout.js`)
   registers it at start and, while signed in, re-posts the browser's subscription to
   `POST /notifications/subscriptions`; `NotificationsPrompt` asks once over Home after sign-in.
-  Logging out or deleting the account unsubscribes this browser; an expired session doesn't, so
+  Logging out or deleting the account unsubscribes this browser or phone; an expired session doesn't, so
   reminders keep arriving. See `docs/specs/services.md#frontend`.
   App update (Android APK only, no login): `AppUpdateManager` (`app/_layout.js`) checks the APK
   registry's `latest.json` (`URLS.apkRegistry`, baked in by `apk.js build`) at start, on return

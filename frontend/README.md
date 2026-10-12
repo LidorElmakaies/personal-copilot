@@ -77,13 +77,17 @@ only foreground location is used. On web, the browser's geolocation API requires
 `localhost`) — that's why phone access goes through `tailscale serve` (root README, "Phone
 access").
 
-## Notifications (Web Push, web build only)
+## Notifications (Web Push on the web, FCM on Android)
 
 `public/sw.js` is the service worker; `expo export` copies `public/` to the export root, so it's
 served at `/sw.js` with scope `/`. It needs a secure context like GPS does — on the phone that's
-the `tailscale serve` HTTPS URL. Native builds report notifications as unsupported (the Android app's Notifications card and the
-reminder sheet say they're coming soon). Flow and state
-rules: `docs/specs/services.md#frontend` and `docs/specs/notification-flow.md`.
+the `tailscale serve` HTTPS URL. The Android app uses FCM instead: `src/services/device/
+fcmService.android.js` registers the phone (its key in `expo-secure-store`, its FCM token) and
+`fcmReceiver.android.js` — loaded by `index.js`, the entry, before the app — decrypts and shows
+each message, even with the app swiped away. Metro picks the files ending in .android.js on Android; the
+plain `.js` ones are the web build's empty stand-ins. The APK needs `google-services.json` in
+`devops/data/android/` (README's "Android app (APK)"). Flow and state rules:
+`docs/specs/services.md#frontend` and `docs/specs/notification-flow.md`.
 
 ## Phone numbers (`libphonenumber-js`)
 

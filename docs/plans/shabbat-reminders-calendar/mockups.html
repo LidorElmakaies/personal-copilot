@@ -573,7 +573,7 @@ section.group{margin-top:44px}
 
   <!-- ================= NOTIFICATIONS (task 2.14) ================= -->
   <section class="group">
-    <div class="groupHead"><h2>Turning on notifications</h2><span>Task 2.14 · web build only · needs a signed-in user</span></div>
+    <div class="groupHead"><h2>Turning on notifications</h2><span>Task 2.14 (web) · 2.25 (Android app, N4) · needs a signed-in user</span></div>
     <div class="row">
 
       <div class="idea">
@@ -625,6 +625,27 @@ section.group{margin-top:44px}
           <div><strong style="font-size:13.5px">Shabbat candle lighting</strong><div style="font-size:12.5px;color:var(--muted)">Candle lighting is at 17:34 (in 1 h 30 min).</div><div style="font-size:11px;color:var(--faint);margin-top:4px">Personal Copilot · &lt;pc&gt;.ts.net</div></div>
         </div>
         <p>Drawn by the phone's system, not the app, so this is only roughly how it looks. Tapping it focuses an open app tab, or opens the app at the notification's <code>url</code> ("/").</p>
+      </div>
+
+      <div class="idea">
+        <div class="ideaLabel"><span class="tag">N4</span><h3>Android app (task 2.25)</h3></div>
+        <div style="display:flex;flex-direction:column;gap:14px;max-width:320px">
+          <div><div class="stateLbl">On</div><div class="glow"><div class="nrow"><div><strong>Notifications</strong><small>Reminders reach this phone</small></div><span class="sw on"></span></div></div></div>
+          <div><div class="stateLbl">Off</div><div class="glow"><div class="nrow"><div><strong>Notifications</strong><small>Turn on to get reminders here</small></div><span class="sw "></span></div></div></div>
+          <div><div class="stateLbl">Blocked</div><div class="glow"><div class="nrow"><div><strong>Notifications</strong><small>Blocked in Android settings</small></div><span class="sw off"></span></div><div class="hint nudge"><span>Allow notifications for Personal Copilot in Android's settings, then come back.</span><span class="link">Open settings</span></div></div></div>
+          <div><div class="stateLbl">Reminder sheet, off</div><div class="nudge"><span>Notifications are off on this phone, so the reminder won't reach you here.</span><span class="link">Turn on</span></div></div>
+          <div><div class="stateLbl">Reminder sheet, blocked</div><div class="nudge"><span>Notifications are blocked in Android settings, so the reminder won't reach you here.</span><span class="link">Open settings</span></div></div>
+          <div><div class="stateLbl">The notification</div><div class="glow" style="display:flex;gap:12px;align-items:flex-start">
+            <div class="bellBadge" style="width:36px;height:36px;border-radius:10px"><svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10 21h4"/></svg></div>
+            <div><strong style="font-size:13.5px">Shabbat candle lighting</strong><div style="font-size:12.5px;color:var(--muted)">Candle lighting is at 17:34 (in 1 h 30 min).</div><div style="font-size:11px;color:var(--faint);margin-top:4px">Personal Copilot · Reminders</div></div>
+          </div></div>
+        </div>
+        <p>Same N1 prompt and N2 card as the web build — only the words change ("this phone", "Android settings"), and Blocked gets an <strong>Open settings</strong> link, since Android, unlike a browser, has one place to send you. The "coming soon" texts from 2.20 are gone.</p>
+        <ul>
+          <li>"Turn on" asks Android's own Allow / Don't allow (Android 13+), then registers this phone</li>
+          <li>Off, Log Out and Delete account unregister this phone; an expired session doesn't</li>
+          <li>The notification is shown by the app itself after decrypting it, in a "Reminders" channel; a retried duplicate replaces the first; tapping it opens the app</li>
+        </ul>
       </div>
     </div>
   </section>

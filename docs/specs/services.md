@@ -375,8 +375,11 @@ logging in" link (routes to `/`) for whoever lands there without wanting to auth
   zone changed. The server's copy is the reference — there's no local "last sent" record to go
   stale across accounts or devices. One sync runs at a time; a reply that lands after sign-out
   (or a different sign-in) is dropped; a failure is simply retried on the next fix.
-- **Notifications** (web build only — `pushService` reports `'unsupported'` off-web or outside a
-  secure context). `frontend/public/sw.js` is exported to the site root, so its scope is `/`: on
+- **Notifications** — one `notificationsSlice` state (`permission`, `subscribed`, `platform`) over
+  two transports: the web build registers the browser (Web Push, `src/services/device/pushService.js`;
+  `'unsupported'` outside a secure context), the Android app registers the phone (FCM,
+  `src/services/device/fcmService.android.js`; `fcmService.js` is the web build's empty stand-in).
+  Each thunk picks its path; the screens only change wording (`platform`). Web: `frontend/public/sw.js` is exported to the site root, so its scope is `/`: on
   `push` it shows the payload's `title`/`body` with `tag` = `notificationId` (a retry duplicate
   replaces rather than doubles); a tap focuses an open app tab, else opens the payload's `url`; on
   `pushsubscriptionchange` it re-subscribes with the same key (no token there — the app re-sends
@@ -401,6 +404,21 @@ logging in" link (routes to `/`) for whoever lands there without wanting to auth
     `POST`. `disableNotifications` (this browser only) sends a best-effort `DELETE {endpoint}` and
     then unsubscribes the browser; if the `DELETE` failed, the push service's 410 makes the server
     drop the row on the next send.
+  - **Android (FCM).** "Subscribed" = the phone has its device key: 32 random bytes (`expo-crypto`)
+    in `expo-secure-store`, made on Turn on. Enable asks Android's permission (Android 13+; `denied`
+    only once Android won't ask again), then `PUT /notifications/fcm-devices { token, key }` with the
+    FCM token (`getDevicePushTokenAsync`, needs `google-services.json` in the build). The sync
+    re-sends it on every signed-in start, and `watchNotificationPermission` re-runs init + sync when
+    the app returns to the foreground (permission is changed in Android's settings) and re-sends on
+    a new FCM token. Disable sends `DELETE { token }`, deletes the key and unregisters the token, so
+    a late message can't be read and the next send is answered "unregistered". Blocked → the card
+    and the reminder sheet offer **Open settings** (`openNotificationSettings`, Android's app page).
+    Receiving: `frontend/index.js` (the entry) loads `services/device/fcmReceiver.android.js`
+    before the app, since a message can start the JS headless with the app swiped away. Its
+    `expo-task-manager` task finds `{ v: '1', enc }`, decrypts it with the key (AES-256-GCM,
+    `@noble/ciphers`), skips it past `expiresAt`, and shows it in the "Reminders" channel with
+    `identifier` = `notificationId` (a retry duplicate replaces the first); a tap opens the app. No
+    key (turned off) → nothing shown.
   - `authSlice`'s `logOut` (`LogoutCard`) and a successful `deleteAccount` run
     `disableNotifications({ loggingOut: true })` before clearing the session (it also re-arms the
     prompt, so the next person here is asked); a session that merely expires (`AuthGate`

@@ -466,7 +466,7 @@ move to the cloud" under Decisions.
   /notifications/fcm-devices`. Tests: channel (ciphertext only, per-device keys, gone/failed/retry,
   TTL, expiry, no tokens/keys in logs), sender (signed JWT, cached access token, every FCM answer,
   no response), API (validation, upsert, owner-scoped delete), and the real-Postgres cascade test.
-- [ ] **2.25 APK: turn on notifications (FCM)** (Android only). `expo-notifications` (+
+- [x] **2.25 APK: turn on notifications (FCM)** (Android only). `expo-notifications` (+
   `expo-task-manager` for data messages). On the APK, the Notifications card and the after-login
   prompt: "Turn on" asks Android's notification permission (Android 13+), generates the device
   key (kept in secure storage), gets the FCM token and calls `PUT /notifications/fcm-devices`. A
@@ -481,6 +481,15 @@ move to the cloud" under Decisions.
   *Check:* a reminder fired by hand arrives with the phone locked and our app swiped away; tapping
   it opens the app; turned off, nothing arrives. (Add the test helper used for 2.16 to the repo as
   a Node script: makes a user's real reminder fire in N minutes.)
+  *Done 2026-10-12 (S23 Ultra, stand-in key build):* after login the N1 prompt → Android's own
+  Allow → registered; on, off (one `DELETE`), the reminder sheet's off/blocked notes, blocked +
+  Open settings (lands on the app's page), re-allowed → re-registers on returning; delivered with
+  the app open and swiped away + locked, tap opens the app. An app-data clear left a stale device:
+  the next send got "unregistered" and deleted it. An expired session kept the phone registered.
+  Found and fixed: expo-notifications fires its token event on *every* token read, so re-sending
+  on it looped (~1,700 PUTs, 429s) — now only a changed token re-sends, one sync at a time.
+  `scripts/fire-reminder.js` sends a user's reminder text in N minutes without touching the
+  reminder (not yet run against a real reminder — the account had none). Version not bumped yet.
 - [ ] **2.26 Installable web app (PWA) + iPhone support.** A web manifest
   (`manifest.webmanifest`: name, short name, `display: standalone`, `start_url`/`scope` `/`, theme
   and background colors from the palette) and the app icon from 2.20b in every size the platforms

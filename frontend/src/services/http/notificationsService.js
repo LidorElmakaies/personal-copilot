@@ -28,3 +28,20 @@ export async function deleteSubscription(token, endpoint) {
     body: JSON.stringify({ endpoint }),
   });
 }
+
+// The Android app's device: its FCM token and the key its notifications are encrypted with.
+// Upserts on token, so re-sending moves it to the signed-in user.
+export async function saveFcmDevice(token, device) {
+  await authorizedFetch(`${URLS.gateway}/notifications/fcm-devices`, token, {
+    method: 'PUT',
+    body: JSON.stringify(device),
+  });
+}
+
+// Idempotent; only the caller's own device.
+export async function deleteFcmDevice(token, fcmToken) {
+  await authorizedFetch(`${URLS.gateway}/notifications/fcm-devices`, token, {
+    method: 'DELETE',
+    body: JSON.stringify({ token: fcmToken }),
+  });
+}

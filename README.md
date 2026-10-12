@@ -64,8 +64,8 @@ Docker volumes and takes a while; later ones are faster. `ANDROID_ABIS=arm64-v8a
 The first run also creates the release signing key in `devops/data/android/` (git-ignored).
 **Back up `release.keystore` and `keystore.properties` from there.** Every later APK must be signed
 with the same key to update the installed app; with a new key you'd have to uninstall it (and sign
-in again) first. The APK doesn't receive notifications yet; reminders reach your browsers
-only. For push, put Firebase's `google-services.json` (Firebase → your Android app
+in again) first. The APK gets reminders through Firebase (FCM) once notifications are turned on
+in it. For push, put Firebase's `google-services.json` (Firebase → your Android app
 `com.lidor.personalcopilot`) in `devops/data/android/` too — the build uses it when it's there.
 
 `publish` puts the built APK (the `frontend` version, or `--version X`) on the download

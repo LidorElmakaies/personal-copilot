@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import Alert from '../base/feedback/Alert';
 import GradientButton from '../base/buttons/GradientButton';
@@ -10,7 +10,10 @@ import Stepper from '../base/form/Stepper';
 import BottomSheet from '../base/layout/BottomSheet';
 import ConfirmModal from './ConfirmModal';
 import { useAppTheme } from '../../hooks/useAppTheme';
-import { enableNotifications } from '../../store/slices/notificationsSlice';
+import {
+  enableNotifications,
+  openNotificationSettings,
+} from '../../store/slices/notificationsSlice';
 import {
   clearReminderError,
   fetchReminders,
@@ -226,39 +229,57 @@ function Time({ value }) {
   );
 }
 
-// Shown when this browser won't get the reminder; saving still works for the user's other devices.
+// Shown when this browser or phone won't get the reminder; saving still works for the user's other
+// devices (mockup N4 for the Android wording).
+const NUDGES = {
+  web: {
+    denied:
+      "Notifications are blocked for this site in the browser, so the reminder won't reach you here.",
+    unsupported:
+      "This browser can't receive notifications, so the reminder won't reach you here.",
+    off: "Notifications are off on this browser, so the reminder won't reach you here.",
+  },
+  android: {
+    denied:
+      "Notifications are blocked in Android settings, so the reminder won't reach you here.",
+    unsupported:
+      "This phone can't receive notifications, so the reminder won't reach you here.",
+    off: "Notifications are off on this phone, so the reminder won't reach you here.",
+  },
+};
+
 function NotificationsNudge() {
   const dispatch = useDispatch();
   const { colors } = useAppTheme();
-  const { permission, subscribed, busy } = useSelector(
+  const { platform, permission, subscribed, busy } = useSelector(
     (state) => state.notifications,
   );
   if (subscribed) return null;
 
-  // The non-web "coming soon" stands until the Android app has a notification channel of its own.
-  const message =
-    permission === 'denied'
-      ? "Notifications are blocked for this site in the browser, so the reminder won't reach you here."
-      : permission === 'unsupported'
-        ? Platform.OS === 'web'
-          ? "This browser can't receive notifications, so the reminder won't reach you here."
-          : 'Notifications on the Android app are coming soon. The reminder still reaches your other devices.'
-        : "Notifications are off on this browser, so the reminder won't reach you here.";
-  const canTurnOn = permission === 'default' || permission === 'granted';
+  const kind =
+    permission === 'denied' || permission === 'unsupported'
+      ? permission
+      : 'off';
+  const action =
+    kind === 'off'
+      ? { label: 'Turn on', run: enableNotifications }
+      : kind === 'denied' && platform === 'android'
+        ? { label: 'Open settings', run: openNotificationSettings }
+        : null;
 
   return (
     <View style={[styles.nudge, { backgroundColor: colors.pendingBg }]}>
       <Text style={[styles.nudgeText, { color: colors.pending }]}>
-        {message}
+        {NUDGES[platform][kind]}
       </Text>
-      {canTurnOn ? (
+      {action ? (
         <Pressable
-          onPress={() => dispatch(enableNotifications())}
+          onPress={() => dispatch(action.run())}
           disabled={busy}
           accessibilityRole="button"
         >
           <Text style={[styles.nudgeLink, { color: colors.pending }]}>
-            Turn on
+            {action.label}
           </Text>
         </Pressable>
       ) : null}

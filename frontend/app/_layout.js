@@ -58,8 +58,9 @@ function LocationSyncManager() {
   return null;
 }
 
-// Registers the service worker at start; while signed in, re-sends this browser's push subscription
-// (it may have rotated, or belong to whoever signed in here before) — see notificationsSlice.
+// Registers the service worker (web) or notification channel (Android) at start; while signed in,
+// re-sends this browser's subscription or this phone's FCM device (it may have rotated, or belong
+// to whoever signed in here before) — see notificationsSlice.
 function PushSubscriptionManager() {
   const dispatch = useDispatch();
   const { accessToken } = useSelector((state) => state.auth);

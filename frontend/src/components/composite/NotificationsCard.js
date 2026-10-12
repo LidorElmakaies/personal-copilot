@@ -1,36 +1,43 @@
 import { useEffect } from 'react';
-import { Platform, StyleSheet } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import Alert from '../base/feedback/Alert';
 import Switch from '../base/form/Switch';
 import GlowCard from '../base/layout/GlowCard';
 import Row from '../base/layout/Row';
+import { useAppTheme } from '../../hooks/useAppTheme';
 import {
   disableNotifications,
   enableNotifications,
   initNotifications,
+  openNotificationSettings,
 } from '../../store/slices/notificationsSlice';
 
 const SUBTITLES = {
-  // Web Push is browser-only; the Android app has no notification channel yet.
-  unsupported:
-    Platform.OS === 'web'
-      ? "This browser can't receive push notifications"
-      : 'Coming soon to the Android app',
-  denied: 'Blocked for this site',
-  on: 'Reminders reach this browser',
-  off: 'Turn on to get reminders here',
+  web: {
+    unsupported: "This browser can't receive push notifications",
+    denied: 'Blocked for this site',
+    on: 'Reminders reach this browser',
+    off: 'Turn on to get reminders here',
+  },
+  android: {
+    unsupported: "This phone can't receive notifications",
+    denied: 'Blocked in Android settings',
+    on: 'Reminders reach this phone',
+    off: 'Turn on to get reminders here',
+  },
 };
 
-// Composite component (GlowCard/Row/Switch/Alert) — this browser's push subscription (mockup N2).
-// Turns notifications on or off for this browser only, not the user's other devices.
+// Composite component (GlowCard/Row/Switch/Alert) — this browser's or phone's notifications
+// (mockups N2, N4). Turns them on or off here only, not on the user's other devices.
 export default function NotificationsCard() {
   const dispatch = useDispatch();
-  const { permission, subscribed, busy, error } = useSelector(
+  const { colors } = useAppTheme();
+  const { platform, permission, subscribed, busy, error } = useSelector(
     (state) => state.notifications,
   );
 
-  // Re-reads the browser's state, e.g. after the user unblocked the site in its settings.
+  // Re-reads the state, e.g. after the user allowed notifications again in the settings.
   useEffect(() => {
     dispatch(initNotifications());
   }, [dispatch]);
@@ -45,7 +52,7 @@ export default function NotificationsCard() {
     <GlowCard>
       <Row
         title="Notifications"
-        subtitle={SUBTITLES[state]}
+        subtitle={SUBTITLES[platform][state]}
         right={
           <Switch
             value={subscribed && !unavailable}
@@ -58,8 +65,21 @@ export default function NotificationsCard() {
       />
       {permission === 'denied' ? (
         <Alert variant="warning" style={styles.alert}>
-          Allow notifications for this site in the browser's site settings, then
-          come back.
+          {platform === 'android' ? (
+            <>
+              Allow notifications for Personal Copilot in Android's settings,
+              then come back.{' '}
+              <Text
+                style={[styles.link, { color: colors.pending }]}
+                onPress={() => dispatch(openNotificationSettings())}
+                accessibilityRole="link"
+              >
+                Open settings
+              </Text>
+            </>
+          ) : (
+            "Allow notifications for this site in the browser's site settings, then come back."
+          )}
         </Alert>
       ) : null}
       {error ? <Alert style={styles.alert}>{error}</Alert> : null}
@@ -69,4 +89,5 @@ export default function NotificationsCard() {
 
 const styles = StyleSheet.create({
   alert: { marginTop: 4, marginBottom: 6 },
+  link: { fontWeight: '700', textDecorationLine: 'underline' },
 });
