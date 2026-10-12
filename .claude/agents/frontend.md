@@ -78,7 +78,8 @@ two folders:
 - **`base/`** — primitives that don't import any other component from `src/components/`; they only
   use React Native primitives, Reanimated, `expo-blur`/`expo-linear-gradient`, and
   `useAppTheme()`/hooks. Grouped into subfolders by purpose: `background/` (`Meteors`, `Stars` —
-  animated background-effect primitives), `buttons/` (`GradientButton`, `PillButton`), `feedback/`
+  animated background-effect primitives; `paused` stops them, `AmbientBackground` sets it while
+  its screen isn't focused), `buttons/` (`GradientButton`, `PillButton`), `feedback/`
   (`Alert`, `VersionInfo` — status/feedback indicators), `form/` (`InputField`, `SelectField`, `Stepper`,
   `Switch` — form input controls), `layout/` (`BottomSheet`, `GlowCard`, `Row` — layout/surface
   primitives). Props worth knowing:
@@ -240,7 +241,15 @@ Driving tips:
   still worked, and the web build was fine, so only the phone shows it). A Modal is its own window:
   wrap its content in a `GestureHandlerRootView`, and give a view that only carries a gesture
   `collapsable={false}` so it isn't flattened away.
-- **Round numbers interpolated into a style string inside a worklet** (e.g. a `boxShadow`'s
+- **Many always-running animations: not Reanimated.** ~100 stars × 2 endless `withRepeat` loops
+  ran a worklet per animation per frame on the UI thread — ~90% of the app's CPU on a 120 Hz phone
+  (110%+ of a core; 8% with them still). `Stars`/`Meteors` now use RN `Animated` with
+  `useNativeDriver` on the phone (no per-frame JS) and CSS keyframes (`animationKeyframes`,
+  `StyleSheet.create` only) on the web, where `Animated` falls back to JS. A native loop repeats
+  only its frames — a JS `delay` inside it runs once — so a loop with an idle wait is a
+  `sequence`. Hidden tabs stay mounted: pause decorative loops when the screen isn't focused, and
+  `memo` them so a parent's per-second re-render doesn't reach them. Measure on the phone
+  (`adb shell top`, `dumpsys gfxinfo`), not by eye. (e.g. a `boxShadow`'s
   opacity/radius). Near the end of an animation they reach values like `2.8e-8`, which stringify
   in exponent form — an invalid color that crashes Reanimated on Android.
 - **Toggle a style prop's value, not its presence, on Android.** A `borderWidth` added after mount

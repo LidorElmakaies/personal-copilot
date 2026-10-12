@@ -1,17 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { useEffect, useMemo } from 'react';
-import { StyleSheet } from 'react-native';
-import Animated, {
-  Easing,
-  interpolate,
-  useAnimatedStyle,
-  useReducedMotion,
-  useSharedValue,
-  withDelay,
-  withRepeat,
-  withSequence,
-  withTiming,
-} from 'react-native-reanimated';
+import { memo, useEffect, useMemo, useRef } from 'react';
+import { Animated, Easing, Platform, StyleSheet, View } from 'react-native';
+import { useReducedMotion } from 'react-native-reanimated';
 
 const SLOT_COUNT = 7;
 
@@ -27,44 +17,57 @@ function randomSlots(palette) {
   }));
 }
 
-function Meteor({ slot, maxOpacity, reducedMotion }) {
-  const progress = useSharedValue(0);
+function NativeMeteor({ slot, maxOpacity, paused }) {
+  const progress = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    if (reducedMotion) return;
-    progress.value = withRepeat(
-      withSequence(
-        withTiming(0, { duration: 0 }),
-        withDelay(
-          slot.idleMs,
-          withTiming(1, { duration: slot.activeMs, easing: Easing.linear }),
-        ),
-      ),
-      -1,
-      false,
+    if (paused) return;
+    // Idle, one streak, back to 0 (invisible there). A sequence, so the loop restarts each round
+    // from JS — a native loop would repeat the streak alone, without the idle wait.
+    progress.setValue(0);
+    const step = (toValue, duration) =>
+      Animated.timing(progress, {
+        toValue,
+        duration,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      });
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.delay(slot.idleMs),
+        step(1, slot.activeMs),
+        step(0, 0),
+      ]),
+      { resetBeforeIteration: false },
     );
+    loop.start();
+    return () => loop.stop();
     // slot is stable per mount (see randomSlots/useMemo caller).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reducedMotion]);
-
-  const style = useAnimatedStyle(() => {
-    const translateX = interpolate(progress.value, [0, 1], [0, slot.travel]);
-    const opacity = interpolate(
-      progress.value,
-      [0, 0.15, 0.8, 1],
-      [0, maxOpacity, maxOpacity, 0],
-    );
-    return {
-      opacity,
-      transform: [{ rotate: `${slot.angle}deg` }, { translateX }],
-    };
-  });
-
-  if (reducedMotion) return null;
+  }, [paused]);
 
   return (
     <Animated.View
-      style={[styles.wrap, { top: slot.top, left: slot.left }, style]}
+      style={[
+        styles.wrap,
+        {
+          top: slot.top,
+          left: slot.left,
+          opacity: progress.interpolate({
+            inputRange: [0, 0.15, 0.8, 1],
+            outputRange: [0, maxOpacity, maxOpacity, 0],
+          }),
+          transform: [
+            { rotate: `${slot.angle}deg` },
+            {
+              translateX: progress.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, slot.travel],
+              }),
+            },
+          ],
+        },
+      ]}
       pointerEvents="none"
     >
       <LinearGradient
@@ -77,10 +80,61 @@ function Meteor({ slot, maxOpacity, reducedMotion }) {
   );
 }
 
+// The web's CSS version (see Stars.js): one keyframe set per slot — idle, then the streak.
+function CssMeteor({ slot, maxOpacity, paused }) {
+  const animation = useMemo(() => {
+    const total = slot.idleMs + slot.activeMs;
+    const at = (p) => `${((slot.idleMs + p * slot.activeMs) / total) * 100}%`;
+    const frame = (p, opacity) => ({
+      opacity,
+      transform: `rotate(${slot.angle}deg) translateX(${p * slot.travel}px)`,
+    });
+    return StyleSheet.create({
+      meteor: {
+        animationKeyframes: [
+          {
+            '0%': frame(0, 0),
+            [at(0)]: frame(0, 0),
+            [at(0.15)]: frame(0.15, maxOpacity),
+            [at(0.8)]: frame(0.8, maxOpacity),
+            '100%': frame(1, 0),
+          },
+        ],
+        animationDuration: `${total}ms`,
+        animationTimingFunction: 'linear',
+        animationIterationCount: 'infinite',
+      },
+    }).meteor;
+  }, [slot, maxOpacity]);
+
+  return (
+    <View
+      style={[
+        styles.wrap,
+        { top: slot.top, left: slot.left, opacity: 0 },
+        animation,
+        paused && { animationPlayState: 'paused' },
+      ]}
+      pointerEvents="none"
+    >
+      <LinearGradient
+        colors={['transparent', slot.color, 'transparent']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.streak}
+      />
+    </View>
+  );
+}
+
+const Meteor = Platform.OS === 'web' ? CssMeteor : NativeMeteor;
+
 // Small fixed pool of shooting-star streaks, each looping idle→streak→idle forever on its own
-// reanimated timeline (no setTimeout recursion) — see AmbientBackground.js. Idle/travel/angle/
-// color per slot are rolled once at mount so the slots don't look mechanically synced.
-export default function Meteors({ isDark, palette }) {
+// loop, animated on the native driver (see Stars.js for why not Reanimated) — see
+// AmbientBackground.js. Idle/travel/angle/color per slot are rolled once at mount so the slots
+// don't look mechanically synced. `paused` stops them (a hidden screen); a resumed one starts its
+// idle wait again. Memoized like Stars.
+function Meteors({ isDark, palette, paused = false }) {
   const reducedMotion = useReducedMotion();
   const slots = useMemo(() => randomSlots(palette), [palette]);
   const maxOpacity = isDark ? 0.85 : 0.75;
@@ -88,14 +142,11 @@ export default function Meteors({ isDark, palette }) {
   if (reducedMotion) return null;
 
   return slots.map((slot, i) => (
-    <Meteor
-      key={i}
-      slot={slot}
-      maxOpacity={maxOpacity}
-      reducedMotion={reducedMotion}
-    />
+    <Meteor key={i} slot={slot} maxOpacity={maxOpacity} paused={paused} />
   ));
 }
+
+export default memo(Meteors);
 
 const styles = StyleSheet.create({
   wrap: {

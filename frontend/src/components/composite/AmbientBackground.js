@@ -1,4 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient';
+import { useIsFocused } from 'expo-router';
 import { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, View } from 'react-native';
 import Meteors from '../base/background/Meteors';
@@ -9,10 +10,12 @@ import { dark as darkColors, light as lightColors } from '../../theme/colors';
 // Decorative only — never compete with the content on top. Static per-theme gradient backdrop,
 // cross-faded 600ms on theme toggle, plus twinkling stars and a looping meteor pool (Stars.js/
 // Meteors.js). See DESIGN.md's "Background / ambient motion" for the target wash-layer design
-// this stands in for — not yet built, see that section's note.
+// this stands in for — not yet built, see that section's note. Tabs stay mounted, so a screen that
+// isn't showing pauses its stars and meteors.
 
 export default function AmbientBackground({ children, style }) {
   const { isDark, colors } = useAppTheme();
+  const paused = !useIsFocused();
   const darkOpacity = useRef(new Animated.Value(isDark ? 1 : 0)).current;
 
   useEffect(() => {
@@ -42,8 +45,16 @@ export default function AmbientBackground({ children, style }) {
         />
       </Animated.View>
       <View style={StyleSheet.absoluteFill} pointerEvents="none">
-        <Stars isDark={isDark} palette={colors.particleColors} />
-        <Meteors isDark={isDark} palette={colors.particleColors} />
+        <Stars
+          isDark={isDark}
+          palette={colors.particleColors}
+          paused={paused}
+        />
+        <Meteors
+          isDark={isDark}
+          palette={colors.particleColors}
+          paused={paused}
+        />
       </View>
       {children}
     </View>

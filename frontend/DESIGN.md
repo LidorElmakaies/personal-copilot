@@ -96,7 +96,9 @@ Glass itself is not a naive color invert between themes:
 One layer, strictly decorative — legibility of whatever's on top always wins. A simpler version is
 already built and live (`src/components/composite/AmbientBackground.js`): a static per-theme
 gradient backdrop, cross-faded 600ms on theme toggle, plus twinkling stars and a looping meteor
-pool (`Stars.js`/`Meteors.js`, both Reanimated-driven, gated behind `useReducedMotion()`). It runs
+pool (`Stars.js`/`Meteors.js`, gated behind `useReducedMotion()`; RN `Animated` on the native
+driver on the phone, CSS keyframes on the web — not Reanimated, whose per-frame worklets for ~100
+stars cost ~90% of the app's CPU at 120 Hz; paused while their screen is hidden). It runs
 behind the app's current space/glow/gradient screens too, not just the future glass shell.
 
 The multi-layer wash system below is a further refinement, not yet built: 3 soft radial-gradient
