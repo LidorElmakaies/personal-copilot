@@ -23,6 +23,12 @@ describe('isNotificationRequestedMessage', () => {
         channels: ['webpush'],
       }),
     ).toBe(true);
+    expect(
+      isNotificationRequestedMessage({
+        ...valid,
+        channels: ['fcm', 'webpush'],
+      }),
+    ).toBe(true);
   });
 
   it.each([

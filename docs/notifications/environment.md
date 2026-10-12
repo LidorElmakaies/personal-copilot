@@ -17,6 +17,14 @@ Shared by every backend app (OpenTelemetry): [docs/backend/environment.md](../ba
 - **`VAPID_SUBJECT`** — a `mailto:` or `https:` contact sent to the push service with each push.
   `backend/.env.example` ships a placeholder (`mailto:push@personal-copilot.invalid`) so no real
   address or host name goes to Google; it must still be set, there's no in-code default.
+- **`FCM_PROJECT_ID` / `FCM_CLIENT_EMAIL` / `FCM_PRIVATE_KEY`** — the Firebase service-account key
+  the Android (FCM) channel sends with: Firebase → Project settings → Service accounts → Generate
+  new private key, then `project_id`, `client_email` and `private_key` from its JSON (the key on one
+  line with `\n`, in double quotes). Secret — `backend/.env` only, never logged; shared between
+  PCs with `scripts/secrets.js`. Optional: if any is unset the FCM channel is off (a warning at
+  boot) and Android devices are stored but not sent to. Sending is an outbound call to
+  `fcm.googleapis.com`; nothing is exposed. A lost or leaked key is replaced by generating a new one
+  there (and deleting the old).
 - **`REDIS_URL`** — the Redis holding the `notification-requested` BullMQ queue this service
   consumes (see `docs/specs/event-schemas.md`). `redis://redis:6379` in Docker
   (`devops/docker.env`). Redis isn't published to the host, so a local (non-Docker) run needs its

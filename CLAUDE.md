@@ -113,7 +113,7 @@ scripts/docs-check.js     docs drift check (+ docs-check.test.js) — see Comman
     `GET`/`PATCH /users/me` and `PUT /users/me/location`. No `/me`: the access token itself
     carries `{ sub, role, email }`. Reminders: `GET /reminders`, `PUT`/`DELETE
     /reminders/shabbat-candles`. Notifications: `GET /notifications/vapid-public-key` (open),
-    `POST`/`DELETE /notifications/subscriptions`.
+    `POST`/`DELETE /notifications/subscriptions`, `PUT`/`DELETE /notifications/fcm-devices`.
   - `src/calendar/` — `GET /calendar/shabbat?lat&lon&tz` (open), answered in-process from
     `@app/jewish-calendar`: the Shabbat in progress, otherwise the next one.
   - `src/realtime/` — `POST /realtime/device` (open, on the strict auth rate limit) issues a
@@ -178,7 +178,11 @@ scripts/docs-check.js     docs drift check (+ docs-check.test.js) — see Comman
   never sees the text) with TTL = whole seconds left; each device is marked done once sent, gone
   (404/410 → row deleted) or permanently failed. Any 429/5xx/network answer → it throws
   `RetryableDeliveryException` and BullMQ retries the job, skipping done devices — a rare duplicate on
-  one device is accepted. Endpoints are limited to known push-service hosts. See
+  one device is accepted. Endpoints are limited to known push-service hosts. `FcmChannel` does the
+  same for the Android app's devices (`fcm_devices`: FCM token + a 256-bit key made on the phone,
+  `PUT`/`DELETE /notifications/fcm-devices`, progress `fcm:<deviceId>`): a high-priority data-only
+  FCM message carrying only the content AES-256-GCM-encrypted with that device's key; unregistered
+  token → row deleted. Off (warning at boot) without the optional `FCM_*` sending key. See
   `docs/specs/services.md` and `docs/specs/notification-flow.md`.
 - **frontend** (`frontend/`) — Expo Router app. Login is optional app-wide, not a gate on the whole
   app — `(tabs)` routes are freely reachable while signed out; `(auth)/{login,register}` each add a

@@ -24,4 +24,6 @@ export const PROXY_ROUTES: readonly ProxyRoute[] = [
   { method: 'GET', path: '/notifications/vapid-public-key', service: 'notifications', auth: 'none' },
   { method: 'POST', path: '/notifications/subscriptions', service: 'notifications', auth: 'user' },
   { method: 'DELETE', path: '/notifications/subscriptions', service: 'notifications', auth: 'user' },
+  { method: 'PUT', path: '/notifications/fcm-devices', service: 'notifications', auth: 'user' },
+  { method: 'DELETE', path: '/notifications/fcm-devices', service: 'notifications', auth: 'user' },
 ];

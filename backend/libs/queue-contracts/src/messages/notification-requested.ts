@@ -1,6 +1,7 @@
 import { isIsoDate, isNonEmptyString } from './validators';
 
-export type NotificationChannel = 'webpush';
+/** 'webpush': browsers (Web Push); 'fcm': the Android app (Firebase Cloud Messaging). */
+export type NotificationChannel = 'webpush' | 'fcm';
 
 /** A job on the `notification-requested` queue. See docs/specs/event-schemas.md. */
 export interface NotificationRequestedMessage {
@@ -21,7 +22,10 @@ export interface NotificationRequestedMessage {
   expiresAt: string;
 }
 
-const CHANNELS: readonly string[] = ['webpush'] satisfies NotificationChannel[];
+const CHANNELS: readonly string[] = [
+  'webpush',
+  'fcm',
+] satisfies NotificationChannel[];
 
 export function isNotificationRequestedMessage(
   value: unknown,

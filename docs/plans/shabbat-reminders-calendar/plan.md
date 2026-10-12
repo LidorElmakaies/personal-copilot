@@ -444,7 +444,7 @@ move to the cloud" under Decisions.
   the payload arrives as `data.{…fields}` with `dataString: null`. Probe code removed; kept the
   `expo-notifications`, `expo-task-manager`, `expo-crypto`, `@noble/ciphers` deps and the
   `expo-notifications` plugin for 2.25.
-- [ ] **2.24 Notification Service: FCM channel.** `fcm_devices` table (`user_id` → `users.users`
+- [x] **2.24 Notification Service: FCM channel.** `fcm_devices` table (`user_id` → `users.users`
   `ON DELETE CASCADE`, the FCM `token` (unique), the device's 256-bit `key`, timestamps).
   `PUT /notifications/fcm-devices` `{ token, key }` (JWT, through Gateway) adds or updates a
   device; `DELETE` with `{ token }` removes it, so a turned-off phone stops at once. `FcmChannel
@@ -458,6 +458,14 @@ move to the cloud" under Decisions.
   *Tests:* the message goes to each device with only ciphertext in it, decryptable with that
   device's key alone; unregistered → deleted; retry skips done devices; a deleted account's devices
   go. *Check:* a hand-enqueued `notification-requested` reaches the phone (with 2.25).
+  *Done 2026-10-12 (code + tests; the phone check comes with 2.25):* payload `data = { v: '1', enc }`,
+  `enc` = base64(iv | ciphertext | tag) of `{ notificationId, title, body, url?, expiresAt }` — the
+  layout 2.23b's probe proved. Also deleted as dead: `SENDER_ID_MISMATCH` and a 400 about the
+  registration token; a 401 retries with a fresh access token. `FCM_*` is optional (channel off,
+  warning at boot) so a PC without the key still boots. Gateway forwards `PUT`/`DELETE
+  /notifications/fcm-devices`. Tests: channel (ciphertext only, per-device keys, gone/failed/retry,
+  TTL, expiry, no tokens/keys in logs), sender (signed JWT, cached access token, every FCM answer,
+  no response), API (validation, upsert, owner-scoped delete), and the real-Postgres cascade test.
 - [ ] **2.25 APK: turn on notifications (FCM)** (Android only). `expo-notifications` (+
   `expo-task-manager` for data messages). On the APK, the Notifications card and the after-login
   prompt: "Turn on" asks Android's notification permission (Android 13+), generates the device

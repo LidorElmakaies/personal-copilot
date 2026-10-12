@@ -27,9 +27,9 @@ tunnel from a Caddy instance on the public internet. HTTP + WebSocket.
   ```
   `lat`/`lon` validated as coordinates, `tz` as an IANA time zone → `400` otherwise. `422` where
   there's no sunset to count from (e.g. polar summer).
-- `GET /notifications/vapid-public-key` (open), `POST /notifications/subscriptions` and
-  `DELETE /notifications/subscriptions` (`JwtAuthGuard`) → Notification Service's routes of the same
-  name. Body relayed untouched.
+- `GET /notifications/vapid-public-key` (open), `POST`/`DELETE /notifications/subscriptions` and
+  `PUT`/`DELETE /notifications/fcm-devices` (`JwtAuthGuard`) → Notification Service's routes of the
+  same name. Body relayed untouched.
 - `GET /reminders`, `PUT /reminders/shabbat-candles`, `DELETE /reminders/shabbat-candles`
   (`JwtAuthGuard`) → Reminders Service's routes of the same name. Body relayed untouched.
 - `GET /admin/status` (`AdminGuard`, `src/admin/`) — **answered by Gateway itself**: its own
@@ -218,12 +218,12 @@ lighting is ahead. `DELETE` drops the job; off, no location → `next_fire_at` `
 
 ## notifications
 
-HTTP + BullMQ worker, internal-only, schema `notifications` in the shared database (push
-subscriptions; `user_id` references `users.users(id)` `ON DELETE CASCADE`) plus the shared Redis
-(`REDIS_URL`, its queues).
-Stores browsers' Web Push subscriptions and delivers `notification-requested` jobs to them.
-Publishers decide *what* and *when*; this service decides *how* (one `INotificationChannel`
-adapter per channel — `WebPushChannel` today).
+HTTP + BullMQ worker, internal-only, schema `notifications` in the shared database (browsers' push
+subscriptions and the Android app's FCM devices; each `user_id` references `users.users(id)`
+`ON DELETE CASCADE`) plus the shared Redis (`REDIS_URL`, its queues).
+Stores browsers' Web Push subscriptions and Android devices, and delivers `notification-requested`
+jobs to them. Publishers decide *what* and *when*; this service decides *how* (one
+`INotificationChannel` adapter per channel — `WebPushChannel` and `FcmChannel`).
 
 - `GET /notifications/vapid-public-key` → `{ publicKey }`, the server's VAPID public key
   (base64url), which the browser passes to `PushManager.subscribe`.
@@ -237,13 +237,23 @@ adapter per channel — `WebPushChannel` today).
   `endpoint`: re-registering the same browser moves it to whoever is signed in now.
 - `DELETE /notifications/subscriptions` — `{ endpoint }` → `204`, removed only if it belongs to the
   caller; idempotent.
-- Both subscription routes take the user from Gateway's `X-User-Id` (see Gateway above), `401`
-  without it.
+- `PUT /notifications/fcm-devices` — `{ token, key }` → `204`: the Android app's FCM registration
+  token (`[A-Za-z0-9_:-]`, ≤ 4096) and the 256-bit key it decrypts its notifications with (base64,
+  exactly 32 bytes), made on the phone. Upsert on `token`: the same phone moves to whoever is
+  signed in now, with the key it sends now.
+- `DELETE /notifications/fcm-devices` — `{ token }` → `204`, removed only if it belongs to the
+  caller; idempotent. The app calls it when notifications are turned off or the user signs out, so
+  the phone stops at once.
+- The subscription and device routes take the user from Gateway's `X-User-Id` (see Gateway above),
+  `401` without it.
 - `GET /health` — see [Versions](#versions).
 
 `push_subscriptions` table: `id`, `user_id` (indexed), `endpoint` (unique), `p256dh`, `auth`,
-`created_at`. VAPID keys come from `VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY`/`VAPID_SUBJECT`; the
-service refuses to boot without them (see `docs/notifications/environment.md`).
+`created_at`. `fcm_devices` table: `id`, `user_id` (indexed), `token` (unique), `key`, `created_at`,
+`updated_at`. VAPID keys come from `VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY`/`VAPID_SUBJECT`; the
+service refuses to boot without them. The FCM sending key (`FCM_*`) is optional: without it the
+FCM channel is off (a warning at boot) and devices are still registered (see
+`docs/notifications/environment.md`). Tokens and keys are never logged.
 
 Delivery (queue `notification-requested`, consume-only — this service publishes nothing; see
 [`notification-flow.md`](notification-flow.md) for the diagram and `event-schemas.md` for the job
@@ -265,6 +275,18 @@ push-service error.
   text (proven by `apps/notifications/test/web-push-encryption.spec.ts`). TTL = whole seconds left
   until `expiresAt`, so the push service drops it rather than show it on a phone that comes online
   too late.
+- **Android (`FcmChannel`).** Same shape as Web Push: the user's *current* devices, minus those
+  marked done (`fcm:<deviceId>`). Each gets a high-priority **data-only** FCM message (HTTP v1,
+  `fcm.googleapis.com`) whose `data` is `{ v: '1', enc }`: `enc` = base64 of iv (12 bytes) |
+  ciphertext | tag (16) — AES-256-GCM of `{ notificationId, title, body, url?, expiresAt }` with that
+  device's key, so Google only carries ciphertext. Android TTL = whole seconds left. The app's
+  background task decrypts and shows it — open, in the background, swiped away or in Doze (proven
+  on a phone before this was built). Access tokens come from the service-account key (an RS256 JWT
+  exchanged at `oauth2.googleapis.com`), cached until a minute before they expire. FCM's answer:
+  sent → done; `UNREGISTERED`/404, `SENDER_ID_MISMATCH` or a 400 about the registration token →
+  device deleted, done; 429, 5xx, 401 (a fresh access token next time) or no response → left
+  undone, retried like Web Push; anything else (or a stored key that isn't 32 bytes) → logged,
+  done.
 - **Push service answer, per device.** Sent → marked done. 404/410 → subscription deleted, marked
   done. 429, 5xx, a network error (`ECONNREFUSED`, `ETIMEDOUT`, …) or web-push's timeout → left
   undone. Any other failure (other 4xx, unusable keys) → logged, marked done, not retried. If any

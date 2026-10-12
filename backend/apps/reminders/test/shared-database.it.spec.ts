@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto';
 import { DataSource, type DataSourceOptions } from 'typeorm';
 import { OutboxEventEntity, type OutboxRelay } from '@app/kafka-client';
+import { FcmDeviceEntity } from '../../notifications/src/entities/fcm-device.entity';
 import { PushSubscriptionEntity } from '../../notifications/src/entities/push-subscription.entity';
 import { ProfileEntity } from '../../users/src/entities/profile.entity';
 import { RefreshTokenEntity } from '../../users/src/entities/refresh-token.entity';
@@ -68,6 +69,7 @@ maybe('one database, a schema per service (real Postgres)', () => {
     ]);
     notificationsDs = await connect('notifications', [
       PushSubscriptionEntity,
+      FcmDeviceEntity,
       UsersUserEntity,
     ]);
   }, 60_000);
@@ -101,6 +103,7 @@ maybe('one database, a schema per service (real Postgres)', () => {
        WHERE table_schema IN ('users', 'reminders', 'notifications') ORDER BY 1, 2`,
       );
     expect(tables.map((t) => `${t.table_schema}.${t.table_name}`)).toEqual([
+      'notifications.fcm_devices',
       'notifications.push_subscriptions',
       'reminders.reminders',
       'users.outbox_events',
@@ -135,7 +138,7 @@ maybe('one database, a schema per service (real Postgres)', () => {
     });
   });
 
-  it("deleting the account deletes its reminders and push subscriptions, and no one else's", async () => {
+  it("deleting the account deletes its reminders, push subscriptions and Android devices, and no one else's", async () => {
     const [gone, kept] = [await newUser(), await newUser()];
     for (const u of [gone, kept]) {
       await remindersDs
@@ -147,6 +150,9 @@ maybe('one database, a schema per service (real Postgres)', () => {
         p256dh: 'p',
         auth: 'a',
       });
+      await notificationsDs
+        .getRepository(FcmDeviceEntity)
+        .save({ userId: u.id, token: `fcm-${u.id}`, key: 'k' });
     }
 
     await users().delete(gone.id);
@@ -161,6 +167,16 @@ maybe('one database, a schema per service (real Postgres)', () => {
         .getRepository(PushSubscriptionEntity)
         .findBy({ userId: gone.id }),
     ).toEqual([]);
+    expect(
+      await notificationsDs
+        .getRepository(FcmDeviceEntity)
+        .findBy({ userId: gone.id }),
+    ).toEqual([]);
+    expect(
+      await notificationsDs
+        .getRepository(FcmDeviceEntity)
+        .countBy({ userId: kept.id }),
+    ).toBe(1);
     expect(
       await remindersDs
         .getRepository(ReminderEntity)

@@ -2,7 +2,8 @@
 
 How a person ends up with a Shabbat reminder on their phone: first they sign up and turn on
 notifications (once), then every reminder travels a BullMQ queue → Notification Service → the
-browser's push service → the phone. Web build only. For the exact rules of each service see
+browser's push service → the phone. The Android app gets the same notifications through FCM —
+see [Android app](#android-app-fcm) below. For the exact rules of each service see
 [services.md](services.md); for the job shapes see [event-schemas.md](event-schemas.md).
 
 ```mermaid
@@ -77,6 +78,18 @@ flowchart TD
    the app's service worker (`frontend/public/sw.js`), which shows it with `tag` = `notificationId`
    (a retry duplicate replaces the first rather than showing twice). A tap focuses an open app tab,
    else opens the payload's `url`.
+
+## Android app (FCM)
+
+The Android app registers itself instead of a browser subscription: it makes a 256-bit key on the
+phone and sends it with its FCM registration token to `PUT /notifications/fcm-devices` (Gateway adds
+`X-User-Id` as above; `DELETE` with `{ token }` on turning off or signing out). For every
+notification, `FcmChannel` runs next to `WebPushChannel` with the same rules — the user's current
+devices minus those done (`fcm:<deviceId>`), TTL = time left, retry on 429/5xx/no response — and
+sends each device a data-only FCM message holding only the content encrypted with that device's
+key (AES-256-GCM). The app's background task decrypts it and shows it, even with the app swiped
+away. An unregistered or invalid token deletes the device. Details:
+[services.md](services.md#notifications).
 
 To send one by hand (e.g. to test a device), from `devops/` (replace the user id with a registered
 user's `sub`):

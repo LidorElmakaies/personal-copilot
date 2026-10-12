@@ -45,7 +45,7 @@ interface NotificationRequestedMessage {
   title: string;
   body: string;
   url?: string;                      // opened when the notification is tapped
-  channels?: NotificationChannel[];  // 'webpush'; omitted = every channel the user has
+  channels?: NotificationChannel[];  // 'webpush' | 'fcm'; omitted = every channel the user has
   source: string;                    // publishing service, e.g. 'reminders'
   requestedAt: string;               // ISO 8601
   expiresAt: string;                 // ISO 8601 — required; after this it's never sent
@@ -64,7 +64,7 @@ publisher.publish(QUEUES.NOTIFICATION_REQUESTED, message, notificationRequestedP
 
 Add `delayMs` for a future send. Enqueueing the same notification twice before `expiresAt` queues
 it once. The Notification Service saves one progress key per device reached,
-`webpush:<subscriptionId>` = `true`; a retry skips those (see
+`webpush:<subscriptionId>` or `fcm:<deviceId>` = `true`; a retry skips those (see
 [services.md](services.md#notifications)).
 
 ## `reminder-due`
