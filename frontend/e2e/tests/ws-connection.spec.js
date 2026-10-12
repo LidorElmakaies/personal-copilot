@@ -3,7 +3,8 @@ const { test, expect } = require('@playwright/test');
 // The app's one Socket.IO connection to Gateway's /ws, always with this install's device token
 // (fetched once from POST /realtime/device and kept): anonymous while signed out, plus the login
 // token once signed in; a new login token for the same session keeps the connection and is sent on
-// the next reconnect; signing out switches back to anonymous; a refused device token is replaced.
+// the next reconnect; signing out switches back to anonymous; a refused device token is replaced; a
+// connection refused for an expired login token reopens once the session is renewed.
 // Gateway mocked; /ws is a minimal Socket.IO server via routeWebSocket.
 
 const CORS = {
@@ -12,14 +13,14 @@ const CORS = {
   'Access-Control-Allow-Methods': 'GET, PUT, PATCH, POST, DELETE, OPTIONS',
 };
 
-// Unsigned but well-formed and unexpired — the app only decodes claims, never verifies.
-function fakeAccessToken(email) {
+// Unsigned but well-formed — the app only decodes claims, never verifies.
+function fakeAccessToken(email, expiresIn = 3600) {
   const b64url = (obj) => Buffer.from(JSON.stringify(obj)).toString('base64url');
   const payload = {
     sub: '11111111-1111-1111-1111-111111111111',
     email,
     role: 'user',
-    exp: Math.floor(Date.now() / 1000) + 3600,
+    exp: Math.floor(Date.now() / 1000) + expiresIn,
   };
   return `${b64url({ alg: 'HS256', typ: 'JWT' })}.${b64url(payload)}.signature`;
 }
@@ -27,11 +28,12 @@ function fakeAccessToken(email) {
 const OLD_TOKEN = fakeAccessToken('e2e@example.com');
 const DEVICE_TOKEN = 'device-token-1';
 const NEW_TOKEN = fakeAccessToken('e2e-new@example.com');
+const EXPIRED_TOKEN = fakeAccessToken('e2e@example.com', -60);
 
 // redux-persist on web: AsyncStorage → localStorage, each field JSON-stringified on its own.
-async function signIn(page) {
+async function signIn(page, accessToken = OLD_TOKEN) {
   const persisted = JSON.stringify({
-    accessToken: JSON.stringify(OLD_TOKEN),
+    accessToken: JSON.stringify(accessToken),
     refreshToken: JSON.stringify('fake-refresh'),
     _persist: JSON.stringify({ version: -1, rehydrated: true }),
   });
@@ -78,8 +80,9 @@ async function mockGateway(page, deviceTokens = [DEVICE_TOKEN]) {
 
 // Engine.IO v4 + Socket.IO v5 over a WebSocket (the client is websocket-only): open packet, then
 // answer each namespace CONNECT ("40{auth}") with a CONNECT ack — or, for a device token in
-// `refused`, Gateway's CONNECT_ERROR. Records each connection's auth and whether it's still open.
-async function mockSocketIo(page, refused = []) {
+// `refused` or a login token in `refusedTokens`, Gateway's CONNECT_ERROR. Records each
+// connection's auth and whether it's still open.
+async function mockSocketIo(page, refused = [], refusedTokens = []) {
   const server = { connections: [] };
   await page.routeWebSocket(/\/ws\//, (ws) => {
     const connection = { ws, auth: null, open: true };
@@ -93,9 +96,12 @@ async function mockSocketIo(page, refused = []) {
     ws.onMessage((message) => {
       if (typeof message === 'string' && message.startsWith('40')) {
         connection.auth = JSON.parse(message.slice(2) || '{}');
+        const refusal = refused.includes(connection.auth.deviceToken)
+          ? 'device_token_invalid'
+          : refusedTokens.includes(connection.auth.token) && 'token_invalid';
         ws.send(
-          refused.includes(connection.auth.deviceToken)
-            ? `44${JSON.stringify({ message: 'device_token_invalid' })}`
+          refusal
+            ? `44${JSON.stringify({ message: refusal })}`
             : `40${JSON.stringify({ sid: `sio-${server.connections.length}` })}`,
         );
       }
@@ -162,6 +168,26 @@ test('an account update keeps the connection, and the next reconnect sends the n
   await server.connections[0].ws.close();
   await expect.poll(() => server.connections.length, { timeout: 10_000 }).toBe(2);
   await expect.poll(() => server.connections[1].auth).toEqual({ deviceToken: DEVICE_TOKEN, token: NEW_TOKEN });
+});
+
+test('a connection refused for an expired token reopens with the renewed one', async ({ page }) => {
+  await signIn(page, EXPIRED_TOKEN);
+  await mockGateway(page);
+  const server = await mockSocketIo(page, [], [EXPIRED_TOKEN]);
+  // Answered only once the socket has tried, and been refused, with the expired token.
+  await page.route('**/auth/refresh', async (route) => {
+    if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers: CORS });
+    await expect.poll(() => server.connections[0]?.auth?.token).toBe(EXPIRED_TOKEN);
+    return route.fulfill({
+      json: { access_token: NEW_TOKEN, refresh_token: 'fake-refresh-2' },
+      headers: CORS,
+    });
+  });
+
+  await page.goto('/');
+  await expect.poll(() => server.connections[1]?.auth).toEqual({ deviceToken: DEVICE_TOKEN, token: NEW_TOKEN });
+  await expect.poll(() => openConnections(server)).toHaveLength(1);
+  expect(server.connections[1].open).toBe(true);
 });
 
 test('logging out switches the connection to an anonymous one', async ({ page }) => {

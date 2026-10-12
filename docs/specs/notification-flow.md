@@ -50,8 +50,8 @@ flowchart TD
 4. Afterwards, whenever the app starts signed in or someone signs in, it re-posts the browser's
    current subscription (upsert on endpoint), so a rotated subscription or one last used by another
    account ends up under the right user. Turning the card off, logging out or deleting the account
-   deletes this browser's subscription and unsubscribes it; a session that merely expires keeps
-   it, so reminders keep arriving.
+   deletes this browser's subscription and unsubscribes it; a session the server ends (its refresh
+   refused) keeps it, so reminders keep arriving.
 
 ## 2. Every reminder
 

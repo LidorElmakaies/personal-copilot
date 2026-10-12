@@ -490,6 +490,24 @@ move to the cloud" under Decisions.
   on it looped (~1,700 PUTs, 429s) — now only a changed token re-sends, one sync at a time.
   `scripts/fire-reminder.js` sends a user's reminder text in N minutes without touching the
   reminder (not yet run against a real reminder — the account had none). Version not bumped yet.
+- [ ] **2.25b Stay signed in (refresh the session).** Today the app signs out when the 15-minute
+  access token expires (`AuthGate`) and uses the 30-day refresh token only to revoke it on Log
+  Out, so every 15 minutes away means logging in again. Keep the short access token; renew it
+  quietly with the existing `POST /auth/refresh` (rotating — each use returns a new pair, so an
+  app opened at least once a month stays signed in): a `refreshSession` thunk in `authSlice`
+  (`authService.refresh`), run a minute before expiry (`AuthGate`'s timer renews instead of
+  signing out), on start and on return to the foreground when the token is expired or about to
+  be, and once on a `401` before retrying that request (`authorizedFetch`, still Redux-free). One
+  refresh at a time (a rotated token can't be used twice). The socket gets the new token
+  (`socketService` already supports it). No network → stay signed in and retry later; only a
+  refresh the server refuses (revoked by Log Out or account deletion, or 30 days unused) signs
+  out, with the "Your session ended" notice. Frontend only — no backend change.
+  *Tests:* renews before expiry; an expired access token with a valid refresh token renews instead
+  of signing out; a `401` renews once and retries; two requests failing together cause one
+  refresh; a refused refresh signs out with the notice; offline keeps the session.
+  *Check:* on the phone, sign in, leave the app closed for over 15 minutes, open it — still signed
+  in, no login screen; Log Out still signs out, and that session's refresh token is refused
+  afterwards (other devices' sessions are their own and stay signed in).
 - [ ] **2.26 Installable web app (PWA) + iPhone support.** A web manifest
   (`manifest.webmanifest`: name, short name, `display: standalone`, `start_url`/`scope` `/`, theme
   and background colors from the palette) and the app icon from 2.20b in every size the platforms

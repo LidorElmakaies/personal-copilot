@@ -11,12 +11,10 @@ import {
   REHYDRATE,
 } from 'redux-persist';
 import { setUnauthorizedHandler } from '../services/http/httpClient';
+import { getUserFromToken } from '../utils/jwt';
 import adminReducer from './slices/adminSlice';
 import appUpdateReducer from './slices/appUpdateSlice';
-import authReducer, {
-  clearAuth,
-  SESSION_ENDED_NOTICE,
-} from './slices/authSlice';
+import authReducer, { refreshSession, selectUserId } from './slices/authSlice';
 import calendarReducer from './slices/calendarSlice';
 import locationReducer from './slices/locationSlice';
 import notificationsReducer from './slices/notificationsSlice';
@@ -92,9 +90,11 @@ export const store = configureStore({
 
 export const persistor = persistStore(store);
 
-// Current token only: a late 401 for an older token mustn't sign out its replacement.
+// A 401 for the current token renews it (refreshSession signs out if the server refuses); one for
+// an older token is retried with its replacement — only the same user's, never the next one's.
 setUnauthorizedHandler((token) => {
-  if (store.getState().auth.accessToken === token) {
-    store.dispatch(clearAuth({ notice: SESSION_ENDED_NOTICE }));
-  }
+  const state = store.getState();
+  if (state.auth.accessToken === token) return store.dispatch(refreshSession());
+  const sameUser = getUserFromToken(token)?.id === selectUserId(state);
+  return Promise.resolve(sameUser ? state.auth.accessToken : null);
 });

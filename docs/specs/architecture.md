@@ -141,9 +141,10 @@ sequenceDiagram
     Frontend->>Frontend: decode access_token → user
 ```
 
-## Flow: session rejected by the server (signed in)
+## Flow: access token rejected (signed in)
 
-Any signed-in call; see `services.md#frontend`'s "Session ended".
+Any signed-in call; see `services.md#frontend`'s "Staying signed in" and "Session ended". The same
+renewal also runs a minute before expiry, on start and on return to the foreground.
 
 ```mermaid
 sequenceDiagram
@@ -154,10 +155,20 @@ sequenceDiagram
     Frontend->>Gateway: e.g. GET /users/me (Bearer token)
     Gateway-->>Frontend: 401 (JwtAuthGuard rejects the token)
     alt token is still the current one
-        Frontend->>Frontend: clearAuth({ notice }) — signed out
-        Frontend->>User: go to /login once, "Your session ended — please log in again."
-    else older token (session already replaced)
-        Frontend->>Frontend: ignore
+        Frontend->>Gateway: POST /auth/refresh { refresh_token } (one at a time, shared)
+        alt new pair
+            Gateway-->>Frontend: { access_token, refresh_token } (old one revoked)
+            Frontend->>Gateway: GET /users/me again (new token) — once only
+        else refused (400/401: revoked, 30 days unused)
+            Frontend->>Frontend: clearAuth({ notice }) — signed out
+            Frontend->>User: go to /login once, "Your session ended — please log in again."
+        else no answer (offline, 5xx)
+            Frontend->>Frontend: keep the session, the call fails; retried in 30 s
+        end
+    else older token, same user (already renewed)
+        Frontend->>Gateway: GET /users/me again (current token) — once only
+    else signed out, or another user
+        Frontend->>Frontend: the call fails
     end
 ```
 

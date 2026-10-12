@@ -220,9 +220,13 @@ scripts/docs-check.js     docs drift check (+ docs-check.test.js) — see Comman
   `app-update` is the one event listened for. While signed in, `LocationSyncManager` (also in
   `app/_layout.js`) sends a fresh GPS fix to `PUT /users/me/location` only if it's > 5 km from the server's saved location
   or the time zone changed (`profileSlice.syncLocation`, see `docs/specs/services.md#frontend`).
-  A `401` on any signed-in call (`authorizedFetch`) for the current token signs out with a notice:
-  `AuthGate` takes the user to login once, which shows "Your session ended — please log in again."
-  until they leave it; expiry and Log Out sign out silently (Log Out also revokes the refresh token, best effort).
+  The 15-min access token is renewed quietly with the 30-day rotating refresh token
+  (`authSlice.refreshSession`, one at a time): a minute before expiry (`AuthGate`), on start and
+  return to the foreground when due, and once on a `401` (`authorizedFetch` then retries that call
+  once) — so an app opened at least monthly stays signed in. Only a refresh the server refuses signs
+  out, with a notice: `AuthGate` takes the user to login once, which shows "Your session ended —
+  please log in again." until they leave it; offline keeps the session. Log Out signs out silently
+  (and revokes the refresh token, best effort).
   Notifications (Web Push on the web, FCM on the Android app — `fcmService.android.js` registers
   the phone's FCM token + a key kept in `expo-secure-store` via `PUT /notifications/fcm-devices`,
   `fcmReceiver.android.js`, loaded by the `index.js` entry, decrypts and shows each message even
@@ -231,7 +235,7 @@ scripts/docs-check.js     docs drift check (+ docs-check.test.js) — see Comman
   `notificationId`) and opens/focuses the app on tap; `PushSubscriptionManager` (`app/_layout.js`)
   registers it at start and, while signed in, re-posts the browser's subscription to
   `POST /notifications/subscriptions`; `NotificationsPrompt` asks once over Home after sign-in.
-  Logging out or deleting the account unsubscribes this browser or phone; an expired session doesn't, so
+  Logging out or deleting the account unsubscribes this browser or phone; a session the server ends doesn't, so
   reminders keep arriving. See `docs/specs/services.md#frontend`.
   App update (Android APK only, no login): `AppUpdateManager` (`app/_layout.js`) checks the APK
   registry's `latest.json` (`URLS.apkRegistry`, baked in by `apk.js build`) at start, on return

@@ -1,7 +1,7 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import * as usersService from '../../services/http/usersService';
 import { distanceKm } from '../../utils/geo';
-import { clearAuth, deleteAccount } from './authSlice';
+import { clearAuth, deleteAccount, selectUserId } from './authSlice';
 
 export const fetchProfile = createAsyncThunk(
   'profile/fetch',
@@ -37,10 +37,11 @@ export const syncLocation = createAsyncThunk(
   'profile/syncLocation',
   async (_, { getState, rejectWithValue }) => {
     try {
-      // Every call below uses this one user's token; a sign-out/in in between stops the sync, so
-      // one user's saved location is never compared or written under another's token.
+      // Every call below is this one user's; a sign-out/in in between stops the sync, so one user's
+      // saved location is never compared or written under another's token. A renewal isn't one.
       const token = getState().auth.accessToken;
-      const stillSameUser = () => getState().auth.accessToken === token;
+      const userId = selectUserId(getState());
+      const stillSameUser = () => selectUserId(getState()) === userId;
       const { coords } = getState().location;
       const current = {
         lat: coords.latitude,

@@ -10,6 +10,7 @@ import Stepper from '../base/form/Stepper';
 import BottomSheet from '../base/layout/BottomSheet';
 import ConfirmModal from './ConfirmModal';
 import { useAppTheme } from '../../hooks/useAppTheme';
+import { selectUserId } from '../../store/slices/authSlice';
 import {
   enableNotifications,
   openNotificationSettings,
@@ -42,13 +43,14 @@ export default function CandleReminder({ candleLighting, now }) {
   const dispatch = useDispatch();
   const router = useRouter();
   const accessToken = useSelector((state) => state.auth.accessToken);
+  const userId = useSelector(selectUserId);
   const candles = useSelector((state) => state.reminders.candles);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [askLogin, setAskLogin] = useState(false);
 
   useEffect(() => {
-    if (accessToken) dispatch(fetchReminders());
-  }, [accessToken, dispatch]);
+    if (userId) dispatch(fetchReminders());
+  }, [userId, dispatch]);
 
   // Signing out closes the sheet (its form needs a session).
   useEffect(() => {

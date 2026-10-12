@@ -421,27 +421,43 @@ logging in" link (routes to `/`) for whoever lands there without wanting to auth
     key (turned off) → nothing shown.
   - `authSlice`'s `logOut` (`LogoutCard`) and a successful `deleteAccount` run
     `disableNotifications({ loggingOut: true })` before clearing the session (it also re-arms the
-    prompt, so the next person here is asked); a session that merely expires (`AuthGate`
-    → `clearAuth`) keeps the subscription, so reminders still arrive while signed out.
+    prompt, so the next person here is asked); a session the server ends (a refused refresh →
+    `clearAuth`) keeps the subscription, so reminders still arrive while signed out.
   - `notificationsSlice` (`{ permission, subscribed, ready, busy, error, promptDismissed,
     optedOut }`) persists only `promptDismissed` and `optedOut` (set by turning the switch off,
     "Not now" or log-out; cleared by a successful enable); the rest is read from the browser on
     every start. It doesn't import `authSlice` (that one imports it), so it reads the token from
     `getState()`.
-- **Session ended** — `httpClient`'s `authorizedFetch` (every signed-in HTTP call) passes the
-  token to the handler set with `setUnauthorizedHandler` on any `401`. `src/store/index.js`
-  registers it: if that token is still `authSlice.accessToken` (a late answer for an older token is
-  ignored), `clearAuth({ notice: SESSION_ENDED_NOTICE })`. `AuthGate` pushes to `/login` once when
-  a notice appears — not on later navigation, so leaving login sticks — and the login screen shows
-  it as a warning `Alert`. The notice (not persisted) is cleared by Register, "Continue without
-  logging in", unmounting login, and a successful login/register. Expiry (`AuthGate`'s timer) and
-  Log Out sign out with no notice. Other errors (e.g. `500`) keep the session.
+- **Staying signed in** — the 15-min access token is renewed with the 30-day refresh token
+  (`authSlice.refreshSession` → `authService.refresh`, `POST /auth/refresh`; each use rotates the
+  pair), so an app opened at least once in 30 days stays signed in. One renewal at a time:
+  concurrent callers share the one in flight (a rotated refresh token can't be used twice), and at
+  most one starts per 30 s (`RENEW_RETRY_MS` — the route is rate-limited). It runs from `AuthGate`
+  a minute before expiry (`RENEW_BEFORE_EXPIRY_MS`; at once if already expired, e.g. on start)
+  and on `AppState` `active` when due (`renewSessionIfDue` — phone timers don't run in the
+  background); one the server didn't answer is retried 30 s later. And on a `401`:
+  `authorizedFetch` (every signed-in HTTP call) passes the rejected token to the handler set with
+  `setUnauthorizedHandler` (`src/store/index.js`) — the current token → `refreshSession`; an
+  older one → the current token if it's still the same user's — and retries that call once with
+  the token it resolves with, never more. Signed-in effects that load the user's data
+  (`CandleReminder`, `LocationSyncManager`, `PushSubscriptionManager`, `syncLocation`'s same-user
+  check) key on `selectUserId`, not the token, so a renewal doesn't re-run them.
+- **Session ended** — only a refresh the server refuses (`400`/`401`: revoked by Log Out, account
+  deletion or a password change elsewhere, or 30 days unused) signs out:
+  `clearAuth({ notice: SESSION_ENDED_NOTICE })`. Offline, a `5xx` or `429` keeps the session.
+  `AuthGate` pushes to `/login` once when a notice appears — not on later navigation, so leaving
+  login sticks — and the login screen shows it as a warning `Alert`. The notice (not persisted) is
+  cleared by Register, "Continue without logging in", unmounting login, and a successful
+  login/register. Log Out signs out with no notice (it waits for a renewal in flight, then revokes
+  the current refresh token). Other errors (e.g. `500`) keep the session. Two browser tabs share
+  the saved tokens but renew separately, so one may find its refresh token already rotated by the
+  other and sign out.
 - `profileSlice` (`{ profile, status, error, locationSyncing }`) isn't persisted; it's fetched when
   `ProfileCard` mounts or a sync needs it, and reset on `clearAuth` and a successful
   `deleteAccount` so one user's profile is never shown to the next.
 - `remindersSlice` (`{ candles, saving, error }` — `candles` is the `shabbat_candles` reminder or
-  `null`) isn't persisted either; `CandleReminder` fetches `GET /reminders` whenever an access
-  token appears, and it's reset on `clearAuth` and a successful `deleteAccount`. Turning off keeps
+  `null`) isn't persisted either; `CandleReminder` fetches `GET /reminders` whenever a user signs
+  in (`selectUserId`), and it's reset on `clearAuth` and a successful `deleteAccount`. Turning off keeps
   the offset (the server does too), so the sheet reopens on it.
 - **App update** (Android APK only — `appUpdateSlice` does nothing on the web, or when
   `URLS.apkRegistry`/`EXPO_PUBLIC_FRONTEND_VERSION` isn't baked in). `app/_layout.js`'s
@@ -499,7 +515,8 @@ fetches a new one and reconnects. Without a login token the connection is anonym
 Gateway's broadcasts only. `app/_layout.js`'s `RealtimeConnectionManager` dispatches `wsSlice`'s
 `connectWebSocket` whenever `authSlice.accessToken` changes and the app isn't in the background:
 signing in or out changes identity, so it reconnects; a new token for the same session (refresh,
-`updateAccount`) keeps the connection and only replaces the token its next reconnect sends. It
+`updateAccount`) keeps the connection and only replaces the token its next reconnect sends — or
+reopens it at once if Gateway refused it (`token_invalid`, e.g. the expired token it replaces). It
 calls `disconnectWebSocket` when `AppState` goes to `background` and `connectWebSocket` again on
 `active`. Features subscribe with `socketService.on(event, handler)` (returns the unsubscribe),
 which re-attaches the handler to every new connection — never a second connection.
@@ -507,9 +524,8 @@ which re-attaches the handler to every new connection — never a second connect
 connection, so in the browser only one tab holds it: another tab connecting closes it, and it opens
 a new one when it's shown again.
 
-`authSlice` stores the `refreshToken` that register/login return and uses it only for `logOut`'s
-revoke — no refresh thunk exists, since the 15-min access token is short enough that logging in
-again is an acceptable v1.
+`authSlice` stores the `refreshToken` that register/login return; it renews the session (see
+"Staying signed in" above) and is revoked by `logOut`.
 
 ## Versions
 

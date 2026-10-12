@@ -29,6 +29,19 @@ export async function login({ email, password }) {
   return response.json(); // { access_token, refresh_token }
 }
 
+// A new pair for the refresh token, which stops working (rotate-on-use). null when the server
+// refuses it (revoked, expired, unknown); throws when it can't answer (offline, 5xx, rate limit).
+export async function refresh(refreshToken) {
+  const response = await fetch(`${URLS.gateway}/auth/refresh`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refresh_token: refreshToken }),
+  });
+  if (response.status === 401 || response.status === 400) return null;
+  if (!response.ok) throw new Error(await parseErrorMessage(response));
+  return response.json(); // { access_token, refresh_token }
+}
+
 // Revokes the refresh token on the server, so it can't mint new sessions after log-out.
 export async function logout(refreshToken) {
   const response = await fetch(`${URLS.gateway}/auth/logout`, {

@@ -30,10 +30,12 @@ export function connect(deviceToken, token) {
 }
 
 // A refreshed login token for the open connection — socket.io sends it on its next (re)connect.
+// One Gateway refused (e.g. the expired token it replaces) doesn't retry on its own: open it again.
 export function updateToken(token) {
-  if (!socket) return;
+  if (!socket || token === socketToken) return;
   socketToken = token;
   socket.auth = authFor(token);
+  if (!socket.active) socket.connect();
 }
 
 // The login token the open connection was made with (null: anonymous), or undefined with none open.
