@@ -65,7 +65,8 @@ The first run also creates the release signing key in `devops/data/android/` (gi
 **Back up `release.keystore` and `keystore.properties` from there.** Every later APK must be signed
 with the same key to update the installed app; with a new key you'd have to uninstall it (and sign
 in again) first. The APK doesn't receive notifications yet; reminders reach your browsers
-only.
+only. For push, put Firebase's `google-services.json` (Firebase → your Android app
+`com.lidor.personalcopilot`) in `devops/data/android/` too — the build uses it when it's there.
 
 `publish` puts the built APK (the `frontend` version, or `--version X`) on the download
 page at `https://<pc>.ts.net/apk/`, each argument one bullet of its release notes. Every published
@@ -86,6 +87,29 @@ allow installs from Personal Copilot. Only releases count: `-test.N` builds neve
 `latest.json`. The registry address is baked in at build time: `APK_REGISTRY_URL` (env or
 `devops/.env`), else `https://<GATEWAY_PUBLIC_URL's host>/apk/` — the frontend's HTTPS address as
 `devops/tailscale/serve.js` publishes it.
+
+## Secrets between PCs
+
+The secrets (`backend/.env`, `devops/.env`, and the signing key and `google-services.json` in
+`devops/data/android/`) never go in git. `scripts/secrets.js` packs them into one encrypted file,
+secrets.enc in the personal-copilot-secrets folder of your home folder (`SECRETS_DIR` overrides),
+which you keep in Google Drive by hand — so any of your PCs can get them while the others are off:
+
+```bash
+node scripts/secrets.js push      # this PC's secrets → secrets.enc; then upload it to Google Drive
+node scripts/secrets.js pull      # after downloading secrets.enc there: → this PC (.bak of what it replaces)
+node scripts/secrets.js status    # what differs
+```
+
+It needs a key, secrets.key in your home folder's .config/personal-copilot: `node scripts/secrets.js
+init` made it on the first PC; **copy that file to the same place on every other PC (once, e.g. by
+USB) and keep one more copy off the PCs — never next to secrets.enc in Google Drive**. Without it
+secrets.enc can't be opened. The file is AES-256-GCM, so a damaged copy is refused instead of
+written out; every push keeps the previous one in a local history folder (the last 20), and Google
+Drive keeps the versions you upload over. Each PC keeps its own `GATEWAY_PUBLIC_URL`/
+`APK_REGISTRY_URL`. Refused unless you add `--force`: pushing over a bundle this PC hasn't pulled
+yet, and a pull that would replace this PC's signing key or change `PASSWORD_PEPPER` (that breaks
+every password stored on this PC).
 
 ## Versions
 

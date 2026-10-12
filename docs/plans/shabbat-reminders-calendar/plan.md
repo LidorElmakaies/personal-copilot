@@ -405,7 +405,7 @@ move to the cloud" under Decisions.
   *Done 2026-10-09:* its first run found and fixed `reminder-due` filed under Kafka in
   `event-schemas.md`, env vars missing from the four `environment.md` pages, and stale paths in
   the agent guides.
-- [ ] **2.23 Firebase project + keys** (Android only). *You:* create a free Firebase project
+- [x] **2.23 Firebase project + keys** (Android only). *You:* create a free Firebase project
   (Analytics off), add an Android app with the APK's package name, download its
   `google-services.json`, and create a service-account key for sending. *Then:* `google-services.json`
   lives in `devops/data/android/` next to the signing key (outside git); `apk.js build` copies it
@@ -415,6 +415,12 @@ move to the cloud" under Decisions.
   an outbound call to `fcm.googleapis.com`.
   *Check:* the Notification Service gets an access token from the key, and a `validate_only` send
   to a made-up device token is refused as an invalid token, not as unauthorized.
+  *Done 2026-10-12:* Firebase project `personal-copilot-d7512`; token granted, the `validate_only`
+  send answered `400 INVALID_ARGUMENT` ("not a valid FCM registration token"). The `FCM_*` vars
+  go into `docs/notifications/environment.md` with 2.24, when the service reads them (docs-check).
+  Also on 2026-10-12, a new release signing key was made on the Windows PC (`CB:EA:BC:…:55:12:8A`):
+  the registered one (`8D:94…`) is only on the Linux PC. The phone needs one uninstall before
+  the next APK, and 2.21c needs the new fingerprint registered.
 - [ ] **2.23b Prove encrypted delivery** (Android only, a throwaway test). A test build of the APK
   with `expo-notifications` + a background task that decrypts an AES-256-GCM data-only message with
   a key stored on the phone and shows it as a notification; a host script sends one such message

@@ -9,5 +9,6 @@ npm-debug.*
 *.pem
 .env
 .env*.local
+google-services.json
 /ios
 /android

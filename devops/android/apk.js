@@ -110,6 +110,8 @@ function insideBuild() {
       return !skip.includes(top) && !top.startsWith('.env');
     },
   });
+  // Firebase's app config, for push (app.config.js uses it when present). Kept outside git.
+  if (fs.existsSync('/data/google-services.json')) fs.copyFileSync('/data/google-services.json', '/work/google-services.json');
   run('npm', ['ci', '--no-audit', '--no-fund', '--loglevel=error'], { cwd: '/work' });
   run('npx', ['expo', 'prebuild', '--platform', 'android', '--clean', '--no-install'], { cwd: '/work' });
 
