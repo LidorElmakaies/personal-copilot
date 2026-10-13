@@ -520,23 +520,15 @@ move to the cloud" under Decisions.
   token before sending (the e2e test now asserts no call goes out with it). Log Out → signed out, that refresh token revoked, the phone's FCM
   device deleted; the account's other session stayed valid. FCM registration on 0.4.0 worked with
   the regenerated Firebase files.
-- [ ] **2.26 Installable web app (PWA) + iPhone support.** A web manifest
-  (`manifest.webmanifest`: name, short name, `display: standalone`, `start_url`/`scope` `/`, theme
-  and background colors from the palette) and the app icon from 2.20b in every size the platforms
-  need (192/512 px, a maskable version, Apple's 180 px `apple-touch-icon`, favicon), linked from
-  the web build's HTML. Android Chrome then offers "Install app"; iPhone Safari "Add to Home Screen".
-  On an iPhone in Safari (not yet on the Home Screen), the after-login notifications prompt and
-  the Account card don't offer "Turn on" (Safari can't do push there) but explain: "To get
-  reminders on iPhone, add this app to your Home Screen: Share → Add to Home Screen, then open it
-  from there". Opened from the Home Screen (standalone), the normal Web Push flow from 2.14 works
-  (iOS asks permission only from a tap, which "Turn on" is). **The iPhone hint is new UI → HTML
-  mockup first** (the icon itself is already designed in 2.20b).
-  *Check:* on an iPhone (iOS 16.4+): the hint shows in Safari; added to the Home Screen it opens
-  full screen with the icon, "Turn on" asks permission, and a reminder fired by hand arrives with
-  the phone locked. On Android, Chrome offers to install it and it opens full screen.
+- [ ] **2.26a Installable web app (PWA), Android.** A web manifest (`manifest.webmanifest`: name,
+  short name, `display: standalone`, `start_url`/`scope` `/`, theme and background colors from the
+  palette) and the app icon from 2.20b in the sizes Android needs (192/512 px, a maskable version,
+  favicon), linked from the web build's HTML. Android Chrome then offers "Install app".
+  *Check:* on the Android phone, Chrome offers to install it; installed, it opens full screen with
+  the icon and the normal Web Push flow works.
 - [ ] **2.27 End-to-end on the phones + docs sync.** Android: install the APK from the registry,
   update it once through the in-app prompt, receive a real reminder through FCM with the phone
-  locked. iPhone: the Home Screen web app receives a real reminder through Web Push. Admin: see
+  locked. Admin: see
   every service up (and one stopped as down) on the Admin tab. Docs: `CLAUDE.md` (it says
   "no admin features" today), `docs/specs/*`, READMEs, the agents' files.
 
@@ -557,6 +549,21 @@ and a day card with that day's times.
   sheet, so it also fires before candle lighting on the eve of a holiday.
 - [ ] **3.5 Docs sync.**
 
+## Later: iPhone (deferred 2026-10-13)
+
+Left out for now, no iPhone to test on. Nothing else depends on it: Web Push already accepts
+Apple's push service (`push.apple.com`), and 2.26a's manifest is what the iPhone needs too.
+
+- [ ] **4.1 iPhone support.** Apple's 180 px `apple-touch-icon` linked from the web build's HTML.
+  On an iPhone in Safari (not yet on the Home Screen), the after-login notifications prompt and
+  the Account card don't offer "Turn on" (Safari can't do push there) but explain: "To get
+  reminders on iPhone, add this app to your Home Screen: Share → Add to Home Screen, then open it
+  from there". Opened from the Home Screen (standalone), the normal Web Push flow works (iOS asks
+  permission only from a tap, which "Turn on" is). **The hint is new UI → HTML mockup first.**
+  *Check:* on an iPhone (iOS 16.4+): the hint shows in Safari; added to the Home Screen it opens
+  full screen with the icon, "Turn on" asks permission, and a reminder fired by hand arrives with
+  the phone locked.
+
 ---
 
 ## Open questions
@@ -564,8 +571,8 @@ and a day card with that day's times.
 Smaller bugs, config fixes and ideas found along the way are tracked in
 [`open-issues.md`](open-issues.md).
 
-- **Release key backup:** where do you want the APK signing key backed up? Losing it means
-  uninstalling the app (and signing in again) to install any newer version.
+- ~~**Release key backup**~~ — answered 2026-10-13: the signing key and its passwords are in the
+  encrypted secrets bundle (`scripts/secrets.js`), kept in Google Drive.
 - **Holiday eves for the reminder** (task 3.4): yes or no?
 - **Location denied:** is the "Location is off" message enough, or do you want a manual city
   picker as a fallback?

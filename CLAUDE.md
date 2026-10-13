@@ -79,6 +79,7 @@ frontend/                 Expo/React Native app — login/register (optional, no
                           auth-gated Account tab and an admins-only Admin tab; the Android APK's
                           in-app update;
                           public/sw.js is the Web Push service worker;
+                          public/manifest.webmanifest + index.html make it installable;
                           e2e/ holds the containerized Playwright tests
 devops/                   docker-compose.yml (app stack: services + shared postgres/redis/kafka)
                           + android/ (the APK builder image + apk.js: build/publish)

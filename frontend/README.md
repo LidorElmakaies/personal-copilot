@@ -70,6 +70,14 @@ pinned Playwright image: the Android adaptive layers, `icon.png`, the splash ima
 `public/icons/`. Edit the SVG, re-run the script, rebuild. Keep anything that matters inside the
 66px safe circle: launchers show only the middle 72px, masked.
 
+## Installable web app
+
+`public/manifest.webmanifest` (name, standalone display, the `public/icons/` set) and
+`public/index.html` — Expo's single-page template, which `expo export` uses when it exists, plus
+the manifest link and the browser-bar colors — make the web build installable: Android Chrome
+offers Install, and the installed app opens full screen with its icon. Caddy serves the manifest
+as `application/manifest+json`.
+
 ## Location (`expo-location`)
 
 `app.json` registers the `expo-location` config plugin with the iOS "when in use" permission text;

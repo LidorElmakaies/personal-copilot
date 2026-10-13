@@ -37,6 +37,7 @@
 		# Expo Router's web export is a single-page app — any path that isn't a real static file
 		# (e.g. a client-side route like /settings) falls back to index.html.
 		try_files {path} /index.html
+		header /manifest.webmanifest Content-Type application/manifest+json
 		file_server
 	}
 }
