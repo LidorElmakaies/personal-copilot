@@ -354,6 +354,10 @@ move to the cloud" under Decisions.
   from this developer". Possibly propagation delay. **Recheck on or after 2026-10-11** with the
   next APK version as an update from `/apk/`; if still blocked, Play Protect's warning may not
   follow the registration until global enforcement (2027) — keep the page's hint.
+  **Rechecked 2026-10-13: still blocked.** A fresh install of 0.4.0 (signed with the registered
+  `8D:94…` key) from `/apk/` in Chrome on the S23 Ultra: "blocked… Play Protect hasn't seen apps
+  from this developer"; More details → Install anyway installed it. Next: confirm in the Android
+  Developer Console that the package shows as verified with `8D:94…` and the phone is listed.
   *Check:* a fresh install of the newest APK from `/apk/` on a phone with Play Protect on shows
   no block.
 - [x] **2.22 In-app update prompt** (Android only). On start and when the app comes back to the
@@ -491,7 +495,7 @@ move to the cloud" under Decisions.
   `scripts/fire-reminder.js` sends a user's reminder text in N minutes without touching the
   reminder (not yet run against a real reminder — the account had none). Released as frontend 0.4.0,
   notifications 0.2.0, gateway 0.3.4 (2026-10-13).
-- [ ] **2.25b Stay signed in (refresh the session).** Today the app signs out when the 15-minute
+- [x] **2.25b Stay signed in (refresh the session).** Today the app signs out when the 15-minute
   access token expires (`AuthGate`) and uses the 30-day refresh token only to revoke it on Log
   Out, so every 15 minutes away means logging in again. Keep the short access token; renew it
   quietly with the existing `POST /auth/refresh` (rotating — each use returns a new pair, so an
@@ -509,6 +513,13 @@ move to the cloud" under Decisions.
   *Check:* on the phone, sign in, leave the app closed for over 15 minutes, open it — still signed
   in, no login screen; Log Out still signs out, and that session's refresh token is refused
   afterwards (other devices' sessions are their own and stay signed in).
+  *Done 2026-10-13 (S23 Ultra, 0.4.0 from `/apk/`, a throwaway account):* closed 16 min, reopened
+  — still signed in, profile loaded; one `POST /auth/refresh`, the old refresh token revoked and a
+  new one issued. The calls the app sent at start with the expired token got `401`s, each retried
+  once with the renewed token — fixed the same day: `authorizedFetch` renews an already-expired
+  token before sending (the e2e test now asserts no call goes out with it). Log Out → signed out, that refresh token revoked, the phone's FCM
+  device deleted; the account's other session stayed valid. FCM registration on 0.4.0 worked with
+  the regenerated Firebase files.
 - [ ] **2.26 Installable web app (PWA) + iPhone support.** A web manifest
   (`manifest.webmanifest`: name, short name, `display: standalone`, `start_url`/`scope` `/`, theme
   and background colors from the palette) and the app icon from 2.20b in every size the platforms

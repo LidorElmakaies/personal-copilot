@@ -41,8 +41,9 @@ check. Both halves are generic, not Account-specific: `useRequireAuth()`
 only sets `requiresRole: '<role>'` instead: it's left out of the bar for everyone else, and the
 screen checks again with `useHasRole` (`(tabs)/admin.js`); the server checks the role too.
 
-A signed-in HTTP call goes through `httpClient`'s `authorizedFetch`: a `401` renews the session
-(`authSlice.refreshSession` — single-flight, the refresh token rotates) and retries the call once.
+A signed-in HTTP call goes through `httpClient`'s `authorizedFetch`: an already-expired token is
+renewed before sending, and a `401` renews the session (`authSlice.refreshSession` — single-flight,
+the refresh token rotates) and retries the call once.
 Only a refresh the server refuses signs out with `authSlice.notice` set (`SESSION_ENDED_NOTICE`);
 `AuthGate` takes the user to login once and the login screen shows it. The hook is
 `setUnauthorizedHandler`, registered in `src/store/index.js` so the service stays Redux-free. Don't

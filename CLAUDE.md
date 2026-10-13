@@ -222,8 +222,8 @@ scripts/docs-check.js     docs drift check (+ docs-check.test.js) — see Comman
   or the time zone changed (`profileSlice.syncLocation`, see `docs/specs/services.md#frontend`).
   The 15-min access token is renewed quietly with the 30-day rotating refresh token
   (`authSlice.refreshSession`, one at a time): a minute before expiry (`AuthGate`), on start and
-  return to the foreground when due, and once on a `401` (`authorizedFetch` then retries that call
-  once) — so an app opened at least monthly stays signed in. Only a refresh the server refuses signs
+  return to the foreground when due, before any call made with an already-expired token, and once on
+  a `401` (`authorizedFetch` then retries that call once) — so an app opened at least monthly stays signed in. Only a refresh the server refuses signs
   out, with a notice: `AuthGate` takes the user to login once, which shows "Your session ended —
   please log in again." until they leave it; offline keeps the session. Log Out signs out silently
   (and revokes the refresh token, best effort).

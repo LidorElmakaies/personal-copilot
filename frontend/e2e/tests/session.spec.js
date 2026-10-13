@@ -129,7 +129,7 @@ test('an expired access token at start renews instead of signing out', async ({ 
   await signedInOnAccount(page);
   await expect(page.getByText('Dana', { exact: true })).toBeVisible();
   expect(calls.refreshes).toEqual(['fake-refresh']);
-  expect(calls.profileTokens.at(-1)).toBe(RENEWED);
+  expect(calls.profileTokens).toEqual([RENEWED]); // renewed before sending, never sent expired
 });
 
 test('a 401 renews the session once and retries the call', async ({ page }) => {

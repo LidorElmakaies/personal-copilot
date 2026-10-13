@@ -435,8 +435,10 @@ logging in" link (routes to `/`) for whoever lands there without wanting to auth
   most one starts per 30 s (`RENEW_RETRY_MS` — the route is rate-limited). It runs from `AuthGate`
   a minute before expiry (`RENEW_BEFORE_EXPIRY_MS`; at once if already expired, e.g. on start)
   and on `AppState` `active` when due (`renewSessionIfDue` — phone timers don't run in the
-  background); one the server didn't answer is retried 30 s later. And on a `401`:
-  `authorizedFetch` (every signed-in HTTP call) passes the rejected token to the handler set with
+  background); one the server didn't answer is retried 30 s later. `authorizedFetch` (every
+  signed-in HTTP call) also renews before sending when its token has already expired — the calls
+  screens make at start would otherwise go out ahead of `AuthGate`'s renewal. And on a `401`:
+  it passes the rejected token to the handler set with
   `setUnauthorizedHandler` (`src/store/index.js`) — the current token → `refreshSession`; an
   older one → the current token if it's still the same user's — and retries that call once with
   the token it resolves with, never more. Signed-in effects that load the user's data
