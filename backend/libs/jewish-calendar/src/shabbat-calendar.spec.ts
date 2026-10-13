@@ -32,7 +32,7 @@ function fakeCalculator(havdalahDelayDays = 1) {
     parasha: null,
     holidays: [],
   }));
-  return { shabbatFor } satisfies ICalendarCalculator;
+  return { shabbatFor } satisfies Pick<ICalendarCalculator, 'shabbatFor'>;
 }
 
 describe('ShabbatCalendar.current', () => {

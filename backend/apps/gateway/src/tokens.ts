@@ -16,6 +16,7 @@ export const EVENT_CONSUMER = Symbol('IEventConsumer');
 
 // calendar (@app/jewish-calendar, in-process)
 export const SHABBAT_CALENDAR = Symbol('IShabbatCalendar');
+export const MONTH_CALENDAR = Symbol('IMonthCalendar');
 
 // admin
 export const ADMIN_STATUS_SERVICE = Symbol('ADMIN_STATUS_SERVICE');

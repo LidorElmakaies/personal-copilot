@@ -544,11 +544,17 @@ move to the cloud" under Decisions.
 Goal: a new Calendar tab with a month grid (Gregorian + Hebrew dates, dots for holidays and fasts)
 and a day card with that day's times.
 
-- [ ] **3.1 Calendar: month endpoint.** `GET /calendar/month?year&month&lat&lon&tz` in Gateway's
+- [x] **3.1 Calendar: month endpoint.** `GET /calendar/month?year&month&lat&lon&tz` in Gateway's
   calendar module (`src/calendar/`, `@app/jewish-calendar` in-process — no separate service to
   route to; open, rate-limited like `/calendar/shabbat`): every day's Hebrew date, holidays/fasts,
   and enter/leave times where they apply. Tests for an Israel month and an abroad month (two-day
   Yom Tov). (Absorbs the old "3.2 Gateway route".)
+  *Done 2026-10-13:* `MonthCalendar` in the lib (shares `calendar-options.ts` with
+  `ShabbatCalendar`), `daysFor` on the calculator. Each day: `date`, `hebrew` (numbers + day/year
+  in Hebrew letters), `events` (`yomTov` | `fast` | `holiday`), `parasha`, `times`
+  (`candleLighting` | `havdalah` | `fastBegins` | `fastEnds`). Tests: Sept 2026 in Tel Aviv and
+  New York (Sukkot II Yom Tov only abroad), Rosh Hashana/Yom Kippur/Tzom Gedaliah, agreement with
+  `ShabbatCalendar`, month ends incl. leap February, validation, polar days. Checked live.
 - [ ] **3.2 Frontend: Calendar tab + month grid.** New `(tabs)/calendar`, both dates per cell,
   holiday/fast dots, month arrows, today highlighted.
 - [ ] **3.3 Frontend: day card.** Tapping a day shows its name (English + Hebrew) and times.

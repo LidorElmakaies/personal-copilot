@@ -1,14 +1,16 @@
 import { Controller, Get, Inject, Query } from '@nestjs/common';
-import type { IShabbatCalendar } from '@app/jewish-calendar';
-import { SHABBAT_CALENDAR } from '../../tokens';
+import type { IMonthCalendar, IShabbatCalendar } from '@app/jewish-calendar';
+import { MONTH_CALENDAR, SHABBAT_CALENDAR } from '../../tokens';
+import { MonthQueryDto } from './dto/month-query.dto';
 import { ShabbatQueryDto } from './dto/shabbat-query.dto';
 
 // Served by Gateway itself from the shared @app/jewish-calendar lib — there's nothing for another
-// service to add. Unguarded — Home works signed out.
+// service to add. Unguarded — Home and the calendar work signed out.
 @Controller('calendar')
 export class CalendarController {
   constructor(
     @Inject(SHABBAT_CALENDAR) private readonly calendar: IShabbatCalendar,
+    @Inject(MONTH_CALENDAR) private readonly months: IMonthCalendar,
   ) {}
 
   @Get('shabbat')
@@ -16,6 +18,15 @@ export class CalendarController {
     return this.calendar.current(
       { latitude: query.lat, longitude: query.lon, timeZone: query.tz },
       new Date(),
+    );
+  }
+
+  @Get('month')
+  month(@Query() query: MonthQueryDto) {
+    return this.months.month(
+      { latitude: query.lat, longitude: query.lon, timeZone: query.tz },
+      query.year,
+      query.month,
     );
   }
 }

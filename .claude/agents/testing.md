@@ -50,8 +50,9 @@ a shared testing lib under `backend/libs/` is worth creating only once a second 
    route gets a row in both.
 4. **Shabbat times are right for the user, not the server.** Pin real `@hebcal/core` output for
    known weeks (regular week, holiday Shabbat, Yom Tov after Shabbat abroad, no-sunset location),
-   keep the "server TZ doesn't matter" test, and keep `ShabbatService`'s next-vs-current cases
-   (Friday before candles, Saturday before/after Havdalah, Sunday inside a Yom Tov). A library
+   keep the "server TZ doesn't matter" test, and keep `ShabbatCalendar`'s next-vs-current cases
+   (Friday before candles, Saturday before/after Havdalah, Sunday inside a Yom Tov) and
+   `MonthCalendar`'s check that it agrees with `ShabbatCalendar` on a week's times. A library
    upgrade that shifts a pinned time should fail loudly, not be re-pinned without checking why.
 5. **`RealtimeConnectionService.pushToUser` returns `false` for a disconnected user** without
    throwing — a caller that pushes to a user who's mid-reconnect or has no app open must not crash;

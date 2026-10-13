@@ -36,8 +36,9 @@ backend/
                         # plus each internal service's /health, asked in parallel.
                         # Thin pass-through everywhere — never business logic. A new feature's
                         # HTTP surface gets its own self-contained module here, same shape.
-                        # The one exception: src/calendar/ serves GET /calendar/shabbat itself,
-                        # computed with @app/jewish-calendar (shared maths, nothing to proxy to).
+                        # The one exception: src/calendar/ serves GET /calendar/shabbat and
+                        # GET /calendar/month itself, computed with @app/jewish-calendar
+                        # (shared maths, nothing to proxy to).
     users/               # HTTP, internal-only (never published to the host — only Gateway calls
                         # it). Schema `users`. Profiles (/users/me*, user id from X-User-Id),
                         # every change written to outbox_events and published to Kafka
@@ -87,7 +88,7 @@ backend/
                         # the outbox (addOutboxEvent in the change's transaction, OutboxRelay).
     kafka-contracts/     # KAFKA_TOPICS, consumer groups, event types + guards, NAME_PATTERN.
     users-schema/        # read-only TypeORM mappings of the Users Service's tables.
-    jewish-calendar/     # Shabbat/candle-lighting maths over @hebcal/core (see its README).
+    jewish-calendar/     # Shabbat times + month calendars over @hebcal/core (see its README).
     build-info/          # buildInfo(service) → { service, version, builtAt, startedAt }, from the
                         # version/ folder the Dockerfile bakes in — what /health returns.
 ```

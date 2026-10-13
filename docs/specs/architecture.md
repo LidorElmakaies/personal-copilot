@@ -21,7 +21,7 @@ flowchart LR
 
     subgraph Home["Home PC"]
         TsServe["tailscale serve\nHTTPS :443 / :8443"]
-        Gateway["gateway\n:8000\n(+ /calendar/shabbat, @app/jewish-calendar)"]
+        Gateway["gateway\n:8000\n(+ /calendar/*, @app/jewish-calendar)"]
         FrontendLocal["frontend\n:8081 (Caddy, local mode;\n/apk/ registry)"]
         ApkRegistry[("devops/data/apk\nAPK registry: latest.json, APKs")]
         subgraph Docker["Docker network: personal-copilot"]
@@ -76,8 +76,8 @@ a public port either way. `users`, `reminders`, and `notifications` are
 internal-only; `users` publishes every profile change to Kafka (`users.user-state`, through
 its outbox; Reminders consumes it); `reminders` stores per-user reminders and fires them as delayed
 BullMQ jobs, publishing `notification-requested`. All calendar maths is the in-process
-`@app/jewish-calendar` library, used by Reminders and by Gateway, which serves Home's
-`GET /calendar/shabbat` itself;
+`@app/jewish-calendar` library, used by Reminders and by Gateway, which serves
+`GET /calendar/shabbat` (Home) and `GET /calendar/month` itself;
 `notifications` stores browsers' Web Push subscriptions and processes `notification-requested`
 jobs from Redis (BullMQ), sending each to every device the user has through that browser's push
 service, end-to-end encrypted, and retrying the job for devices that weren't reached. Gateway's WS (`/ws`) holds one connection per

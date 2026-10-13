@@ -115,8 +115,10 @@ scripts/docs-check.js     docs drift check (+ docs-check.test.js) — see Comman
     carries `{ sub, role, email }`. Reminders: `GET /reminders`, `PUT`/`DELETE
     /reminders/shabbat-candles`. Notifications: `GET /notifications/vapid-public-key` (open),
     `POST`/`DELETE /notifications/subscriptions`, `PUT`/`DELETE /notifications/fcm-devices`.
-  - `src/calendar/` — `GET /calendar/shabbat?lat&lon&tz` (open), answered in-process from
-    `@app/jewish-calendar`: the Shabbat in progress, otherwise the next one.
+  - `src/calendar/` — both open, answered in-process from `@app/jewish-calendar`:
+    `GET /calendar/shabbat?lat&lon&tz` (the Shabbat in progress, otherwise the next one) and
+    `GET /calendar/month?year&month&lat&lon&tz` (each day's Hebrew date, holidays/fasts and
+    enter/leave times).
   - `src/realtime/` — `POST /realtime/device` (open, on the strict auth rate limit) issues a
     device token: an app install's signed, anonymous identity, kept for good. Socket.IO at `/ws`
     needs it in the handshake (`auth.deviceToken`), plus `auth.token` once signed in; either one
@@ -161,7 +163,7 @@ scripts/docs-check.js     docs drift check (+ docs-check.test.js) — see Comman
   (`@hebcal/core` v6; "today" is the user's date in `tz`; Israel rules and 20-min candle lighting
   when `tz` is `Asia/Jerusalem`, else 18 min — see its README for the ESM-import and time-zone
   gotchas; Jerusalem and Petach Tikva 40 / Haifa, Tzfat and Zikhron Ya'akov 30, by distance from the
-  city center). Gateway serves Home's `GET /calendar/shabbat` from the same lib.
+  city center). Gateway serves `GET /calendar/shabbat` (Home) and `GET /calendar/month` from the same lib.
   `ReminderScheduler` keeps one delayed `reminder-due` job per enabled
   reminder at candle lighting − offset; when it runs it publishes `notification-requested` and queues next
   week's. Reschedules on save, on `users.user-state` (Kafka), after firing, and in a sweep at
@@ -343,7 +345,7 @@ across retries), `queue-contracts`
 (this project's queue names, job types, their guards and publish options — see
 `docs/specs/event-schemas.md`), `kafka-client` (`IEventPublisher`/`IEventConsumer` over `kafkajs`,
 plus the outbox: `addOutboxEvent` in the change's transaction, `OutboxRelay` publishes),
-`kafka-contracts` (topics, consumer groups, event types and guards), `jewish-calendar` (Shabbat/candle-lighting maths over `@hebcal/core`), `build-info`
+`kafka-contracts` (topics, consumer groups, event types and guards), `jewish-calendar` (Shabbat times and month calendars over `@hebcal/core`), `build-info`
 (`buildInfo(service)` — the version/build time/start time internal services' `/health` returns), `users-schema` (read-only
 TypeORM mappings of the Users Service's tables, for other services to read and reference). Kafka is for events, BullMQ
 for jobs. Shared infrastructure is one instance each, reused by every service that needs it:

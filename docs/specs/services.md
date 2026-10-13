@@ -18,15 +18,27 @@ tunnel from a Caddy instance on the public internet. HTTP + WebSocket.
   client can't already decode from its own access token (see `apps/users`'s note below).
 - `GET /calendar/shabbat?lat&lon&tz` — **served by Gateway itself, not proxied** (`src/calendar/`):
   the Shabbat in progress, otherwise the next one, for that location, computed in-process with
-  [`@app/jewish-calendar`](#libsjewish-calendar). The one Gateway route with logic of its own — the
-  maths is the shared lib, so there's nothing for another service to add. Unguarded, so Home works
-  signed out.
+  [`@app/jewish-calendar`](#libsjewish-calendar). With `/calendar/month`, the only Gateway routes
+  with logic of their own — the maths is the shared lib, so there's nothing for another service to
+  add. Unguarded, so Home works signed out.
   ```json
   { "candleLighting": "2026-10-02T15:04:00.000Z", "havdalah": "2026-10-03T16:00:00.000Z",
     "parasha": null, "holidays": [{ "en": "Shmini Atzeret", "he": "שמיני עצרת" }], "isNow": false }
   ```
   `lat`/`lon` validated as coordinates, `tz` as an IANA time zone → `400` otherwise. `422` where
   there's no sunset to count from (e.g. polar summer).
+- `GET /calendar/month?year&month&lat&lon&tz` — served by Gateway itself the same way, unguarded:
+  every day of that civil month — its Hebrew date, holidays/fasts (`kind`: `yomTov` | `fast` |
+  `holiday`), Saturday's parasha, and its enter/leave times (`candleLighting` | `havdalah` |
+  `fastBegins` | `fastEnds`, on the day each happens). Same location validation, plus `year`
+  1900–2200 and `month` 1–12 → `400` otherwise. Never `422`: a day with no sunset just has no times.
+  ```json
+  { "year": 2026, "month": 9, "days": [ …, { "date": "2026-09-21",
+      "hebrew": { "day": 10, "dayHe": "י׳", "month": { "en": "Tishrei", "he": "תשרי" },
+                  "year": 5787, "yearHe": "תשפ״ז" },
+      "events": [{ "kind": "yomTov", "name": { "en": "Yom Kippur", "he": "יום כיפור" } }],
+      "parasha": null, "times": [{ "kind": "havdalah", "at": "2026-09-21T16:13:00.000Z" }] }, … ] }
+  ```
 - `GET /notifications/vapid-public-key` (open), `POST`/`DELETE /notifications/subscriptions` and
   `PUT`/`DELETE /notifications/fcm-devices` (`JwtAuthGuard`) → Notification Service's routes of the
   same name. Body relayed untouched.
@@ -605,9 +617,11 @@ that queue must pass. See `event-schemas.md`.
 
 All of the project's Jewish-calendar maths, in one place.
 `@hebcal/core` v6 behind `ICalendarCalculator` (`HebcalCalendarCalculator` is the only file that
-imports it); `ShabbatCalendar` (`IShabbatCalendar`) is the entry point, pure and synchronous.
-Used in-process by Gateway (`GET /calendar/shabbat`, Home) and the Reminders scheduler — so Home
-and reminders always agree, and a rule changes in one place.
+imports it); `ShabbatCalendar` (`IShabbatCalendar`) and `MonthCalendar` (`IMonthCalendar`) are
+the entry points, pure and synchronous. Used in-process by Gateway (`GET /calendar/shabbat` for
+Home, `GET /calendar/month`) and the Reminders scheduler — so Home, the calendar and reminders
+always agree, and a rule changes in one place (`calendar-options.ts` picks Israel rules and the
+candle-lighting minutes for all of them).
 
 - `current(location, now)` — the Shabbat in progress at `now`, otherwise the next one: candle
   lighting, Havdalah, parasha, holidays, `isNow`. The Shabbat that started last Friday is returned
@@ -618,7 +632,13 @@ and reminders always agree, and a rule changes in one place.
 - `nextCandleLighting(location, after)` — the first Friday candle lighting strictly after `after`.
   Weeks with no sunset are skipped; throws `UnprocessableEntityException` (`422`) only after 26
   such weeks in a row (or from `current` when this week has none).
-- Rules, for both: "today" is the user's local date in `timeZone`, never the server's. Israel vs.
+- `MonthCalendar.month(location, year, month)` — every day of a civil month: its Hebrew date
+  (numbers, plus the day and year in Hebrew letters), its holidays/fasts — `yomTov` when work is
+  forbidden (Yom Kippur too), `fast` for other fasts, `holiday` for the rest (Chol HaMoed, Rosh
+  Chodesh, eves, special Shabbatot, modern days) — Saturday's parasha, and its times: candle
+  lighting on the day it's lit (Friday, an eve, or a second Yom Tov night after nightfall), Havdalah,
+  and a fast's start and end. Chanukah's candles aren't included.
+- Rules, for all: "today" is the user's local date in `timeZone`, never the server's. Israel vs.
   abroad (one- vs. two-day Yom Tov) follows `timeZone === 'Asia/Jerusalem'`. Candle lighting is
   20 min before sunset in Israel — 40 in Jerusalem and Petach Tikva, 30 in Haifa, Tzfat and Zikhron Ya'akov (OU Israel / MyZmanim), matched by distance from the city center — and 18 abroad (`israel-city-customs.ts`; the radius is approximate, so a town
   right next to a city can count as it). Havdalah is Hebcal's default (sun 8.5° below the horizon).

@@ -1,10 +1,7 @@
 import { UnprocessableEntityException } from '@nestjs/common';
-import type {
-  CalculatorOptions,
-  ICalendarCalculator,
-} from './calendar-calculator.interface';
+import type { ICalendarCalculator } from './calendar-calculator.interface';
+import { optionsFor } from './calendar-options';
 import { HebcalCalendarCalculator } from './hebcal/hebcal-calendar.calculator';
-import { israelCandleLightingMinutes } from './israel-city-customs';
 import {
   addDays,
   civilDateIn,
@@ -28,10 +25,6 @@ export interface IShabbatCalendar {
 }
 
 const FRIDAY = 5;
-// Minutes before sunset abroad; in Israel 20, or a city's custom (israel-city-customs.ts). Set
-// explicitly — see this lib's README.md.
-const ABROAD_CANDLE_LIGHTING_MINUTES = 18;
-const ISRAEL_TIME_ZONE = 'Asia/Jerusalem';
 // Longer than any polar day where people live (Svalbard: ~18 weeks).
 const MAX_WEEKS_WITHOUT_SUNSET = 26;
 
@@ -39,7 +32,10 @@ const MAX_WEEKS_WITHOUT_SUNSET = 26;
 // it through as-is.
 export class ShabbatCalendar implements IShabbatCalendar {
   constructor(
-    private readonly calculator: ICalendarCalculator = new HebcalCalendarCalculator(),
+    private readonly calculator: Pick<
+      ICalendarCalculator,
+      'shabbatFor'
+    > = new HebcalCalendarCalculator(),
   ) {}
 
   current(location: GeoLocation, now: Date): ShabbatResult {
@@ -88,14 +84,4 @@ export class ShabbatCalendar implements IShabbatCalendar {
     }
     return times;
   }
-}
-
-function optionsFor(location: GeoLocation): CalculatorOptions {
-  const israel = location.timeZone === ISRAEL_TIME_ZONE;
-  return {
-    israel,
-    candleLightingMinutes: israel
-      ? israelCandleLightingMinutes(location)
-      : ABROAD_CANDLE_LIGHTING_MINUTES,
-  };
 }
