@@ -493,6 +493,11 @@ other backend service directly. The one other origin it reads is the APK registr
 the APK) served by the frontend's own Caddy at `/apk/` — not a backend service and no API, see
 `frontend/README.md`'s `/apk/` paragraph.
 
+The web build is installable (Android Chrome's Install): `frontend/public/manifest.webmanifest`
+plus `frontend/public/index.html` (Expo's single-page template with the manifest link and
+`theme-color`), the manifest served as `application/manifest+json` by `frontend/Caddyfile` — see
+`frontend/README.md`'s "Installable web app".
+
 Themed via `themeSlice` → `useAppTheme()` and shared
 components under `src/components/base/` (grouped into `background`/`buttons`/`feedback`/`form`/
 `layout` subfolders by purpose) and `src/components/composite/` (the Account cards above,
@@ -507,7 +512,8 @@ convention, and why there's no Gluestack layer here.
 signed-in calls go through `httpClient`'s `authorizedFetch`), `ws/`
 (`socketService`, a single shared Socket.IO connection), and `device/` (`locationService` —
 `expo-location` permission + position, plus the device's IANA time zone; `pushService` — the
-browser's service worker, `Notification` permission and `PushManager`; `apkInstallerService` —
+browser's service worker, `Notification` permission and `PushManager`; `fcmService` /
+`fcmReceiver` — the Android app's FCM registration and incoming messages; `apkInstallerService` —
 the update APK's download into the app cache, Android's installer, and cleanup).
 
 The Socket.IO connection is open signed in or not, always with this install's device token:

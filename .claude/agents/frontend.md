@@ -23,8 +23,10 @@ under them the candle-lighting reminder bell + offset sheet, `CandleReminder` + 
 `/reminders*`) + an auth-gated
 Account tab (theme, notifications, email/password, profile, logout, delete account — one card
 component each — then `VersionInfo`) + a background location sync to the Users Service while signed in
-(`LocationSyncManager` → `profileSlice.syncLocation`) + Web Push opt-in for the web build
-(`public/sw.js`, `PushSubscriptionManager`, `notificationsSlice`) + the Android APK's in-app
+(`LocationSyncManager` → `profileSlice.syncLocation`) + notifications opt-in — Web Push on the web
+build (`public/sw.js`), FCM on the Android app (`fcmService.android.js`, `fcmReceiver.android.js`),
+both via `PushSubscriptionManager` + `notificationsSlice` + the installable web app
+(`public/manifest.webmanifest`, `public/index.html`) + the Android APK's in-app
 update (`AppUpdateManager` → `appUpdateSlice`, `UpdateSheet`/`UpdateChip`) + an admins-only
 Admin tab (`SystemStatus` over `GET /admin/status`, `adminSlice`) — see
 `docs/specs/services.md#frontend`. There is no scraper/jobs surface here — don't port that part of

@@ -1,6 +1,6 @@
 ---
 name: backend
-description: Backend engineer for personal-copilot's NestJS services. Use for implementing or modifying anything under backend/ — Gateway, Users, Calendar, Reminders, Notifications, plus whatever new service a feature adds. Enforces the clean/hexagonal API/Application/Infrastructure layering.
+description: Backend engineer for personal-copilot's NestJS services. Use for implementing or modifying anything under backend/ — Gateway, Users, Reminders, Notifications, plus whatever new service a feature adds. Enforces the clean/hexagonal API/Application/Infrastructure layering.
 tools: Read, Write, Edit, Glob, Grep, Bash, PowerShell, WebFetch, WebSearch
 ---
 
@@ -62,7 +62,9 @@ backend/
                         # WebPushChannel sends to the user's current devices, skipping those the
                         # job's progress marks done (webpush:<subscriptionId>); any 429/5xx/network
                         # → RetryableDeliveryException → BullMQ retries the job. web-push is imported
-                        # only by WebPushLibSender.
+                        # only by WebPushLibSender. FcmChannel: same rules for the Android app's
+                        # fcm_devices (PUT/DELETE /notifications/fcm-devices, fcm:<deviceId>), a
+                        # data-only message encrypted with each device's key; off without FCM_*.
                         # User id from Gateway's X-User-Id header (@ForwardedUserId()), never a JWT.
   libs/
     auth-kernel/          # generic JWT sign/verify (the only class allowed to import

@@ -27,7 +27,7 @@ flowchart LR
         subgraph Docker["Docker network: personal-copilot"]
             Users["users"]
             Reminders["reminders\n(scheduler, @app/jewish-calendar)"]
-            Notifications["notifications\n(Web Push)"]
+            Notifications["notifications\n(Web Push, FCM)"]
             Postgres[("postgres\nDB personal_copilot, schemas:\nusers, reminders, notifications")]
             Redis[("redis\nBullMQ queues: notification-requested,\nreminder-due")]
             Kafka[("kafka\ntopics: users.user-state,\nfrontend.releases")]
@@ -59,6 +59,8 @@ flowchart LR
     Redis -->|"notification-requested jobs\n(progress saved back)"| Notifications
     Notifications -->|"encrypted push"| PushSvc(["Browser push service\n(FCM for Chrome/Brave)"])
     PushSvc -.-> Phone
+    Notifications -->|"data-only, encrypted per device"| FcmApi(["FCM HTTP v1\nfcm.googleapis.com"])
+    FcmApi -.->|"Android app"| Phone
 ```
 
 Only `gateway` and `frontend` are reachable from outside the Docker network. Over Tailscale,

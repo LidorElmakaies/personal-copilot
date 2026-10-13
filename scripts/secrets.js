@@ -8,10 +8,11 @@
 //   ... pull --force                        past the refusals below
 //
 // Two files, both in the repo's secrets/ folder (gitignored; SECRETS_DIR overrides): the key
-// secrets-key.json (32 random bytes, base64) and the bundle secrets.enc (AES-256-GCM, so a damaged or
-// tampered copy fails to open instead of writing garbage). Push overwrites secrets.enc; Google Drive
-// keeps the versions you upload over. Refused without --force: a pull that would change the signing
-// key or PASSWORD_PEPPER (which breaks every password stored on this PC).
+// secrets-key.json ({ key: 32 random bytes base64, createdAt, from }) and the bundle secrets.enc
+// (AES-256-GCM, so a damaged or tampered copy fails to open instead of writing garbage). Push
+// overwrites secrets.enc; Google Drive keeps the versions you upload over. Refused without --force:
+// a pull that would change the signing key or PASSWORD_PEPPER (which breaks every password stored
+// on this PC).
 // Tests: node --test scripts/secrets.test.js
 'use strict';
 const fs = require('fs');

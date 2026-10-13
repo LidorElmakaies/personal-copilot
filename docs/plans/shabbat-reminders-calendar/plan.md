@@ -526,11 +526,18 @@ move to the cloud" under Decisions.
   favicon), linked from the web build's HTML. Android Chrome then offers "Install app".
   *Check:* on the Android phone, Chrome offers to install it; installed, it opens full screen with
   the icon and the normal Web Push flow works.
-- [ ] **2.27 End-to-end on the phones + docs sync.** Android: install the APK from the registry,
+- [x] **2.27 End-to-end on the phones + docs sync.** Android: install the APK from the registry,
   update it once through the in-app prompt, receive a real reminder through FCM with the phone
   locked. Admin: see
   every service up (and one stopped as down) on the Admin tab. Docs: `CLAUDE.md` (it says
   "no admin features" today), `docs/specs/*`, READMEs, the agents' files.
+  *Done 2026-10-13 (S23 Ultra, a throwaway admin account):* 0.4.0 installed from `/apk/`; 0.5.0
+  published with the app open → the update sheet appeared at once, downloaded in the app (progress
+  shown), Android asked once to allow installs from the app, Play Protect asked to scan the new
+  version ("looks safe"), installed — still signed in, no prompt on 0.5.0. A reminder fired by hand
+  (`scripts/fire-reminder.js`) with the app swiped away and the screen off arrived ~2 s after the
+  Notification Service sent it. Admin: 4/4 up with each version; Reminders stopped → "3/4 · down".
+  Docs synced (the specs' diagram and frontend section, the agents' files).
 
 ## Stage 3: Calendar tab
 
