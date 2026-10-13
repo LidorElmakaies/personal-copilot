@@ -489,7 +489,8 @@ move to the cloud" under Decisions.
   Found and fixed: expo-notifications fires its token event on *every* token read, so re-sending
   on it looped (~1,700 PUTs, 429s) — now only a changed token re-sends, one sync at a time.
   `scripts/fire-reminder.js` sends a user's reminder text in N minutes without touching the
-  reminder (not yet run against a real reminder — the account had none). Version not bumped yet.
+  reminder (not yet run against a real reminder — the account had none). Released as frontend 0.4.0,
+  notifications 0.2.0, gateway 0.3.4 (2026-10-13).
 - [ ] **2.25b Stay signed in (refresh the session).** Today the app signs out when the 15-minute
   access token expires (`AuthGate`) and uses the 30-day refresh token only to revoke it on Log
   Out, so every 15 minutes away means logging in again. Keep the short access token; renew it

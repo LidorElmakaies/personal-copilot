@@ -1,18 +1,17 @@
 // The project's secrets, shared between this project's PCs as one encrypted file you keep in Google
 // Drive (uploaded/downloaded by hand) — never git. Plain Node, Linux and Windows alike. See README's "Secrets between PCs".
 //
-//   node scripts/secrets.js init            make this PC's key (first PC only; copy it to the others)
-//   node scripts/secrets.js push            encrypt this PC's secrets into the bundle (then upload it)
-//   node scripts/secrets.js pull            decrypt the bundle into place (.bak of whatever it replaces)
-//   node scripts/secrets.js status          what's in the bundle vs this PC
-//   ... push|pull --force                   past the refusals below
+//   node scripts/secrets.js init            make the key (once, ever; then upload it)
+//   node scripts/secrets.js push            encrypt this PC's secrets into secrets.enc (then upload it)
+//   node scripts/secrets.js pull            decrypt secrets.enc into place (.bak of whatever it replaces)
+//   node scripts/secrets.js status          what's in secrets.enc vs this PC
+//   ... pull --force                        past the refusals below
 //
-// The key (32 random bytes) lives at ~/.config/personal-copilot/secrets.key (SECRETS_KEY overrides) —
-// without it the bundle can't be read, so keep a copy off the PCs too. The bundle is
-// ~/personal-copilot-secrets/secrets.enc (SECRETS_DIR overrides), AES-256-GCM, so a damaged
-// or tampered copy fails to open instead of writing garbage; every push keeps the previous one in
-// history/. Refused without --force: pushing over a bundle this PC hasn't pulled, and a pull that
-// would change the signing key or PASSWORD_PEPPER (which breaks every password stored on this PC).
+// Two files, both in the repo's secrets/ folder (gitignored; SECRETS_DIR overrides): the key
+// secrets-key.json (32 random bytes, base64) and the bundle secrets.enc (AES-256-GCM, so a damaged or
+// tampered copy fails to open instead of writing garbage). Push overwrites secrets.enc; Google Drive
+// keeps the versions you upload over. Refused without --force: a pull that would change the signing
+// key or PASSWORD_PEPPER (which breaks every password stored on this PC).
 // Tests: node --test scripts/secrets.test.js
 'use strict';
 const fs = require('fs');
@@ -22,11 +21,8 @@ const crypto = require('crypto');
 const { spawnSync } = require('child_process');
 
 const ROOT = path.resolve(__dirname, '..');
-const HOME_DIR = path.join(os.homedir(), '.config/personal-copilot');
-const KEY_FILE = process.env.SECRETS_KEY || path.join(HOME_DIR, 'secrets.key');
-const LAST_FILE = path.join(HOME_DIR, 'secrets.last'); // sha256 of the bundle this PC last pulled or pushed
-const DIR = process.env.SECRETS_DIR || path.join(os.homedir(), 'personal-copilot-secrets');
-const KEEP_HISTORY = 20;
+const DIR = process.env.SECRETS_DIR || path.join(ROOT, 'secrets');
+const KEY_FILE = path.join(DIR, 'secrets-key.json');
 
 // What's shared. `local`: per-PC keys of an .env file, stored blank and filled from this PC's copy.
 const FILES = [
@@ -65,17 +61,17 @@ function decrypt(blob, key) {
   }
 }
 
-const sha256 = (buf) => crypto.createHash('sha256').update(buf).digest('hex');
-
 function readKey(file = KEY_FILE) {
   if (!fs.existsSync(file)) {
     throw new Refusal(
-      `No key at ${file}.\nFirst PC: node scripts/secrets.js init. Other PCs: copy secrets.key there from a PC that has it.`,
+      `No key at ${file}.\nFirst PC: node scripts/secrets.js init. Other PCs: download secrets-key.json from Google Drive into that folder.`,
     );
   }
-  const line = fs.readFileSync(file, 'utf8').split(/\r?\n/).filter((l) => l && !l.startsWith('#')).pop() || '';
-  const key = Buffer.from(line.trim(), 'base64');
-  if (key.length !== 32) throw new Refusal(`${file} isn't a secrets.js key (32 bytes, base64)`);
+  let key;
+  try {
+    key = Buffer.from(JSON.parse(fs.readFileSync(file, 'utf8')).key, 'base64');
+  } catch {}
+  if (key?.length !== 32) throw new Refusal(`${file} isn't a secrets.js key ({ "key": 32 bytes, base64 })`);
   return key;
 }
 
@@ -136,19 +132,11 @@ const short = (fp) => (fp ? `${fp.slice(0, 8)}…${fp.slice(-8)}` : 'format chec
 function readBundle(key, dir = DIR) {
   const file = path.join(dir, 'secrets.enc');
   if (!fs.existsSync(file)) return null;
-  const blob = fs.readFileSync(file);
-  const bundle = JSON.parse(decrypt(blob, key).toString('utf8'));
-  bundle.sha = sha256(blob);
-  return bundle;
+  return JSON.parse(decrypt(fs.readFileSync(file), key).toString('utf8'));
 }
 
 const fileOf = (bundle, p) => (bundle?.files[p] !== undefined ? Buffer.from(bundle.files[p], 'base64') : undefined);
 const readLocal = (root, p) => (fs.existsSync(path.join(root, p)) ? fs.readFileSync(path.join(root, p)) : undefined);
-const lastSync = () => (fs.existsSync(LAST_FILE) ? fs.readFileSync(LAST_FILE, 'utf8').trim() : null);
-const setLastSync = (sha) => {
-  fs.mkdirSync(HOME_DIR, { recursive: true });
-  fs.writeFileSync(LAST_FILE, `${sha}\n`);
-};
 
 /** This PC's files over the bundle's (a file this PC lacks keeps the bundle's copy). */
 function collect({ root = ROOT, previous, keytool } = {}) {
@@ -190,33 +178,22 @@ function init() {
   fs.mkdirSync(path.dirname(KEY_FILE), { recursive: true });
   fs.writeFileSync(
     KEY_FILE,
-    `# personal-copilot secrets key — copy this file to your other PCs, keep a copy off them\n${crypto.randomBytes(32).toString('base64')}\n`,
+    `${JSON.stringify({ key: crypto.randomBytes(32).toString('base64'), createdAt: new Date().toISOString(), from: os.hostname() }, null, 2)}\n`,
     { mode: 0o600 },
   );
-  console.log(`Key created: ${KEY_FILE}\nCopy it to the same place on your other PCs, and keep one more copy somewhere safe.`);
+  console.log(`Key created: ${KEY_FILE}\nUpload it to Google Drive; other PCs download it into their secrets/ folder.`);
 }
 
-function push(force) {
+function push() {
   const key = readKey();
   const previous = readBundle(key);
-  if (previous && previous.sha !== lastSync() && !force)
-    throw new Refusal(
-      `The bundle (from ${previous.from}, ${previous.pushedAt}) changed since this PC last synced.\n` +
-        'Pull first, or push --force to replace it with this PC\'s files.',
-    );
   const { files, done, fingerprint } = collect({ previous });
   if (!done.length) throw new Refusal('none of the secret files exist on this PC');
 
   const blob = encrypt(Buffer.from(JSON.stringify({ v: 1, from: os.hostname(), pushedAt: new Date().toISOString(), files })), key);
-  fs.mkdirSync(path.join(DIR, 'history'), { recursive: true });
   const file = path.join(DIR, 'secrets.enc');
-  if (fs.existsSync(file))
-    fs.copyFileSync(file, path.join(DIR, 'history', `secrets-${new Date().toISOString().replace(/[:.]/g, '-')}.enc`));
   fs.writeFileSync(`${file}.tmp`, blob);
   fs.renameSync(`${file}.tmp`, file);
-  const old = fs.readdirSync(path.join(DIR, 'history')).sort().slice(0, -KEEP_HISTORY);
-  for (const h of old) fs.rmSync(path.join(DIR, 'history', h));
-  setLastSync(sha256(blob));
 
   console.log(`Pushed to ${file} — upload it to Google Drive (replacing the old one):`);
   for (const p of done) console.log(`  ${p}`);
@@ -248,27 +225,27 @@ function pull(force) {
     console.log(`  ${p.path}: ${what[p.action]}`);
   }
   if (plan.some((p) => p.action === 'refuse')) {
-    console.log('pull --force to take the bundle\'s anyway (a .bak is kept), or push --force to make this PC\'s win.');
+    console.log('pull --force to take the bundle\'s anyway (a .bak is kept), or push to make this PC\'s win.');
     process.exitCode = 1;
-  } else setLastSync(bundle.sha);
+  }
 }
 
 function status() {
   const bundle = readBundle(readKey());
   if (!bundle) return console.log(`Nothing at ${path.join(DIR, 'secrets.enc')} yet.`);
-  console.log(`Bundle from ${bundle.from}, ${bundle.pushedAt}${bundle.sha === lastSync() ? ' (this PC is in sync)' : ''}:`);
+  console.log(`Bundle from ${bundle.from}, ${bundle.pushedAt}:`);
   for (const p of planPull(bundle, { force: true }))
     console.log(`  ${p.path}: ${{ same: 'same here', write: 'differs here', create: 'missing here' }[p.action]}`);
 }
 
-module.exports = { encrypt, decrypt, maskEnv, fillEnv, checkKeystore, collect, planPull, FILES, Refusal };
+module.exports = { encrypt, decrypt, readKey, maskEnv, fillEnv, checkKeystore, collect, planPull, FILES, Refusal };
 
 if (require.main === module) {
   const [cmd, ...rest] = process.argv.slice(2);
   const force = rest.includes('--force');
-  const commands = { init, push: () => push(force), pull: () => pull(force), status };
+  const commands = { init, push, pull: () => pull(force), status };
   try {
-    if (!commands[cmd]) throw new Refusal('usage: node scripts/secrets.js init | push | pull | status  [--force]');
+    if (!commands[cmd]) throw new Refusal('usage: node scripts/secrets.js init | push | pull [--force] | status');
     commands[cmd]();
   } catch (err) {
     if (!(err instanceof Refusal)) throw err;

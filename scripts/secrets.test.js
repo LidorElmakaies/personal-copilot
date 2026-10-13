@@ -6,7 +6,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
-const { encrypt, decrypt, maskEnv, fillEnv, checkKeystore, collect, planPull, Refusal } = require('./secrets');
+const { encrypt, decrypt, readKey, maskEnv, fillEnv, checkKeystore, collect, planPull, Refusal } = require('./secrets');
 
 const key = crypto.randomBytes(32);
 const KS = Buffer.from([0x30, 0x82, 0x10, 0xb8, 1, 2, 3]); // looks like PKCS12
@@ -34,6 +34,18 @@ test('encrypts and decrypts; a damaged, tampered or wrong-key bundle is refused'
   assert.throws(() => decrypt(blob, crypto.randomBytes(32)), Refusal);
   assert.throws(() => decrypt(Buffer.alloc(blob.length), key), /isn't a secrets.js file/);
   assert.notDeepStrictEqual(encrypt(Buffer.from('hello'), key), blob); // fresh IV each time
+});
+
+test('the key is read from its JSON file; anything else is refused', () => {
+  const root = tree({
+    'good.json': JSON.stringify({ key: key.toString('base64'), createdAt: 'x' }),
+    'short.json': JSON.stringify({ key: 'AAAA' }),
+    'plain.key': key.toString('base64'),
+  });
+  assert.deepStrictEqual(readKey(path.join(root, 'good.json')), key);
+  assert.throws(() => readKey(path.join(root, 'short.json')), Refusal);
+  assert.throws(() => readKey(path.join(root, 'plain.key')), Refusal);
+  assert.throws(() => readKey(path.join(root, 'missing.json')), /No key at/);
 });
 
 test('per-PC .env keys are stored blank and filled back from this PC', () => {

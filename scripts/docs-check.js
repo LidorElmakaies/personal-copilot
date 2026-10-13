@@ -40,6 +40,8 @@ const PATH_ALLOWLIST = [
   'frontend/.env',
   'devops/frontend/.env.cloud',
   'google-services.json', // Firebase's app config, kept in devops/data/android/ (gitignored)
+  'secrets/', // scripts/secrets.js's secrets.enc + key (gitignored, kept in Google Drive)
+  'secrets-key.json',
   'backend/node_modules/',
   'kafka-console-producer.sh', // ships in the Kafka image
   'android/', // Expo prebuild's generated native project, named from frontend/

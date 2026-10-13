@@ -4,6 +4,11 @@
 # Personal Claude Code settings — machine-specific paths/permissions, not meant to be shared.
 .claude/settings.local.json
 
+# scripts/secrets.js's secrets.enc and secrets-key.json — never in git (kept in Google Drive by hand).
+secrets/
+# The .bak copies a secrets.js pull leaves next to each secret it replaces, anywhere in the repo.
+*.bak
+
 # Root tooling (husky/lint-staged) devDependencies.
 node_modules/
 

@@ -304,7 +304,7 @@ node --test devops/android/apk.test.js        # publisher tests, on the host
 
 Secrets between PCs (never git — one encrypted file kept in Google Drive by hand; see README's "Secrets between PCs"):
 ```bash
-node scripts/secrets.js pull | push | status  # key: secrets.key in ~/.config/personal-copilot
+node scripts/secrets.js pull | push | status  # secrets/secrets.enc + secrets/secrets-key.json (gitignored, kept in Google Drive)
 ```
 
 Browser tests (from the repo root, against the running stack — see `frontend/e2e/README.md`):

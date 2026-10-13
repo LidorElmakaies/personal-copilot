@@ -90,26 +90,36 @@ allow installs from Personal Copilot. Only releases count: `-test.N` builds neve
 
 ## Secrets between PCs
 
-The secrets (`backend/.env`, `devops/.env`, and the signing key and `google-services.json` in
-`devops/data/android/`) never go in git. `scripts/secrets.js` packs them into one encrypted file,
-secrets.enc in the personal-copilot-secrets folder of your home folder (`SECRETS_DIR` overrides),
-which you keep in Google Drive by hand — so any of your PCs can get them while the others are off:
+The secrets — `backend/.env`, `devops/.env`, and in `devops/data/android/` the signing key
+(`release.keystore`), its passwords (`keystore.properties`) and Firebase's `google-services.json` —
+never go in git. `scripts/secrets.js` packs them into one encrypted file. It works with two files,
+both in the repo's `secrets/` folder (gitignored, so they never reach git either):
 
-```bash
-node scripts/secrets.js push      # this PC's secrets → secrets.enc; then upload it to Google Drive
-node scripts/secrets.js pull      # after downloading secrets.enc there: → this PC (.bak of what it replaces)
-node scripts/secrets.js status    # what differs
-```
+| File | What it is |
+| --- | --- |
+| `secrets/secrets.enc` | every secret above, encrypted (AES-256-GCM) |
+| `secrets/secrets-key.json` | the key that opens it — without it secrets.enc can't be read |
 
-It needs a key, secrets.key in your home folder's .config/personal-copilot: `node scripts/secrets.js
-init` made it on the first PC; **copy that file to the same place on every other PC (once, e.g. by
-USB) and keep one more copy off the PCs — never next to secrets.enc in Google Drive**. Without it
-secrets.enc can't be opened. The file is AES-256-GCM, so a damaged copy is refused instead of
-written out; every push keeps the previous one in a local history folder (the last 20), and Google
-Drive keeps the versions you upload over. Each PC keeps its own `GATEWAY_PUBLIC_URL`/
-`APK_REGISTRY_URL`. Refused unless you add `--force`: pushing over a bundle this PC hasn't pulled
-yet, and a pull that would replace this PC's signing key or change `PASSWORD_PEPPER` (that breaks
-every password stored on this PC).
+**Where they're kept:** both in your Google Drive, uploaded and downloaded by hand. Drive is the
+only copy off the PCs, so don't lose access to it. Anyone who gets both files can read every
+secret; keeping secrets-key.json in a password manager instead of next to secrets.enc is safer.
+
+**Decrypt on a PC** (a new one, or after another PC changed a secret):
+
+1. Download `secrets.enc` and `secrets-key.json` from Google Drive into the repo's `secrets/` folder
+   (create it if it's missing).
+2. `node scripts/secrets.js pull` — writes each secret into place; any file it replaces is kept as
+   `<file>.bak` (gitignored).
+
+**Change a secret:** edit it on this PC, `node scripts/secrets.js push` (rewrites
+`secrets/secrets.enc`), then upload it to Google Drive over the old one — Drive keeps the earlier
+versions. `node scripts/secrets.js status` shows what differs between secrets.enc and this PC.
+
+Each PC keeps its own `GATEWAY_PUBLIC_URL`/`APK_REGISTRY_URL` (stored blank, filled from the PC's
+own `devops/.env`). `pull` refuses, unless you add `--force`, to replace this PC's signing key or to
+change `PASSWORD_PEPPER` (that breaks every password stored on this PC). A damaged secrets.enc, or
+the wrong key, is refused instead of written out. `node scripts/secrets.js init` made the key once;
+run it again only to start over with a new key (then push and upload both files).
 
 ## Versions
 
