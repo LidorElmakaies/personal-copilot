@@ -194,6 +194,27 @@ sequenceDiagram
     Note over App: after Havdalah passes → fetch again for next Shabbat
 ```
 
+## Flow: month on the Calendar tab
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant App as Frontend (Calendar)
+    participant Gateway
+
+    User->>App: open Calendar tab
+    opt no location asked for yet (opened straight to this tab)
+        App->>App: locate
+    end
+    App->>Gateway: GET /calendar/month?year&month&lat&lon&tz (device's current month)
+    Gateway->>Gateway: @app/jewish-calendar: each day's Hebrew date, events, times
+    Gateway-->>App: { year, month, days }
+    App->>App: MonthGrid
+    User->>App: ‹ or ›
+    App->>Gateway: GET /calendar/month for that month
+    Note over App: only the answer for the month still shown is kept
+```
+
 ## Flow: location sync (signed in)
 
 ```mermaid

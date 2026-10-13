@@ -26,8 +26,8 @@ background detail, not the headline.
 
 - **Top bar** — current page title + a small connection-status dot (real data: gateway/socket
   state, not decorative).
-- **Bottom tab bar** — the primary nav, one destination per tab (Home and Account today; Calendar
-  is planned). Icon + label per tab, Ionicons outline icons (not emoji) — see `(tabs)/_layout.js`'s
+- **Bottom tab bar** — the primary nav, one destination per tab (Home, Calendar and Account; Admin
+  for admins). Icon + label per tab, Ionicons outline icons (not emoji) — see `(tabs)/_layout.js`'s
   `TABS` for each tab's outline/active icon pair. Active tab: icon switches to its filled variant
   in the accent color and gets a soft outer glow; inactive tabs stay in `text-faint`.
 - **Content transitions** — switching tabs is a plain ~180ms fade + slight rise on the incoming

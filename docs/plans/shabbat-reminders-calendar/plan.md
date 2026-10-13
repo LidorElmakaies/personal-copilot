@@ -555,8 +555,14 @@ and a day card with that day's times.
   (`candleLighting` | `havdalah` | `fastBegins` | `fastEnds`). Tests: Sept 2026 in Tel Aviv and
   New York (Sukkot II Yom Tov only abroad), Rosh Hashana/Yom Kippur/Tzom Gedaliah, agreement with
   `ShabbatCalendar`, month ends incl. leap February, validation, polar days. Checked live.
-- [ ] **3.2 Frontend: Calendar tab + month grid.** New `(tabs)/calendar`, both dates per cell,
+- [x] **3.2 Frontend: Calendar tab + month grid.** New `(tabs)/calendar`, both dates per cell,
   holiday/fast dots, month arrows, today highlighted.
+  *Done 2026-10-13:* `(tabs)/calendar` + `MonthGrid` (C1), `calendarSlice.fetchMonth` (keeps only
+  the answer for the month still shown). Days outside the month are left blank (C1 drew the
+  neighbours' days faded — that would need two more months fetched). Real Tishrei data puts a cyan
+  dot on most days (eves, Leil Selichot, Shabbat Shuva, every Chol HaMoed day) — which events get
+  a dot is still open. e2e: calendar.spec.js (grid, dots, today, arrows across the year end, a late
+  answer dropped, location refused, real backend). Not yet seen on the phone.
 - [ ] **3.3 Frontend: day card.** Tapping a day shows its name (English + Hebrew) and times.
 - [ ] **3.4 Holiday-eve reminders (if wanted).** An "Include holidays" switch on the reminder
   sheet, so it also fires before candle lighting on the eve of a holiday.

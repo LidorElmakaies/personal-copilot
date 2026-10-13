@@ -20,7 +20,8 @@ second one.
 (login/register, not a whole-app gate) + a Home tab (landing, no session required; clock, dates,
 and Shabbat times for the device's location via `locationSlice` + `calendarSlice` — `GET /calendar/shabbat`, served by Gateway;
 under them the candle-lighting reminder bell + offset sheet, `CandleReminder` + `remindersSlice` —
-`/reminders*`) + an auth-gated
+`/reminders*`) + a Calendar tab (month grid, `MonthGrid` + `calendarSlice.fetchMonth` —
+`GET /calendar/month`) + an auth-gated
 Account tab (theme, notifications, email/password, profile, logout, delete account — one card
 component each — then `VersionInfo`) + a background location sync to the Users Service while signed in
 (`LocationSyncManager` → `profileSlice.syncLocation`) + notifications opt-in — Web Push on the web
@@ -111,7 +112,9 @@ two folders:
   `Stepper`, `GradientButton`, `Alert`, `ConfirmModal` — Home's reminder bell, passed as
   `ShabbatSection`'s `footer`; owns its Redux wiring, the sheet's form is private), `UpdateSheet`
   (from `BottomSheet`, `GradientButton`, `Alert` — the APK's update sheet, mounted app-wide by
-  `AppUpdateManager`), `UpdateChip` (Home's "↑ <version>" chip, reopens it), `SystemStatus`
+  `AppUpdateManager`), `UpdateChip` (Home's "↑ <version>" chip, reopens it), `MonthHeader`
+  / `MonthGrid` / `MonthStatus` (presentational — the Calendar tab's title row, month and
+  loading/error state; the screen owns the Redux wiring), `SystemStatus`
   (presentational — the Admin tab's list of services from `GET /admin/status`), and the
   Account tab's cards — `ThemeCard` (`GlowCard`, `Row`, `Switch`), `NotificationsCard`
   (`GlowCard`, `Row`, `Switch`, `Alert`), `AccountCard`, `ProfileCard`,

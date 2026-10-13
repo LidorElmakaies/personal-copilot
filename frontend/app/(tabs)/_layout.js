@@ -13,6 +13,12 @@ import { useHasRole } from '../../src/hooks/useHasRole';
 const TABS = [
   { name: 'index', label: 'Home', icon: 'time-outline', iconActive: 'time' },
   {
+    name: 'calendar',
+    label: 'Calendar',
+    icon: 'calendar-outline',
+    iconActive: 'calendar',
+  },
+  {
     name: 'account',
     label: 'Account',
     icon: 'person-circle-outline',
@@ -127,6 +133,7 @@ export default function TabsLayout() {
       tabBar={(props) => <CustomTabBar {...props} />}
     >
       <Tabs.Screen name="index" />
+      <Tabs.Screen name="calendar" />
       <Tabs.Screen name="account" />
       <Tabs.Screen name="admin" />
     </Tabs>

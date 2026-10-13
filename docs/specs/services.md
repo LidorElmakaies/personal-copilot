@@ -353,6 +353,16 @@ logging in" link (routes to `/`) for whoever lands there without wanting to auth
   `src/utils/phone.js`, Israel only today) plus a digits-only local number, validated with
   `libphonenumber-js` and sent as E.164; its error shows once the field is left (or on submit).
   Blank optional fields are left out of the request.
+- `(tabs)/calendar` — no session required: a month grid (`MonthHeader` + `MonthGrid`, or `MonthStatus` while there's none; presentational) for the
+  device's location (`GET /calendar/month`, `calendarSlice.fetchMonth`, not persisted). Opens on the
+  device's current month; ‹ › move a month at a time, each a fresh fetch, and only the answer for
+  the month still shown is kept (a late one for a month already left is dropped). Weeks start on
+  Sunday; each day shows its date, its Hebrew day, and a dot — `error` color for a fast, `accent`
+  for any other holiday; Friday and Saturday dates in `pending` (amber), today outlined (and
+  "today" in its accessibility label). Under the title: the Hebrew months the month spans and the
+  year it ends in. Opened straight to this tab, it asks for the location itself (Home normally
+  does); location refused → "Location is off" + Retry, as on Home; location or month failing →
+  "Couldn't load this month." + Retry.
 - `(tabs)/account` — a heading and six cards (`src/components/composite/`): `ThemeCard` (light/
   dark toggle), `NotificationsCard` (see Notifications below), `AccountCard` (email; edit email/password via `POST /auth/account` — the
   `updateAccount` thunk, see `apps/users` above), `ProfileCard` (name and phone; fetches

@@ -75,8 +75,8 @@ backend/                 NestJS monorepo — apps/{gateway,users,reminders,notif
                           kafka-client,kafka-contracts,users-schema,
                           jewish-calendar,build-info}
 frontend/                 Expo/React Native app — login/register (optional, not gated app-wide), a
-                          Home tab (clock + Shabbat times + candle-lighting reminder), an
-                          auth-gated Account tab and an admins-only Admin tab; the Android APK's
+                          Home tab (clock + Shabbat times + candle-lighting reminder), a
+                          Calendar tab (Jewish-calendar month), an auth-gated Account tab and an admins-only Admin tab; the Android APK's
                           in-app update;
                           public/sw.js is the Web Push service worker;
                           public/manifest.webmanifest + index.html make it installable;
@@ -199,7 +199,9 @@ scripts/docs-check.js     docs drift check (+ docs-check.test.js) — see Comman
   result persisted for offline; under the times, `CandleReminder`'s bell opens a bottom sheet to
   set/change/turn off the candle-lighting reminder's offset via `GET /reminders` and
   `PUT`/`DELETE /reminders/shabbat-candles` (`remindersSlice`, not persisted, reset on sign-out) —
-  signed out, the bell asks to log in instead), `(tabs)/account`
+  signed out, the bell asks to log in instead), `(tabs)/calendar` (no session required: the month
+  grid — both dates per day, holiday/fast dots, ‹ › months, today outlined — from
+  `GET /calendar/month`, `calendarSlice.fetchMonth`), `(tabs)/account`
   (a heading plus `ThemeCard`, `NotificationsCard` (this browser's or phone's notifications on/off), `AccountCard`
   (edit email/password), `ProfileCard` (name/phone via
   `GET`/`PATCH /users/me`, fetched on mount), `LogoutCard` (`logOut`), `DeleteAccountCard` (password, then
@@ -253,12 +255,12 @@ scripts/docs-check.js     docs drift check (+ docs-check.test.js) — see Comman
   `background`/`buttons`/`feedback`/`form`/`layout` subfolders by purpose — see
   `.claude/agents/frontend.md`) and `AmbientBackground` (`src/components/composite/`) are the
   shared building blocks login/register/
-  Home/Account all use; `Switch` (base/form) the toggle; `SelectField` (base/form) is the dropdown and `ProfileFields` (composite)
+  Home/Calendar/Account all use; `Switch` (base/form) the toggle; `SelectField` (base/form) is the dropdown and `ProfileFields` (composite)
   the name/phone group shared by register and `ProfileCard`; `ConfirmModal` (composite) is the
   shared Yes/No overlay (the `requiresAuth` tab-press guard, `NotificationsPrompt`, the signed-out
   reminder bell); `FormActions` (composite) the Save/Cancel pair under the Account cards' edit
   forms; `PillButton` (base/buttons), `Stepper` (base/form) and `BottomSheet` (base/layout)
-  build `CandleReminder`.
+  build `CandleReminder`; `MonthHeader`, `MonthGrid` and `MonthStatus` (composite) build the Calendar tab (`src/utils/calendar.js` its date helpers).
 - **Queues** — BullMQ on Redis (`devops/redis/docker-compose.yml`, internal-only, AOF-persisted,
   `noeviction`, holds nothing but queues). Cross-service queues and job guards in
   `@app/queue-contracts` (`notification-requested` — Reminders publishes, Notifications

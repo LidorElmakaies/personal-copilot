@@ -12,3 +12,17 @@ export async function getShabbat({ latitude, longitude, timeZone }) {
   if (!response.ok) throw new Error(await parseErrorMessage(response));
   return response.json(); // { candleLighting, havdalah, parasha, holidays, isNow }
 }
+
+// One civil month: { year, month, days: [{ date, hebrew, events, parasha, times }] }.
+export async function getMonth({ latitude, longitude, timeZone }, year, month) {
+  const params = new URLSearchParams({
+    year: String(year),
+    month: String(month),
+    lat: String(latitude),
+    lon: String(longitude),
+    tz: timeZone,
+  });
+  const response = await fetch(`${URLS.gateway}/calendar/month?${params}`);
+  if (!response.ok) throw new Error(await parseErrorMessage(response));
+  return response.json();
+}
