@@ -663,6 +663,44 @@ and a day card with that day's times.
   *Check:* on the phone, swiping through every tab both ways, the Calendar swipe still does what the
   mockup chose, the signed-out Account prompt, Admin only for admins, and Android's back gesture
   still works.
+- **3.6 Custom reminders on the calendar** (after 3.3e; asked and decided 2026-10-17). Signed-in
+  users add their own reminders to the calendar: a title, a time of day, and how it repeats — once
+  (a date), daily, monthly or yearly. Monthly and yearly each pick their calendar per reminder:
+  Gregorian ("the 24th", "every 24 October") or Hebrew ("every 15 Shevat", a birthday or yahrzeit
+  on its Hebrew date). Each fires at its time through the existing Notification Service (Web Push /
+  FCM), like candle lighting. On the calendar they're the per-day reminders 3.3c already displays
+  (cell counts, the card's preview, "Show all"), which replaces the Admin tab's sample switch.
+  Signed out, "Add reminder" asks to log in (`ConfirmModal`, as the candle-lighting bell does).
+  - [ ] **3.6a Mockup.** **New UI → mockup first:** where "+ Add reminder" lives (the day card,
+    the "Show all" sheet), the add/edit sheet (title, time, repeat: once / daily / monthly /
+    yearly, and for monthly/yearly Gregorian or Hebrew with the date it'll follow shown in both
+    calendars), editing and deleting a reminder from the list, the signed-out prompt.
+  - [ ] **3.6b Occurrence rules in `@app/jewish-calendar`.** "The next time after <instant>" for
+    each repeat kind, in the user's time zone. Hebrew rules to decide (and test): a 30th in a
+    29-day month (Cheshvan/Kislev vary) → the 29th or skip; Adar in a leap year → Adar II (birthdays)
+    or Adar I; a yahrzeit uses the usual yahrzeit rules (`@hebcal/core` has them) — offered as its
+    own option or not. Gregorian: the 31st / 29 Feb in shorter months → the last day. Also "every
+    occurrence between two dates" for the calendar. Tests for each rule, in Israel and abroad.
+  - [ ] **3.6c Reminders Service: store and API.** A `custom_reminders` table (schema
+    `reminders`; `user_id` → `users.users` `ON DELETE CASCADE`; title, time, repeat, calendar,
+    the anchor date, created/updated). `GET /reminders/custom?from&to` (the occurrences in that
+    range, for the calendar's loaded months), `POST`, `PATCH`/`DELETE /reminders/custom/:id`
+    (owner only), through Gateway (`JwtAuthGuard`, new `PROXY_ROUTES` rows). Title rules like
+    names (English/Hebrew letters, plus digits and basic punctuation), a length cap. Time zone from
+    the user's profile location (as candle lighting). Tests: API, validation, owner-scoped, cascade.
+  - [ ] **3.6d Scheduling.** `ReminderScheduler` keeps one delayed job per custom reminder at its
+    next occurrence; firing publishes `notification-requested` (the reminder's title) and queues
+    the next; reschedule on save/edit/delete, on `users.user-state` (a time-zone change), after
+    firing, and in the existing sweep. A once-reminder is done after it fires (kept, shown as
+    past). Tests: each repeat kind's next job, edits, deletes, time-zone change, the sweep.
+  - [ ] **3.6e Frontend.** Per the mockup: add / edit / delete (a `customRemindersSlice` or the
+    calendar slice; I/O in `services/http/`), `dayReminders` filled from `GET /reminders/custom`
+    for the loaded months while signed in (cleared on sign-out); the sample switch and
+    `sampleReminders.js` removed. e2e: add each kind and see it on the right days, edit, delete,
+    signed-out prompt, Hebrew yearly on its Hebrew date across Gregorian years.
+  - [ ] **3.6f On the phone + docs.** Each kind added on the phone fires as a notification at its
+    time (app closed, screen off); docs: services.md, event-schemas.md (`reminder-due` for custom
+    reminders), architecture.md, CLAUDE.md.
 - [ ] **3.4 Holiday-eve reminders (if wanted).** An "Include holidays" switch on the reminder
   sheet, so it also fires before candle lighting on the eve of a holiday.
 - [ ] **3.5 Docs sync.**
