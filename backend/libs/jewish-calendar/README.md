@@ -48,6 +48,15 @@ Shabbat followed by Yom Tov (abroad: up to Monday night) ends at the real Havdal
 night. `ShabbatCalendar` starts from _last_ Friday and only moves to next week once that Havdalah
 has passed — which is what keeps a Sunday inside such a Yom Tov reported as the current Shabbat.
 
+## Yom Kippur and holiday names
+
+hebcal gives Yom Kippur only the eve's candle lighting and a Havdalah. `MonthCalendar` adds a
+`fastBegins` at that candle lighting and reports the end as `fastEnds`, so the calendar shows it as
+the fast it is; `ShabbatCalendar` is unaffected (it reads hebcal's events, not these kinds).
+`holiday-names.ts` tidies a few names keyed on hebcal's untranslated `getDesc()` (stable across
+locales; `render()` uses curly quotes): the year off Rosh Hashana's first day, Chol HaMoed spelled
+out, Sukkot VII as Hoshana Raba. Every other name passes through as hebcal renders it.
+
 ## Israel vs. abroad from the time zone
 
 `tz === 'Asia/Jerusalem'` switches on Israel rules. Simple and right for a phone set to its local

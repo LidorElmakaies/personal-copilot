@@ -54,11 +54,29 @@ describe('MonthCalendar (real hebcal)', () => {
     );
   });
 
-  it('has candle lighting on the eve and Havdalah when Yom Kippur ends', () => {
-    expect(kinds(day(israel, '2026-09-20'))).toEqual(['candleLighting']);
+  it("has Yom Kippur as a fast: it begins with the eve's candle lighting and ends at nightfall", () => {
+    const eve = day(israel, '2026-09-20');
+    expect(kinds(eve)).toEqual(['candleLighting', 'fastBegins']);
+    expect(eve.times[1].at).toEqual(eve.times[0].at);
     const kippur = day(israel, '2026-09-21');
     expect(named(kippur, 'Yom Kippur')?.kind).toBe('yomTov');
-    expect(kinds(kippur)).toEqual(['havdalah']);
+    expect(kinds(kippur)).toEqual(['fastEnds']);
+  });
+
+  it("tidies hebcal's names: no year on Rosh Hashana, Chol HaMoed spelled out", () => {
+    expect(day(israel, '2026-09-12').events[0].name).toEqual({
+      en: 'Rosh Hashana I',
+      he: 'ראש השנה א׳',
+    });
+    expect(day(israel, '2026-09-27').events[0].name).toEqual({
+      en: 'Sukkot · day 2 (Chol HaMoed)',
+      he: 'סוכות · יום ב׳ (חול המועד)',
+    });
+    // Abroad the second day is Yom Tov, so keeps its own name; Chol HaMoed starts on the third.
+    expect(day(abroad, '2026-09-27').events[0].name.en).toBe('Sukkot II');
+    expect(day(abroad, '2026-09-28').events[0].name.en).toBe(
+      'Sukkot · day 3 (Chol HaMoed)',
+    );
   });
 
   it('in Israel, Sukkot II is Chol HaMoed: one day of Yom Tov, no times on the 27th', () => {
@@ -130,6 +148,19 @@ describe('MonthCalendar (real hebcal), other months', () => {
       ['yomTov', 'Simchat Torah'],
     ]);
     expect(kinds(day(abroad, '2026-10-04'))).toEqual(['havdalah']);
+  });
+
+  it("names Hoshana Raba and Pesach's Chol HaMoed tidily too", () => {
+    expect(
+      events(day(calendar.month(TEL_AVIV, 2026, 10), '2026-10-02')),
+    ).toEqual([['holiday', 'Hoshana Raba']]);
+    // 16 Nisan 5787 = 23 April 2027: Chol HaMoed in Israel.
+    expect(
+      day(calendar.month(TEL_AVIV, 2027, 4), '2027-04-23').events[0].name,
+    ).toEqual({
+      en: 'Pesach · day 2 (Chol HaMoed)',
+      he: 'פסח · יום ב׳ (חול המועד)',
+    });
   });
 
   it("Tish'a B'Av begins the evening before: fastBegins on 8 Av, fastEnds on 9 Av", () => {

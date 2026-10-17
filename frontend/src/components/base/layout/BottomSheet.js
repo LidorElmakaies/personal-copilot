@@ -25,8 +25,14 @@ const CLOSE_VELOCITY = 800; // px/s
 // slides, so the dim doesn't slide with it.
 // Gestures are gesture-handler's, not PanResponder: inside an Android Modal the JS responder never
 // saw the backdrop tap or the drag. A Modal is its own window, so it needs its own
-// GestureHandlerRootView.
-export default function BottomSheet({ visible, onClose, children }) {
+// GestureHandlerRootView. `dragFromHandle`: only the grab bar drags it, for a sheet whose content
+// scrolls (a pull down on the list must scroll it, not close the sheet).
+export default function BottomSheet({
+  visible,
+  onClose,
+  dragFromHandle = false,
+  children,
+}) {
   const { colors } = useAppTheme();
   const offset = useSharedValue(400);
   const height = useSharedValue(400);
@@ -84,7 +90,7 @@ export default function BottomSheet({ visible, onClose, children }) {
             accessibilityLabel="Close"
           />
         </GestureDetector>
-        <GestureDetector gesture={pan}>
+        <DragArea gesture={pan} enabled={!dragFromHandle}>
           <Animated.View
             onLayout={(e) => {
               height.value = e.nativeEvent.layout.height;
@@ -95,16 +101,31 @@ export default function BottomSheet({ visible, onClose, children }) {
               panelStyle,
             ]}
           >
-            <View style={styles.grabZone} testID="bottom-sheet-handle">
+            <DragArea gesture={pan} enabled={dragFromHandle}>
               <View
-                style={[styles.grab, { backgroundColor: colors.cardBorder }]}
-              />
-            </View>
+                collapsable={false}
+                style={styles.grabZone}
+                testID="bottom-sheet-handle"
+              >
+                <View
+                  style={[styles.grab, { backgroundColor: colors.cardBorder }]}
+                />
+              </View>
+            </DragArea>
             {children}
           </Animated.View>
-        </GestureDetector>
+        </DragArea>
       </GestureHandlerRootView>
     </Modal>
+  );
+}
+
+// The pan goes on the whole panel, or only on the grab bar — whichever `enabled` says.
+function DragArea({ gesture, enabled, children }) {
+  return enabled ? (
+    <GestureDetector gesture={gesture}>{children}</GestureDetector>
+  ) : (
+    children
   );
 }
 

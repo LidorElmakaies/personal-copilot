@@ -5,11 +5,16 @@ export function localIsoDate(date) {
   return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
 }
 
-// { year, month } moved by `by` months, across year ends.
-export function shiftMonth({ year, month }, by) {
-  const index = year * 12 + (month - 1) + by;
-  return { year: Math.floor(index / 12), month: (index % 12) + 1 };
-}
+// Months as one running number, so a swipe can count across year ends.
+export const monthIndex = ({ year, month }) => year * 12 + month - 1;
+export const monthAt = (index) => ({
+  year: Math.floor(index / 12),
+  month: (index % 12) + 1,
+});
+
+// A YYYY-MM-DD date as a Date at UTC midnight — read with UTC getters/`timeZone: 'UTC'` so the
+// device's zone can't shift it.
+export const utcDay = (date) => new Date(`${date}T00:00:00Z`);
 
 // "September 2026".
 export const monthTitle = ({ year, month }) =>
@@ -23,4 +28,78 @@ export const monthTitle = ({ year, month }) =>
 export function hebrewTitle(days) {
   const months = [...new Set(days.map((d) => d.hebrew.month.he))];
   return `${months.join(' – ')} ${days.at(-1).hebrew.yearHe}`;
+}
+
+// Weekday of a YYYY-MM-DD date, 0 = Sunday.
+export const weekdayOf = (date) => utcDay(date).getUTCDay();
+
+// "Saturday 19 September".
+export const longDate = (date) =>
+  utcDay(date).toLocaleDateString('en-GB', {
+    timeZone: 'UTC',
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  });
+
+// The day card's title: its events; else Shabbat, or Erev Shabbat on a Friday with candle
+// lighting; else nothing (the card shows the weekday).
+export function dayNames(day) {
+  if (day.events.length) return day.events.map((e) => e.name);
+  const weekday = weekdayOf(day.date);
+  if (weekday === 6) return [{ en: 'Shabbat', he: 'שבת' }];
+  if (weekday === 5 && day.times.length)
+    return [{ en: 'Erev Shabbat', he: 'ערב שבת' }];
+  return [];
+}
+
+const TIME_LABELS = {
+  candleLighting: 'Candle lighting',
+  havdalah: 'Havdalah',
+  fastBegins: 'Fast begins',
+  fastEnds: 'Fast ends',
+};
+
+// The card's rows, in order; a fast that begins with candle lighting (Erev Yom Kippur) is one
+// row. `candle` marks the rows shown in amber.
+export function dayTimeRows(day) {
+  const candles = day.times.find((t) => t.kind === 'candleLighting');
+  return day.times
+    .filter((t) => !(t.kind === 'fastBegins' && candles?.at === t.at))
+    .map((t) => ({
+      label:
+        t.kind === 'candleLighting' &&
+        day.times.some((f) => f.kind === 'fastBegins' && f.at === t.at)
+          ? 'Candle lighting · fast begins'
+          : TIME_LABELS[t.kind],
+      at: new Date(t.at),
+      candle: t.kind === 'candleLighting',
+    }));
+}
+
+// The day the card opens on in a month: today if it's in it, else the 1st.
+export const openingDate = ({ year, month }, today) => {
+  const first = `${year}-${pad2(month)}-01`;
+  return today.slice(0, 7) === first.slice(0, 7) ? today : first;
+};
+
+// A month's days before /calendar/month answers: just the dates, which the phone can work out.
+// Cached, so a page re-rendered mid-swipe gets the same array (and its memoized grid skips).
+const placeholders = new Map();
+export function placeholderDays(index) {
+  if (!placeholders.has(index)) {
+    const { year, month } = monthAt(index);
+    const count = new Date(Date.UTC(year, month, 0)).getUTCDate();
+    placeholders.set(
+      index,
+      Array.from({ length: count }, (_, i) => ({
+        date: `${year}-${pad2(month)}-${pad2(i + 1)}`,
+        hebrew: null,
+        events: [],
+        parasha: null,
+        times: [],
+      })),
+    );
+  }
+  return placeholders.get(index);
 }

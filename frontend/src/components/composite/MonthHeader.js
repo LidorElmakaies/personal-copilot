@@ -2,13 +2,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useAppTheme } from '../../hooks/useAppTheme';
 
-// The Calendar tab's title row: the Gregorian month, the Hebrew months under it (once loaded), and
+// The Calendar tab's title row: the Gregorian month, the Hebrew months under it (once loaded),
+// a "Today" pill when `onToday` is given (the screen passes it only when away from today), and
 // ‹ › arrows.
 export default function MonthHeader({
   title,
   hebrewTitle,
   onPrevious,
   onNext,
+  onToday,
 }) {
   const { colors } = useAppTheme();
   return (
@@ -22,6 +24,25 @@ export default function MonthHeader({
         )}
       </View>
       <View style={styles.arrows}>
+        {onToday && (
+          <Pressable
+            onPress={onToday}
+            accessibilityRole="button"
+            accessibilityLabel="Go to today"
+            style={({ pressed }) => [
+              styles.today,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.accent,
+                opacity: pressed ? 0.6 : 1,
+              },
+            ]}
+          >
+            <Text style={[styles.todayText, { color: colors.accent }]}>
+              Today
+            </Text>
+          </Pressable>
+        )}
         <ArrowButton
           icon="chevron-back"
           label="Previous month"
@@ -67,7 +88,15 @@ const styles = StyleSheet.create({
   titles: { flexShrink: 1, gap: 2 },
   title: { fontSize: 18, fontWeight: '700' },
   hebrewTitle: { fontSize: 13, fontWeight: '600' },
-  arrows: { flexDirection: 'row', gap: 6 },
+  arrows: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  today: {
+    height: 32,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    justifyContent: 'center',
+  },
+  todayText: { fontSize: 12.5, fontWeight: '700' },
   arrow: {
     width: 32,
     height: 32,

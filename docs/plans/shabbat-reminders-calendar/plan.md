@@ -563,7 +563,106 @@ and a day card with that day's times.
   dot on most days (eves, Leil Selichot, Shabbat Shuva, every Chol HaMoed day) — which events get
   a dot is still open. e2e: calendar.spec.js (grid, dots, today, arrows across the year end, a late
   answer dropped, location refused, real backend). Not yet seen on the phone.
-- [ ] **3.3 Frontend: day card.** Tapping a day shows its name (English + Hebrew) and times.
+- [x] **3.3 Frontend: day card.** Tapping a day shows its name (English + Hebrew) and times.
+  **New UI → mockup first** (chosen: **D1** in `mockups.html`): a card below the month panel,
+  opening on today; tapping a day selects it (filled cell) and swaps the card. It shows the
+  weekday + Gregorian date, the Hebrew date, the events' names (or Shabbat / Erev Shabbat / the
+  weekday), Today / Yom Tov / Fast chips, Saturday's parasha, and the day's times — candle
+  lighting in amber; none → "No candle lighting or fast times". No sunrise/sunset (not in
+  `/calendar/month`) and no per-day reminder. Decided 2026-10-16: Erev Yom Kippur's candle
+  lighting reads "Candle lighting · fast begins" and Yom Kippur's end "Fast ends" (the data gives
+  `candleLighting` / `havdalah`); holiday names are tidied once in `@app/jewish-calendar` so Home,
+  the calendar and reminders agree ("Rosh Hashana 5787" → "Rosh Hashana I", "Sukkot II (CH’’M)" →
+  "Sukkot · day 2 (Chol HaMoed)", "Sukkot VII (Hoshana Raba)" → "Hoshana Raba", Hebrew to match).
+  *Done 2026-10-16:* `DayCard` under the grid; `MonthGrid` days are buttons (`aria-selected`,
+  filled `accent`). In the lib, `holiday-names.ts` (keyed on hebcal's `getDesc()`; Pesach's Chol
+  HaMoed too) for both Home and the month, and Yom Kippur's times became `fastBegins` (at the eve's
+  candle lighting) / `fastEnds` in `/calendar/month` — the card merges a same-moment candle
+  lighting and fast start into one row. Tests: lib (names, Israel and abroad, Yom Kippur), the
+  Gateway API, and e2e `calendar.spec.js` (opens on today, tap fills the cell and swaps the card,
+  fast/Shabbat/Yom Kippur rows, ‹ › → the 1st and back to today, real backend). Not yet seen on
+  the phone.
+- [x] **3.3b Frontend: swipe between months.** **New UI → mockup first** (**S1** in
+  `mockups.html`). A horizontal drag on the month moves the grid with the finger, the neighbouring
+  month beside it; let go past a quarter of the width or with a flick → it slides the rest of the
+  way (~250 ms, easing out) to the next (swipe left) or previous (swipe right) month, otherwise it
+  springs back. Held without letting go, the drag keeps going through as many months as you
+  like (each month passed hands over to the next; the title follows the month mostly in view;
+  only the month landed on is fetched). The arrows run the same slide. Vertical movement still scrolls the screen
+  (`react-native-gesture-handler` pan with horizontal activation, `react-native-reanimated` for the
+  slide — both already installed, the bottom sheet uses them). The incoming month shows its day
+  numbers at once (worked out on the phone); the Hebrew dates and dots fade in when
+  `/calendar/month` answers. The day card fades, and lands on today in the current month,
+  otherwise the 1st.
+  *Check:* on the phone, swipes and flicks both ways, a short drag springs back, the screen still
+  scrolls vertically, one held drag goes two or more months either way, and a fast run of swipes
+  ends on the right month with its own data.
+  *Done 2026-10-17:* `SwipePager` (base/layout): pages on an endless strip keyed by month index,
+  the page in view in normal layout (so nothing jumps on load), its neighbours beside it; the
+  weekday letters stay put above it (`WeekdayRow`). Fixed on the way: a drag held still before
+  letting go was lost (the gesture was rebuilt on a re-render — now memoized), and on the web a
+  long drag that unmounted the month it started on never ended (that page now stays mounted until
+  the drag ends). A phone screen is about one month wide, so a single finger stroke covers about
+  one month; the multi-month held drag is mostly a desktop (mouse) case. e2e (touch input): swipes
+  both ways, short drag springs back, two months in one held drag (only the last fetched), numbers
+  first then Hebrew dates, arrows' quick taps add up. Not yet seen on the phone.
+- [x] **3.3c Frontend: a day with many reminders (display only).** Chosen: **B2** in
+  `mockups.html` ("Busy day"), decided 2026-10-17. Per-day reminders don't exist yet (creating,
+  storing and sending them is a later feature, its own tasks); this builds how the calendar
+  shows them so it holds at 100+: the month cell keeps its dot and adds an amber count (`99+`
+  past 99) without growing; the day card keeps its size — "Your reminders" with the total, the
+  first 3 by time, and "+N more · Show all", which opens a `BottomSheet` listing them all grouped
+  by hour (a pinned hour header with its count), scrolling inside the sheet. Reminders come from
+  `calendarSlice.dayReminders` (`{ 'YYYY-MM-DD': [{ id, title, at }] }`), empty until the real
+  feature fills it. To see it before then: an admin-only "Sample reminders on the calendar"
+  switch on the Admin tab fills the shown month with generated ones (120 on one day, a few on
+  others; memory only, removed when real reminders arrive).
+  *Check:* with the switch on, at 120 (and 500) the month and the card keep their size, the
+  sheet scrolls smoothly on the phone, and swiping months still works.
+  *Done 2026-10-17:* `MonthGrid`'s `reminderCounts`, `DayCard`'s preview, `RemindersSheet`
+  (virtualized `FlatList`, pinned hour headers), `BottomSheet`'s `dragFromHandle`, and
+  `SampleRemindersCard` on the Admin tab (samples: 120 on the 24th, 500 on the 10th, a few on
+  other days). e2e `busy-day.spec.js`: 99+ and one cell size, the card's bounded height, the sheet
+  by hour with the hour pinned while scrolling, 500 opening fast and reaching 23:00, swiping with
+  the samples on. Finger scrolling of the sheet not yet checked on the phone (headless Chrome's
+  synthetic touch scroll moves nothing, not even the page — the tests scroll with the wheel).
+- [x] **3.3d Frontend: "Today" button + months preloaded.** Asked 2026-10-17. A "Today" pill in the
+  month header, shown whenever the month isn't the current one or another day is selected: it
+  slides back to this month (a far jump slides in from the month next to it, not through every
+  month between) and selects today. The two months either side of the one shown are fetched in the
+  background, so a swipe lands on a month that's already filled in (numbers-first only past two
+  months); the calendar slice keeps the fetched months by month (not just the shown one), dropped
+  when the location changes and pruned to a few around the month shown. No mockup: a small
+  addition to S1/D1 (updated in `mockups.html`).
+  *Check:* on the phone, swiping one or two months shows the Hebrew dates at once; Today from a far
+  month comes back to today with one short slide.
+  *Done 2026-10-17:* `calendarSlice.months` (by month, for a place rounded to ~1 km; each fetched
+  once — `fetchMonth`'s `condition`; pruned beyond six months of a request) and
+  `loadMonthsAround` (shown, ±1, ±2); `MonthHeader`'s `onToday`; `SwipePager.goTo`. Found on
+  the way: Today right after quick arrow taps only reselected the day (the slide hadn't landed yet)
+  — it now always selects today and slides back. e2e: preload order and a swipe landing on a
+  filled-in month, Today hidden/shown and back from five months away; the rest of
+  `calendar.spec.js` updated (each month fetched once instead of "only the landed month"). The S1
+  mockup has the pill. Fixed after a phone report (2026-10-17): swiping still looked like
+  loading — a month mounted beside the one in view played the Hebrew dates' fade-in even when
+  preloaded, and the header's Hebrew title showed only for the landed month. Now only a grid that
+  first showed bare numbers fades in, the title follows the month in view, and `SwipePager` keeps
+  two pages built either side (none built mid-drag). e2e: a preloaded month is fully drawn right
+  after a move.
+- [ ] **3.3e Frontend: swipe between tabs (next feature).** Asked 2026-10-17. Swipe left or
+  right anywhere on a screen to move to the next or previous tab in the bar (Home ↔ Calendar ↔
+  Account, ↔ Admin for admins), the screen following the finger and sliding the rest of the way like
+  the months do (`SwipePager`'s feel: past a quarter or a flick moves on, else it springs back);
+  tapping a tab still works and slides the same way. The tab bar's own rules still apply: swiping
+  onto Account while signed out shows the same "log in?" prompt as tapping it (`requiresAuth`), and
+  Admin is in the swipe order only for admins. **New UI → mockup first.** Open questions for the
+  mockup: (1) the Calendar month grid already swipes sideways between months — which wins there:
+  months on the grid and tabs everywhere else, tabs only from the screen's edges, or months only
+  with the arrows? (2) Does swiping past the last tab do nothing (springs back) or wrap around?
+  (3) Android's own back gesture comes from the screen edges — the tab swipe must not take it over.
+  *Check:* on the phone, swiping through every tab both ways, the Calendar swipe still does what the
+  mockup chose, the signed-out Account prompt, Admin only for admins, and Android's back gesture
+  still works.
 - [ ] **3.4 Holiday-eve reminders (if wanted).** An "Include holidays" switch on the reminder
   sheet, so it also fires before candle lighting on the eve of a holiday.
 - [ ] **3.5 Docs sync.**

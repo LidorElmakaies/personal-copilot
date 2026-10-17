@@ -16,9 +16,11 @@ import {
 import type {
   CalendarDay,
   CalendarEventKind,
+  CalendarTime,
   CalendarTimeKind,
   HebrewDate,
 } from '../models/calendar-day';
+import { holidayName } from '../holiday-names';
 import { addDays, type CivilDate } from '../models/civil-date';
 import type { GeoLocation } from '../models/geo-location';
 import type { LocalizedName, ShabbatTimes } from '../models/shabbat-times';
@@ -63,7 +65,7 @@ export class HebcalCalendarCalculator implements ICalendarCalculator {
       candleLighting,
       havdalah,
       parasha: parasha ? names(parasha) : null,
-      holidays: holidays.map(names),
+      holidays: holidays.map(holidayNames),
     };
   }
 
@@ -78,19 +80,26 @@ export class HebcalCalendarCalculator implements ICalendarCalculator {
     for (let date = first; !isAfter(date, last); date = addDays(date, 1)) {
       const onDay = events.filter((e) => isOn(e, date));
       const parasha = onDay.find((e) => e instanceof ParshaEvent);
+      const holidays = onDay.filter(
+        (e): e is HolidayEvent => e instanceof HolidayEvent,
+      );
       days.push({
         date: isoDate(date),
         hebrew: hebrewDate(date),
-        events: onDay
-          .filter((e): e is HolidayEvent => e instanceof HolidayEvent)
-          .map((e) => ({ kind: eventKind(e), name: names(e) })),
+        events: holidays.map((e) => ({
+          kind: eventKind(e),
+          name: holidayNames(e),
+        })),
         parasha: parasha ? names(parasha) : null,
-        times: onDay.flatMap((e) => {
-          const kind = timeKind(e);
-          return kind && e instanceof TimedEvent
-            ? [{ kind, at: e.eventTime }]
-            : [];
-        }),
+        times: yomKippurTimes(
+          holidays.map((e) => e.getDesc()),
+          onDay.flatMap((e) => {
+            const kind = timeKind(e);
+            return kind && e instanceof TimedEvent
+              ? [{ kind, at: e.eventTime }]
+              : [];
+          }),
+        ),
       });
     }
     return days;
@@ -137,6 +146,24 @@ function timeKind(event: Event): CalendarTimeKind | null {
   return null;
 }
 
+// hebcal gives Yom Kippur only candle lighting and Havdalah; it's a fast, so say so: the fast
+// begins with the eve's candle lighting and ends at that Havdalah.
+function yomKippurTimes(
+  descs: string[],
+  times: CalendarTime[],
+): CalendarTime[] {
+  if (descs.includes('Erev Yom Kippur')) {
+    const candles = times.find((t) => t.kind === 'candleLighting');
+    if (candles) return [...times, { kind: 'fastBegins', at: candles.at }];
+  }
+  if (descs.includes('Yom Kippur')) {
+    return times.map((t) =>
+      t.kind === 'havdalah' ? { kind: 'fastEnds', at: t.at } : t,
+    );
+  }
+  return times;
+}
+
 function hebrewDate(date: CivilDate): HebrewDate {
   const hd = new HDate(toHebcalDate(date));
   const month = hd.getMonthName();
@@ -179,4 +206,8 @@ function isOn(event: Event, date: CivilDate): boolean {
 
 function names(event: Event): LocalizedName {
   return { en: event.render('en'), he: event.render('he-x-NoNikud') };
+}
+
+function holidayNames(event: HolidayEvent): LocalizedName {
+  return holidayName(event.getDesc(), names(event));
 }

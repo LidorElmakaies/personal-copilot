@@ -30,14 +30,15 @@ tunnel from a Caddy instance on the public internet. HTTP + WebSocket.
 - `GET /calendar/month?year&month&lat&lon&tz` — served by Gateway itself the same way, unguarded:
   every day of that civil month — its Hebrew date, holidays/fasts (`kind`: `yomTov` | `fast` |
   `holiday`), Saturday's parasha, and its enter/leave times (`candleLighting` | `havdalah` |
-  `fastBegins` | `fastEnds`, on the day each happens). Same location validation, plus `year`
+  `fastBegins` | `fastEnds`, on the day each happens; Yom Kippur's are `fastBegins` at its eve's
+  candle lighting and `fastEnds`, not `havdalah`). Same location validation, plus `year`
   1900–2200 and `month` 1–12 → `400` otherwise. Never `422`: a day with no sunset just has no times.
   ```json
   { "year": 2026, "month": 9, "days": [ …, { "date": "2026-09-21",
       "hebrew": { "day": 10, "dayHe": "י׳", "month": { "en": "Tishrei", "he": "תשרי" },
                   "year": 5787, "yearHe": "תשפ״ז" },
       "events": [{ "kind": "yomTov", "name": { "en": "Yom Kippur", "he": "יום כיפור" } }],
-      "parasha": null, "times": [{ "kind": "havdalah", "at": "2026-09-21T16:13:00.000Z" }] }, … ] }
+      "parasha": null, "times": [{ "kind": "fastEnds", "at": "2026-09-21T16:15:00.000Z" }] }, … ] }
   ```
 - `GET /notifications/vapid-public-key` (open), `POST`/`DELETE /notifications/subscriptions` and
   `PUT`/`DELETE /notifications/fcm-devices` (`JwtAuthGuard`) → Notification Service's routes of the
@@ -353,16 +354,38 @@ logging in" link (routes to `/`) for whoever lands there without wanting to auth
   `src/utils/phone.js`, Israel only today) plus a digits-only local number, validated with
   `libphonenumber-js` and sent as E.164; its error shows once the field is left (or on submit).
   Blank optional fields are left out of the request.
-- `(tabs)/calendar` — no session required: a month grid (`MonthHeader` + `MonthGrid`, or `MonthStatus` while there's none; presentational) for the
-  device's location (`GET /calendar/month`, `calendarSlice.fetchMonth`, not persisted). Opens on the
-  device's current month; ‹ › move a month at a time, each a fresh fetch, and only the answer for
-  the month still shown is kept (a late one for a month already left is dropped). Weeks start on
+- `(tabs)/calendar` — no session required: a month grid (`MonthHeader`, `WeekdayRow`, then
+  `MonthGrid` pages in `SwipePager`; `MonthStatus` under it when location or the month fails;
+  presentational) for the device's location (`GET /calendar/month`, `calendarSlice.fetchMonth`,
+  not persisted). Opens on the device's current month. A sideways drag moves the month with the
+  finger (vertical still scrolls); let go past a quarter of the width or with a flick and it slides
+  on (~250 ms), else springs back; a held drag runs through as many months as it covers, the title
+  following the month mostly in view; ‹ › run the same slide, and quick taps add up. A "Today"
+  pill in the header, shown whenever another month or day is in view, slides back to this month (a
+  far jump starts one month short and slides one) and selects today. The month landed on is fetched
+  first, then the two either side (`calendarSlice.loadMonthsAround`), so a swipe lands on a month
+  already filled in (drawn complete, no fade; `SwipePager` keeps two built either side, the
+  header's Hebrew title follows the month in view); one not loaded yet shows its day numbers
+  (`placeholderDays`) and only then do its Hebrew dates and dots fade in when it answers. Fetched months are kept by month for the current place
+  (location rounded to ~1 km; a move clears them), each fetched once, pruned to those near the
+  month shown. Weeks start on
   Sunday; each day shows its date, its Hebrew day, and a dot — `error` color for a fast, `accent`
   for any other holiday; Friday and Saturday dates in `pending` (amber), today outlined (and
   "today" in its accessibility label). Under the title: the Hebrew months the month spans and the
   year it ends in. Opened straight to this tab, it asks for the location itself (Home normally
   does); location refused → "Location is off" + Retry, as on Home; location or month failing →
-  "Couldn't load this month." + Retry.
+  "Couldn't load this month." + Retry. Below the month, `DayCard` (presentational) shows the selected
+  day — today on opening, the 1st after ‹ ›, or the day tapped (filled `accent`): its weekday and
+  date, Hebrew date, its events' names in English and Hebrew (else Shabbat / Erev Shabbat / the
+  weekday), Today / Yom Tov / Fast chips, Saturday's parasha, and its times (candle lighting in
+  `pending`; a fast starting with candle lighting is one row, "Candle lighting · fast begins"),
+  or "No candle lighting or fast times"; dimmed while a swipe is between months. Per-day reminders
+  (`calendarSlice.dayReminders`, `{ date: [{ id, title, at }] }`; nothing fills it yet but the Admin
+  tab's sample switch, `SampleRemindersCard`) show as an amber count under a day's dot (`99+` past
+  99; the count line only in a month that has some, so plain months keep their height), and on
+  the card as "Your reminders" with the total, the first 3 by time and "+N more · Show all", which
+  opens `RemindersSheet`: all of them grouped by hour, each hour's header pinned, in a virtualized
+  list scrolling inside the sheet (only its grab bar drags it). Cleared on sign-out.
 - `(tabs)/account` — a heading and six cards (`src/components/composite/`): `ThemeCard` (light/
   dark toggle), `NotificationsCard` (see Notifications below), `AccountCard` (email; edit email/password via `POST /auth/account` — the
   `updateAccount` thunk, see `apps/users` above), `ProfileCard` (name and phone; fetches
@@ -387,7 +410,9 @@ logging in" link (routes to `/`) for whoever lands there without wanting to auth
   link, showing `RequireAuthNotice` otherwise; the server checks the role too (`AdminGuard`).
   `SystemStatus` lists `GET /admin/status` (`adminSlice.fetchSystemStatus`, not persisted, reset on
   sign-out): each service up/down with its version, build time and uptime. Refreshed on every
-  visit, by its button and by pull; `VersionInfo` below it.
+  visit, by its button and by pull; then `SampleRemindersCard` — a switch that fills the Calendar
+  tab with made-up per-day reminders (120 on the 24th, 500 on the 10th, a few on other days; memory
+  only, until real per-day reminders exist) — and `VersionInfo`.
 - **Location sync** — `app/_layout.js`'s `LocationSyncManager` dispatches `profileSlice`'s
   `syncLocation` whenever the user is signed in and `locationSlice.status` is `'ready'` (a fresh
   GPS fix this session — the persisted last-known `coords` alone never trigger it).
@@ -523,8 +548,9 @@ plus `frontend/public/index.html` (Expo's single-page template with the manifest
 Themed via `themeSlice` → `useAppTheme()` and shared
 components under `src/components/base/` (grouped into `background`/`buttons`/`feedback`/`form`/
 `layout` subfolders by purpose) and `src/components/composite/` (the Account cards above,
-`AmbientBackground`, `CandleReminder`, `ConfirmModal`, `FormActions`, `NotificationsPrompt`, `ProfileFields`,
-`RequireAuthNotice`, `ShabbatSection`, `SystemStatus`, `UpdateChip`, `UpdateSheet`) — see `.claude/agents/frontend.md` for the base/composite split, the full
+`AmbientBackground`, `CandleReminder`, `ConfirmModal`, `DayCard`, `FormActions`, `MonthGrid`, `MonthHeader`,
+`MonthStatus`, `NotificationsPrompt`, `ProfileFields`, `RemindersSheet`, `RequireAuthNotice`,
+`SampleRemindersCard`, `ShabbatSection`, `SystemStatus`, `UpdateChip`, `UpdateSheet`) — see `.claude/agents/frontend.md` for the base/composite split, the full
 convention, and why there's no Gluestack layer here.
 
 `src/services/` is split by transport: `http/` (fetch-based calls — `authService`,
@@ -638,7 +664,9 @@ candle-lighting minutes for all of them).
   while it's still running — including through a Yom Tov directly after it (abroad, `havdalah` can
   be Sunday or Monday night). `parasha` is `null` when a holiday replaces the weekly reading;
   `holidays` lists what falls on that Saturday, minus eves, modern civic days and Leil Selichot.
-  Names come in English and unvoweled Hebrew.
+  Names come in English and unvoweled Hebrew, tidied where hebcal's read badly
+  (`holiday-names.ts`: "Rosh Hashana I" without the year, "Sukkot · day 3 (Chol HaMoed)" for
+  Sukkot/Pesach II–VI (CH''M), "Hoshana Raba" for Sukkot VII).
 - `nextCandleLighting(location, after)` — the first Friday candle lighting strictly after `after`.
   Weeks with no sunset are skipped; throws `UnprocessableEntityException` (`422`) only after 26
   such weeks in a row (or from `current` when this week has none).
@@ -647,7 +675,8 @@ candle-lighting minutes for all of them).
   forbidden (Yom Kippur too), `fast` for other fasts, `holiday` for the rest (Chol HaMoed, Rosh
   Chodesh, eves, special Shabbatot, modern days) — Saturday's parasha, and its times: candle
   lighting on the day it's lit (Friday, an eve, or a second Yom Tov night after nightfall), Havdalah,
-  and a fast's start and end. Chanukah's candles aren't included.
+  and a fast's start and end — Yom Kippur as a fast too: `fastBegins` at its eve's candle
+  lighting, `fastEnds` instead of Havdalah. Chanukah's candles aren't included.
 - Rules, for all: "today" is the user's local date in `timeZone`, never the server's. Israel vs.
   abroad (one- vs. two-day Yom Tov) follows `timeZone === 'Asia/Jerusalem'`. Candle lighting is
   20 min before sunset in Israel — 40 in Jerusalem and Petach Tikva, 30 in Haifa, Tzfat and Zikhron Ya'akov (OU Israel / MyZmanim), matched by distance from the city center — and 18 abroad (`israel-city-customs.ts`; the radius is approximate, so a town

@@ -100,7 +100,7 @@ describe('GET /calendar/month', () => {
       kind: 'yomTov',
       name: { en: 'Yom Kippur', he: 'יום כיפור' },
     });
-    expect(kippur.times.map((t) => t.kind)).toEqual(['havdalah']);
+    expect(kippur.times.map((t) => t.kind)).toEqual(['fastEnds']);
     expect(kippur.times[0].at).toMatch(/^2026-09-21T\d{2}:\d{2}:00\.000Z$/);
   });
 

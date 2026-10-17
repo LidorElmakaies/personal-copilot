@@ -85,7 +85,7 @@ two folders:
   animated background-effect primitives; `paused` stops them, `AmbientBackground` sets it while
   its screen isn't focused), `buttons/` (`GradientButton`, `PillButton`), `feedback/`
   (`Alert`, `VersionInfo` — status/feedback indicators), `form/` (`InputField`, `SelectField`, `Stepper`,
-  `Switch` — form input controls), `layout/` (`BottomSheet`, `GlowCard`, `Row` — layout/surface
+  `Switch` — form input controls), `layout/` (`BottomSheet`, `GlowCard`, `Row`, `SwipePager` — layout/surface
   primitives). Props worth knowing:
   `Alert`'s `variant` (`error` default, `warning`, `success`); `Switch`'s `disabled` and
   `accessibilityLabel` (rendered with role `switch`); `GlowCard`'s `solid` (opaque panel under the
@@ -94,7 +94,7 @@ two folders:
   default, `muted`, `pending` — amber, something is set, `selected` — the chosen option in a group)
   and `icon` (a render function given the text color); `Stepper`'s `min`/`max`/`step`/`unit` (− value
   +, clamped; an off-grid value moves to the next grid point); `BottomSheet`'s `visible`/`onClose`
-  (a `Modal` whose backdrop fades while the panel slides up; drag the panel down — from anywhere on it, past ~⅓ of its height or a quick flick — or tap the backdrop to slide it away and close. Gestures are `react-native-gesture-handler`'s `Pan`/`Tap` with Reanimated, inside the Modal's own `GestureHandlerRootView` — `PanResponder` never received the drag or the backdrop tap in an Android Modal). `SelectField` renders its
+  (a `Modal` whose backdrop fades while the panel slides up; drag the panel down — from anywhere on it, past ~⅓ of its height or a quick flick — or tap the backdrop to slide it away and close. Gestures are `react-native-gesture-handler`'s `Pan`/`Tap` with Reanimated, inside the Modal's own `GestureHandlerRootView` — `PanResponder` never received the drag or the backdrop tap in an Android Modal; `dragFromHandle` puts the drag on the grab bar only, for a sheet whose content scrolls); `SwipePager`'s `index`/`renderPage(i)`/`onMove`/`onSettle` and `ref.current.go(by)`/`goTo(index)` (endless sideways pages — the Calendar tab's months; see its file for why the gesture is memoized and the starting page kept mounted). `SelectField` renders its
   option list in a transparent `Modal` at the box's measured window position (below it, or above
   if there's no room; scrolls past 4 options) — inline, any `overflow:'hidden'` ancestor such as
   `GlowCard` would clip it and later siblings would draw over it.
@@ -113,8 +113,13 @@ two folders:
   `ShabbatSection`'s `footer`; owns its Redux wiring, the sheet's form is private), `UpdateSheet`
   (from `BottomSheet`, `GradientButton`, `Alert` — the APK's update sheet, mounted app-wide by
   `AppUpdateManager`), `UpdateChip` (Home's "↑ <version>" chip, reopens it), `MonthHeader`
-  / `MonthGrid` / `MonthStatus` (presentational — the Calendar tab's title row, month and
-  loading/error state; the screen owns the Redux wiring), `SystemStatus`
+  / `MonthGrid` / `MonthStatus` (presentational — the Calendar tab's title row (with an optional
+  `onToday` pill), month (tappable
+  days, `selected`/`onSelect`) and loading/error state; the screen owns the Redux wiring and the
+  selected day; `MonthGrid` (memoized) also exports `WeekdayRow` and takes `reminders`), `DayCard` (from
+  `GlowCard` — the selected day's names and times, and its reminders' preview; exports
+  `ReminderRow`), `RemindersSheet` (from `BottomSheet` — "Show all": a day's reminders by hour),
+  `SampleRemindersCard` (`GlowCard`, `Row`, `Switch` — the Admin tab's sample per-day reminders), `SystemStatus`
   (presentational — the Admin tab's list of services from `GET /admin/status`), and the
   Account tab's cards — `ThemeCard` (`GlowCard`, `Row`, `Switch`), `NotificationsCard`
   (`GlowCard`, `Row`, `Switch`, `Alert`), `AccountCard`, `ProfileCard`,
@@ -247,6 +252,14 @@ Driving tips:
   still worked, and the web build was fine, so only the phone shows it). A Modal is its own window:
   wrap its content in a `GestureHandlerRootView`, and give a view that only carries a gesture
   `collapsable={false}` so it isn't flattened away.
+- **A gesture object must outlive re-renders** (`SwipePager`): `Gesture.Pan()` built in render
+  replaced the one in progress whenever the drag re-rendered the screen, so a drag held still
+  before letting go was lost — build it in `useMemo` and reach changing callbacks through a ref.
+  On web, also keep the element a touch started on mounted until it ends: the browser sends the rest
+  of the touch there, and a long drag that unmounted it never got its lift-off.
+- **Don't size a box from a measured child on first paint** if things around it are centered: the
+  swipe area measured its month before taking its height, so for a moment the month was clipped and
+  everything below jumped — keep the page in view in normal layout instead.
 - **Many always-running animations: not Reanimated.** ~100 stars × 2 endless `withRepeat` loops
   ran a worklet per animation per frame on the UI thread — ~90% of the app's CPU on a 120 Hz phone
   (110%+ of a core; 8% with them still). `Stars`/`Meteors` now use RN `Animated` with

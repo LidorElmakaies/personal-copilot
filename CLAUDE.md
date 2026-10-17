@@ -200,8 +200,12 @@ scripts/docs-check.js     docs drift check (+ docs-check.test.js) — see Comman
   set/change/turn off the candle-lighting reminder's offset via `GET /reminders` and
   `PUT`/`DELETE /reminders/shabbat-candles` (`remindersSlice`, not persisted, reset on sign-out) —
   signed out, the bell asks to log in instead), `(tabs)/calendar` (no session required: the month
-  grid — both dates per day, holiday/fast dots, ‹ › months, today outlined — from
-  `GET /calendar/month`, `calendarSlice.fetchMonth`), `(tabs)/account`
+  grid — both dates per day, holiday/fast dots, today outlined; swipe or ‹ › between months
+  (`SwipePager`), a Today button back — from `GET /calendar/month` (the month shown plus two
+  either side, preloaded: `calendarSlice.loadMonthsAround`), and `DayCard` under it for
+  the day tapped: names, parasha and times; today on opening; per-day reminders, when there are
+  any, as cell counts and a preview with "Show all" (`RemindersSheet`) — only the Admin tab's
+  sample switch fills them so far), `(tabs)/account`
   (a heading plus `ThemeCard`, `NotificationsCard` (this browser's or phone's notifications on/off), `AccountCard`
   (edit email/password), `ProfileCard` (name/phone via
   `GET`/`PATCH /users/me`, fetched on mount), `LogoutCard` (`logOut`), `DeleteAccountCard` (password, then

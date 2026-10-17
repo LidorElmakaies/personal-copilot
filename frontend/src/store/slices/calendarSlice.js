@@ -1,5 +1,8 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import * as calendarService from '../../services/http/calendarService';
+import { monthAt, monthIndex } from '../../utils/calendar';
+import { sampleReminders } from '../../utils/sampleReminders';
+import { clearAuth, deleteAccount } from './authSlice';
 
 export const fetchShabbat = createAsyncThunk(
   'calendar/fetchShabbat',
@@ -14,8 +17,16 @@ export const fetchShabbat = createAsyncThunk(
   },
 );
 
-// The Calendar tab's month; a fresh fetch per month shown (not cached — it's cheap, and times
-// depend on the location).
+// Months are kept per location rounded to ~1 km: GPS wobble keeps them, a real move refetches
+// (the times depend on where you are).
+const placeOf = (coords) =>
+  `${coords.latitude.toFixed(2)},${coords.longitude.toFixed(2)}`;
+// How many months either side of the one shown are fetched ahead, and kept.
+const PRELOAD = 2;
+const KEEP = 6;
+
+// One Calendar-tab month. Skipped when it's already loaded or loading for this place, so the
+// preload below can be asked for freely.
 export const fetchMonth = createAsyncThunk(
   'calendar/fetchMonth',
   async ({ year, month }, { getState, rejectWithValue }) => {
@@ -27,10 +38,33 @@ export const fetchMonth = createAsyncThunk(
       return rejectWithValue(err.message);
     }
   },
+  {
+    condition: (arg, { getState }) => {
+      const { location, calendar } = getState();
+      if (!location.coords) return true; // lets it reject with the reason
+      const status = calendar.months[monthIndex(arg)]?.status;
+      return !(
+        calendar.monthsPlace === placeOf(location.coords) &&
+        (status === 'loading' || status === 'succeeded')
+      );
+    },
+    getPendingMeta: (_, { getState }) => {
+      const { coords } = getState().location;
+      return { place: coords ? placeOf(coords) : null };
+    },
+  },
 );
 
-const isShown = (state, { year, month }) =>
-  state.month.year === year && state.month.month === month;
+// The month shown first, then the ones next to it, then two away — so a swipe lands on a month
+// that's already there.
+export const loadMonthsAround =
+  ({ year, month }) =>
+  (dispatch) => {
+    const index = monthIndex({ year, month });
+    const order = [0];
+    for (let d = 1; d <= PRELOAD; d++) order.push(d, -d);
+    for (const d of order) dispatch(fetchMonth(monthAt(index + d)));
+  };
 
 const calendarSlice = createSlice({
   name: 'calendar',
@@ -38,11 +72,25 @@ const calendarSlice = createSlice({
     shabbat: null, // last response (ISO strings) — persisted so Home still shows times offline
     status: 'idle', // 'idle' | 'loading' | 'succeeded' | 'failed'
     error: null,
-    // The month on the Calendar tab. Only the answer for the month still shown is kept, so a
-    // slow reply can't replace a newer one after quick arrow taps.
-    month: { year: null, month: null, days: null, status: 'idle', error: null },
+    // The Calendar tab's fetched months by month number (monthIndex): { days, status, error }, for
+    // `monthsPlace`
+    // (cleared when it changes), the few around the month shown — see loadMonthsAround.
+    months: {},
+    monthsPlace: null,
+    // Per-day reminders by date: { 'YYYY-MM-DD': [{ id, title, at }] }, sorted by time. Nothing
+    // fills it for real yet (per-day reminders are a later feature); the Admin tab's sample switch
+    // does, so the busy-day display can be seen. Not persisted; cleared on sign-out.
+    dayReminders: {},
+    sampleReminders: false,
   },
-  reducers: {},
+  reducers: {
+    // `around` is { year, month }: samples cover six months either side of it.
+    setSampleReminders: (state, action) => {
+      const { on, around } = action.payload;
+      state.sampleReminders = on;
+      state.dayReminders = on ? sampleReminders(around) : {};
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(fetchShabbat.pending, (state) => {
@@ -58,27 +106,43 @@ const calendarSlice = createSlice({
         state.error = action.payload ?? action.error.message;
       })
       .addCase(fetchMonth.pending, (state, action) => {
-        const { year, month } = action.meta.arg;
-        const sameMonth = isShown(state, action.meta.arg);
-        state.month = {
-          year,
-          month,
-          days: sameMonth ? state.month.days : null, // a refetch keeps the grid up
+        const { place } = action.meta;
+        if (place !== state.monthsPlace) {
+          state.months = {};
+          state.monthsPlace = place;
+        }
+        // Keep only the months near this one (requests are always near the month shown).
+        const index = monthIndex(action.meta.arg);
+        for (const key of Object.keys(state.months)) {
+          if (Math.abs(key - index) > KEEP) delete state.months[key];
+        }
+        state.months[index] = {
+          days: state.months[index]?.days ?? null, // a retry keeps what's there
           status: 'loading',
           error: null,
         };
       })
       .addCase(fetchMonth.fulfilled, (state, action) => {
-        if (!isShown(state, action.meta.arg)) return;
-        state.month.days = action.payload.days;
-        state.month.status = 'succeeded';
+        const month = state.months[monthIndex(action.meta.arg)];
+        if (!month) return; // pruned or the place changed meanwhile
+        month.days = action.payload.days;
+        month.status = 'succeeded';
       })
       .addCase(fetchMonth.rejected, (state, action) => {
-        if (!isShown(state, action.meta.arg)) return;
-        state.month.status = 'failed';
-        state.month.error = action.payload ?? action.error.message;
-      });
+        const month = state.months[monthIndex(action.meta.arg)];
+        if (!month) return;
+        month.status = 'failed';
+        month.error = action.payload ?? action.error.message;
+      })
+      .addCase(clearAuth, clearDayReminders)
+      .addCase(deleteAccount.fulfilled, clearDayReminders);
   },
 });
 
+function clearDayReminders(state) {
+  state.dayReminders = {};
+  state.sampleReminders = false;
+}
+
+export const { setSampleReminders } = calendarSlice.actions;
 export default calendarSlice.reducer;
