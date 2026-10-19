@@ -442,7 +442,8 @@ test.describe('with location refused', () => {
 
   test('explains location is off and offers Retry', async ({ page }) => {
     await page.goto('/calendar');
-    await expect(page.getByText(/^Location is off\./)).toBeVisible();
-    await expect(page.getByText('Retry', { exact: true })).toBeVisible();
+    // Home sits mounted beside Calendar (the tab swipe) and says the same about Shabbat times.
+    await expect(page.getByText(/^Location is off\. .* see the calendar/)).toBeVisible();
+    await expect(page.getByText('Retry', { exact: true }).last()).toBeInViewport();
   });
 });

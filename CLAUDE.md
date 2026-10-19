@@ -210,14 +210,19 @@ scripts/docs-check.js     docs drift check (+ docs-check.test.js) — see Comman
   (edit email/password), `ProfileCard` (name/phone via
   `GET`/`PATCH /users/me`, fetched on mount), `LogoutCard` (`logOut`), `DeleteAccountCard` (password, then
   `DELETE /auth/account`, signs out), then `VersionInfo` (frontend version, build time) — each card keeps its form private, and signing out unmounts
-  them all so forms reset; the one tab opted into `requiresAuth: true`; the shared `CustomTabBar` intercepts a press on it while
-  signed out and shows `ConfirmModal` instead of navigating, but a direct hit on the route — deep
+  them all so forms reset; the one tab opted into `requiresAuth: true`; a press on it in the shared `CustomTabBar`, or a swipe onto it, while
+  signed out shows `ConfirmModal` instead of navigating (the swipe springs back), but a direct hit on the route — deep
   link, web refresh — bypasses that, so the screen itself also calls `useRequireAuth()` on mount and
   renders `RequireAuthNotice` instead — both generic and reusable by any future `requiresAuth` tab,
   not Account-specific), and `(tabs)/admin` (`requiresRole: 'admin'`: left out of the tab bar for
   everyone else, and the screen checks the role again via `useHasRole` for a direct link) —
   `SystemStatus`, each service's up/down, version, build and start time from `GET /admin/status`,
-  refreshed on every visit, by its button and by pull. Redux Toolkit, services-layer convention (all I/O in
+  refreshed on every visit, by its button and by pull. The tabs are `SwipeTabs` (composite; Expo
+  Router's `withLayoutContext` + `TabRouter`) over `TabPager` (base/layout): swipe sideways between
+  them in the bar's order (Admin only for admins), a tap slides the same way, springs back past
+  either end; a drag from within 20 dp of a side is left to Android's back gesture, and the Calendar
+  grid's own month swipe wins over it. A tab mounts when shown or next to the one shown, then stays.
+  Redux Toolkit, services-layer convention (all I/O in
   `src/services/`, split by transport — `http/`, `ws/`, and `device/` (location, browser push, the
   APK download/installer) — called only
   from thunks in `src/store/slices/`). One Socket.IO connection, signed in or not, with this
@@ -261,7 +266,7 @@ scripts/docs-check.js     docs drift check (+ docs-check.test.js) — see Comman
   shared building blocks login/register/
   Home/Calendar/Account all use; `Switch` (base/form) the toggle; `SelectField` (base/form) is the dropdown and `ProfileFields` (composite)
   the name/phone group shared by register and `ProfileCard`; `ConfirmModal` (composite) is the
-  shared Yes/No overlay (the `requiresAuth` tab-press guard, `NotificationsPrompt`, the signed-out
+  shared Yes/No overlay (the `requiresAuth` tab guard, `NotificationsPrompt`, the signed-out
   reminder bell); `FormActions` (composite) the Save/Cancel pair under the Account cards' edit
   forms; `PillButton` (base/buttons), `Stepper` (base/form) and `BottomSheet` (base/layout)
   build `CandleReminder`; `MonthHeader`, `MonthGrid` and `MonthStatus` (composite) build the Calendar tab (`src/utils/calendar.js` its date helpers).

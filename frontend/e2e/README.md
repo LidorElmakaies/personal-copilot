@@ -24,6 +24,10 @@ expired, once on a `401` with the call retried, one refresh for two calls failin
 that only a refused refresh signs out to login with the "session ended" notice (offline, a `5xx`
 or a `500` elsewhere don't). `tests/ws-connection.spec.js` also checks a socket refused for an
 expired token reopens with the renewed one.
+`tests/tab-swipe.spec.js` swipes between tabs with CDP touches (as the Calendar's month swipe):
+signed out (the Account prompt), as a user (never reaches Admin, also from `/admin`) and as an
+admin, plus the edge zone and the month grid. Every tab next to the one shown is mounted, so text
+that two screens share (Home's and Calendar's "Location is off") needs a narrower locator.
 `tests/reminders.spec.js` mocks Gateway and seeds a token the same way; it
 starts the clock at a fixed time with `page.clock.install` + `resume` rather than freezing it with
 `setFixedTime`, since a frozen clock also stops the bottom sheet's JS slide-in animation.

@@ -1,6 +1,7 @@
 import {
   forwardRef,
   useCallback,
+  useContext,
   useImperativeHandle,
   useMemo,
   useRef,
@@ -20,6 +21,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
+import { TabPagerGesture } from './TabPager';
 
 const SLIDE = { duration: 250, easing: Easing.out(Easing.cubic) };
 const PAST = 0.25; // of the width: let go past this and it moves on
@@ -98,39 +100,41 @@ const SwipePager = forwardRef(function SwipePager(
     [slideTo],
   );
 
+  // Inside a TabPager (the Calendar tab), a sideways drag here moves months, not tabs.
+  const tabPan = useContext(TabPagerGesture);
+
   // Made once: a new gesture object on a re-render (passing halfway re-renders the title) would
   // replace the one in progress, and a drag held still before letting go was lost.
-  const pan = useMemo(
-    () =>
-      Gesture.Pan()
-        .activeOffsetX([-10, 10])
-        .failOffsetY([-10, 10])
-        .onStart(() => {
-          runOnJS(setHeld)(Math.round(position.value));
-          cancelAnimation(position);
-          startPosition.value = position.value;
-        })
-        .onUpdate((e) => {
-          if (!widthSV.value) return;
-          position.value = startPosition.value - e.translationX / widthSV.value;
-          const n = Math.round(position.value);
-          if (n !== nearest.value) {
-            nearest.value = n;
-            runOnJS(moveTo)(n);
-          }
-        })
-        .onEnd((e) => {
-          const p = position.value;
-          const forward = e.translationX < 0; // finger moved left → later pages
-          const base = forward ? Math.floor(p) : Math.ceil(p);
-          const step = forward ? 1 : -1;
-          const moved =
-            Math.abs(p - base) > PAST || Math.abs(e.velocityX) > FLICK;
-          const to = moved ? base + step : base;
-          runOnJS(slideTo)(to);
-        }),
-    [position, startPosition, widthSV, nearest, moveTo, slideTo],
-  );
+  const pan = useMemo(() => {
+    const g = Gesture.Pan()
+      .activeOffsetX([-10, 10])
+      .failOffsetY([-10, 10])
+      .onStart(() => {
+        runOnJS(setHeld)(Math.round(position.value));
+        cancelAnimation(position);
+        startPosition.value = position.value;
+      })
+      .onUpdate((e) => {
+        if (!widthSV.value) return;
+        position.value = startPosition.value - e.translationX / widthSV.value;
+        const n = Math.round(position.value);
+        if (n !== nearest.value) {
+          nearest.value = n;
+          runOnJS(moveTo)(n);
+        }
+      })
+      .onEnd((e) => {
+        const p = position.value;
+        const forward = e.translationX < 0; // finger moved left → later pages
+        const base = forward ? Math.floor(p) : Math.ceil(p);
+        const step = forward ? 1 : -1;
+        const moved =
+          Math.abs(p - base) > PAST || Math.abs(e.velocityX) > FLICK;
+        const to = moved ? base + step : base;
+        runOnJS(slideTo)(to);
+      });
+    return tabPan ? g.blocksExternalGesture(tabPan) : g;
+  }, [position, startPosition, widthSV, nearest, moveTo, slideTo, tabPan]);
 
   const strip = useAnimatedStyle(() => ({
     transform: [{ translateX: -(position.value - anchor) * widthSV.value }],

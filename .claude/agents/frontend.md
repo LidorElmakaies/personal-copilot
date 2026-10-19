@@ -34,14 +34,16 @@ Admin tab (`SystemStatus` over `GET /admin/status`, `adminSlice`) — see
 `ask-my-crawl`'s frontend, only its theme/component/services conventions.
 
 A tab opts into requiring a session via `TABS`' `requiresAuth: true` entry in `(tabs)/_layout.js`
-— `CustomTabBar` intercepts a tab press while signed out and shows `ConfirmModal` instead of
-navigating. That only covers a *tab press*; a direct hit on the route (deep link, web refresh,
+— a press on it in `CustomTabBar`, or a swipe onto it (`SwipeTabs`' `canEnter`/`onBlocked`: the
+swipe springs back), while signed out shows `ConfirmModal` instead of navigating. That only covers a
+tap or a swipe; a direct hit on the route (deep link, web refresh,
 reopening the app on that tab) bypasses it, so a `requiresAuth` screen also needs its own mount-time
 check. Both halves are generic, not Account-specific: `useRequireAuth()`
 (`src/hooks/useRequireAuth.js`) is the mount-time check, `RequireAuthNotice`
 (`src/components/composite/RequireAuthNotice.js`) is the logged-out fallback to render when it's false — see
 `(tabs)/account.js` for the pattern the next `requiresAuth` tab should follow. A tab for one role
-only sets `requiresRole: '<role>'` instead: it's left out of the bar for everyone else, and the
+only sets `requiresRole: '<role>'` instead: it's left out of the bar and the swipe order for
+everyone else, and the
 screen checks again with `useHasRole` (`(tabs)/admin.js`); the server checks the role too.
 
 A signed-in HTTP call goes through `httpClient`'s `authorizedFetch`: an already-expired token is
@@ -85,7 +87,7 @@ two folders:
   animated background-effect primitives; `paused` stops them, `AmbientBackground` sets it while
   its screen isn't focused), `buttons/` (`GradientButton`, `PillButton`), `feedback/`
   (`Alert`, `VersionInfo` — status/feedback indicators), `form/` (`InputField`, `SelectField`, `Stepper`,
-  `Switch` — form input controls), `layout/` (`BottomSheet`, `GlowCard`, `Row`, `SwipePager` — layout/surface
+  `Switch` — form input controls), `layout/` (`BottomSheet`, `GlowCard`, `Row`, `SwipePager`, `TabPager` — layout/surface
   primitives). Props worth knowing:
   `Alert`'s `variant` (`error` default, `warning`, `success`); `Switch`'s `disabled` and
   `accessibilityLabel` (rendered with role `switch`); `GlowCard`'s `solid` (opaque panel under the
@@ -94,12 +96,14 @@ two folders:
   default, `muted`, `pending` — amber, something is set, `selected` — the chosen option in a group)
   and `icon` (a render function given the text color); `Stepper`'s `min`/`max`/`step`/`unit` (− value
   +, clamped; an off-grid value moves to the next grid point); `BottomSheet`'s `visible`/`onClose`
-  (a `Modal` whose backdrop fades while the panel slides up; drag the panel down — from anywhere on it, past ~⅓ of its height or a quick flick — or tap the backdrop to slide it away and close. Gestures are `react-native-gesture-handler`'s `Pan`/`Tap` with Reanimated, inside the Modal's own `GestureHandlerRootView` — `PanResponder` never received the drag or the backdrop tap in an Android Modal; `dragFromHandle` puts the drag on the grab bar only, for a sheet whose content scrolls); `SwipePager`'s `index`/`renderPage(i)`/`onMove`/`onSettle` and `ref.current.go(by)`/`goTo(index)` (endless sideways pages — the Calendar tab's months; see its file for why the gesture is memoized and the starting page kept mounted). `SelectField` renders its
+  (a `Modal` whose backdrop fades while the panel slides up; drag the panel down — from anywhere on it, past ~⅓ of its height or a quick flick — or tap the backdrop to slide it away and close. Gestures are `react-native-gesture-handler`'s `Pan`/`Tap` with Reanimated, inside the Modal's own `GestureHandlerRootView` — `PanResponder` never received the drag or the backdrop tap in an Android Modal; `dragFromHandle` puts the drag on the grab bar only, for a sheet whose content scrolls); `SwipePager`'s `index`/`renderPage(i)`/`onMove`/`onSettle` and `ref.current.go(by)`/`goTo(index)` (endless sideways pages — the Calendar tab's months; see its file for why the gesture is memoized and the starting page kept mounted; inside a `TabPager` its pan blocks the tab pan via `TabPagerGesture`); `TabPager`'s `index`/`count`/`renderPage(i)`/`mounted`/`onMove`/`onSwipe`/`canEnter`/`onBlocked`/`enabled` (a fixed row of pages — the tabs, under `SwipeTabs`: one page per drag, stretches past the ends, ignores drags from within 20 dp of a side). `SelectField` renders its
   option list in a transparent `Modal` at the box's measured window position (below it, or above
   if there's no room; scrolls past 4 options) — inline, any `overflow:'hidden'` ancestor such as
   `GlowCard` would clip it and later siblings would draw over it.
 - **`composite/`** — built by composing one or more `base` (or other `composite`) components, flat
-  (no subfolders). Currently: `AmbientBackground` (from `Meteors`, `Stars`), `ConfirmModal` (from
+  (no subfolders). Currently: `AmbientBackground` (from `Meteors`, `Stars`), `SwipeTabs` (from
+  `TabPager` — the `(tabs)` navigator: Expo Router's `withLayoutContext` + `TabRouter`, the screens
+  side by side; `order`, `canEnter`, `onBlocked`, `tabBar({ navigation, activeName })`), `ConfirmModal` (from
   `GlowCard` (solid), `GradientButton`; optional `icon`/`title` above the message),
   `FormActions` (from `GradientButton` — the Save/Cancel pair under `AccountCard`'s and
   `ProfileCard`'s edit forms),
@@ -252,6 +256,9 @@ Driving tips:
   still worked, and the web build was fine, so only the phone shows it). A Modal is its own window:
   wrap its content in a `GestureHandlerRootView`, and give a view that only carries a gesture
   `collapsable={false}` so it isn't flattened away.
+- **Web: an `overflow:'hidden'` box can still be scrolled by the browser** (to show something
+  focused) — `TabPager`'s clipping box was left `scrollLeft` 107 px, the screen stuck between two
+  tabs. RN-web drops `overflow:'clip'`, so `TabPager` puts `scrollLeft` back on its `scroll` event.
 - **A gesture object must outlive re-renders** (`SwipePager`): `Gesture.Pan()` built in render
   replaced the one in progress whenever the drag re-rendered the screen, so a drag held still
   before letting go was lost — build it in `useMemo` and reach changing callbacks through a ref.

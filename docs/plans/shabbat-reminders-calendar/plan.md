@@ -649,7 +649,7 @@ and a day card with that day's times.
   first showed bare numbers fades in, the title follows the month in view, and `SwipePager` keeps
   two pages built either side (none built mid-drag). e2e: a preloaded month is fully drawn right
   after a move.
-- [ ] **3.3e Frontend: swipe between tabs (next feature).** Asked 2026-10-17. Swipe left or
+- [x] **3.3e Frontend: swipe between tabs.** Asked 2026-10-17. Swipe left or
   right anywhere on a screen to move to the next or previous tab in the bar (Home ↔ Calendar ↔
   Account, ↔ Admin for admins), the screen following the finger and sliding the rest of the way like
   the months do (`SwipePager`'s feel: past a quarter or a flick moves on, else it springs back);
@@ -663,6 +663,21 @@ and a day card with that day's times.
   *Check:* on the phone, swiping through every tab both ways, the Calendar swipe still does what the
   mockup chose, the signed-out Account prompt, Admin only for admins, and Android's back gesture
   still works.
+  *Mockup T1 chosen (2026-10-19, `mockups.html` "Swipe between tabs"):* (1) months on the grid, tabs
+  everywhere else; (2) springs back past the first and last tab; (3) a drag starting within 20 dp of
+  a side is left to Android. Signed out, Account stays in the swipe order (a swipe onto it springs
+  back and asks to log in); Calendar needs no login. 250 ms slide, as the months.
+  *Built (2026-10-19):* `SwipeTabs` (composite, Expo Router's `withLayoutContext` + `TabRouter`)
+  over `TabPager` (base/layout) replaces `Tabs`; `SwipePager`'s pan blocks the tab pan. A tab
+  mounts when shown or next to the one shown. `e2e/tests/tab-swipe.spec.js`: signed out, user and
+  admin (never reaches Admin, also from a direct `/admin` link), the edge, the month grid — passing
+  on the web.
+  *Done 2026-10-19 on the phone (S23 Ultra, APK 0.6.0-test.2, gesture navigation):* every tab both
+  ways; the month grid moves months; signed out, a swipe onto Account springs back and asks to log
+  in; a throwaway user (deleted after) has no Admin tab and swiping past Account springs back; a
+  drag from either edge is Android's Back. Fixed on the way: the stretch past the first or last
+  tab showed white — the space gradient now sits behind the pages; on the web the browser could
+  scroll the pager's clipping box sideways — `TabPager` puts it back.
 - **3.6 Custom reminders on the calendar** (after 3.3e; asked and decided 2026-10-17). Signed-in
   users add their own reminders to the calendar: a title, a time of day, and how it repeats — once
   (a date), daily, monthly or yearly. Monthly and yearly each pick their calendar per reminder:

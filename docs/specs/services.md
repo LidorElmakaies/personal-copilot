@@ -317,6 +317,16 @@ Expo Router app. Login is optional app-wide, not a gate on the whole app: `(tabs
 reachable while signed out, and `(auth)/login`/`(auth)/register` each add a "Continue without
 logging in" link (routes to `/`) for whoever lands there without wanting to authenticate.
 
+The tabs are a swipeable row (`SwipeTabs` over `TabPager`, `(tabs)/_layout.js`): drag sideways
+anywhere on a screen to the next or previous tab in the bar's order — the screen follows the finger,
+past a quarter of the width or a flick slides on in 250 ms, otherwise it springs back, and past the
+first or last tab it only stretches a little. A tap on the bar runs the same slide (a jump of more
+than one tab starts from the tab next to the target). A drag starting within 20 dp of either side is
+left to Android's back gesture; on the Calendar, a drag on the month grid moves months instead
+(`SwipePager` blocks the tab pan). A tab mounts when it's shown or next to the one shown, then stays
+mounted. Admin is in the order only for admins; on a direct `/admin` link a non-admin sees that
+screen over the row with the swipe off.
+
 - `(tabs)/index` (Home — the landing tab, no session required: live clock, today's Gregorian date,
   and today's Hebrew/Jewish date via `@hebcal/hdate`, chosen over `Intl`'s `'he-u-ca-hebrew'`
   calendar extension because Hermes's bundled ICU data isn't guaranteed to include non-Gregorian
@@ -396,17 +406,17 @@ logging in" link (routes to `/`) for whoever lands there without wanting to auth
   holds its row and its edit/confirm form as a private component in the same file, so Cancel drops
   whatever was typed. The cards render only while signed in, so signing out unmounts them — every
   form starts closed for the next session. Account is the one tab opted into
-  `requiresAuth: true` (`(tabs)/_layout.js`'s `TABS`). `CustomTabBar` intercepts a press on a
-  `requiresAuth` tab while signed out and shows `ConfirmModal` ("Log in to view Account?") instead
-  of navigating; a direct hit on the route (deep link, web refresh, reopening the app on this tab)
+  `requiresAuth: true` (`(tabs)/_layout.js`'s `TABS`). A press on a `requiresAuth` tab in
+  `CustomTabBar`, or a swipe onto it (it springs back), while signed out shows `ConfirmModal`
+  ("Log in to view Account?") instead of navigating; a direct hit on the route (deep link, web refresh, reopening the app on this tab)
   bypasses that entirely, so `AccountScreen` also calls `useRequireAuth()` on mount and renders
   `RequireAuthNotice` in that case — both are generic (`src/hooks/`, `src/components/composite/`),
   reusable by any future `requiresAuth` tab, not Account-specific. Below the cards, `VersionInfo`
   (`base/feedback/`): "Personal Copilot <frontend version>" and "built <date>" from
   `src/config/version.js` — "dev", and no date, when not built by the Dockerfile or `apk.js build`
   (see [Versions](#versions)).
-- `(tabs)/admin` — admins only: `requiresRole: 'admin'` in `TABS` leaves the tab out of the bar for
-  everyone else, and the screen checks again (`useRequireAuth`, `useHasRole('admin')`) for a direct
+- `(tabs)/admin` — admins only: `requiresRole: 'admin'` in `TABS` leaves the tab out of the bar and
+  the swipe order for everyone else, and the screen checks again (`useRequireAuth`, `useHasRole('admin')`) for a direct
   link, showing `RequireAuthNotice` otherwise; the server checks the role too (`AdminGuard`).
   `SystemStatus` lists `GET /admin/status` (`adminSlice.fetchSystemStatus`, not persisted, reset on
   sign-out): each service up/down with its version, build time and uptime. Refreshed on every
