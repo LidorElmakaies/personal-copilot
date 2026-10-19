@@ -17,6 +17,7 @@ import type {
   IProxyService,
   ProxyRoute,
 } from '../application/interfaces/proxy-service.interface';
+import { forwardedPath } from './forwarded-path';
 import { writeProxyResponse } from './write-proxy-response';
 
 type ProxiedRequest = Request & { user?: AuthTokenPayload };
@@ -33,7 +34,16 @@ export class ProxyController {
     res: Response,
   ): Promise<void> {
     const userId = route.auth === 'user' ? req.user!.userId : undefined;
-    writeProxyResponse(res, await this.proxy.forward(route, req.body, userId));
+    const path = forwardedPath(
+      route.path,
+      req.params as Record<string, string>,
+      req.method,
+      req.originalUrl,
+    );
+    writeProxyResponse(
+      res,
+      await this.proxy.forward(route, path, req.body, userId),
+    );
   }
 }
 

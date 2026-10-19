@@ -104,7 +104,8 @@ scripts/docs-check.js     docs drift check (+ docs-check.test.js) — see Comman
   global default (`/auth/logout` and the signed-in routes need a valid token already). Five
   feature modules:
   - `src/proxy/` — every route forwarded to an internal service, one row each in
-    `PROXY_ROUTES` (`proxy.routes.ts`): method, path (the same on the service), target service,
+    `PROXY_ROUTES` (`proxy.routes.ts`): method, path (the same on the service; `:param`s filled in
+    URL-encoded, a `GET`'s query passed on), target service,
     `auth: 'user'` (`JwtAuthGuard`, user id forwarded as `X-User-Id`) or `'none'`, and
     `throttle: 'strict'`. `ProxyController` makes each row a real Nest route (unlisted → `404`,
     never a wildcard); `ProxyService` sends it through that service's `ServiceHttpClient`
@@ -113,7 +114,8 @@ scripts/docs-check.js     docs drift check (+ docs-check.test.js) — see Comman
     token, and `account` is body-driven the same way, see `apps/users` below) — plus
     `GET`/`PATCH /users/me` and `PUT /users/me/location`. No `/me`: the access token itself
     carries `{ sub, role, email }`. Reminders: `GET /reminders`, `PUT`/`DELETE
-    /reminders/shabbat-candles`. Notifications: `GET /notifications/vapid-public-key` (open),
+    /reminders/shabbat-candles`, `GET`/`POST /reminders/custom`, `PATCH`/`DELETE
+    /reminders/custom/:id`, `POST /reminders/custom/:id/skip`. Notifications: `GET /notifications/vapid-public-key` (open),
     `POST`/`DELETE /notifications/subscriptions`, `PUT`/`DELETE /notifications/fcm-devices`.
   - `src/calendar/` — both open, answered in-process from `@app/jewish-calendar`:
     `GET /calendar/shabbat?lat&lon&tz` (the Shabbat in progress, otherwise the next one) and
@@ -158,7 +160,11 @@ scripts/docs-check.js     docs drift check (+ docs-check.test.js) — see Comman
 - **reminders** (`backend/apps/reminders`) — internal-only, schema `reminders`. One `reminders`
   row per user and type (`shabbat_candles` so far; `user_id` → `users.users` `ON DELETE CASCADE`):
   `GET /reminders`, `PUT`/`DELETE /reminders/shabbat-candles` (user from `X-User-Id`; `PUT` takes
-  only `{ offsetMinutes }`). Reads the user's location straight from `users.profiles` (read-only
+  only `{ offsetMinutes }`). Plus users' own reminders (`custom_reminders`: title, time, once /
+  daily / monthly / yearly, Gregorian or Hebrew, skipped days; same cascade): `GET
+  /reminders/custom?from&to` (each with its days in the range, from `ReminderOccurrences`), `POST`,
+  `PATCH`/`DELETE /reminders/custom/:id`, `POST …/:id/skip` ("only this day"); another user's id →
+  `404`; not scheduled yet. Reads the user's location straight from `users.profiles` (read-only
   mapping) — no copy. Candle-lighting maths is the in-process `@app/jewish-calendar` lib
   (`@hebcal/core` v6; "today" is the user's date in `tz`; Israel rules and 20-min candle lighting
   when `tz` is `Asia/Jerusalem`, else 18 min — see its README for the ESM-import and time-zone

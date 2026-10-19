@@ -1,27 +1,34 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ShabbatCalendar } from '@app/jewish-calendar';
+import { ReminderOccurrences, ShabbatCalendar } from '@app/jewish-calendar';
 import { KafkajsEventConsumer } from '@app/kafka-client';
 import { KAFKA_CONSUMER_GROUPS } from '@app/kafka-contracts';
 import { BullmqQueueConsumer, BullmqQueuePublisher } from '@app/queue-client';
 import { ReminderDueConsumer } from './api/consumers/reminder-due.consumer';
 import { UserStateConsumer } from './api/consumers/user-state.consumer';
+import { CustomRemindersController } from './api/controllers/custom-reminders.controller';
 import { HealthController } from './api/controllers/health.controller';
 import { RemindersController } from './api/controllers/reminders.controller';
 import { ReminderSweeper } from './api/schedulers/reminder-sweeper';
+import { CustomReminderService } from './application/custom-reminder.service';
 import { ReminderScheduler } from './application/reminder-scheduler.service';
 import { ReminderService } from './application/reminder.service';
+import { CustomReminderEntity } from './entities/custom-reminder.entity';
 import { ReminderEntity } from './entities/reminder.entity';
 import { UsersProfileEntity, UsersUserEntity } from '@app/users-schema';
 import { ShabbatCalendarCandleLightingSource } from './infrastructure/calendar/shabbat-calendar.candle-lighting.source';
+import { TypeOrmCustomReminderRepository } from './infrastructure/postgres/typeorm-custom-reminder.repository';
 import { TypeOrmReminderRepository } from './infrastructure/postgres/typeorm-reminder.repository';
 import { TypeOrmUserLocationReader } from './infrastructure/postgres/typeorm-user-location.reader';
 import {
   CANDLE_LIGHTING_SOURCE,
+  CUSTOM_REMINDER_REPOSITORY,
+  CUSTOM_REMINDER_SERVICE,
   EVENT_CONSUMER,
   QUEUE_CONSUMER,
   QUEUE_PUBLISHER,
+  REMINDER_OCCURRENCES,
   REMINDER_REPOSITORY,
   REMINDER_SCHEDULER,
   REMINDER_SERVICE,
@@ -30,7 +37,12 @@ import {
 } from './tokens';
 
 // UsersUserEntity/UsersProfileEntity map the Users Service's tables read-only (synchronize: false).
-const ENTITIES = [ReminderEntity, UsersUserEntity, UsersProfileEntity];
+const ENTITIES = [
+  ReminderEntity,
+  CustomReminderEntity,
+  UsersUserEntity,
+  UsersProfileEntity,
+];
 
 @Module({
   imports: [
@@ -50,13 +62,23 @@ const ENTITIES = [ReminderEntity, UsersUserEntity, UsersProfileEntity];
     }),
     TypeOrmModule.forFeature(ENTITIES),
   ],
-  controllers: [HealthController, RemindersController],
+  controllers: [
+    HealthController,
+    RemindersController,
+    CustomRemindersController,
+  ],
   providers: [
     { provide: REMINDER_SERVICE, useClass: ReminderService },
     { provide: REMINDER_SCHEDULER, useClass: ReminderScheduler },
     { provide: REMINDER_REPOSITORY, useClass: TypeOrmReminderRepository },
     { provide: USER_LOCATION_READER, useClass: TypeOrmUserLocationReader },
     { provide: SHABBAT_CALENDAR, useValue: new ShabbatCalendar() },
+    { provide: CUSTOM_REMINDER_SERVICE, useClass: CustomReminderService },
+    {
+      provide: CUSTOM_REMINDER_REPOSITORY,
+      useClass: TypeOrmCustomReminderRepository,
+    },
+    { provide: REMINDER_OCCURRENCES, useValue: new ReminderOccurrences() },
     {
       provide: CANDLE_LIGHTING_SOURCE,
       useClass: ShabbatCalendarCandleLightingSource,

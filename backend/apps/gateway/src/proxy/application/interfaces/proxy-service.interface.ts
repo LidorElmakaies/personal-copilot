@@ -4,7 +4,7 @@ import type {
   ProxyResponse,
 } from './service-client.interface';
 
-/** One public Gateway route, forwarded to the same path on one internal service. */
+/** One public Gateway route, forwarded to the same path on one internal service (`:param`s filled in). */
 export interface ProxyRoute {
   method: HttpMethod;
   path: string;
@@ -17,8 +17,10 @@ export interface ProxyRoute {
 
 /** Implemented by ProxyService, consumed by the API layer. */
 export interface IProxyService {
+  /** `path`: the route's, with its params and a GET's query string filled in. */
   forward(
     route: ProxyRoute,
+    path: string,
     body: unknown,
     userId?: string,
   ): Promise<ProxyResponse>;

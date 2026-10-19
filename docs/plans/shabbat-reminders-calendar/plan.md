@@ -708,7 +708,7 @@ and a day card with that day's times.
     leap year, and Adar I/II → Adar in a regular year. Also "every
     occurrence between two dates" for the calendar, both leaving out a reminder's skipped dates.
     Tests for each rule, in Israel and abroad.
-  - [ ] **3.6c Reminders Service: store and API.** A `custom_reminders` table (schema
+  - [x] **3.6c Reminders Service: store and API.** A `custom_reminders` table (schema
     `reminders`; `user_id` → `users.users` `ON DELETE CASCADE`; title, time, repeat, calendar,
     the anchor date, its skipped dates, created/updated). `GET /reminders/custom?from&to` (the occurrences in that
     range, for the calendar's loaded months), `POST`, `PATCH`/`DELETE /reminders/custom/:id`

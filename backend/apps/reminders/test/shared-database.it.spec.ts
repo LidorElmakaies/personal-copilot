@@ -9,7 +9,9 @@ import { UserEntity } from '../../users/src/entities/user.entity';
 import { TypeOrmProfileRepository } from '../../users/src/infrastructure/postgres/typeorm-profile.repository';
 import { TypeOrmUserRepository } from '../../users/src/infrastructure/postgres/typeorm-user.repository';
 import { EMPTY_PROFILE_DETAILS } from '../../users/src/models/profile';
+import { CustomReminderEntity } from '../src/entities/custom-reminder.entity';
 import { ReminderEntity } from '../src/entities/reminder.entity';
+import { TypeOrmCustomReminderRepository } from '../src/infrastructure/postgres/typeorm-custom-reminder.repository';
 import { UsersProfileEntity, UsersUserEntity } from '@app/users-schema';
 import { TypeOrmUserLocationReader } from '../src/infrastructure/postgres/typeorm-user-location.reader';
 
@@ -64,6 +66,7 @@ maybe('one database, a schema per service (real Postgres)', () => {
     ]);
     remindersDs = await connect('reminders', [
       ReminderEntity,
+      CustomReminderEntity,
       UsersUserEntity,
       UsersProfileEntity,
     ]);
@@ -105,12 +108,42 @@ maybe('one database, a schema per service (real Postgres)', () => {
     expect(tables.map((t) => `${t.table_schema}.${t.table_name}`)).toEqual([
       'notifications.fcm_devices',
       'notifications.push_subscriptions',
+      'reminders.custom_reminders',
       'reminders.reminders',
       'users.outbox_events',
       'users.profiles',
       'users.refresh_tokens',
       'users.users',
     ]);
+  });
+
+  it("a custom reminder's dates come back as YYYY-MM-DD, in any server time zone", async () => {
+    const original = process.env.TZ;
+    try {
+      process.env.TZ = 'Pacific/Kiritimati'; // UTC+14: a date read as a local Date would shift
+      const user = await newUser();
+      const repo = new TypeOrmCustomReminderRepository(
+        remindersDs.getRepository(CustomReminderEntity),
+      );
+      const created = await repo.create(user.id, {
+        title: 'Take vitamins',
+        hour: 8,
+        minute: 0,
+        repeat: 'daily',
+        calendar: 'gregorian',
+        start: '2026-10-01',
+      });
+      await repo.update(user.id, created.id, {
+        skipped: ['2026-10-21', '2026-10-20'],
+      });
+      expect(await repo.findOwned(user.id, created.id)).toMatchObject({
+        start: '2026-10-01',
+        skipped: ['2026-10-20', '2026-10-21'],
+      });
+      expect(await repo.findOwned(randomUUID(), created.id)).toBeNull();
+    } finally {
+      process.env.TZ = original;
+    }
   });
 
   it('Reminders reads the location straight from users.profiles', async () => {
@@ -144,6 +177,15 @@ maybe('one database, a schema per service (real Postgres)', () => {
       await remindersDs
         .getRepository(ReminderEntity)
         .save({ userId: u.id, type: 'shabbat_candles', offsetMinutes: 90 });
+      await remindersDs.getRepository(CustomReminderEntity).save({
+        userId: u.id,
+        title: 'Call Grandma',
+        hour: 19,
+        minute: 30,
+        repeat: 'once',
+        calendar: 'gregorian',
+        start: '2026-10-21',
+      });
       await notificationsDs.getRepository(PushSubscriptionEntity).save({
         userId: u.id,
         endpoint: `https://fcm.googleapis.com/fcm/send/${u.id}`,
@@ -162,6 +204,16 @@ maybe('one database, a schema per service (real Postgres)', () => {
         .getRepository(ReminderEntity)
         .findBy({ userId: gone.id }),
     ).toEqual([]);
+    expect(
+      await remindersDs
+        .getRepository(CustomReminderEntity)
+        .findBy({ userId: gone.id }),
+    ).toEqual([]);
+    expect(
+      await remindersDs
+        .getRepository(CustomReminderEntity)
+        .countBy({ userId: kept.id }),
+    ).toBe(1);
     expect(
       await notificationsDs
         .getRepository(PushSubscriptionEntity)

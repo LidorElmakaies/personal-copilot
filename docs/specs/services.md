@@ -43,8 +43,10 @@ tunnel from a Caddy instance on the public internet. HTTP + WebSocket.
 - `GET /notifications/vapid-public-key` (open), `POST`/`DELETE /notifications/subscriptions` and
   `PUT`/`DELETE /notifications/fcm-devices` (`JwtAuthGuard`) → Notification Service's routes of the
   same name. Body relayed untouched.
-- `GET /reminders`, `PUT /reminders/shabbat-candles`, `DELETE /reminders/shabbat-candles`
-  (`JwtAuthGuard`) → Reminders Service's routes of the same name. Body relayed untouched.
+- `GET /reminders`, `PUT /reminders/shabbat-candles`, `DELETE /reminders/shabbat-candles`, and
+  `GET`/`POST /reminders/custom`, `PATCH`/`DELETE /reminders/custom/:id`,
+  `POST /reminders/custom/:id/skip` (`JwtAuthGuard`) → Reminders Service's routes of the same name.
+  Body relayed untouched.
 - `GET /admin/status` (`AdminGuard`, `src/admin/`) — **answered by Gateway itself**: its own
   [`buildInfo`](#libsbuild-info) read in-process, plus each internal service's `/health` (Users,
   Reminders, Notifications — the same `*_SERVICE_URL`s the proxies use), asked in parallel with a
@@ -61,7 +63,8 @@ tunnel from a Caddy instance on the public internet. HTTP + WebSocket.
   no internal service needs `JWT_SECRET`.
 - Every forwarded route above (`/auth/*`, `/users/me*`, `/reminders*`, `/notifications/*`) is one
   row of `PROXY_ROUTES` (`src/proxy/proxy.routes.ts`): method, path (the same on Gateway and the
-  service), target service, `auth: 'user'` (`JwtAuthGuard` + `X-User-Id`) or `'none'`, and
+  service; a `:param` is filled in from the request, URL-encoded so it stays one path segment, and
+  a `GET`'s query string is passed on as sent — `api/forwarded-path.ts`), target service, `auth: 'user'` (`JwtAuthGuard` + `X-User-Id`) or `'none'`, and
   `throttle: 'strict'` where it applies. `ProxyController` turns each row into its own Nest route,
   so anything unlisted is a `404` — never a wildcard. `ProxyService` sends it through that service's
   `ServiceHttpClient` (base URL from `<SERVICE>_SERVICE_URL`); an unreachable service answers
@@ -212,6 +215,25 @@ can't be saved for a user that doesn't exist. The only type so far is `shabbat_c
   is ignored: the location comes from the user's profile.
 - `DELETE /reminders/shabbat-candles` → `204`. Turns it off but keeps the row, so the settings can
   prefill the sheet next time. Idempotent.
+- `GET /reminders/custom?from=YYYY-MM-DD&to=YYYY-MM-DD` → each of the caller's own reminders,
+  oldest first, with the days it falls on in that range (both included; `from` ≤ `to`, at most 400
+  days, else `400`): `[{ id, title, hour, minute, repeat, calendar, start, skipped, dates }]` — the
+  days from `ReminderOccurrences` ([libs/jewish-calendar](#libsjewish-calendar)).
+- `POST /reminders/custom` — `{ title, hour, minute, repeat, calendar?, start }` → `201` and the
+  reminder (`calendar` defaults to `gregorian`, `skipped` starts empty). `title` 1–60 characters
+  after trimming: English or Hebrew letters, digits and `. , ' ! ? : ( ) " & / -`, single spaces
+  between words; `hour` 0–23, `minute` 0–59; `repeat` `once`/`daily`/`monthly`/`yearly`;
+  `calendar` `gregorian`/`hebrew`; `start` a real `YYYY-MM-DD` date — `400` otherwise. At most 200
+  per user → `422`.
+- `PATCH /reminders/custom/:id` — any of those fields → the reminder (the whole series); none →
+  `400`. `DELETE /reminders/custom/:id` → `204`.
+- `POST /reminders/custom/:id/skip` — `{ date }` → the reminder with `date` in `skipped` ("only
+  this day"; changing one day is this plus a once-reminder on it). Idempotent; `422` if the
+  reminder doesn't fall on `date`, or past 500 skipped days.
+- A `:id` that isn't the caller's reminder, or isn't a UUID → `404`. Table `custom_reminders`
+  (`title`, `hour`, `minute`, `repeat`, `calendar`, `start_date` `date`, `skipped_dates`
+  `varchar(10)[]`, `created_at`, `updated_at`; `user_id` → `users.users(id)` `ON DELETE CASCADE`).
+  Not scheduled yet: they don't fire.
 - `GET /health` — see [Versions](#versions).
 
 **The user's location** is read straight from the Users Service's `users.profiles` (a read-only

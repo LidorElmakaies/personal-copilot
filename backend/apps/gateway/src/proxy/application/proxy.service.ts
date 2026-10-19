@@ -18,12 +18,13 @@ export class ProxyService implements IProxyService {
 
   forward(
     route: ProxyRoute,
+    path: string,
     body: unknown,
     userId?: string,
   ): Promise<ProxyResponse> {
     return this.clients[route.service].forward({
       method: route.method,
-      path: route.path,
+      path,
       ...(body === undefined ? {} : { body }),
       ...(userId === undefined
         ? {}
