@@ -662,9 +662,10 @@ that queue must pass. See `event-schemas.md`.
 ## libs/jewish-calendar
 
 All of the project's Jewish-calendar maths, in one place.
-`@hebcal/core` v6 behind `ICalendarCalculator` (`HebcalCalendarCalculator` is the only file that
-imports it); `ShabbatCalendar` (`IShabbatCalendar`) and `MonthCalendar` (`IMonthCalendar`) are
-the entry points, pure and synchronous. Used in-process by Gateway (`GET /calendar/shabbat` for
+`@hebcal/core` v6, imported only under `hebcal/` (`HebcalCalendarCalculator` behind
+`ICalendarCalculator`, and `hebrew-dates.ts`); `ShabbatCalendar` (`IShabbatCalendar`),
+`MonthCalendar` (`IMonthCalendar`) and `ReminderOccurrences` (`IReminderOccurrences`) are the
+entry points, pure and synchronous. Used in-process by Gateway (`GET /calendar/shabbat` for
 Home, `GET /calendar/month`) and the Reminders scheduler — so Home, the calendar and reminders
 always agree, and a rule changes in one place (`calendar-options.ts` picks Israel rules and the
 candle-lighting minutes for all of them).
@@ -687,13 +688,22 @@ candle-lighting minutes for all of them).
   lighting on the day it's lit (Friday, an eve, or a second Yom Tov night after nightfall), Havdalah,
   and a fast's start and end — Yom Kippur as a fast too: `fastBegins` at its eve's candle
   lighting, `fastEnds` instead of Havdalah. Chanukah's candles aren't included.
+- `ReminderOccurrences` — when a user's own reminder falls, from its `ReminderRule`: `start` (a
+  civil date; a once-reminder's only day), `hour`/`minute` (wall clock), `repeat` (`once` / `daily`
+  / `monthly` / `yearly`), `calendar` (`gregorian` / `hebrew`, for monthly and yearly) and
+  `skipped` days. `fallsOn(rule, date)`, `datesBetween(rule, from, to)` (both days included) and
+  `nextAfter(rule, after, timeZone)` — the first time it fires strictly after `after`, `null` if
+  never. A date a month or year doesn't have (a Hebrew 30th in a 29-day month, the 31st, 29 Feb)
+  falls on that month's last day; a Hebrew yearly one in Adar made in a regular year is in Adar II
+  in a leap year, and one in Adar I or II of a leap year is in Adar in a regular year. A wall time
+  the clocks skip lands that much later; one they repeat is the second.
 - Rules, for all: "today" is the user's local date in `timeZone`, never the server's. Israel vs.
   abroad (one- vs. two-day Yom Tov) follows `timeZone === 'Asia/Jerusalem'`. Candle lighting is
   20 min before sunset in Israel — 40 in Jerusalem and Petach Tikva, 30 in Haifa, Tzfat and Zikhron Ya'akov (OU Israel / MyZmanim), matched by distance from the city center — and 18 abroad (`israel-city-customs.ts`; the radius is approximate, so a town
   right next to a city can count as it). Havdalah is Hebcal's default (sun 8.5° below the horizon).
 
 See `backend/libs/jewish-calendar/README.md` for the non-obvious implementation details (ESM-only
-import, server time zone, finding Havdalah).
+import, server time zone, finding Havdalah, reminders' repeat rules).
 
 ## libs/users-schema
 

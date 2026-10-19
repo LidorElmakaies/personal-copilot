@@ -427,6 +427,68 @@ section.group{margin-top:44px}
 .twNotice{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;margin:auto 0}
 .twNotice p{margin:0;font-size:13px;color:var(--muted)}
 .idea ol.twOpts{margin:0;padding-left:18px;color:var(--muted);font-size:14px}
+/* custom reminders (task 3.6a) */
+.crAdd{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:10px;padding:9px;border-radius:12px;border:1px dashed var(--accent);color:var(--accent);font:700 12.5px var(--sans);cursor:pointer;background:transparent;width:100%}
+.crAdd:focus-visible,.crRow:focus-visible,.crFab:focus-visible,.crSeg button:focus-visible,.crPills button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.crRow{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;font:inherit;font-size:12.5px;color:var(--text);padding:7px 0;border:0;border-top:1px solid var(--cardBorderSoft);background:none;text-align:left;cursor:pointer}
+.crRow:first-child{border-top:0}
+.crRow .t{display:flex;flex-direction:column;align-items:flex-start;min-width:0}
+.crRow .t span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.crRow .rep{font-size:10.5px;color:var(--faint)}
+.crRow .mono{font-weight:700;color:var(--pending);flex:none}
+.crRow.past{opacity:.5}
+.crRow.past .mono{color:var(--muted)}
+.crFab{position:absolute;right:16px;bottom:84px;width:48px;height:48px;border-radius:16px;border:0;background:var(--accent);color:var(--bg);font:700 26px/1 var(--sans);cursor:pointer;box-shadow:0 6px 18px -4px var(--glow);z-index:3}
+.crForm{display:flex;flex-direction:column;gap:11px;overflow:auto;scrollbar-width:none;max-height:100%}
+.crForm::-webkit-scrollbar{display:none}
+.crField{display:flex;flex-direction:column;gap:5px}
+.crField>span{font:700 10px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--faint);display:flex;justify-content:space-between}
+.crField input{font:500 14px var(--sans);color:var(--text);background:var(--card);border:1px solid var(--cardBorder);border-radius:12px;padding:10px 12px;outline:none}
+.crField input:focus{border-color:var(--accent)}
+.crField input.bad{border-color:var(--error)}
+.crErr{font-size:11px;color:var(--error)}
+.crDate{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--card);border:1px solid var(--cardBorderSoft);border-radius:12px;padding:6px 8px}
+.crDate div{display:flex;flex-direction:column;align-items:center;font-size:13px;font-weight:600}
+.crDate div .he{font-size:11.5px;color:var(--accent)}
+.crDate button,.crSeg button,.crPills button{font:600 12px var(--sans);color:var(--text);background:var(--card);border:1px solid var(--cardBorder);border-radius:10px;padding:6px 10px;cursor:pointer}
+.crPills{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.crPills button[aria-pressed="true"],.crSeg button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+.crSeg{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.crSeg button{display:flex;flex-direction:column;align-items:center;gap:1px;padding:7px 6px}
+.crSeg small{font-size:10.5px;font-weight:500;opacity:.8}
+.crNext{background:var(--card);border:1px solid var(--cardBorderSoft);border-radius:12px;padding:9px 11px;display:flex;flex-direction:column;gap:5px}
+.crNext b{font-size:13px}
+.crNext .r{display:flex;justify-content:space-between;gap:8px;font-size:12px}
+.crNext .r .he{color:var(--accent);font-size:11.5px}
+.crNote{font-size:11.5px;color:var(--pending);background:var(--pendingBg);border-radius:10px;padding:7px 9px}
+.crConfirm{display:flex;flex-direction:column;gap:8px;background:var(--errorBg);border-radius:12px;padding:10px}
+.crConfirm p{margin:0;font-size:12.5px}
+.btn.danger{color:var(--error);border-color:var(--error)}
+.btn[aria-disabled="true"]{opacity:.45;pointer-events:none}
+.phone .crWrap{position:absolute;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;z-index:5}
+.phone .crWrap[hidden]{display:none}
+.crWrap .bottomSheet{max-height:88%;padding-bottom:16px}
+.crCtl{display:flex;gap:8px;flex-wrap:wrap}
+.crCtl button{font:600 12.5px var(--sans);color:var(--text);background:var(--card);border:1px solid var(--cardBorder);border-radius:999px;padding:6px 12px;cursor:pointer}
+.crCtl button[aria-pressed="true"]{color:var(--accent);background:var(--accentSoft);border-color:var(--accent)}
+.crToast{position:absolute;left:50%;bottom:84px;transform:translateX(-50%);background:var(--panel);border:1px solid var(--cardBorder);color:var(--text);border-radius:999px;padding:6px 12px;font-size:11.5px;font-weight:600;white-space:nowrap;opacity:0;transition:opacity .2s;pointer-events:none;z-index:6}
+.crToast.show{opacity:1}
+.crNotif{display:flex;gap:10px;align-items:flex-start;background:var(--panel);border:1px solid var(--cardBorder);border-radius:16px;padding:10px 12px;max-width:320px}
+.crNotif img,.crNotif svg{width:28px;height:28px;border-radius:7px;flex:none}
+.crNotif b{display:block;font-size:13px}
+.crNotif small{display:block;font-size:12px;color:var(--muted)}
+.crSwipe{position:relative;overflow:hidden;border-top:1px solid var(--cardBorderSoft)}
+.crSwipe:first-child{border-top:0}
+.crSwipe .crRow{border-top:0}
+.crSlide{position:relative;touch-action:pan-y;user-select:none;cursor:grab}
+.crDelBtn{position:absolute;right:0;top:0;bottom:0;width:0;overflow:hidden;border:0;border-radius:10px;background:var(--error);color:#fff;font:700 12px var(--sans);cursor:pointer;white-space:nowrap}
+.crChoice{display:flex;flex-direction:column;gap:8px}
+.crChoice .btn{flex:none;padding:11px 0}
+.crBig{display:flex;align-items:baseline;gap:10px}
+.crBig b{font-size:30px;color:var(--pending)}
+.crBig span{font-size:13px;color:var(--muted)}
+.crToast.undo{pointer-events:auto}
+.crToast button{font:700 11.5px var(--sans);color:var(--accent);background:none;border:0;cursor:pointer;padding:0 0 0 6px}
 </style>
 
 
@@ -823,6 +885,80 @@ section.group{margin-top:44px}
         <p>Decided (2026-10-19): signed out, Account stays in the swipe order and a swipe onto it springs back and asks to log in, as here; Calendar needs no login (its own reminders will, task 3.6). The slide stays at 250 ms, as the months.</p>
       </div>
     </div>
+  </section>
+
+  <!-- ================= CUSTOM REMINDERS (task 3.6a) ================= -->
+  <section class="group">
+    <div class="groupHead"><h2>Your own reminders on the calendar</h2><span>Task 3.6a · chosen: <b>P2</b>, <b>X1</b> and always asking for repeating reminders (2026-10-19) · real October 2026 data, "today" = Mon 19 Oct · five example reminders to start with · tap a day, a reminder, or + · both phones share the same reminders</span></div>
+    <div class="crCtl" style="margin-bottom:18px">
+      <button type="button" data-cr-signed aria-pressed="true">Signed in</button>
+      <button type="button" data-cr-reset>Reset the examples</button>
+    </div>
+    <div class="row">
+      <div class="idea">
+        <div class="ideaLabel"><span class="tag">P1</span><h3>"+ Add reminder" in the day card</h3></div>
+        <div class="phone" data-cr-phone="card"></div>
+        <p>The button sits at the bottom of the day card, under the day's reminders, and adds to that day. The "Show all" sheet has its own "+ Add" in the header, so a busy day never needs scrolling to add another.</p>
+        <ul><li>Always next to the day it adds to, so it's clear which day it's for</li><li>One more card row on every day, even with no reminders</li></ul>
+      </div>
+      <div class="idea">
+        <div class="ideaLabel"><span class="tag">P2</span><h3>A + button over the calendar</h3></div>
+        <div class="phone" data-cr-phone="fab"></div>
+        <p>A floating + in the corner adds to the day selected in the grid (today when the tab opens). The day card only lists what's there.</p>
+        <ul><li>Always in the same place, whatever the scroll</li><li>Covers a corner of the card; the day it adds to is only in the sheet's date</li><li>The screen leaves room under the card, so the last reminder can scroll up clear of the +</li></ul>
+      </div>
+      <div class="idea">
+        <div class="ideaLabel"><span class="tag">R</span><h3>How it behaves (both)</h3></div>
+        <ul>
+          <li><b>Add</b> opens a bottom sheet (the candle-lighting sheet's <code>BottomSheet</code>): title, the date it starts (the day tapped, ‹ › to move it), the time (hours, then minutes in 5s), and how it repeats: <b>Once · Daily · Monthly · Yearly</b>.</li>
+          <li><b>Monthly and yearly</b> ask which calendar: Gregorian ("the 19th", "every 19 October") or Hebrew ("the 8th", "every 8 Cheshvan"). Under it, <b>the next three dates in both calendars</b>, so you can see a Hebrew birthday moving around the Gregorian year.</li>
+          <li><b>Odd dates</b> get a note saying what happens, e.g. a 30 Cheshvan in a year Cheshvan has 29 days, a 31st, 29 Feb, Adar in a leap year (see the open questions below).</li>
+          <li><b>Each reminder in the list</b> (day card or "Show all") shows its time and how it repeats; tap it to edit in the same sheet. Edits change the whole series. <b>Delete</b> is in the edit sheet and asks first.</li>
+          <li><b>On the grid</b>: every day a reminder falls on gets the amber count (task 3.3c). A daily reminder counts on every day from its start.</li>
+          <li><b>A once-reminder that's gone off</b> stays on its day, dimmed.</li>
+          <li><b>Signed out</b>: no reminders anywhere; Add asks "Log in to add reminders?" (<code>ConfirmModal</code>, as the candle-lighting bell). Try the "Signed in" switch above.</li>
+          <li><b>Title</b>: English or Hebrew letters, digits and basic punctuation, up to 60 characters (task 3.6c); Save stays off until there's a title.</li>
+        </ul>
+        <p>When it fires (app closed too), the same notification as candle lighting:</p>
+        <div class="crNotif"><svg viewBox="0 0 108 108"><use href="#icApp"/></svg><div><b>Call Grandma</b><small>Personal Copilot · 19:30</small></div></div>
+      </div>
+    </div>
+    <div class="groupHead" style="margin-top:36px"><h2 style="font-size:17px">Editing and deleting a reminder</h2><span>Chosen: <b>X1</b>, and repeating reminders always ask · all with P2's + button · the same reminders as above · tap a reminder in the day card (today has "Take vitamins"; Wed 21 has three)</span></div>
+    <div class="crCtl" style="margin-bottom:18px">
+      <button type="button" data-cr-series aria-pressed="true">Repeating reminders ask: "Only this day / Every time" (on)</button>
+    </div>
+    <div class="row">
+      <div class="idea">
+        <div class="ideaLabel"><span class="tag">X1</span><h3>Tap → the edit sheet, Delete in it</h3></div>
+        <div class="phone" data-cr-phone="fab" data-cr-del="sheet"></div>
+        <p>Tapping a reminder opens the add sheet filled in, titled "Edit reminder". Save keeps the changes; Delete (bottom left) asks once, in the sheet.</p>
+        <ul><li>One sheet for everything: nothing new to learn</li><li>To delete you go through the whole form</li></ul>
+      </div>
+      <div class="idea">
+        <div class="ideaLabel"><span class="tag">X2</span><h3>Swipe the row left → Delete</h3></div>
+        <div class="phone" data-cr-phone="fab" data-cr-del="swipe"></div>
+        <p>Drag a reminder's row to the left: a red Delete appears and stays if you pass half of it. Tap it and the reminder is gone, with <b>Undo</b> in the toast for 4 s instead of a question. A tap on the row still opens the edit sheet (which has Delete too).</p>
+        <ul><li>Fast, and feels like the tab swipe</li><li>Hidden until you know it's there; the edit sheet keeps a visible Delete</li></ul>
+      </div>
+      <div class="idea">
+        <div class="ideaLabel"><span class="tag">X3</span><h3>Tap → details, then Edit or Delete</h3></div>
+        <div class="phone" data-cr-phone="fab" data-cr-del="detail"></div>
+        <p>Tapping a reminder shows it first: the time, how it repeats and its next dates in both calendars, with Edit and Delete. Edit opens the edit sheet; Delete asks once.</p>
+        <ul><li>See the next dates without risking a change</li><li>One more tap to edit</li></ul>
+      </div>
+    </div>
+    <p style="max-width:80ch;color:var(--muted);font-size:14px"><b>Repeating reminders</b> (the switch above, on to start). For a repeating reminder (daily, monthly, yearly) Save and Delete first ask <b>"Only Mon 19 Oct" or "Every time"</b>. "Only" on delete skips that one day (its count goes from the grid); on an edit it moves that day to a once-reminder of its own, and the series skips it. A once-reminder never asks. Switch it off to see the other way: every edit or delete is for the whole series. It needs exceptions stored per reminder (task 3.6c) and the scheduler to skip them (3.6d).</p>
+
+    <div class="groupHead" style="margin-top:36px"><h2 style="font-size:17px">Decided (2026-10-19)</h2><span>The rules the sheet's notes follow, for task 3.6b</span></div>
+    <ol class="twOpts" style="max-width:80ch">
+      <li><b>Where Add lives</b>: P2, the + button over the calendar.</li>
+      <li><b>A date a month or year doesn't have</b> (a Hebrew 30th in a 29-day month, the 31st, 29 Feb): the last day of that month, never skipped.</li>
+      <li><b>Hebrew yearly in Adar</b>, made in a regular year: Adar II in a leap year (the birthday rule). Made in Adar I or Adar II of a leap year: Adar in a regular year.</li>
+      <li><b>Yahrzeit</b>: no separate option for now; Yearly · Hebrew covers it.</li>
+      <li><b>Daily reminders</b> count on every day of the grid, as shown.</li>
+      <li><b>Editing and deleting</b>: X1, the edit sheet with Delete in it.</li>
+      <li><b>Repeating reminders always ask</b> "Only this day" or "Every time" before an edit or a delete is saved; a once-reminder never asks.</li>
+    </ol>
   </section>
 
   <!-- ================= NOTIFICATIONS (task 2.14) ================= -->
@@ -1698,6 +1834,7 @@ section.group{margin-top:44px}
 // Busy-day exploration: real October 2026 days + 100 made-up reminders on the 24th (and a few elsewhere).
 (function(){
   var DC=window.DC, MONTH=DC.tidyMonth({"year":2026,"month":10,"days":[{"date":"2026-10-01","hebrew":{"day":20,"dayHe":"כ׳","month":{"en":"Tishrei","he":"תשרי"},"year":5787,"yearHe":"תשפ״ז"},"events":[{"kind":"holiday","name":{"en":"Sukkot VI (CH’’M)","he":"סוכות ו׳ (חוה״מ)"}}],"parasha":null,"times":[]},{"date":"2026-10-02","hebrew":{"day":21,"dayHe":"כ״א","month":{"en":"Tishrei","he":"תשרי"},"year":5787,"yearHe":"תשפ״ז"},"events":[{"kind":"holiday","name":{"en":"Sukkot VII (Hoshana Raba)","he":"סוכות ז׳ (הושענא רבה)"}}],"parasha":null,"times":[{"kind":"candleLighting","at":"2026-10-02T15:04:00.000Z"}]},{"date":"2026-10-03","hebrew":{"day":22,"dayHe":"כ״ב","month":{"en":"Tishrei","he":"תשרי"},"year":5787,"yearHe":"תשפ״ז"},"events":[{"kind":"yomTov","name":{"en":"Shmini Atzeret","he":"שמיני עצרת"}}],"parasha":null,"times":[{"kind":"havdalah","at":"2026-10-03T16:00:00.000Z"}]},{"date":"2026-10-04","hebrew":{"day":23,"dayHe":"כ״ג","month":{"en":"Tishrei","he":"תשרי"},"year":5787,"yearHe":"תשפ״ז"},"events":[],"parasha":null,"times":[]},{"date":"2026-10-05","hebrew":{"day":24,"dayHe":"כ״ד","month":{"en":"Tishrei","he":"תשרי"},"year":5787,"yearHe":"תשפ״ז"},"events":[],"parasha":null,"times":[]},{"date":"2026-10-06","hebrew":{"day":25,"dayHe":"כ״ה","month":{"en":"Tishrei","he":"תשרי"},"year":5787,"yearHe":"תשפ״ז"},"events":[],"parasha":null,"times":[]},{"date":"2026-10-07","hebrew":{"day":26,"dayHe":"כ״ו","month":{"en":"Tishrei","he":"תשרי"},"year":5787,"yearHe":"תשפ״ז"},"events":[],"parasha":null,"times":[]},{"date":"2026-10-08","hebrew":{"day":27,"dayHe":"כ״ז","month":{"en":"Tishrei","he":"תשרי"},"year":5787,"yearHe":"תשפ״ז"},"events":[],"parasha":null,"times":[]},{"date":"2026-10-09","hebrew":{"day":28,"dayHe":"כ״ח","month":{"en":"Tishrei","he":"תשרי"},"year":5787,"yearHe":"תשפ״ז"},"events":[],"parasha":null,"times":[{"kind":"candleLighting","at":"2026-10-09T14:55:00.000Z"}]},{"date":"2026-10-10","hebrew":{"day":29,"dayHe":"כ״ט","month":{"en":"Tishrei","he":"תשרי"},"year":5787,"yearHe":"תשפ״ז"},"events":[],"parasha":{"en":"Parashat Bereshit","he":"פרשת בראשית"},"times":[{"kind":"havdalah","at":"2026-10-10T15:51:00.000Z"}]},{"date":"2026-10-11","hebrew":{"day":30,"dayHe":"ל׳","month":{"en":"Tishrei","he":"תשרי"},"year":5787,"yearHe":"תשפ״ז"},"events":[{"kind":"holiday","name":{"en":"Rosh Chodesh Cheshvan","he":"ראש חודש חשון"}}],"parasha":null,"times":[]},{"date":"2026-10-12","hebrew":{"day":1,"dayHe":"א׳","month":{"en":"Cheshvan","he":"חשון"},"year":5787,"yearHe":"תשפ״ז"},"events":[{"kind":"holiday","name":{"en":"Rosh Chodesh Cheshvan","he":"ראש חודש חשון"}}],"parasha":null,"times":[]},{"date":"2026-10-13","hebrew":{"day":2,"dayHe":"ב׳","month":{"en":"Cheshvan","he":"חשון"},"year":5787,"yearHe":"תשפ״ז"},"events":[],"parasha":null,"times":[]},{"date":"2026-10-14","hebrew":{"day":3,"dayHe":"ג׳","month":{"en":"Cheshvan","he":"חשון"},"year":5787,"yearHe":"תשפ״ז"},"events":[],"parasha":null,"times":[]},{"date":"2026-10-15","hebrew":{"day":4,"dayHe":"ד׳","month":{"en":"Cheshvan","he":"חשון"},"year":5787,"yearHe":"תשפ״ז"},"events":[],"parasha":null,"times":[]},{"date":"2026-10-16","hebrew":{"day":5,"dayHe":"ה׳","month":{"en":"Cheshvan","he":"חשון"},"year":5787,"yearHe":"תשפ״ז"},"events":[],"parasha":null,"times":[{"kind":"candleLighting","at":"2026-10-16T14:47:00.000Z"}]},{"date":"2026-10-17","hebrew":{"day":6,"dayHe":"ו׳","month":{"en":"Cheshvan","he":"חשון"},"year":5787,"yearHe":"תשפ״ז"},"events":[],"parasha":{"en":"Parashat Noach","he":"פרשת נח"},"times":[{"kind":"havdalah","at":"2026-10-17T15:43:00.000Z"}]},{"date":"2026-10-18","hebrew":{"day":7,"dayHe":"ז׳","month":{"en":"Cheshvan","he":"חשון"},"year":5787,"yearHe":"תשפ״ז"},"events":[{"kind":"holiday","name":{"en":"Yom HaAliyah School Observance","he":"שמירת בית הספר ליום העליה"}}],"parasha":null,"times":[]},{"date":"2026-10-19","hebrew":{"day":8,"dayHe":"ח׳","month":{"en":"Cheshvan","he":"חשון"},"year":5787,"yearHe":"תשפ״ז"},"events":[],"parasha":null,"times":[]},{"date":"2026-10-20","hebrew":{"day":9,"dayHe":"ט׳","month":{"en":"Cheshvan","he":"חשון"},"year":5787,"yearHe":"תשפ״ז"},"events":[],"parasha":null,"times":[]},{"date":"2026-10-21","hebrew":{"day":10,"dayHe":"י׳","month":{"en":"Cheshvan","he":"חשון"},"year":5787,"yearHe":"תשפ״ז"},"events":[],"parasha":null,"times":[]},{"date":"2026-10-22","hebrew":{"day":11,"dayHe":"י״א","month":{"en":"Cheshvan","he":"חשון"},"year":5787,"yearHe":"תשפ״ז"},"events":[{"kind":"holiday","name":{"en":"Yitzhak Rabin Memorial Day","he":"יום הזכרון ליצחק רבין"}}],"parasha":null,"times":[]},{"date":"2026-10-23","hebrew":{"day":12,"dayHe":"י״ב","month":{"en":"Cheshvan","he":"חשון"},"year":5787,"yearHe":"תשפ״ז"},"events":[],"parasha":null,"times":[{"kind":"candleLighting","at":"2026-10-23T14:39:00.000Z"}]},{"date":"2026-10-24","hebrew":{"day":13,"dayHe":"י״ג","month":{"en":"Cheshvan","he":"חשון"},"year":5787,"yearHe":"תשפ״ז"},"events":[],"parasha":{"en":"Parashat Lech-Lecha","he":"פרשת לך־לך"},"times":[{"kind":"havdalah","at":"2026-10-24T15:36:00.000Z"}]},{"date":"2026-10-25","hebrew":{"day":14,"dayHe":"י״ד","month":{"en":"Cheshvan","he":"חשון"},"year":5787,"yearHe":"תשפ״ז"},"events":[],"parasha":null,"times":[]},{"date":"2026-10-26","hebrew":{"day":15,"dayHe":"ט״ו","month":{"en":"Cheshvan","he":"חשון"},"year":5787,"yearHe":"תשפ״ז"},"events":[],"parasha":null,"times":[]},{"date":"2026-10-27","hebrew":{"day":16,"dayHe":"ט״ז","month":{"en":"Cheshvan","he":"חשון"},"year":5787,"yearHe":"תשפ״ז"},"events":[],"parasha":null,"times":[]},{"date":"2026-10-28","hebrew":{"day":17,"dayHe":"י״ז","month":{"en":"Cheshvan","he":"חשון"},"year":5787,"yearHe":"תשפ״ז"},"events":[],"parasha":null,"times":[]},{"date":"2026-10-29","hebrew":{"day":18,"dayHe":"י״ח","month":{"en":"Cheshvan","he":"חשון"},"year":5787,"yearHe":"תשפ״ז"},"events":[],"parasha":null,"times":[]},{"date":"2026-10-30","hebrew":{"day":19,"dayHe":"י״ט","month":{"en":"Cheshvan","he":"חשון"},"year":5787,"yearHe":"תשפ״ז"},"events":[],"parasha":null,"times":[{"kind":"candleLighting","at":"2026-10-30T14:32:00.000Z"}]},{"date":"2026-10-31","hebrew":{"day":20,"dayHe":"כ׳","month":{"en":"Cheshvan","he":"חשון"},"year":5787,"yearHe":"תשפ״ז"},"events":[],"parasha":{"en":"Parashat Vayera","he":"פרשת וירא"},"times":[{"kind":"havdalah","at":"2026-10-31T15:29:00.000Z"}]}]});
+  window.OCT=MONTH; // shared with the custom-reminders demo
   var TODAY='2026-10-17', BUSY='2026-10-24';
   // Deterministic "random" so the page looks the same every load.
   var seed=24; function rnd(){seed=(seed*16807)%2147483647;return (seed-1)/2147483646;}
@@ -1925,5 +2062,308 @@ section.group{margin-top:44px}
     });
   });
   render();
+})();
+</script>
+<script type="module">
+// Task 3.6a custom-reminders demo: October 2026 (the busy-day demo's real data), Hebrew dates from
+// @hebcal/hdate (the app's version). The repeat rules here are the proposals listed under the demo.
+import { HDate } from 'https://cdn.jsdelivr.net/npm/@hebcal/hdate@0.22.8/+esm';
+(function(){
+  var DC=window.DC, OCT=window.OCT, TODAY='2026-10-19';
+  var byDate={}; OCT.days.forEach(function(d){byDate[d.date]=d;});
+  var WD=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'], MN=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  function pad(n){return (n<10?'0':'')+n;}
+  function iso(dt){return dt.getUTCFullYear()+'-'+pad(dt.getUTCMonth()+1)+'-'+pad(dt.getUTCDate());}
+  function parse(s){return new Date(s+'T00:00:00Z');}
+  function addDays(s,n){var d=parse(s);d.setUTCDate(d.getUTCDate()+n);return iso(d);}
+  function hd(s){return new HDate(new Date(+s.slice(0,4),+s.slice(5,7)-1,+s.slice(8,10)));}
+  function fmtG(s,year){var d=parse(s);return WD[d.getUTCDay()]+' '+d.getUTCDate()+' '+MN[d.getUTCMonth()]+(year?' '+d.getUTCFullYear():'');}
+  function fmtH(h){return h.renderGematriya(true);}
+  function hName(h){return h.getDate()+' '+h.getMonthName();}
+  function ord(n){var s=['th','st','nd','rd'],v=n%100;return n+(s[(v-20)%10]||s[v]||s[0]);}
+  function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');}
+
+  // Does reminder `r` fall on date `s`?
+  function falls(r,s){
+    if(s<r.anchor||(r.skip&&r.skip.indexOf(s)>=0))return false;
+    if(r.repeat==='once')return s===r.anchor;
+    if(r.repeat==='daily')return true;
+    var d=parse(s), a=parse(r.anchor);
+    if(r.cal==='g'){
+      var dim=new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth()+1,0)).getUTCDate();
+      var day=Math.min(a.getUTCDate(),dim); // 31st / 29 Feb → the last day
+      if(r.repeat==='monthly')return d.getUTCDate()===day;
+      return d.getUTCMonth()===a.getUTCMonth()&&d.getUTCDate()===day;
+    }
+    var h=hd(s), ah=hd(r.anchor);
+    if(r.repeat==='monthly')return h.getDate()===Math.min(ah.getDate(),h.daysInMonth());
+    var y=h.getFullYear(), m=ah.getMonth(), leapA=HDate.isLeapYear(ah.getFullYear()), leapY=HDate.isLeapYear(y);
+    if(m===12&&!leapA&&leapY)m=13;          // Adar → Adar II in a leap year (the birthday rule)
+    else if(m===13&&!leapY)m=12;            // Adar II → Adar
+    if(h.getMonth()!==m)return false;
+    return h.getDate()===Math.min(ah.getDate(),HDate.daysInMonth(m,y)); // a 30th in a 29-day month → the 29th
+  }
+  function nextDates(r,n){
+    if(r.repeat==='once')return [r.anchor];
+    var out=[], s=r.anchor<TODAY?TODAY:r.anchor;
+    for(var i=0;i<1500&&out.length<n;i++,s=addDays(s,1))if(falls(r,s))out.push(s);
+    return out;
+  }
+  function repLabel(r){
+    if(r.repeat==='once')return 'Once · '+fmtG(r.anchor);
+    if(r.repeat==='daily')return 'Every day';
+    var a=parse(r.anchor), h=hd(r.anchor);
+    if(r.repeat==='monthly')return r.cal==='g'?'Monthly · the '+ord(a.getUTCDate()):'Monthly · the '+ord(h.getDate())+' (Hebrew)';
+    return r.cal==='g'?'Yearly · '+a.getUTCDate()+' '+MONTHS[a.getUTCMonth()]:'Yearly · '+hName(h);
+  }
+  function notes(r){
+    if(r.repeat==='once'||r.repeat==='daily')return [];
+    var a=parse(r.anchor), h=hd(r.anchor), out=[];
+    if(r.cal==='g'){
+      if(r.repeat==='monthly'&&a.getUTCDate()>28)out.push('Months with fewer days: on the last day.');
+      if(r.repeat==='yearly'&&a.getUTCMonth()===1&&a.getUTCDate()===29)out.push('Years without 29 February: on 28 February.');
+      return out;
+    }
+    if(h.getDate()===30)out.push(r.repeat==='monthly'?'Hebrew months with 29 days: on the 29th.':'In years '+h.getMonthName()+' has 29 days: on the 29th.');
+    if(r.repeat==='yearly'){
+      var m=h.getMonth(), leap=HDate.isLeapYear(h.getFullYear());
+      if(m===12&&!leap)out.push('In leap years: Adar II.');
+      if(leap&&(m===12||m===13))out.push('In regular years: Adar.');
+    }
+    return out;
+  }
+
+  var id=0;
+  function seed(){
+    id=0;
+    return [
+      {id:++id,title:'Take vitamins',h:8,m:0,anchor:'2026-10-01',repeat:'daily',cal:'g'},
+      {id:++id,title:'Pay rent',h:9,m:0,anchor:'2026-09-01',repeat:'monthly',cal:'g'},
+      {id:++id,title:"Noa's birthday",h:9,m:30,anchor:gregIso(new HDate(15,8,5785)),repeat:'yearly',cal:'h'},
+      {id:++id,title:'Dentist',h:10,m:0,anchor:'2026-10-12',repeat:'once',cal:'g'},
+      {id:++id,title:'Call Grandma',h:19,m:30,anchor:'2026-10-21',repeat:'once',cal:'g'}
+    ];
+  }
+  // HDate.greg() is a local Date; take its local fields.
+  function gregIso(h){var d=h.greg();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
+  var state={signedIn:true,rems:null,askSeries:true};
+  state.rems=seed();
+  function on(s){return state.signedIn?state.rems.filter(function(r){return falls(r,s);}).sort(function(a,b){return a.h*60+a.m-(b.h*60+b.m);}):[];}
+  var TITLE_OK=/^[A-Za-zא-ת0-9 .,'!?:()\-"&/]*$/;
+
+  var TABBAR=document.querySelector('.tabbar[data-tab="cal"]').innerHTML;
+  var phones=[];
+  document.querySelectorAll('[data-cr-phone]').forEach(function(el){phones.push(makePhone(el,el.getAttribute('data-cr-phone'),el.getAttribute('data-cr-del')||'sheet'));});
+  function renderAll(){phones.forEach(function(p){p.render();});}
+  function snapshot(){return state.rems.map(function(r){return Object.assign({},r,{skip:(r.skip||[]).slice()});});}
+
+  // `del`: how a reminder is edited and deleted — 'sheet' (tap → edit sheet, Delete in it), 'swipe'
+  // (swipe the row left → Delete, with Undo; tap → edit sheet), 'detail' (tap → details, then Edit/Delete).
+  function makePhone(el,mode,del){
+    el.innerHTML='<div class="screen" data-scr>'+
+      '<div class="glow" style="padding:14px 12px"><div class="monthHead"><div><h4>October 2026</h4><span class="he">תשרי – חשון תשפ״ז</span></div><div class="arrows"><b>‹</b><b>›</b></div></div><div class="grid" data-g></div></div>'+
+      '<div class="glow dc" data-c></div>'+(mode==='fab'?'<div style="height:76px;flex:none"></div>':'')+
+      '</div><div class="tabbar">'+TABBAR+'</div>'+
+      (mode==='fab'?'<button type="button" class="crFab" data-add aria-label="Add reminder">+</button>':'')+
+      '<div class="crWrap" data-wrap hidden><div class="bottomSheet" data-s></div></div>'+
+      '<div class="dim" data-login hidden><div class="sheet glow" style="background:var(--panel)"><h4>Log in to add reminders?</h4><p>Your reminders are kept with your account and reach this phone as notifications.</p><div class="btns"><span class="btn" data-no style="cursor:pointer">No</span><span class="btn primary" data-yes style="cursor:pointer">Yes</span></div></div></div>'+
+      '<div class="crToast" data-toast></div>';
+    var grid=el.querySelector('[data-g]'), card=el.querySelector('[data-c]'), wrap=el.querySelector('[data-wrap]'), sheet=el.querySelector('[data-s]');
+    var login=el.querySelector('[data-login]'), toastEl=el.querySelector('[data-toast]');
+    var sel=TODAY, view=null, draft=null, confirming=false, t, series=null, undo=null, detailOf=null, swiped=0;
+    function toast(m,withUndo){
+      toastEl.innerHTML=esc(m)+(withUndo?' <button type="button" data-undo>Undo</button>':'');
+      toastEl.classList.toggle('undo',!!withUndo); toastEl.classList.add('show'); clearTimeout(t);
+      t=setTimeout(function(){toastEl.classList.remove('show');undo=null;},withUndo?4000:1600);
+    }
+    function rowHTML(r,s){
+      var past=r.repeat==='once'&&r.anchor<TODAY;
+      var row='<button type="button" class="crRow'+(past?' past':'')+'" data-id="'+r.id+'"><span class="t"><span>'+esc(r.title)+'</span><span class="rep">'+(past?'Done · ':'')+repLabel(r)+'</span></span><span class="mono">'+pad(r.h)+':'+pad(r.m)+'</span></button>';
+      if(del!=='swipe')return row;
+      return '<div class="crSwipe"><button type="button" class="crDelBtn" data-swdel="'+r.id+'" tabindex="-1">Delete</button><div class="crSlide" data-slide="'+r.id+'">'+row+'</div></div>';
+    }
+    function find(id){return state.rems.find(function(q){return q.id===id;});}
+    // Delete `r` (all of it, or only `sel` with `onlyDay`), with Undo.
+    function remove(r,onlyDay){
+      undo=snapshot();
+      if(onlyDay)state.rems=state.rems.map(function(q){return q.id===r.id?Object.assign({},q,{skip:(q.skip||[]).concat(sel)}):q;});
+      else state.rems=state.rems.filter(function(q){return q.id!==r.id;});
+      close(); renderAll(); toast(onlyDay?'Removed from '+fmtG(sel):'Deleted "'+r.title+'"',true);
+    }
+    // A repeating reminder, with "this day or every time" on: ask which. Returns true if it asked.
+    function askSeries(r,kind,pending){
+      if(r.repeat==='once'||!state.askSeries)return false;
+      series={r:r,kind:kind,pending:pending}; view='series'; renderSeries(); wrap.hidden=false; return true;
+    }
+    function renderSeries(){
+      var r=series.r, verb=series.kind==='delete'?'Delete':'Change';
+      sheet.innerHTML='<div class="crForm"><div class="grab"></div><div class="sheetHead"><h4>'+verb+' "'+esc(r.title)+'"</h4></div>'+
+        '<p style="margin:0;font-size:12.5px;color:var(--muted)">It repeats: '+repLabel(r).toLowerCase()+'.</p>'+
+        '<div class="crChoice"><span class="btn" data-only style="cursor:pointer">Only '+fmtG(sel)+'</span><span class="btn'+(series.kind==='delete'?' danger':' primary')+'" data-every style="cursor:pointer">Every time</span><span class="btn" data-close style="cursor:pointer">Cancel</span></div></div>';
+    }
+    function renderDetail(){
+      var r=find(detailOf); if(!r){close();return;}
+      var past=r.repeat==='once'&&r.anchor<TODAY;
+      var foot=confirming?'<div class="crConfirm"><p>Delete "'+esc(r.title)+'"?'+(r.repeat==='once'?'':' It goes from every day it repeats on.')+'</p><div class="btns" style="margin-top:0"><span class="btn" data-keep style="cursor:pointer">Keep</span><span class="btn danger" data-del-yes style="cursor:pointer">Delete</span></div></div>':
+        '<div class="btns" style="margin-top:0"><span class="btn danger" data-del style="cursor:pointer">Delete</span><span class="btn primary" data-edit style="cursor:pointer">Edit</span></div>';
+      sheet.innerHTML='<div class="crForm"><div class="grab"></div><div class="sheetHead"><h4>'+esc(r.title)+'</h4><span class="btn" data-close style="flex:none;padding:6px 12px;cursor:pointer">Close</span></div>'+
+        '<div class="crBig"><b class="mono">'+pad(r.h)+':'+pad(r.m)+'</b><span>'+(past?'Done · ':'')+repLabel(r)+'</span></div>'+
+        '<div class="crNext">'+summaryFor(r)+'</div>'+foot+'</div>';
+    }
+    function render(){
+      var out=['S','M','T','W','T','F','S'].map(function(d){return '<div class="dow">'+d+'</div>';});
+      for(var i=0;i<DC.weekday(OCT.days[0].date);i++)out.push('<div class="blank"></div>');
+      OCT.days.forEach(function(d){
+        var cell=DC.cellHTML(d,d.date===sel?sel:null); if(d.date===TODAY)cell=cell.replace('class="day','class="day today');
+        var n=on(d.date).length;
+        out.push(cell.replace('<span class="dot"></span>','<span class="dot"></span><span class="cnt">'+(n?(n>99?'99+':n):'')+'</span>'));
+      });
+      grid.innerHTML=out.join('');
+      var list=on(sel), html=DC.cardHTML(byDate[sel]);
+      if(list.length){
+        html+='<div class="remHead"><span class="lbl">Your reminders</span><span class="chip warn">'+list.length+'</span></div><div>'+list.slice(0,3).map(function(r){return rowHTML(r,sel);}).join('')+'</div>';
+        if(list.length>3)html+='<span class="remMore" data-all>+'+(list.length-3)+' more · Show all</span>';
+      }
+      if(mode==='card')html+='<button type="button" class="crAdd" data-add>+ Add reminder</button>';
+      card.innerHTML=html;
+      if(view==='list')renderList();
+    }
+    function renderList(){
+      var list=on(sel);
+      sheet.innerHTML='<div class="grab"></div><div class="sheetHead"><h4>'+list.length+' reminders · '+fmtG(sel)+'</h4><span style="display:flex;gap:6px">'+(mode==='card'?'<span class="btn primary" data-add style="flex:none;padding:6px 12px;cursor:pointer">+ Add</span>':'')+'<span class="btn" data-close style="flex:none;padding:6px 12px;cursor:pointer">Close</span></span></div><div class="busyList">'+list.map(function(r){return rowHTML(r,sel);}).join('')+'</div>';
+    }
+    function openList(){view='list';renderList();wrap.hidden=false;}
+    function openForm(r){
+      if(!state.signedIn){login.hidden=false;return;}
+      view='form'; confirming=false;
+      draft=r?Object.assign({},r):{id:null,title:'',h:19,m:0,anchor:sel,repeat:'once',cal:'g'};
+      renderForm(); wrap.hidden=false;
+    }
+    function close(){wrap.hidden=true;view=null;draft=null;series=null;detailOf=null;confirming=false;}
+    function titleProblem(){var s=draft.title.trim();if(!TITLE_OK.test(draft.title))return 'English or Hebrew letters, digits and . , \' ! ? : ( ) - only';if(!s)return 'Give it a title';return '';}
+    function summaryHTML(){return summaryFor(draft);}
+    function summaryFor(r){
+      var next=nextDates(r,3), h0=hd(r.anchor), a=parse(r.anchor), line;
+      if(r.repeat==='once')line='Once, on '+fmtG(r.anchor,true);
+      else if(r.repeat==='daily')line='Every day from '+fmtG(r.anchor);
+      else if(r.repeat==='monthly')line=r.cal==='g'?'Every month on the '+ord(a.getUTCDate()):'Every Hebrew month on the '+ord(h0.getDate());
+      else line=r.cal==='g'?'Every year on '+a.getUTCDate()+' '+MONTHS[a.getUTCMonth()]:'Every year on '+hName(h0);
+      var rows=next.map(function(s){return '<div class="r"><span>'+fmtG(s,true)+'</span><span class="he">'+fmtH(hd(s))+'</span></div>';}).join('');
+      return '<b>'+line+', '+pad(r.h)+':'+pad(r.m)+'</b>'+(r.repeat==='once'?'':'<span class="lbl" style="margin-top:2px">Next</span>')+rows;
+    }
+    function renderForm(){
+      var r=draft, h0=hd(r.anchor), a=parse(r.anchor), prob=titleProblem(), edit=!!r.id;
+      var pills=['once','daily','monthly','yearly'].map(function(k){return '<button type="button" data-rep="'+k+'" aria-pressed="'+(r.repeat===k)+'">'+k[0].toUpperCase()+k.slice(1)+'</button>';}).join('');
+      var seg=(r.repeat==='monthly'||r.repeat==='yearly')?'<div class="crSeg">'+
+        '<button type="button" data-cal="g" aria-pressed="'+(r.cal==='g')+'">Gregorian<small>'+(r.repeat==='monthly'?'the '+ord(a.getUTCDate()):a.getUTCDate()+' '+MONTHS[a.getUTCMonth()])+'</small></button>'+
+        '<button type="button" data-cal="h" aria-pressed="'+(r.cal==='h')+'">Hebrew<small>'+(r.repeat==='monthly'?'the '+ord(h0.getDate()):hName(h0))+'</small></button></div>':'';
+      var ns=notes(r).map(function(n){return '<div class="crNote">'+n+'</div>';}).join('');
+      var foot=confirming?'<div class="crConfirm"><p>Delete "'+esc(r.title)+'"?'+(r.repeat==='once'?'':' It goes from every day it repeats on.')+'</p><div class="btns" style="margin-top:0"><span class="btn" data-keep style="cursor:pointer">Keep</span><span class="btn danger" data-del-yes style="cursor:pointer">Delete</span></div></div>':
+        '<div class="btns" style="margin-top:0">'+(edit&&del!=='detail'?'<span class="btn danger" data-del style="cursor:pointer">Delete</span>':'<span class="btn" data-close style="cursor:pointer">Cancel</span>')+'<span class="btn primary" data-save style="cursor:pointer" aria-disabled="'+(!!prob)+'">Save</span></div>';
+      sheet.innerHTML='<div class="crForm"><div class="grab"></div><div class="sheetHead"><h4>'+(edit?'Edit reminder':'New reminder')+'</h4><span class="btn" data-close style="flex:none;padding:6px 12px;cursor:pointer">Close</span></div>'+
+        '<label class="crField"><span>Title<em data-count style="font-style:normal">'+r.title.length+'/60</em></span><input data-title maxlength="60" placeholder="e.g. Call Grandma" value="'+esc(r.title)+'" class="'+(prob&&r.title?'bad':'')+'"><em class="crErr" data-err style="font-style:normal">'+(prob&&r.title?prob:'')+'</em></label>'+
+        '<div class="crField"><span>'+(r.repeat==='once'?'On':'Starts')+'</span><div class="crDate"><button type="button" data-day="-1" aria-label="Day before">‹</button><div>'+fmtG(r.anchor,true)+'<span class="he">'+fmtH(h0)+'</span></div><button type="button" data-day="1" aria-label="Day after">›</button></div></div>'+
+        '<div class="crField"><span>Time</span><div class="steppers"><div class="stepper"><span class="stepBtn" data-hh="-1" style="cursor:pointer">−</span><div><b>'+pad(r.h)+'</b><small>hours</small></div><span class="stepBtn" data-hh="1" style="cursor:pointer">+</span></div><div class="stepper"><span class="stepBtn" data-mm="-5" style="cursor:pointer">−</span><div><b>'+pad(r.m)+'</b><small>min</small></div><span class="stepBtn" data-mm="5" style="cursor:pointer">+</span></div></div></div>'+
+        '<div class="crField"><span>Repeats</span><div class="crPills">'+pills+'</div></div>'+seg+ns+
+        '<div class="crNext" data-sum>'+summaryHTML()+'</div>'+foot+'</div>';
+      var inp=sheet.querySelector('[data-title]');
+      inp.addEventListener('input',function(){
+        draft.title=inp.value; var p=titleProblem();
+        sheet.querySelector('[data-count]').textContent=inp.value.length+'/60';
+        inp.classList.toggle('bad',!!(p&&inp.value)); sheet.querySelector('[data-err]').textContent=p&&inp.value?p:'';
+        var sv=sheet.querySelector('[data-save]'); if(sv)sv.setAttribute('aria-disabled',!!p);
+      });
+    }
+    el.addEventListener('click',function(e){
+      var x;
+      if(e.target.closest('[data-undo]')){if(undo){state.rems=undo;undo=null;renderAll();toast('Back');}return;}
+      if((x=e.target.closest('button.day'))&&grid.contains(x)){sel=x.getAttribute('data-date');render();return;}
+      if(e.target.closest('[data-add]')){close();openForm(null);return;}
+      if(e.target.closest('[data-all]')){openList();return;}
+      if((x=e.target.closest('[data-swdel]'))){var rd=find(+x.getAttribute('data-swdel'));if(!askSeries(rd,'delete'))remove(rd,false);return;}
+      if((x=e.target.closest('[data-id]'))){
+        if(Date.now()-swiped<300)return; // the end of a swipe, not a tap
+        var r=find(+x.getAttribute('data-id'));
+        if(del==='swipe'&&closeSwipes())return; // a tap elsewhere closes an open row first
+        close();
+        if(del==='detail'){if(!state.signedIn)return;view='detail';detailOf=r.id;renderDetail();wrap.hidden=false;}
+        else openForm(r);
+        return;
+      }
+      if(e.target.closest('[data-close]')||e.target===wrap){close();return;}
+      if(login.contains(e.target)){if(e.target.closest('[data-yes]')){login.hidden=true;toast('→ the login screen');}else if(e.target.closest('[data-no]')||e.target===login)login.hidden=true;return;}
+      if(view==='series'){
+        var s=series;
+        if(e.target.closest('[data-only]')){
+          if(s.kind==='delete')remove(s.r,true);
+          else{ // this day becomes its own once-reminder; the series skips it
+            state.rems=state.rems.map(function(q){return q.id===s.r.id?Object.assign({},q,{skip:(q.skip||[]).concat(sel)}):q;});
+            state.rems.push(Object.assign({},s.pending,{id:++id,repeat:'once',anchor:sel,skip:[]}));
+            close();renderAll();toast('Changed only '+fmtG(sel));
+          }
+        } else if(e.target.closest('[data-every]')){
+          if(s.kind==='delete')remove(s.r,false);
+          else{state.rems=state.rems.map(function(q){return q.id===s.pending.id?s.pending:q;});close();renderAll();toast('Changed every time');}
+        }
+        return;
+      }
+      if(view==='detail'){
+        var rr=find(detailOf);
+        if(e.target.closest('[data-edit]')){close();openForm(rr);return;}
+        if(e.target.closest('[data-del]')){if(!askSeries(rr,'delete')){confirming=true;renderDetail();}return;}
+        if(e.target.closest('[data-keep]')){confirming=false;renderDetail();return;}
+        if(e.target.closest('[data-del-yes]')){remove(rr,false);return;}
+        return;
+      }
+      if(!draft)return;
+      if((x=e.target.closest('[data-rep]'))){draft.repeat=x.getAttribute('data-rep');renderForm();return;}
+      if((x=e.target.closest('[data-cal]'))){draft.cal=x.getAttribute('data-cal');renderForm();return;}
+      if((x=e.target.closest('[data-day]'))){draft.anchor=addDays(draft.anchor,+x.getAttribute('data-day'));renderForm();return;}
+      if((x=e.target.closest('[data-hh]'))){draft.h=(draft.h+ +x.getAttribute('data-hh')+24)%24;renderForm();return;}
+      if((x=e.target.closest('[data-mm]'))){draft.m=(draft.m+ +x.getAttribute('data-mm')+60)%60;renderForm();return;}
+      if(e.target.closest('[data-del]')){var orig=find(draft.id);if(!askSeries(orig,'delete')){confirming=true;renderForm();}return;}
+      if(e.target.closest('[data-keep]')){confirming=false;renderForm();return;}
+      if(e.target.closest('[data-del-yes]')){remove(find(draft.id),false);return;}
+      if(e.target.closest('[data-save]')){
+        if(titleProblem())return;
+        draft.title=draft.title.trim();
+        var before=draft.id&&find(draft.id);
+        if(before&&askSeries(before,'edit',Object.assign({},draft)))return;
+        if(draft.id)state.rems=state.rems.map(function(q){return q.id===draft.id?draft:q;});
+        else{draft.id=++id;state.rems.push(draft);}
+        var n=nextDates(draft,1)[0], saved=draft;
+        close(); if(saved.anchor.slice(0,7)==='2026-10')sel=saved.anchor; renderAll();
+        toast(n?'Saved · next '+fmtG(n)+' '+pad(saved.h)+':'+pad(saved.m):'Saved');
+      }
+    });
+    // Swipe a row left to show Delete (X2): the row narrows (its title shortens, never slides away) as
+    // Delete grows from the right. Past half its width it stays open; else it springs back.
+    var sw=null, OPEN=84;
+    function closeSwipes(){var any=false;el.querySelectorAll('.crSwipe.open').forEach(function(w){any=true;setSlide(w,0,true);w.classList.remove('open');});return any;}
+    function setSlide(w,dx,anim){var s=w.querySelector('.crSlide'),b=w.querySelector('.crDelBtn');s.style.transition=b.style.transition=anim?'margin-right .2s, width .2s':'none';s.style.marginRight=(-dx+(dx?6:0))+'px';b.style.width=(-dx)+'px';}
+    if(del==='swipe'){
+      el.addEventListener('pointerdown',function(e){var s=e.target.closest('[data-slide]');if(!s)return;var w=s.parentNode;sw={w:w,x0:e.clientX,y0:e.clientY,base:w.classList.contains('open')?-OPEN:0,on:false,id:e.pointerId};});
+      el.addEventListener('pointermove',function(e){
+        if(!sw)return; var dx=e.clientX-sw.x0, dy=e.clientY-sw.y0;
+        if(!sw.on){if(Math.abs(dx)<8)return;if(Math.abs(dy)>Math.abs(dx)){sw=null;return;}sw.on=true;sw.w.setPointerCapture&&sw.w.setPointerCapture(sw.id);el.querySelectorAll('.crSwipe.open').forEach(function(o){if(o!==sw.w){setSlide(o,0,true);o.classList.remove('open');}});}
+        setSlide(sw.w,Math.max(-OPEN*1.4,Math.min(0,sw.base+dx)),false);
+      });
+      var end=function(e){
+        if(!sw)return; var w=sw.w, on=sw.on, dx=e.clientX-sw.x0, pos=sw.base+dx; sw=null; if(!on)return;
+        swiped=Date.now(); var open=pos<-OPEN/2; setSlide(w,open?-OPEN:0,true); w.classList.toggle('open',open);
+      };
+      el.addEventListener('pointerup',end); el.addEventListener('pointercancel',end);
+    }
+    return {render:render};
+  }
+
+  document.querySelector('[data-cr-signed]').addEventListener('click',function(e){
+    state.signedIn=!state.signedIn; e.currentTarget.setAttribute('aria-pressed',state.signedIn); e.currentTarget.textContent=state.signedIn?'Signed in':'Signed out'; renderAll();
+  });
+  var seriesBtn=document.querySelector('[data-cr-series]');
+  seriesBtn.addEventListener('click',function(){state.askSeries=!state.askSeries;seriesBtn.setAttribute('aria-pressed',state.askSeries);seriesBtn.textContent=state.askSeries?'Repeating reminders ask: "Only this day / Every time" (on)':'Repeating reminders ask: off (always every time)';});
+  document.querySelector('[data-cr-reset]').addEventListener('click',function(){state.rems=seed();renderAll();});
+  renderAll();
 })();
 </script>

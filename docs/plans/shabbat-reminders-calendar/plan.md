@@ -686,38 +686,83 @@ and a day card with that day's times.
   FCM), like candle lighting. On the calendar they're the per-day reminders 3.3c already displays
   (cell counts, the card's preview, "Show all"), which replaces the Admin tab's sample switch.
   Signed out, "Add reminder" asks to log in (`ConfirmModal`, as the candle-lighting bell does).
-  - [ ] **3.6a Mockup.** **New UI → mockup first:** where "+ Add reminder" lives (the day card,
+  - [x] **3.6a Mockup.** **New UI → mockup first:** where "+ Add reminder" lives (the day card,
     the "Show all" sheet), the add/edit sheet (title, time, repeat: once / daily / monthly /
     yearly, and for monthly/yearly Gregorian or Hebrew with the date it'll follow shown in both
     calendars), editing and deleting a reminder from the list, the signed-out prompt.
-  - [ ] **3.6b Occurrence rules in `@app/jewish-calendar`.** "The next time after <instant>" for
-    each repeat kind, in the user's time zone. Hebrew rules to decide (and test): a 30th in a
-    29-day month (Cheshvan/Kislev vary) → the 29th or skip; Adar in a leap year → Adar II (birthdays)
-    or Adar I; a yahrzeit uses the usual yahrzeit rules (`@hebcal/core` has them) — offered as its
-    own option or not. Gregorian: the 31st / 29 Feb in shorter months → the last day. Also "every
-    occurrence between two dates" for the calendar. Tests for each rule, in Israel and abroad.
+    *Mockup (2026-10-19, `mockups.html` "Your own reminders on the calendar"): P2 chosen* — a
+    floating + over the Calendar adds to the selected day; the day card only lists.
+    Decided the same day: a date a month/year doesn't have (Hebrew 30th in a 29-day month, the
+    31st, 29 Feb) → that month's last day, never skipped; Hebrew yearly in Adar made in a regular
+    year → Adar II in a leap year, Adar I/II → Adar in a regular year; no yahrzeit option for now
+    (Yearly · Hebrew); daily reminders count on every day of the grid. Editing and deleting: *X1* —
+    tap a reminder → the same sheet, "Edit reminder", with Delete (asks once) beside Save. A
+    repeating reminder's Save and Delete always ask first: "Only <that day>" or "Every time"
+    (Cancel). Only that day: a delete skips that one date; an edit skips it in the series and adds
+    that day as a once-reminder of its own. A once-reminder never asks. The screen leaves room
+    under the day card so its last reminder scrolls clear of the +.
+  - [x] **3.6b Occurrence rules in `@app/jewish-calendar`.** "The next time after <instant>" for
+    each repeat kind, in the user's time zone. The rules decided in 3.6a, each tested: a
+    date a month or year doesn't have (a Hebrew 30th in a 29-day Cheshvan/Kislev/Adar, the 31st,
+    29 Feb) → that month's last day; Hebrew yearly in Adar made in a regular year → Adar II in a
+    leap year, and Adar I/II → Adar in a regular year. Also "every
+    occurrence between two dates" for the calendar, both leaving out a reminder's skipped dates.
+    Tests for each rule, in Israel and abroad.
   - [ ] **3.6c Reminders Service: store and API.** A `custom_reminders` table (schema
     `reminders`; `user_id` → `users.users` `ON DELETE CASCADE`; title, time, repeat, calendar,
-    the anchor date, created/updated). `GET /reminders/custom?from&to` (the occurrences in that
+    the anchor date, its skipped dates, created/updated). `GET /reminders/custom?from&to` (the occurrences in that
     range, for the calendar's loaded months), `POST`, `PATCH`/`DELETE /reminders/custom/:id`
-    (owner only), through Gateway (`JwtAuthGuard`, new `PROXY_ROUTES` rows). Title rules like
+    (owner only; `POST /reminders/custom/:id/skip` `{ date }` for "only this day" — an edit of one
+    day is that plus a `POST` of a once-reminder), through Gateway (`JwtAuthGuard`, new `PROXY_ROUTES` rows). Title rules like
     names (English/Hebrew letters, plus digits and basic punctuation), a length cap. Time zone from
-    the user's profile location (as candle lighting). Tests: API, validation, owner-scoped, cascade.
+    the user's profile location (as candle lighting). Tests: API, validation, owner-scoped, cascade,
+    skipping a date.
   - [ ] **3.6d Scheduling.** `ReminderScheduler` keeps one delayed job per custom reminder at its
     next occurrence; firing publishes `notification-requested` (the reminder's title) and queues
     the next; reschedule on save/edit/delete, on `users.user-state` (a time-zone change), after
     firing, and in the existing sweep. A once-reminder is done after it fires (kept, shown as
-    past). Tests: each repeat kind's next job, edits, deletes, time-zone change, the sweep.
+    past). A skipped date is never scheduled (skipping the next one moves the job on). Tests: each
+    repeat kind's next job, edits, deletes, a skipped date, time-zone change, the sweep.
   - [ ] **3.6e Frontend.** Per the mockup: add / edit / delete (a `customRemindersSlice` or the
     calendar slice; I/O in `services/http/`), `dayReminders` filled from `GET /reminders/custom`
     for the loaded months while signed in (cleared on sign-out); the sample switch and
     `sampleReminders.js` removed. e2e: add each kind and see it on the right days, edit, delete,
+    "only this day" and "every time" for a repeating one,
     signed-out prompt, Hebrew yearly on its Hebrew date across Gregorian years.
   - [ ] **3.6f On the phone + docs.** Each kind added on the phone fires as a notification at its
     time (app closed, screen off); docs: services.md, event-schemas.md (`reminder-due` for custom
     reminders), architecture.md, CLAUDE.md.
-- [ ] **3.4 Holiday-eve reminders (if wanted).** An "Include holidays" switch on the reminder
-  sheet, so it also fires before candle lighting on the eve of a holiday.
+- **3.4 Holiday reminders, on/off per holiday** (after 3.6; asked and decided 2026-10-19; replaces "holiday-eve
+  reminders"). Holidays can't be removed, but each one can remind you. Three kinds: **candle
+  lighting before Yom Tov** (like Shabbat's, minutes before); **a fast's start and end**; **"the
+  holiday is coming"** — a heads-up for any holiday, those without candle lighting too (Chanukah,
+  Rosh Chodesh, Purim…). Turned on and off **per holiday, in its day card** on the Calendar (tap
+  the holiday's day → a bell switch), for that holiday every year; every one starts **off**. Signed
+  in only (signed out, the bell asks to log in). Fires through the Notification Service like the
+  rest; Israel vs. abroad (one or two Yom Tov days) as the calendar shows.
+  - [ ] **3.4a Mockup.** **New UI → mockup first:** the bell on a holiday in the day card (one
+    switch per holiday, or per kind of reminder it has: candles / fast / heads-up), what each kind
+    says and when; and what counts as "one holiday" — the same switch for every day of Pesach and
+    Sukkot, or separate for first and last days? Open: the candle-lighting offset (the Shabbat
+    reminder's, or its own); when the heads-up fires (the evening before, or that morning, and at
+    what time); whether the Shabbat candle-lighting reminder also covers a Yom Tov that falls on
+    Shabbat (no double notification).
+  - [ ] **3.4b Rules in `@app/jewish-calendar`.** For a holiday and a location: its candle
+    lightings (eve, and the second night abroad), a fast's start and end, the heads-up's instant;
+    a stable key per holiday across years (from hebcal's untranslated name). Tests in Israel and
+    abroad: Rosh Hashana's two days, Sukkot/Pesach first and last days, Yom Kippur, a minor fast,
+    Chanukah, a Yom Tov on Shabbat.
+  - [ ] **3.4c Reminders Service.** Each user's on holidays (`holiday_reminders`: user, holiday
+    key, created; `user_id` → `users.users` `ON DELETE CASCADE`): `GET /reminders/holidays`,
+    `PUT`/`DELETE /reminders/holidays/:key`, through Gateway (`JwtAuthGuard`). The scheduler keeps
+    each on holiday's next job, from the user's location and time zone (as candle lighting), and
+    reschedules on a change, a location/time-zone change and in the sweep. Tests: API, owner-scoped,
+    cascade, each kind's next job, Israel vs. abroad.
+  - [ ] **3.4d Frontend.** The bell per the mockup, the on holidays from `GET /reminders/holidays`
+    while signed in (cleared on sign-out), the signed-out prompt. e2e: turn one on and off, it
+    stays per holiday across years, signed out.
+  - [ ] **3.4e On the phone + docs.** Each kind arrives as a notification at its time (app closed);
+    docs: services.md, event-schemas.md, CLAUDE.md.
 - [ ] **3.5 Docs sync.**
 
 ## Later: iPhone (deferred 2026-10-13)

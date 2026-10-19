@@ -57,6 +57,23 @@ the fast it is; `ShabbatCalendar` is unaffected (it reads hebcal's events, not t
 locales; `render()` uses curly quotes): the year off Rosh Hashana's first day, Chol HaMoed spelled
 out, Sukkot VII as Hoshana Raba. Every other name passes through as hebcal renders it.
 
+## Custom reminders' repeat rules (`ReminderOccurrences`)
+
+Each rule is pinned by a test over real hebcal dates (`reminder-occurrences.spec.ts`):
+
+- A date a month or year doesn't have falls on that month's last day, never skipped — a Hebrew 30th
+  in a 29-day month (Cheshvan and Kislev vary, Tevet and Adar always 29), the 31st, 29 Feb. Skipping
+  would silently lose a birthday some years.
+- A Hebrew yearly reminder made in Adar of a regular year is in Adar II in a leap year (the usual
+  birthday rule; Purim is in Adar II). One made in Adar I or Adar II of a leap year is in Adar in a
+  regular year. Made in Adar I, it stays in Adar I in other leap years. No separate yahrzeit rule —
+  Yearly · Hebrew covers it.
+- The rules are checked one day at a time (`fallsOn`), so `datesBetween` and `nextAfter` can't
+  disagree; `nextAfter` gives up after ten years (a yearly reminder with years skipped in a row).
+- The time is wall-clock in the user's zone (`instantAt`): a time the clocks skip (Israel 02:00 →
+  03:00 in March) lands that much later, one they repeat (01:00–02:00 in October) is the second —
+  it fires once either way.
+
 ## Israel vs. abroad from the time zone
 
 `tz === 'Asia/Jerusalem'` switches on Israel rules. Simple and right for a phone set to its local

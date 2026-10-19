@@ -356,7 +356,7 @@ across retries), `queue-contracts`
 (this project's queue names, job types, their guards and publish options — see
 `docs/specs/event-schemas.md`), `kafka-client` (`IEventPublisher`/`IEventConsumer` over `kafkajs`,
 plus the outbox: `addOutboxEvent` in the change's transaction, `OutboxRelay` publishes),
-`kafka-contracts` (topics, consumer groups, event types and guards), `jewish-calendar` (Shabbat times and month calendars over `@hebcal/core`), `build-info`
+`kafka-contracts` (topics, consumer groups, event types and guards), `jewish-calendar` (Shabbat times, month calendars and custom reminders' repeat rules over `@hebcal/core`), `build-info`
 (`buildInfo(service)` — the version/build time/start time internal services' `/health` returns), `users-schema` (read-only
 TypeORM mappings of the Users Service's tables, for other services to read and reference). Kafka is for events, BullMQ
 for jobs. Shared infrastructure is one instance each, reused by every service that needs it:

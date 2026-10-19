@@ -88,7 +88,7 @@ backend/
                         # the outbox (addOutboxEvent in the change's transaction, OutboxRelay).
     kafka-contracts/     # KAFKA_TOPICS, consumer groups, event types + guards, NAME_PATTERN.
     users-schema/        # read-only TypeORM mappings of the Users Service's tables.
-    jewish-calendar/     # Shabbat times + month calendars over @hebcal/core (see its README).
+    jewish-calendar/     # Shabbat times, month calendars, reminder repeat rules over @hebcal/core (see its README).
     build-info/          # buildInfo(service) → { service, version, builtAt, startedAt }, from the
                         # version/ folder the Dockerfile bakes in — what /health returns.
 ```
