@@ -2,7 +2,7 @@ import { Type } from 'class-transformer';
 import { IsInt, Max, Min } from 'class-validator';
 import { ShabbatQueryDto } from './shabbat-query.dto';
 
-// The location fields (lat, lon, tz) are /calendar/shabbat's.
+// The location fields (lat, lon) are /calendar/shabbat's.
 export class MonthQueryDto extends ShabbatQueryDto {
   @Type(() => Number)
   @IsInt()

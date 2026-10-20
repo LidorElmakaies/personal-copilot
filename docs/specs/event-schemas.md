@@ -9,8 +9,8 @@ provisioning — BullMQ creates them on first use. The table below must list exa
 
 | Queue | Declared in | Publishers | Processed by | Job options |
 |---|---|---|---|---|
-| `notification-requested` | `queue-contracts` (`QUEUES.NOTIFICATION_REQUESTED`) | Reminders Service (`ReminderScheduler.fire`) | Notification Service (`NotificationRequestedConsumer`, concurrency 5) | `notificationRequestedPublishOptions(message)`: `dedupeId = notificationId`, `dedupeTtlMs` = time until `expiresAt`, 8 attempts, exponential backoff from 30 s |
-| `reminder-due` | `queue-contracts` (`QUEUES.REMINDER_DUE`) | Reminders Service (`ReminderScheduler`) | Reminders Service (`ReminderDueConsumer`, concurrency 1) | `reminderDuePublishOptions(message)`: `jobId = <reminderId>_<fireAt ms>` (`reminderDueJobId`), `delayMs` = time until `fireAt` (0 if passed), 8 attempts, exponential backoff from 30 s |
+| `notification-requested` | `queue-contracts` (`QUEUES.NOTIFICATION_REQUESTED`) | Reminders Service (`ReminderScheduler.fire`, `CustomReminderScheduler.fire`) | Notification Service (`NotificationRequestedConsumer`, concurrency 5) | `notificationRequestedPublishOptions(message)`: `dedupeId = notificationId`, `dedupeTtlMs` = time until `expiresAt`, 8 attempts, exponential backoff from 30 s |
+| `reminder-due` | `queue-contracts` (`QUEUES.REMINDER_DUE`) | Reminders Service (`ReminderScheduler`, `CustomReminderScheduler`) | Reminders Service (`ReminderDueConsumer`, concurrency 1) | `reminderDuePublishOptions(message)`: `jobId = <reminderId>_<fireAt ms>` (`reminderDueJobId`), `delayMs` = time until `fireAt` (0 if passed), 8 attempts, exponential backoff from 30 s |
 
 Job rules (both sides of `@app/queue-client`):
 - Job data is JSON. A job that fails its queue's type guard is failed with BullMQ's
@@ -70,25 +70,44 @@ it once. The Notification Service saves one progress key per device reached,
 ## `reminder-due`
 
 One reminder's next firing, as a delayed job. Published and processed only by the Reminders
-Service; the `reminders` row stays the source of truth.
+Service; the reminder's row (`reminders` or `custom_reminders`) stays the source of truth.
+`ReminderDueConsumer` hands it to `ReminderScheduler` or `CustomReminderScheduler` by `kind`.
 
 ```ts
 // libs/queue-contracts/src/messages/reminder-due.ts
-interface ReminderDueMessage {
+type ReminderDueMessage = CandleLightingDueMessage | CustomReminderDueMessage;
+
+interface CandleLightingDueMessage {
+  kind?: 'shabbat_candles'; // absent on jobs queued before `kind` existed
   reminderId: string;
-  fireAt: string;          // ISO 8601: candle lighting − offset; must still equal the row's next_fire_at
-  candleLighting: string;  // ISO 8601: the notification's expiresAt
+  fireAt: string;           // ISO 8601: candle lighting − offset; must still equal the row's next_fire_at
+  candleLighting: string;   // ISO 8601: the notification's expiresAt
+}
+
+interface CustomReminderDueMessage {
+  kind: 'custom';
+  reminderId: string;       // a custom_reminders id
+  fireAt: string;           // ISO 8601: the occurrence; must still equal the row's next_fire_at
 }
 ```
 
-- The job id is per reminder and fire time, so scheduling the same firing twice (a restart, a
-  repeated profile event) adds it once. When the time moves (new offset, new location), the old
-  job is removed and a new one added.
-- When it runs: nothing if the reminder is gone (account deleted), off, or its `next_fire_at` no
-  longer equals `fireAt` (moved since). Otherwise it publishes `notification-requested`
-  (`notificationId = reminder-<reminderId>-<candleLighting ms>`, `expiresAt` = candle lighting;
-  skipped if candle lighting already passed) and queues the following week's job. A retry repeats
-  both safely — each is deduplicated.
+- The job id is per reminder and fire time (`<reminderId>_<fireAt ms>`, for both kinds), so
+  scheduling the same firing twice (a restart, a repeated profile event, a sweep) adds it once.
+  When the time moves (new offset or location for candle lighting, a new rule for a custom one),
+  the old job is removed and a new one added.
+- Candle lighting, when it runs: nothing if the reminder is gone (account deleted), off, or its
+  `next_fire_at` no longer equals `fireAt` (moved since). Otherwise it publishes
+  `notification-requested` (`notificationId = reminder-<reminderId>-<candleLighting ms>`, body
+  `Candle lighting is at HH:MM (in …).` in Israel time, `expiresAt` = candle lighting; skipped if candle lighting already passed) and queues the
+  following week's job.
+- Custom, when it runs: nothing if the reminder is gone or its `next_fire_at` no longer equals
+  `fireAt`. Otherwise it publishes `notification-requested` (`notificationId =
+  custom-reminder-<reminderId>-<fireAt ms>`, title = the reminder's title, body `Your reminder for
+  HH:MM.` in Israel time, `url` `/calendar`, `expiresAt` = `fireAt` + 1 h; skipped if that
+  has passed) and queues the next occurrence after the later of `fireAt` and now — none for a
+  finished once-reminder (`next_fire_at` → `null`). See
+  [services.md](services.md#reminders).
+- A retry repeats both steps safely — each is deduplicated.
 
 # Kafka events
 
@@ -101,7 +120,7 @@ by `devops/kafka`'s `kafka-init` (auto-create is off). The table below, `KAFKA_T
 
 | Topic | Publisher | Consumers (group) | Notes |
 |---|---|---|---|
-| `users.user-state` | Users (register, `PATCH /users/me`, `PUT /users/me/location`) | Reminders (`reminders`: reschedule on a change) | compacted; tombstone on delete |
+| `users.user-state` | Users (register, `PATCH /users/me`, `PUT /users/me/location`) | Reminders (`reminders`: reschedule candle lighting on a change) | compacted; tombstone on delete |
 | `frontend.releases` | `devops/android/apk.js publish` (when the newest release changes) | Gateway (`gateway`: `app-update` over `/ws`) | compacted, keyed by platform |
 
 Event rules:
@@ -138,7 +157,6 @@ interface UserStateMessage {
   location: {            // null until the phone first sends one
     lat: number;
     lon: number;
-    tz: string;          // IANA time zone
     updatedAt: string;   // ISO 8601
   } | null;
 }

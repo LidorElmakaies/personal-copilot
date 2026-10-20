@@ -11,6 +11,7 @@ import { CustomRemindersController } from './api/controllers/custom-reminders.co
 import { HealthController } from './api/controllers/health.controller';
 import { RemindersController } from './api/controllers/reminders.controller';
 import { ReminderSweeper } from './api/schedulers/reminder-sweeper';
+import { CustomReminderScheduler } from './application/custom-reminder-scheduler.service';
 import { CustomReminderService } from './application/custom-reminder.service';
 import { ReminderScheduler } from './application/reminder-scheduler.service';
 import { ReminderService } from './application/reminder.service';
@@ -24,6 +25,7 @@ import { TypeOrmUserLocationReader } from './infrastructure/postgres/typeorm-use
 import {
   CANDLE_LIGHTING_SOURCE,
   CUSTOM_REMINDER_REPOSITORY,
+  CUSTOM_REMINDER_SCHEDULER,
   CUSTOM_REMINDER_SERVICE,
   EVENT_CONSUMER,
   QUEUE_CONSUMER,
@@ -74,6 +76,7 @@ const ENTITIES = [
     { provide: USER_LOCATION_READER, useClass: TypeOrmUserLocationReader },
     { provide: SHABBAT_CALENDAR, useValue: new ShabbatCalendar() },
     { provide: CUSTOM_REMINDER_SERVICE, useClass: CustomReminderService },
+    { provide: CUSTOM_REMINDER_SCHEDULER, useClass: CustomReminderScheduler },
     {
       provide: CUSTOM_REMINDER_REPOSITORY,
       useClass: TypeOrmCustomReminderRepository,

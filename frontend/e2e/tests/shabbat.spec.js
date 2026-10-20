@@ -39,7 +39,7 @@ test.describe('with location allowed', () => {
     const last = requests.at(-1);
     expect(last.searchParams.get('lat')).toBe('32.0853');
     expect(last.searchParams.get('lon')).toBe('34.7818');
-    expect(last.searchParams.get('tz')).toBe('Asia/Jerusalem');
+    expect(last.searchParams.has('tz')).toBe(false);
 
     await settle(page);
     await page.screenshot({ path: 'screenshots/shabbat-upcoming.png', fullPage: true });

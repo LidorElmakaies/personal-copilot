@@ -28,8 +28,9 @@ import type {
   CalculatorOptions,
   ICalendarCalculator,
 } from '../calendar-calculator.interface';
+import { ISRAEL_TIME_ZONE } from '../calendar-options';
 
-// Covers Shabbat followed by a two-day Yom Tov abroad (Havdalah on Monday night).
+// Covers Shabbat followed by a Yom Tov on Sunday (Havdalah on Sunday night), with a day to spare.
 const HAVDALAH_SEARCH_DAYS = 3;
 
 export class HebcalCalendarCalculator implements ICalendarCalculator {
@@ -118,10 +119,10 @@ function eventsBetween(
     location: new Location(
       location.latitude,
       location.longitude,
-      options.israel,
-      location.timeZone,
+      true,
+      ISRAEL_TIME_ZONE,
     ),
-    il: options.israel,
+    il: true,
     candlelighting: true,
     candleLightingMins: options.candleLightingMinutes,
     sedrot: true,

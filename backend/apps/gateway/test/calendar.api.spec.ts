@@ -22,7 +22,7 @@ describe('GET /calendar/shabbat', () => {
   const get = (query: string) => fetch(`${base}/calendar/shabbat?${query}`);
 
   it('returns ISO times, parasha, holidays and isNow for a valid location', async () => {
-    const res = await get('lat=32.0853&lon=34.7818&tz=Asia/Jerusalem');
+    const res = await get('lat=32.0853&lon=34.7818');
     expect(res.status).toBe(200);
     const body = (await res.json()) as Record<string, unknown> & {
       candleLighting: string;
@@ -41,12 +41,20 @@ describe('GET /calendar/shabbat', () => {
     expect(typeof body.isNow).toBe('boolean');
   });
 
+  it("ignores an older client's tz", async () => {
+    const plain = (await (
+      await get('lat=32.0853&lon=34.7818')
+    ).json()) as unknown;
+    const withTz = await get('lat=32.0853&lon=34.7818&tz=America/New_York');
+    expect(withTz.status).toBe(200);
+    expect(await withTz.json()).toEqual(plain);
+  });
+
   it.each([
-    ['latitude out of range', 'lat=91&lon=34.7&tz=Asia/Jerusalem'],
-    ['longitude out of range', 'lat=32&lon=181&tz=Asia/Jerusalem'],
-    ['unknown time zone', 'lat=32&lon=34.7&tz=Mars/Olympus'],
-    ['missing time zone', 'lat=32&lon=34.7'],
-    ['non-numeric latitude', 'lat=abc&lon=34.7&tz=Asia/Jerusalem'],
+    ['latitude out of range', 'lat=91&lon=34.7'],
+    ['longitude out of range', 'lat=32&lon=181'],
+    ['missing longitude', 'lat=32'],
+    ['non-numeric latitude', 'lat=abc&lon=34.7'],
   ])('rejects %s with 400', async (_name, query) => {
     expect((await get(query)).status).toBe(400);
   });
@@ -58,9 +66,7 @@ describe('GET /calendar/shabbat', () => {
       doNotFake: ['nextTick', 'setImmediate', 'setTimeout', 'setInterval'],
     });
     try {
-      expect((await get('lat=69.6492&lon=18.9553&tz=Europe/Oslo')).status).toBe(
-        422,
-      );
+      expect((await get('lat=69.6492&lon=18.9553')).status).toBe(422);
     } finally {
       jest.useRealTimers();
     }
@@ -69,7 +75,7 @@ describe('GET /calendar/shabbat', () => {
 
 describe('GET /calendar/month', () => {
   const get = (query: string) => fetch(`${base}/calendar/month?${query}`);
-  const TEL_AVIV = 'lat=32.0853&lon=34.7818&tz=Asia/Jerusalem';
+  const TEL_AVIV = 'lat=32.0853&lon=34.7818';
 
   it('returns every day with its Hebrew date, events, parasha and ISO times', async () => {
     const res = await get(`year=2026&month=9&${TEL_AVIV}`);
@@ -111,18 +117,12 @@ describe('GET /calendar/month', () => {
     ['a year out of range', `year=1800&month=1&${TEL_AVIV}`],
     ['a missing year', `month=1&${TEL_AVIV}`],
     ['a missing location', 'year=2026&month=1'],
-    [
-      'an unknown time zone',
-      'year=2026&month=1&lat=32&lon=34.7&tz=Mars/Olympus',
-    ],
   ])('rejects %s with 400', async (_name, query) => {
     expect((await get(query)).status).toBe(400);
   });
 
   it('answers where the sun never sets, with no times on those days', async () => {
-    const res = await get(
-      'year=2026&month=6&lat=69.6492&lon=18.9553&tz=Europe/Oslo',
-    );
+    const res = await get('year=2026&month=6&lat=69.6492&lon=18.9553');
     expect(res.status).toBe(200);
     const body = (await res.json()) as {
       days: { date: string; times: unknown[] }[];

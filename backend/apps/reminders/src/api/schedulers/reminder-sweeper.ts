@@ -5,14 +5,16 @@ import {
   OnApplicationBootstrap,
   OnModuleDestroy,
 } from '@nestjs/common';
-import { REMINDER_SCHEDULER } from '../../tokens';
+import { CUSTOM_REMINDER_SCHEDULER, REMINDER_SCHEDULER } from '../../tokens';
+import type { ICustomReminderScheduler } from '../../application/interfaces/custom-reminder-scheduler.interface';
 import type { IReminderScheduler } from '../../application/interfaces/reminder-scheduler.interface';
 
 export const SWEEP_INTERVAL_MS = 15 * 60_000;
 
 // Clock entry point: at startup and every 15 min, makes Redis match the database — every enabled
-// reminder gets exactly its job (idempotent: same job ids). The safety net behind the immediate
-// rescheduling on save, profile change and firing; whatever failed there is fixed by the next sweep.
+// candle-lighting reminder and every custom one gets exactly its job (idempotent: same job ids).
+// The safety net behind the immediate rescheduling on save, profile change and firing; whatever
+// failed there is fixed by the next sweep.
 @Injectable()
 export class ReminderSweeper
   implements OnApplicationBootstrap, OnModuleDestroy
@@ -23,6 +25,8 @@ export class ReminderSweeper
 
   constructor(
     @Inject(REMINDER_SCHEDULER) private readonly scheduler: IReminderScheduler,
+    @Inject(CUSTOM_REMINDER_SCHEDULER)
+    private readonly custom: ICustomReminderScheduler,
   ) {}
 
   onApplicationBootstrap(): void {
@@ -39,7 +43,9 @@ export class ReminderSweeper
     if (this.running) return;
     this.running = true;
     try {
-      const failed = await this.scheduler.rescheduleAll();
+      const failed =
+        (await this.scheduler.rescheduleAll()) +
+        (await this.custom.rescheduleAll());
       if (failed > 0) {
         this.logger.warn(
           `${failed} reminder(s) not scheduled; next sweep in 15 min`,

@@ -1,12 +1,13 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import { ISRAEL_TIME_ZONE } from '@app/jewish-calendar';
 import type { IQueuePublisher } from '@app/queue-client';
 import {
   notificationRequestedPublishOptions,
   QUEUES,
   reminderDueJobId,
   reminderDuePublishOptions,
+  type CandleLightingDueMessage,
   type NotificationRequestedMessage,
-  type ReminderDueMessage,
 } from '@app/queue-contracts';
 import {
   CANDLE_LIGHTING_SOURCE,
@@ -71,7 +72,7 @@ export class ReminderScheduler implements IReminderScheduler {
     return failed;
   }
 
-  async fire(message: ReminderDueMessage): Promise<void> {
+  async fire(message: CandleLightingDueMessage): Promise<void> {
     const reminder = await this.reminders.findById(message.reminderId);
     // Deleted (account gone), turned off, or moved since this job was queued: nothing to do.
     if (
@@ -126,7 +127,7 @@ export class ReminderScheduler implements IReminderScheduler {
       await this.removeJob(reminder.id, previous);
     }
     if (next) {
-      const message: ReminderDueMessage = {
+      const message: CandleLightingDueMessage = {
         reminderId: reminder.id,
         fireAt: next.fireAt.toISOString(),
         candleLighting: next.candleLighting.toISOString(),
@@ -155,10 +156,8 @@ export class ReminderScheduler implements IReminderScheduler {
     candleLighting: Date,
   ): Promise<void> {
     const now = new Date();
-    const tz =
-      (await this.locations.findByUserId(reminder.userId))?.tz ?? 'UTC';
     const at = new Intl.DateTimeFormat('en-GB', {
-      timeZone: tz,
+      timeZone: ISRAEL_TIME_ZONE,
       hour: '2-digit',
       minute: '2-digit',
     }).format(candleLighting);

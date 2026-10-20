@@ -400,7 +400,7 @@ describe('accounts and profiles (users)', () => {
           await send(
             'PUT',
             '/users/me/location',
-            { lat: 32, lon: 34.8, tz: 'Asia/Jerusalem' },
+            { lat: 32, lon: 34.8 },
             'gone',
           )
         ).status,
@@ -411,11 +411,7 @@ describe('accounts and profiles (users)', () => {
     it.each([
       ['GET', '/users/me', undefined],
       ['PATCH', '/users/me', { firstName: 'A' }],
-      [
-        'PUT',
-        '/users/me/location',
-        { lat: 32, lon: 34.8, tz: 'Asia/Jerusalem' },
-      ],
+      ['PUT', '/users/me/location', { lat: 32, lon: 34.8 }],
     ])(
       '%s %s answers 401 without a forwarded user id',
       async (method, path, body) => {
@@ -431,6 +427,7 @@ describe('accounts and profiles (users)', () => {
       const res = await send(
         'PUT',
         '/users/me/location',
+        // An older app still sends its time zone: dropped, not an error.
         { lat: 32.1782, lon: 34.9076, tz: 'Asia/Jerusalem' },
         userId,
       );
@@ -439,8 +436,9 @@ describe('accounts and profiles (users)', () => {
       const body = (await res.json()) as { location: { updatedAt: string } };
       expect(body).toMatchObject({
         firstName: 'Lidor',
-        location: { lat: 32.1782, lon: 34.9076, tz: 'Asia/Jerusalem' },
+        location: { lat: 32.1782, lon: 34.9076 },
       });
+      expect(body.location).not.toHaveProperty('tz');
       const [, latest] = store.stateEventsFor(userId);
       expect(isUserStateMessage(latest)).toBe(true);
       expect(latest).toMatchObject({
@@ -449,20 +447,15 @@ describe('accounts and profiles (users)', () => {
         location: {
           lat: 32.1782,
           lon: 34.9076,
-          tz: 'Asia/Jerusalem',
           updatedAt: body.location.updatedAt,
         },
       });
     });
 
     it.each([
-      ['a latitude out of range', { lat: 91, lon: 34.8, tz: 'Asia/Jerusalem' }],
-      [
-        'a latitude as a string',
-        { lat: '32', lon: 34.8, tz: 'Asia/Jerusalem' },
-      ],
-      ['an unknown time zone', { lat: 32, lon: 34.8, tz: 'Mars/Base' }],
-      ['a missing longitude', { lat: 32, tz: 'Asia/Jerusalem' }],
+      ['a latitude out of range', { lat: 91, lon: 34.8 }],
+      ['a latitude as a string', { lat: '32', lon: 34.8 }],
+      ['a missing longitude', { lat: 32 }],
     ])('rejects %s with 400', async (_name, body) => {
       const userId = await register();
       expect(

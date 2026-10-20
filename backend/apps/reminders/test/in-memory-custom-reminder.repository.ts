@@ -9,6 +9,15 @@ import type { ICustomReminderRepository } from '../src/infrastructure/interfaces
 export class InMemoryCustomReminderRepository implements ICustomReminderRepository {
   readonly rows = new Map<string, CustomReminder>();
 
+  findById(id: string): Promise<CustomReminder | null> {
+    const row = this.rows.get(id);
+    return Promise.resolve(row ? this.copy(row) : null);
+  }
+
+  findAll(): Promise<CustomReminder[]> {
+    return Promise.resolve([...this.rows.values()].map((r) => this.copy(r)));
+  }
+
   findByUserId(userId: string): Promise<CustomReminder[]> {
     return Promise.resolve(
       [...this.rows.values()]
@@ -35,6 +44,7 @@ export class InMemoryCustomReminderRepository implements ICustomReminderReposito
       id: randomUUID(),
       userId,
       skipped: [],
+      nextFireAt: null,
       createdAt: now,
       updatedAt: now,
     };
@@ -51,6 +61,12 @@ export class InMemoryCustomReminderRepository implements ICustomReminderReposito
     if (row?.userId !== userId) return Promise.resolve(null);
     Object.assign(row, patch, { updatedAt: new Date() });
     return Promise.resolve(this.copy(row));
+  }
+
+  setNextFireAt(id: string, nextFireAt: Date | null): Promise<void> {
+    const row = this.rows.get(id);
+    if (row) row.nextFireAt = nextFireAt;
+    return Promise.resolve();
   }
 
   delete(userId: string, id: string): Promise<boolean> {

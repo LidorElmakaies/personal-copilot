@@ -1,16 +1,22 @@
 import { ReminderSweeper, SWEEP_INTERVAL_MS } from './reminder-sweeper';
+import type { ICustomReminderScheduler } from '../../application/interfaces/custom-reminder-scheduler.interface';
 import type { IReminderScheduler } from '../../application/interfaces/reminder-scheduler.interface';
 
 describe('ReminderSweeper', () => {
   let rescheduleAll: jest.Mock<Promise<number>, []>;
+  let rescheduleAllCustom: jest.Mock<Promise<number>, []>;
   let sweeper: ReminderSweeper;
 
   beforeEach(() => {
     jest.useFakeTimers();
     rescheduleAll = jest.fn<Promise<number>, []>().mockResolvedValue(0);
-    sweeper = new ReminderSweeper({
-      rescheduleAll,
-    } as unknown as IReminderScheduler);
+    rescheduleAllCustom = jest.fn<Promise<number>, []>().mockResolvedValue(0);
+    sweeper = new ReminderSweeper(
+      { rescheduleAll } as unknown as IReminderScheduler,
+      {
+        rescheduleAll: rescheduleAllCustom,
+      } as unknown as ICustomReminderScheduler,
+    );
   });
 
   afterEach(() => {
@@ -26,6 +32,12 @@ describe('ReminderSweeper', () => {
     expect(rescheduleAll).toHaveBeenCalledTimes(2);
     await jest.advanceTimersByTimeAsync(SWEEP_INTERVAL_MS);
     expect(rescheduleAll).toHaveBeenCalledTimes(3);
+  });
+
+  it('sweeps custom reminders too', async () => {
+    await sweeper.sweep();
+    expect(rescheduleAll).toHaveBeenCalledTimes(1);
+    expect(rescheduleAllCustom).toHaveBeenCalledTimes(1);
   });
 
   it('keeps sweeping after a failed sweep', async () => {

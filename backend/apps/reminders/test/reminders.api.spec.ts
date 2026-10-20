@@ -72,7 +72,7 @@ describe('reminders API (reminders)', () => {
   const put = (body: unknown, userId?: string) =>
     call('PUT', '/reminders/shabbat-candles', body, userId);
   const knowLocation = (userId = 'user-1') =>
-    locations.set(userId, { lat: 32.1782, lon: 34.9076, tz: 'Asia/Jerusalem' });
+    locations.set(userId, { lat: 32.1782, lon: 34.9076 });
 
   it('lists nothing for a user without reminders', async () => {
     const res = await call('GET', '/reminders');
@@ -120,7 +120,6 @@ describe('reminders API (reminders)', () => {
       ...settings,
       lat: 32,
       lon: 34.8,
-      tz: 'Asia/Jerusalem',
     });
     expect(res.status).toBe(200);
     expect(await res.json()).not.toHaveProperty('lat');

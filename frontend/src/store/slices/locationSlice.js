@@ -20,7 +20,7 @@ export const locate = createAsyncThunk(
 const locationSlice = createSlice({
   name: 'location',
   initialState: {
-    coords: null, // { latitude, longitude, timeZone } — persisted as the last known location
+    coords: null, // { latitude, longitude } — persisted as the last known location
     status: 'idle', // 'idle' | 'locating' | 'ready' | 'denied' | 'failed'
     error: null,
   },

@@ -43,20 +43,12 @@ export const syncLocation = createAsyncThunk(
       const userId = selectUserId(getState());
       const stillSameUser = () => selectUserId(getState()) === userId;
       const { coords } = getState().location;
-      const current = {
-        lat: coords.latitude,
-        lon: coords.longitude,
-        tz: coords.timeZone,
-      };
+      const current = { lat: coords.latitude, lon: coords.longitude };
       const profile =
         getState().profile.profile ?? (await usersService.getProfile(token));
       if (!stillSameUser()) return null;
       const saved = profile.location;
-      if (
-        saved &&
-        saved.tz === current.tz &&
-        distanceKm(saved, current) <= LOCATION_SYNC_MIN_KM
-      ) {
+      if (saved && distanceKm(saved, current) <= LOCATION_SYNC_MIN_KM) {
         return null;
       }
       const updated = await usersService.setLocation(token, current);

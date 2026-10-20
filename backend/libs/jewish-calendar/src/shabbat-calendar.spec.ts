@@ -7,13 +7,8 @@ import { ShabbatCalendar } from './shabbat-calendar';
 const TEL_AVIV = {
   latitude: 32.0853,
   longitude: 34.7818,
-  timeZone: 'Asia/Jerusalem',
 };
-const NEW_YORK = {
-  latitude: 40.7128,
-  longitude: -74.006,
-  timeZone: 'America/New_York',
-};
+const JERUSALEM = { latitude: 31.7683, longitude: 35.2137 };
 
 const iso = (d: CivilDate, time: string) =>
   new Date(
@@ -75,21 +70,21 @@ describe('ShabbatCalendar.current', () => {
   });
 
   it('stays on the current Shabbat through a Yom Tov that follows it', () => {
-    // Havdalah on Sunday night, like Simchat Torah abroad.
+    // Havdalah on Sunday night, like Rosh Hashana II after Shabbat.
     const result = new ShabbatCalendar(fakeCalculator(2)).current(
-      NEW_YORK,
+      TEL_AVIV,
       new Date('2026-10-04T15:00:00Z'),
     );
     expect(result.candleLighting).toEqual(new Date('2026-10-02T15:00:00Z'));
     expect(result.isNow).toBe(true);
   });
 
-  it("uses the user's local date, not UTC, to find the Friday", () => {
+  it("uses Israel's date, not UTC, to find the Friday", () => {
     const calc = fakeCalculator();
-    // Friday 22:00 in New York is already Saturday in UTC.
+    // Friday 01:00 in Israel is still Thursday in UTC.
     new ShabbatCalendar(calc).current(
-      NEW_YORK,
-      new Date('2026-10-03T02:00:00Z'),
+      TEL_AVIV,
+      new Date('2026-10-01T22:00:00Z'),
     );
     expect(calc.shabbatFor.mock.calls[0][1]).toEqual({
       year: 2026,
@@ -110,19 +105,17 @@ describe('ShabbatCalendar.nextCandleLighting', () => {
   const next = (after: string, calc = fakeCalculator()) =>
     new ShabbatCalendar(calc).nextCandleLighting(TEL_AVIV, new Date(after));
 
-  it('uses Israel rules and 20 minutes in Israel, 18 minutes abroad', () => {
-    const israel = fakeCalculator();
-    const abroad = fakeCalculator();
+  it("uses 20 minutes, or the city's custom (Jerusalem 40)", () => {
+    const telAviv = fakeCalculator();
+    const jerusalem = fakeCalculator();
     const sunday = new Date('2026-09-27T08:00:00Z');
-    new ShabbatCalendar(israel).nextCandleLighting(TEL_AVIV, sunday);
-    new ShabbatCalendar(abroad).nextCandleLighting(NEW_YORK, sunday);
-    expect(israel.shabbatFor.mock.calls[0][2]).toEqual({
-      israel: true,
+    new ShabbatCalendar(telAviv).nextCandleLighting(TEL_AVIV, sunday);
+    new ShabbatCalendar(jerusalem).nextCandleLighting(JERUSALEM, sunday);
+    expect(telAviv.shabbatFor.mock.calls[0][2]).toEqual({
       candleLightingMinutes: 20,
     });
-    expect(abroad.shabbatFor.mock.calls[0][2]).toEqual({
-      israel: false,
-      candleLightingMinutes: 18,
+    expect(jerusalem.shabbatFor.mock.calls[0][2]).toEqual({
+      candleLightingMinutes: 40,
     });
   });
 
@@ -150,12 +143,12 @@ describe('ShabbatCalendar.nextCandleLighting', () => {
     );
   });
 
-  it("uses the user's local date, not UTC, to find the Friday", () => {
+  it("uses Israel's date, not UTC, to find the Friday", () => {
     const calc = fakeCalculator();
-    // Thursday 22:00 in New York is already Friday in UTC.
+    // Friday 01:00 in Israel is still Thursday in UTC: that Friday, not the one before.
     new ShabbatCalendar(calc).nextCandleLighting(
-      NEW_YORK,
-      new Date('2026-10-02T02:00:00Z'),
+      TEL_AVIV,
+      new Date('2026-10-01T22:00:00Z'),
     );
     expect(calc.shabbatFor.mock.calls[0][1]).toEqual({
       year: 2026,

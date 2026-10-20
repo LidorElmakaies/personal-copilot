@@ -4,7 +4,6 @@ import type { GeoLocation } from './models/geo-location';
 import type { ShabbatTimes } from './models/shabbat-times';
 
 export interface CalculatorOptions {
-  israel: boolean;
   candleLightingMinutes: number;
 }
 

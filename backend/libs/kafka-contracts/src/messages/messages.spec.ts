@@ -5,7 +5,6 @@ describe('isUserStateMessage', () => {
   const location = {
     lat: 32.1782,
     lon: 34.9076,
-    tz: 'Asia/Jerusalem',
     updatedAt: '2026-10-03T10:00:00.000Z',
   };
   const valid = {
@@ -19,6 +18,13 @@ describe('isUserStateMessage', () => {
 
   it('accepts a full state and one with nothing set yet', () => {
     expect(isUserStateMessage(valid)).toBe(true);
+    // Compacted messages from before the time zone was dropped still pass.
+    expect(
+      isUserStateMessage({
+        ...valid,
+        location: { ...location, tz: 'Asia/Jerusalem' },
+      }),
+    ).toBe(true);
     expect(
       isUserStateMessage({
         userId: 'u-1',
@@ -47,10 +53,6 @@ describe('isUserStateMessage', () => {
     [
       'a longitude as a string',
       { ...valid, location: { ...location, lon: '34.9' } },
-    ],
-    [
-      'an unknown time zone',
-      { ...valid, location: { ...location, tz: 'Mars/Base' } },
     ],
     [
       'a location without updatedAt',

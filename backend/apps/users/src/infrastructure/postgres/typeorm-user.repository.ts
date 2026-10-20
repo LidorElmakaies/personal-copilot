@@ -62,7 +62,6 @@ export class TypeOrmUserRepository implements IUserRepository {
             ...details,
             lat: null,
             lon: null,
-            tz: null,
             locationUpdatedAt: null,
             version: 1,
           }),

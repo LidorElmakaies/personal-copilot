@@ -118,8 +118,8 @@ scripts/docs-check.js     docs drift check (+ docs-check.test.js) — see Comman
     /reminders/custom/:id`, `POST /reminders/custom/:id/skip`. Notifications: `GET /notifications/vapid-public-key` (open),
     `POST`/`DELETE /notifications/subscriptions`, `PUT`/`DELETE /notifications/fcm-devices`.
   - `src/calendar/` — both open, answered in-process from `@app/jewish-calendar`:
-    `GET /calendar/shabbat?lat&lon&tz` (the Shabbat in progress, otherwise the next one) and
-    `GET /calendar/month?year&month&lat&lon&tz` (each day's Hebrew date, holidays/fasts and
+    `GET /calendar/shabbat?lat&lon` (the Shabbat in progress, otherwise the next one) and
+    `GET /calendar/month?year&month&lat&lon` (each day's Hebrew date, holidays/fasts and
     enter/leave times).
   - `src/realtime/` — `POST /realtime/device` (open, on the strict auth rate limit) issues a
     device token: an app install's signed, anonymous identity, kept for good. Socket.IO at `/ws`
@@ -164,17 +164,21 @@ scripts/docs-check.js     docs drift check (+ docs-check.test.js) — see Comman
   daily / monthly / yearly, Gregorian or Hebrew, skipped days; same cascade): `GET
   /reminders/custom?from&to` (each with its days in the range, from `ReminderOccurrences`), `POST`,
   `PATCH`/`DELETE /reminders/custom/:id`, `POST …/:id/skip` ("only this day"); another user's id →
-  `404`; not scheduled yet. Reads the user's location straight from `users.profiles` (read-only
+  `404`. Reads the user's location straight from `users.profiles` (read-only
   mapping) — no copy. Candle-lighting maths is the in-process `@app/jewish-calendar` lib
-  (`@hebcal/core` v6; "today" is the user's date in `tz`; Israel rules and 20-min candle lighting
-  when `tz` is `Asia/Jerusalem`, else 18 min — see its README for the ESM-import and time-zone
-  gotchas; Jerusalem and Petach Tikva 40 / Haifa, Tzfat and Zikhron Ya'akov 30, by distance from the
-  city center). Gateway serves `GET /calendar/shabbat` (Home) and `GET /calendar/month` from the same lib.
+  (`@hebcal/core` v6; Israel-only: Israel's rules and time zone (`ISRAEL_TIME_ZONE`) wherever the
+  GPS point is, no `tz` anywhere; 20-min candle lighting, Jerusalem and Petach Tikva 40 / Haifa,
+  Tzfat and Zikhron Ya'akov 30, by distance from the city center — see its README for the
+  ESM-import and time-zone gotchas). The candle-lighting notification gives the time in Israel time. Gateway serves `GET /calendar/shabbat` (Home) and `GET /calendar/month` from the same lib.
   `ReminderScheduler` keeps one delayed `reminder-due` job per enabled
   reminder at candle lighting − offset; when it runs it publishes `notification-requested` and queues next
-  week's. Reschedules on save, on `users.user-state` (Kafka), after firing, and in a sweep at
-  startup and every 15 min that makes Redis match the database — see
-  `docs/specs/event-schemas.md#reminder-due`.
+  week's. `CustomReminderScheduler` does the same per custom reminder (job `kind: 'custom'`) at its
+  next occurrence in Israel time (`ISRAEL_TIME_ZONE` — no location needed; `next_fire_at` `null` once a
+  once-reminder has fired): title + "Your reminder for HH:MM." (Israel time), `expiresAt` = time + 1 h,
+  then the next occurrence; a passed-but-unfired one fires late while under 1 h late. `ReminderDueConsumer`
+  dispatches by `kind`. Both reschedule on save (custom: create/edit/skip; delete drops the job), after
+  firing, and in a sweep at startup and every 15 min that makes Redis match the database; candle
+  lighting also on `users.user-state` (Kafka) — see `docs/specs/event-schemas.md#reminder-due`.
 - **notifications** (`backend/apps/notifications`) — internal-only, schema `notifications`
   (`push_subscriptions.user_id` → `users.users` `ON DELETE CASCADE`) plus the BullMQ queue on Redis (`REDIS_URL`, consume-only). Stores browsers'
   Web Push subscriptions (`push_subscriptions`) and serves the VAPID public key (`VAPID_*` env, see
@@ -239,7 +243,7 @@ scripts/docs-check.js     docs drift check (+ docs-check.test.js) — see Comman
   return. Features subscribe with `socketService.on(event, handler)`, which survives reconnects;
   `app-update` is the one event listened for. While signed in, `LocationSyncManager` (also in
   `app/_layout.js`) sends a fresh GPS fix to `PUT /users/me/location` only if it's > 5 km from the server's saved location
-  or the time zone changed (`profileSlice.syncLocation`, see `docs/specs/services.md#frontend`).
+  (`profileSlice.syncLocation`, see `docs/specs/services.md#frontend`).
   The 15-min access token is renewed quietly with the 30-day rotating refresh token
   (`authSlice.refreshSession`, one at a time): a minute before expiry (`AuthGate`), on start and
   return to the foreground when due, before any call made with an already-expired token, and once on
@@ -279,7 +283,7 @@ scripts/docs-check.js     docs drift check (+ docs-check.test.js) — see Comman
 - **Queues** — BullMQ on Redis (`devops/redis/docker-compose.yml`, internal-only, AOF-persisted,
   `noeviction`, holds nothing but queues). Cross-service queues and job guards in
   `@app/queue-contracts` (`notification-requested` — Reminders publishes, Notifications
-  processes; and `reminder-due`, Reminders' own delayed jobs; every publisher of `notification-requested` must enqueue with `notificationRequestedPublishOptions`
+  processes; and `reminder-due`, Reminders' own delayed jobs, candle-lighting or custom by `kind`; every publisher of `notification-requested` must enqueue with `notificationRequestedPublishOptions`
   — dedupe on `notificationId` until `expiresAt`, 8 attempts, backoff from 30 s);
   `@app/queue-client` has the publisher (dedupe/delay/attempts/backoff) and a validating consumer
   whose handler gets the job's `progress`/`saveProgress` (kept across retries). See `docs/specs/event-schemas.md`.

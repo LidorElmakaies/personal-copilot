@@ -10,7 +10,6 @@ describe('MonthCalendar.month', () => {
   const TEL_AVIV = {
     latitude: 32.0853,
     longitude: 34.7818,
-    timeZone: 'Asia/Jerusalem',
   };
 
   beforeEach(() => daysFor.mockClear());
@@ -26,20 +25,10 @@ describe('MonthCalendar.month', () => {
     expect(daysFor.mock.calls[0][2]).toEqual(last);
   });
 
-  it('applies Israel rules from the time zone, like ShabbatCalendar', () => {
+  it("passes the location's candle-lighting minutes, like ShabbatCalendar", () => {
     calendar.month(TEL_AVIV, 2026, 9);
-    expect(daysFor.mock.calls[0][3]).toEqual({
-      israel: true,
-      candleLightingMinutes: 20,
-    });
-    calendar.month(
-      { latitude: 40.7128, longitude: -74.006, timeZone: 'America/New_York' },
-      2026,
-      9,
-    );
-    expect(daysFor.mock.calls[1][3]).toEqual({
-      israel: false,
-      candleLightingMinutes: 18,
-    });
+    expect(daysFor.mock.calls[0][3]).toEqual({ candleLightingMinutes: 20 });
+    calendar.month({ latitude: 31.7683, longitude: 35.2137 }, 2026, 9); // Jerusalem
+    expect(daysFor.mock.calls[1][3]).toEqual({ candleLightingMinutes: 40 });
   });
 });

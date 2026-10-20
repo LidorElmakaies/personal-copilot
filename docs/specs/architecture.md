@@ -185,10 +185,10 @@ sequenceDiagram
 
     User->>App: open app
     App->>GPS: request permission + position (locate)
-    App->>Gateway: GET /calendar/shabbat?lat&lon&tz (last known location, if cached)
-    GPS-->>App: { latitude, longitude } + device time zone
-    App->>Gateway: GET /calendar/shabbat?lat&lon&tz
-    Gateway->>Gateway: @app/jewish-calendar: local date in tz → Friday → city custom → @hebcal/core
+    App->>Gateway: GET /calendar/shabbat?lat&lon (last known location, if cached)
+    GPS-->>App: { latitude, longitude }
+    App->>Gateway: GET /calendar/shabbat?lat&lon
+    Gateway->>Gateway: @app/jewish-calendar: today in Israel → Friday → city custom → @hebcal/core (Israel rules)
     Gateway-->>App: { candleLighting, havdalah, parasha, holidays, isNow }
     App->>App: countdown + "in progress" from the device clock
     Note over App: after Havdalah passes → fetch again for next Shabbat
@@ -206,7 +206,7 @@ sequenceDiagram
     opt no location asked for yet (opened straight to this tab)
         App->>App: locate
     end
-    App->>Gateway: GET /calendar/month?year&month&lat&lon&tz (device's current month)
+    App->>Gateway: GET /calendar/month?year&month&lat&lon (device's current month)
     Gateway->>Gateway: @app/jewish-calendar: each day's Hebrew date, events, times
     Gateway-->>App: { year, month, days }
     App->>App: MonthGrid
@@ -232,9 +232,9 @@ sequenceDiagram
         Gateway->>Users: forward + X-User-Id
         Users-->>App: profile (incl. saved location)
     end
-    App->>App: moved > 5 km or time zone changed?
+    App->>App: moved > 5 km from the saved location?
     alt yes
-        App->>Gateway: PUT /users/me/location { lat, lon, tz }
+        App->>Gateway: PUT /users/me/location { lat, lon }
         Gateway->>Users: forward + X-User-Id
         Users->>DB: update profile + outbox row (one transaction)
         Users-->>App: updated profile

@@ -10,7 +10,6 @@ export interface ProfileDetails {
 export interface UserLocation {
   lat: number;
   lon: number;
-  tz: string;
   updatedAt: Date;
 }
 

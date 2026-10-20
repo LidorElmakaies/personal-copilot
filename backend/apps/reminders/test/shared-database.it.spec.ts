@@ -160,14 +160,12 @@ maybe('one database, a schema per service (real Postgres)', () => {
       location: {
         lat: 32.1782,
         lon: 34.9076,
-        tz: 'Asia/Jerusalem',
         updatedAt: new Date(),
       },
     });
     expect(await reader.findByUserId(user.id)).toEqual({
       lat: 32.1782,
       lon: 34.9076,
-      tz: 'Asia/Jerusalem',
     });
   });
 

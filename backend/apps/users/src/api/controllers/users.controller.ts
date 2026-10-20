@@ -41,7 +41,7 @@ export class UsersController {
   ) {
     return toProfileResponse(
       await this.profiles.update(userId, {
-        location: { lat: dto.lat, lon: dto.lon, tz: dto.tz },
+        location: { lat: dto.lat, lon: dto.lon },
       }),
     );
   }

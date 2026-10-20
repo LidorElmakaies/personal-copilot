@@ -3,21 +3,18 @@ import { ShabbatCalendar } from './shabbat-calendar';
 import type { CalendarDay } from './models/calendar-day';
 
 // September 2026 (Elul 5786 – Tishrei 5787) over the real @hebcal/core calculator: Rosh Hashana,
-// Tzom Gedaliah, Yom Kippur and Sukkot — whose second day is Yom Tov abroad, Chol HaMoed in Israel.
+// Tzom Gedaliah, Yom Kippur and Sukkot — Israel's calendar, wherever the location is.
 describe('MonthCalendar (real hebcal)', () => {
   const calendar = new MonthCalendar();
   const TEL_AVIV = {
     latitude: 32.0853,
     longitude: 34.7818,
-    timeZone: 'Asia/Jerusalem',
   };
   const NEW_YORK = {
     latitude: 40.7128,
     longitude: -74.006,
-    timeZone: 'America/New_York',
   };
   const israel = calendar.month(TEL_AVIV, 2026, 9);
-  const abroad = calendar.month(NEW_YORK, 2026, 9);
   const day = (m: { days: CalendarDay[] }, date: string) =>
     m.days.find((d) => d.date === date)!;
   const kinds = (d: CalendarDay) => d.times.map((t) => t.kind);
@@ -72,11 +69,6 @@ describe('MonthCalendar (real hebcal)', () => {
       en: 'Sukkot · day 2 (Chol HaMoed)',
       he: 'סוכות · יום ב׳ (חול המועד)',
     });
-    // Abroad the second day is Yom Tov, so keeps its own name; Chol HaMoed starts on the third.
-    expect(day(abroad, '2026-09-27').events[0].name.en).toBe('Sukkot II');
-    expect(day(abroad, '2026-09-28').events[0].name.en).toBe(
-      'Sukkot · day 3 (Chol HaMoed)',
-    );
   });
 
   it('in Israel, Sukkot II is Chol HaMoed: one day of Yom Tov, no times on the 27th', () => {
@@ -86,11 +78,12 @@ describe('MonthCalendar (real hebcal)', () => {
     expect(second.times).toEqual([]);
   });
 
-  it('abroad, Sukkot II is Yom Tov too: candles on the first night out, Havdalah after the second', () => {
-    expect(kinds(day(abroad, '2026-09-26'))).toEqual(['candleLighting']);
-    const second = day(abroad, '2026-09-27');
-    expect(named(second, 'Sukkot II')?.kind).toBe('yomTov');
-    expect(kinds(second)).toEqual(['havdalah']);
+  it("a location abroad gets Israel's calendar too: Sukkot II is Chol HaMoed", () => {
+    const abroad = calendar.month(NEW_YORK, 2026, 9);
+    expect(kinds(day(abroad, '2026-09-26'))).toEqual(['havdalah']);
+    expect(day(abroad, '2026-09-27').events[0].name.en).toBe(
+      'Sukkot · day 2 (Chol HaMoed)',
+    );
   });
 
   it("has Saturday's parasha, and none on other days", () => {
@@ -121,33 +114,19 @@ describe('MonthCalendar (real hebcal), other months', () => {
   const TEL_AVIV = {
     latitude: 32.0853,
     longitude: 34.7818,
-    timeZone: 'Asia/Jerusalem',
-  };
-  const NEW_YORK = {
-    latitude: 40.7128,
-    longitude: -74.006,
-    timeZone: 'America/New_York',
   };
   const day = (m: { days: CalendarDay[] }, date: string) =>
     m.days.find((d) => d.date === date)!;
   const kinds = (d: CalendarDay) => d.times.map((t) => t.kind);
   const events = (d: CalendarDay) => d.events.map((e) => [e.kind, e.name.en]);
 
-  it('Shemini Atzeret and Simchat Torah: one day in Israel, two abroad with candles on the second night', () => {
+  it('Shemini Atzeret and Simchat Torah: one day', () => {
     const israel = calendar.month(TEL_AVIV, 2026, 10);
     expect(events(day(israel, '2026-10-03'))).toEqual([
       ['yomTov', 'Shmini Atzeret'],
     ]);
     expect(kinds(day(israel, '2026-10-03'))).toEqual(['havdalah']);
     expect(day(israel, '2026-10-04').events).toEqual([]);
-
-    const abroad = calendar.month(NEW_YORK, 2026, 10);
-    expect(kinds(day(abroad, '2026-10-02'))).toEqual(['candleLighting']);
-    expect(kinds(day(abroad, '2026-10-03'))).toEqual(['candleLighting']);
-    expect(events(day(abroad, '2026-10-04'))).toEqual([
-      ['yomTov', 'Simchat Torah'],
-    ]);
-    expect(kinds(day(abroad, '2026-10-04'))).toEqual(['havdalah']);
   });
 
   it("names Hoshana Raba and Pesach's Chol HaMoed tidily too", () => {
@@ -188,7 +167,7 @@ describe('MonthCalendar (real hebcal), other months', () => {
 
   it("leaves out hebcal's other timed entries, e.g. Chanukah candles", () => {
     // Sunday 6 Dec 2026: hebcal gives a timed "Chanukah: 3 Candles" — not an enter/leave time.
-    const sunday = day(calendar.month(NEW_YORK, 2026, 12), '2026-12-06');
+    const sunday = day(calendar.month(TEL_AVIV, 2026, 12), '2026-12-06');
     expect(events(sunday)).toEqual([['holiday', 'Chanukah: 3 Candles']]);
     expect(sunday.times).toEqual([]);
   });

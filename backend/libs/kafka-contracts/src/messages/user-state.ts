@@ -9,8 +9,6 @@ import {
 export interface UserLocation {
   lat: number;
   lon: number;
-  /** IANA time zone, e.g. Asia/Jerusalem. */
-  tz: string;
   /** ISO 8601 — when the phone sent it. */
   updatedAt: string;
 }
@@ -30,16 +28,6 @@ export interface UserStateMessage {
   location: UserLocation | null;
 }
 
-const isTimeZone = (v: unknown): v is string => {
-  if (!isNonEmptyString(v)) return false;
-  try {
-    new Intl.DateTimeFormat('en-US', { timeZone: v });
-    return true;
-  } catch {
-    return false;
-  }
-};
-
 const inRange = (v: unknown, max: number): v is number =>
   typeof v === 'number' && Number.isFinite(v) && Math.abs(v) <= max;
 
@@ -48,7 +36,6 @@ function isUserLocation(value: unknown): value is UserLocation {
   return (
     inRange(value.lat, 90) &&
     inRange(value.lon, 180) &&
-    isTimeZone(value.tz) &&
     isIsoDate(value.updatedAt)
   );
 }

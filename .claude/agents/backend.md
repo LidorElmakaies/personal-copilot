@@ -54,8 +54,10 @@ backend/
                         # the one-time AdminSeedService account. JwtAuthGuard admits both roles;
                         # an admin-only route uses AdminGuard (403 for a user) — see services.md#users.
     reminders/           # Per-user reminders (schema `reminders`); reads the location from users.profiles.
-                        # Schedules them as delayed reminder-due jobs (ReminderScheduler + a 15-min
-                        # ReminderSweeper); next candle lighting from @app/jewish-calendar,
+                        # Schedules them as delayed reminder-due jobs (ReminderScheduler for candle
+                        # lighting, CustomReminderScheduler for custom_reminders, dispatched by the
+                        # job's `kind`; one 15-min ReminderSweeper for both); next candle lighting
+                        # and custom occurrences from @app/jewish-calendar,
                         # in-process; Gateway serves Home's Shabbat times from it too.
     notifications/       # Schema `notifications`. Push subscriptions + VAPID public key; processes
                         # notification-requested jobs (consume-only; drops expired) → each

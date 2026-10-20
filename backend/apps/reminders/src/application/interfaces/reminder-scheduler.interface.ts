@@ -1,4 +1,4 @@
-import type { ReminderDueMessage } from '@app/queue-contracts';
+import type { CandleLightingDueMessage } from '@app/queue-contracts';
 import type { Reminder } from '../../models/reminder';
 
 /** Implemented by ReminderScheduler. See docs/specs/services.md#reminders for the rules. */
@@ -16,5 +16,5 @@ export interface IReminderScheduler {
   /** Every enabled reminder (the sweep); resolves with how many failed. */
   rescheduleAll(): Promise<number>;
   /** A `reminder-due` job ran: request the notification and queue next week's. */
-  fire(message: ReminderDueMessage): Promise<void>;
+  fire(message: CandleLightingDueMessage): Promise<void>;
 }

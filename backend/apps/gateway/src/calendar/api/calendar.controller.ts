@@ -16,7 +16,7 @@ export class CalendarController {
   @Get('shabbat')
   shabbat(@Query() query: ShabbatQueryDto) {
     return this.calendar.current(
-      { latitude: query.lat, longitude: query.lon, timeZone: query.tz },
+      { latitude: query.lat, longitude: query.lon },
       new Date(),
     );
   }
@@ -24,7 +24,7 @@ export class CalendarController {
   @Get('month')
   month(@Query() query: MonthQueryDto) {
     return this.months.month(
-      { latitude: query.lat, longitude: query.lon, timeZone: query.tz },
+      { latitude: query.lat, longitude: query.lon },
       query.year,
       query.month,
     );

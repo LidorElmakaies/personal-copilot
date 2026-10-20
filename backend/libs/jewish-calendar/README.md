@@ -19,13 +19,13 @@ deps (`quick-lru`, `temporal-polyfill`, `temporal-utils`) with ts-jest. A new ES
 anywhere under them shows up as `Cannot use import statement` / `Must use import to load ES
 Module` — add it to that list.
 
-## Candle-lighting minutes are explicit (Israel 20 or a city's custom / 18 abroad)
+## Candle-lighting minutes are explicit (20 or a city's custom)
 
 Hebcal treats `candleLightingMins: 18` as "the default" and silently swaps it for 20 in Israel, or
 a city custom (Jerusalem 40, Haifa and Zikhron Ya'akov 30) when it knows the city _by name_ — it
 never does here, since we pass raw coordinates. So `calendar-options.ts` (`optionsFor`, used by
-every entry point) passes the minutes itself and the swap never applies: 18 abroad; in Israel, `israel-city-customs.ts` matches the point to the
-nearest custom city within a radius of its center, else 20.
+every entry point) passes the minutes itself and the swap never applies: `israel-city-customs.ts` matches the point
+to the nearest custom city within a radius of its center, else 20.
 
 The table is ours, not Hebcal's — Hebcal's misses two cities. Source: OU Israel / MyZmanim ("20
 mins before sunset in most cities; 40 in Jerusalem and Petach Tikva; 30 in Tzfat and Haifa"), plus
@@ -36,7 +36,8 @@ municipal boundaries, or a per-user minutes setting, would fix such edges if the
 
 ## Server time zone never matters
 
-- The user's "today" comes from `civilDateIn(tz, now)` — the request's `tz`, not the process's.
+- The user's "today" comes from `civilDateIn(ISRAEL_TIME_ZONE, now)` — Israel's date, not the
+  process's.
 - Hebcal reads a `Date`'s _local_ Y/M/D fields, so `toHebcalDate` builds dates from local fields
   too; the pair round-trips in any server TZ. A test runs the calculator under UTC+14 to pin this.
 - Returned times are absolute instants (ISO, UTC); the client formats them in its own zone.
@@ -44,7 +45,7 @@ municipal boundaries, or a per-user minutes setting, would fix such edges if the
 ## Finding Havdalah
 
 The calculator searches Friday → Saturday + 3 days for the first Havdalah after Friday, so a
-Shabbat followed by Yom Tov (abroad: up to Monday night) ends at the real Havdalah, not Saturday
+Shabbat followed by Yom Tov (Rosh Hashana II, Pesach or Shavuot on Sunday: Sunday night) ends at the real Havdalah, not Saturday
 night. `ShabbatCalendar` starts from _last_ Friday and only moves to next week once that Havdalah
 has passed — which is what keeps a Sunday inside such a Yom Tov reported as the current Shabbat.
 
@@ -70,12 +71,14 @@ Each rule is pinned by a test over real hebcal dates (`reminder-occurrences.spec
   Yearly · Hebrew covers it.
 - The rules are checked one day at a time (`fallsOn`), so `datesBetween` and `nextAfter` can't
   disagree; `nextAfter` gives up after ten years (a yearly reminder with years skipped in a row).
-- The time is wall-clock in the user's zone (`instantAt`): a time the clocks skip (Israel 02:00 →
+- The time is wall-clock in the zone passed in (`instantAt`; Reminders always passes `ISRAEL_TIME_ZONE`): a time the clocks skip (Israel 02:00 →
   03:00 in March) lands that much later, one they repeat (01:00–02:00 in October) is the second —
   it fires once either way.
 
-## Israel vs. abroad from the time zone
+## Israel only, wherever the point is
 
-`tz === 'Asia/Jerusalem'` switches on Israel rules. Simple and right for a phone set to its local
-zone; a user abroad with their phone still on Israel time would get Israel rules. Revisit (e.g.
-from coordinates) only if that becomes a real case.
+The app serves Israel only, so there's no "Israel or abroad" decision to get wrong: `GeoLocation`
+is just `{ latitude, longitude }`, and every calculation passes Hebcal `il: true` and
+`ISRAEL_TIME_ZONE` — one-day Yom Tov, Israel's parashot, Israel's "today". A fix abroad (a user
+travelling) still gets Israel's rules and candle-lighting minutes, at that spot's sunset. Callers
+send no time zone.

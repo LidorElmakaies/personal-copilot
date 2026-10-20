@@ -54,6 +54,9 @@ export class CustomReminderEntity {
   })
   skipped: string[];
 
+  @Column({ name: 'next_fire_at', type: 'timestamptz', nullable: true })
+  nextFireAt: Date | null;
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
 

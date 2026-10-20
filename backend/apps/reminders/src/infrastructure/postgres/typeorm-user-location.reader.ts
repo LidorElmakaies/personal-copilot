@@ -14,9 +14,7 @@ export class TypeOrmUserLocationReader implements IUserLocationReader {
 
   async findByUserId(userId: string): Promise<Coordinates | null> {
     const row = await this.profiles.findOneBy({ userId });
-    if (!row || row.lat === null || row.lon === null || row.tz === null) {
-      return null;
-    }
-    return { lat: row.lat, lon: row.lon, tz: row.tz };
+    if (!row || row.lat === null || row.lon === null) return null;
+    return { lat: row.lat, lon: row.lon };
   }
 }

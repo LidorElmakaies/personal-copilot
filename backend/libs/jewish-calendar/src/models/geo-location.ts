@@ -1,6 +1,5 @@
-// Domain layer — where the user is. timeZone is an IANA name (e.g. 'Asia/Jerusalem').
+// Domain layer — where the user is. Times are always Israel's (ISRAEL_TIME_ZONE).
 export interface GeoLocation {
   latitude: number;
   longitude: number;
-  timeZone: string;
 }

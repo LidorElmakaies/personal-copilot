@@ -107,13 +107,13 @@ maybe('Users Service repositories (real Postgres)', () => {
 
     await profiles.update(user.id, { phone: '+972501234567' });
     const saved = await profiles.update(user.id, {
-      location: { lat: 32.1782, lon: 34.9076, tz: 'Asia/Jerusalem', updatedAt },
+      location: { lat: 32.1782, lon: 34.9076, updatedAt },
     });
 
     expect(saved).toMatchObject({
       version: 3,
       phone: '+972501234567',
-      location: { lat: 32.1782, lon: 34.9076, tz: 'Asia/Jerusalem', updatedAt },
+      location: { lat: 32.1782, lon: 34.9076, updatedAt },
     });
     const events = await outbox();
     expect(

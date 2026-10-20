@@ -1,6 +1,6 @@
 import { UnprocessableEntityException } from '@nestjs/common';
 import type { ICalendarCalculator } from './calendar-calculator.interface';
-import { optionsFor } from './calendar-options';
+import { ISRAEL_TIME_ZONE, optionsFor } from './calendar-options';
 import { HebcalCalendarCalculator } from './hebcal/hebcal-calendar.calculator';
 import {
   addDays,
@@ -39,7 +39,7 @@ export class ShabbatCalendar implements IShabbatCalendar {
   ) {}
 
   current(location: GeoLocation, now: Date): ShabbatResult {
-    const today = civilDateIn(location.timeZone, now);
+    const today = civilDateIn(ISRAEL_TIME_ZONE, now);
     const lastFriday = addDays(today, -((weekday(today) - FRIDAY + 7) % 7));
 
     // Last Friday's Shabbat can still be running (Saturday, or a Yom Tov right after it).
@@ -54,8 +54,10 @@ export class ShabbatCalendar implements IShabbatCalendar {
   }
 
   nextCandleLighting(location: GeoLocation, after: Date): Date {
-    const day = civilDateIn(location.timeZone, after);
-    let friday = addDays(day, (FRIDAY - weekday(day) + 7) % 7);
+    // From the last Friday, like current(): west of Israel, that Friday's candle lighting can still
+    // be ahead after Israel's date has moved on to Saturday.
+    const day = civilDateIn(ISRAEL_TIME_ZONE, after);
+    let friday = addDays(day, -((weekday(day) - FRIDAY + 7) % 7));
 
     for (let week = 0; week < MAX_WEEKS_WITHOUT_SUNSET; week++) {
       const times = this.calculator.shabbatFor(

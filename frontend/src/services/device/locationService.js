@@ -11,10 +11,5 @@ export async function getCurrentLocation() {
   const { coords } = await Location.getCurrentPositionAsync({
     accuracy: Location.Accuracy.Balanced,
   });
-  return {
-    latitude: coords.latitude,
-    longitude: coords.longitude,
-    // The phone's own zone: the backend uses it to decide what "today" is for the user.
-    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-  };
+  return { latitude: coords.latitude, longitude: coords.longitude };
 }

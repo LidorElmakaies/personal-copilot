@@ -14,11 +14,7 @@ export class ShabbatCalendarCandleLightingSource implements ICandleLightingSourc
   nextAfter(location: Coordinates, after: Date): Promise<Date> {
     return Promise.resolve(
       this.calendar.nextCandleLighting(
-        {
-          latitude: location.lat,
-          longitude: location.lon,
-          timeZone: location.tz,
-        },
+        { latitude: location.lat, longitude: location.lon },
         after,
       ),
     );

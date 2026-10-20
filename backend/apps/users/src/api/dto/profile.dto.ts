@@ -5,7 +5,6 @@ import {
   IsNumber,
   IsOptional,
   IsString,
-  IsTimeZone,
   Length,
   Matches,
 } from 'class-validator';
@@ -55,9 +54,6 @@ export class LocationDto {
   @IsNumber()
   @IsLongitude()
   lon!: number;
-
-  @IsTimeZone()
-  tz!: string;
 }
 
 /** The client-facing shape: no user id (the caller's own) or version (internal). */
@@ -68,7 +64,6 @@ export const toProfileResponse = (p: Profile) => ({
   location: p.location && {
     lat: p.location.lat,
     lon: p.location.lon,
-    tz: p.location.tz,
     updatedAt: p.location.updatedAt.toISOString(),
   },
 });

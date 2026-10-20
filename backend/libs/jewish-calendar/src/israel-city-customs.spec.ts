@@ -4,7 +4,6 @@ import { ShabbatCalendar } from './shabbat-calendar';
 const at = (latitude: number, longitude: number) => ({
   latitude,
   longitude,
-  timeZone: 'Asia/Jerusalem',
 });
 
 describe('israelCandleLightingMinutes', () => {

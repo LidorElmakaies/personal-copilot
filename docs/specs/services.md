@@ -16,7 +16,7 @@ tunnel from a Caddy instance on the public internet. HTTP + WebSocket.
 - `GET /users/me`, `PATCH /users/me`, `PUT /users/me/location` (`JwtAuthGuard`) → Users Service's
   routes of the same name. Body relayed untouched. No `GET /me` — there's nothing left for it to return that the
   client can't already decode from its own access token (see `apps/users`'s note below).
-- `GET /calendar/shabbat?lat&lon&tz` — **served by Gateway itself, not proxied** (`src/calendar/`):
+- `GET /calendar/shabbat?lat&lon` — **served by Gateway itself, not proxied** (`src/calendar/`):
   the Shabbat in progress, otherwise the next one, for that location, computed in-process with
   [`@app/jewish-calendar`](#libsjewish-calendar). With `/calendar/month`, the only Gateway routes
   with logic of their own — the maths is the shared lib, so there's nothing for another service to
@@ -25,9 +25,11 @@ tunnel from a Caddy instance on the public internet. HTTP + WebSocket.
   { "candleLighting": "2026-10-02T15:04:00.000Z", "havdalah": "2026-10-03T16:00:00.000Z",
     "parasha": null, "holidays": [{ "en": "Shmini Atzeret", "he": "שמיני עצרת" }], "isNow": false }
   ```
-  `lat`/`lon` validated as coordinates, `tz` as an IANA time zone → `400` otherwise. `422` where
-  there's no sunset to count from (e.g. polar summer).
-- `GET /calendar/month?year&month&lat&lon&tz` — served by Gateway itself the same way, unguarded:
+  `lat`/`lon` validated as coordinates → `400` otherwise; any other parameter (e.g. an older
+  client's `tz`) is dropped. Israel's rules and time zone apply wherever the point is (see
+  [`libs/jewish-calendar`](#libsjewish-calendar)). `422` where there's no sunset to count from
+  (e.g. polar summer).
+- `GET /calendar/month?year&month&lat&lon` — served by Gateway itself the same way, unguarded:
   every day of that civil month — its Hebrew date, holidays/fasts (`kind`: `yomTov` | `fast` |
   `holiday`), Saturday's parasha, and its enter/leave times (`candleLighting` | `havdalah` |
   `fastBegins` | `fastEnds`, on the day each happens; Yom Kippur's are `fastBegins` at its eve's
@@ -152,18 +154,18 @@ HTTP, internal-only — never published to the host, only Gateway calls it.
   publishes a `users.user-state` tombstone. Immediate, no undo. An
   access token issued before keeps passing `JwtAuthGuard` until it expires (≤ 15 min), but every
   `/users/me` call with it answers `404`.
-- `GET /users/me` → `{ firstName, lastName, phone, location: { lat, lon, tz, updatedAt } | null }`
+- `GET /users/me` → `{ firstName, lastName, phone, location: { lat, lon, updatedAt } | null }`
   (user from `X-User-Id`); `404` for a user that no longer exists.
 - `PATCH /users/me` — any of `{ firstName, lastName, phone }`; only the fields sent change, `null`
   clears one, none at all → `400`. Names are trimmed, 1–100 chars, English or Hebrew letters only with single spaces between words
   (`NAME_PATTERN` in `@app/kafka-contracts`, also applied by register); `phone` in international format
   (`+972501234567`). Returns the profile.
-- `PUT /users/me/location` — `{ lat, lon, tz }` → the profile. The frontend sends it only after a move
-  of more than 5 km or a time-zone change (see [frontend](#frontend)); `updatedAt` is set here.
+- `PUT /users/me/location` — `{ lat, lon }` → the profile. The frontend sends it only after a move
+  of more than 5 km (see [frontend](#frontend)); `updatedAt` is set here.
 - `GET /health` — see [Versions](#versions).
 
 **Profiles.** `profiles` table, keyed by `user_id` (the user's id and a foreign key, deleted with
-the user): `first_name`, `last_name`, `phone`, `lat`, `lon`, `tz`, `location_updated_at`,
+the user): `first_name`, `last_name`, `phone`, `lat`, `lon`, `location_updated_at`,
 `version`. Every write locks the row, bumps `version`, and saves the full state as a
 `users.user-state` event in the same transaction (the outbox, see `libs/kafka-client`), so a change
 is never published without being saved or saved without being published. Every account has one
@@ -211,7 +213,7 @@ can't be saved for a user that doesn't exist. The only type so far is `shabbat_c
   `[{ type, offsetMinutes, enabled, nextFireAt, waitingForLocation }]`. `waitingForLocation` is
   `true` until the user's location is known (see below) — the reminder is saved, but can't fire.
 - `PUT /reminders/shabbat-candles` — `{ offsetMinutes }` → the saved reminder. Turns it on, or
-  updates it. `offsetMinutes` is a whole number 1–1440 → `400` otherwise. Any `lat`/`lon`/`tz` sent
+  updates it. `offsetMinutes` is a whole number 1–1440 → `400` otherwise. Any `lat`/`lon` sent
   is ignored: the location comes from the user's profile.
 - `DELETE /reminders/shabbat-candles` → `204`. Turns it off but keeps the row, so the settings can
   prefill the sheet next time. Idempotent.
@@ -232,14 +234,14 @@ can't be saved for a user that doesn't exist. The only type so far is `shabbat_c
   reminder doesn't fall on `date`, or past 500 skipped days.
 - A `:id` that isn't the caller's reminder, or isn't a UUID → `404`. Table `custom_reminders`
   (`title`, `hour`, `minute`, `repeat`, `calendar`, `start_date` `date`, `skipped_dates`
-  `varchar(10)[]`, `created_at`, `updated_at`; `user_id` → `users.users(id)` `ON DELETE CASCADE`).
-  Not scheduled yet: they don't fire.
+  `varchar(10)[]`, `next_fire_at`, `created_at`, `updated_at`; `user_id` → `users.users(id)`
+  `ON DELETE CASCADE`). Each fires as a notification — see "Scheduling custom reminders" below.
 - `GET /health` — see [Versions](#versions).
 
 **The user's location** is read straight from the Users Service's `users.profiles` (a read-only
 mapping, `UsersProfileEntity` from `@app/users-schema`) — never copied, never written here.
 
-**Scheduling** (`ReminderScheduler`): an enabled reminder with a location has `next_fire_at` =
+**Scheduling candle lighting** (`ReminderScheduler`): an enabled reminder with a location has `next_fire_at` =
 the next candle lighting at that location (`@app/jewish-calendar`, in-process) minus the offset,
 and one delayed `reminder-due` job for exactly that time (see
 [event-schemas.md](event-schemas.md#reminder-due)). It's recomputed on `PUT` (the setting is saved
@@ -250,6 +252,24 @@ down) is fixed by the next sweep. A firing whose time already passed is skipped 
 except one that was still pending (the service was down), which fires late as long as candle
 lighting is ahead. `DELETE` drops the job; off, no location → `next_fire_at` `null`. Needs
 `REDIS_URL`, `KAFKA_BROKERS`.
+
+**Scheduling custom reminders** (`CustomReminderScheduler`): each custom reminder has
+`next_fire_at` = its next occurrence (`ReminderOccurrences.nextAfter`, skipped days left out) at
+its wall-clock time in Israel (`ISRAEL_TIME_ZONE` from `@app/jewish-calendar` — the user's
+location plays no part, so a reminder is scheduled even without one), and one delayed
+`reminder-due` job of kind `custom` for exactly that time. It's recomputed on `POST`, `PATCH` and
+skip (the change is saved even if Redis is down), after each firing, and by the same
+`ReminderSweeper` (startup and every 15 minutes) for every custom reminder; `users.user-state`
+doesn't affect it. `DELETE` drops the job (best effort — a leftover finds the reminder gone and
+does nothing). A firing that already passed without running (the service was down) is kept when
+the reminder still falls then and it's less than an hour late (`LATE_LIMIT_MS`), so it fires
+late; past that the sweep moves on to the next occurrence — a job that failed every attempt keeps
+its id in Redis, so re-adding it would do nothing and the reminder would never fire again. When
+the job runs and `next_fire_at` still equals its `fireAt`, it publishes `notification-requested` —
+the reminder's title, body `Your reminder for HH:MM.` (Israel time), `url` `/calendar`,
+`expiresAt` = `fireAt` + 1 h, so one more than an hour late sends nothing — then queues the next
+occurrence after the later of `fireAt` and now (occurrences missed meanwhile aren't queued one by
+one). A once-reminder that has fired keeps its row with `next_fire_at` `null`.
 
 ## notifications
 
@@ -361,8 +381,7 @@ screen over the row with the swipe off.
     last-known location is used meanwhile), when the fix arrives, when Havdalah passes (next
     Shabbat, same location), and on Retry. Switching tabs or returning from the background doesn't
     refetch.
-  - `locationSlice` persists only `coords` (`{ latitude, longitude, timeZone }`, the time zone
-    from the device) and `calendarSlice` persists the last `shabbat` response, so Home still shows
+  - `locationSlice` persists only `coords` (`{ latitude, longitude }`) and `calendarSlice` persists the last `shabbat` response, so Home still shows
     times offline. Location refused → "Location is off" + Retry (or, with a cached result, a
     "using your last known location" note).
   - **Candle-lighting reminder** — `CandleReminder`, passed as `ShabbatSection`'s `footer` (shown
@@ -450,8 +469,7 @@ screen over the row with the swipe off.
   GPS fix this session — the persisted last-known `coords` alone never trigger it).
   `syncLocation` compares the fix with the location the server already has (`GET /users/me`'s
   `location`, fetched first if the profile isn't loaded) and sends `PUT /users/me/location` only if
-  the device moved more than `LOCATION_SYNC_MIN_KM` (5, haversine in `src/utils/geo.js`) or its time
-  zone changed. The server's copy is the reference — there's no local "last sent" record to go
+  the device moved more than `LOCATION_SYNC_MIN_KM` (5, haversine in `src/utils/geo.js`). The server's copy is the reference — there's no local "last sent" record to go
   stale across accounts or devices. One sync runs at a time; a reply that lands after sign-out
   (or a different sign-in) is dropped; a failure is simply retried on the next fix.
 - **Notifications** — one `notificationsSlice` state (`permission`, `subscribed`, `platform`) over
@@ -591,7 +609,7 @@ convention, and why there's no Gluestack layer here.
 `realtimeService` for the device token, `appUpdateService` for the APK registry's `latest.json`;
 signed-in calls go through `httpClient`'s `authorizedFetch`), `ws/`
 (`socketService`, a single shared Socket.IO connection), and `device/` (`locationService` —
-`expo-location` permission + position, plus the device's IANA time zone; `pushService` — the
+`expo-location` permission + position; `pushService` — the
 browser's service worker, `Notification` permission and `PushManager`; `fcmService` /
 `fcmReceiver` — the Android app's FCM registration and incoming messages; `apkInstallerService` —
 the update APK's download into the app cache, Android's installer, and cleanup).
@@ -677,7 +695,7 @@ retried; a handler that throws is retried while the job has attempts left). Both
 `REDIS_URL`; the only files that import `bullmq`.
 `queue-contracts`: this project's cross-service queue names and job types with their guards —
 `notification-requested` (Reminders → Notification Service) and `reminder-due` (Reminders' own
-delayed jobs).
+delayed jobs, candle-lighting or custom by `kind`).
 Also `notificationRequestedPublishOptions(message)`, the dedupe/retry options every publisher of
 that queue must pass. See `event-schemas.md`.
 
@@ -689,13 +707,13 @@ All of the project's Jewish-calendar maths, in one place.
 `MonthCalendar` (`IMonthCalendar`) and `ReminderOccurrences` (`IReminderOccurrences`) are the
 entry points, pure and synchronous. Used in-process by Gateway (`GET /calendar/shabbat` for
 Home, `GET /calendar/month`) and the Reminders scheduler — so Home, the calendar and reminders
-always agree, and a rule changes in one place (`calendar-options.ts` picks Israel rules and the
-candle-lighting minutes for all of them).
+always agree, and a rule changes in one place (`calendar-options.ts` picks the candle-lighting
+minutes for all of them).
 
 - `current(location, now)` — the Shabbat in progress at `now`, otherwise the next one: candle
   lighting, Havdalah, parasha, holidays, `isNow`. The Shabbat that started last Friday is returned
-  while it's still running — including through a Yom Tov directly after it (abroad, `havdalah` can
-  be Sunday or Monday night). `parasha` is `null` when a holiday replaces the weekly reading;
+  while it's still running — including through a Yom Tov directly after it (`havdalah` can be
+  Sunday night when a Yom Tov falls on Sunday). `parasha` is `null` when a holiday replaces the weekly reading;
   `holidays` lists what falls on that Saturday, minus eves, modern civic days and Leil Selichot.
   Names come in English and unvoweled Hebrew, tidied where hebcal's read badly
   (`holiday-names.ts`: "Rosh Hashana I" without the year, "Sukkot · day 3 (Chol HaMoed)" for
@@ -718,11 +736,15 @@ candle-lighting minutes for all of them).
   never. A date a month or year doesn't have (a Hebrew 30th in a 29-day month, the 31st, 29 Feb)
   falls on that month's last day; a Hebrew yearly one in Adar made in a regular year is in Adar II
   in a leap year, and one in Adar I or II of a leap year is in Adar in a regular year. A wall time
-  the clocks skip lands that much later; one they repeat is the second.
-- Rules, for all: "today" is the user's local date in `timeZone`, never the server's. Israel vs.
-  abroad (one- vs. two-day Yom Tov) follows `timeZone === 'Asia/Jerusalem'`. Candle lighting is
-  20 min before sunset in Israel — 40 in Jerusalem and Petach Tikva, 30 in Haifa, Tzfat and Zikhron Ya'akov (OU Israel / MyZmanim), matched by distance from the city center — and 18 abroad (`israel-city-customs.ts`; the radius is approximate, so a town
-  right next to a city can count as it). Havdalah is Hebcal's default (sun 8.5° below the horizon).
+  the clocks skip lands that much later; one they repeat is the second. `ISRAEL_TIME_ZONE`
+  (`'Asia/Jerusalem'`) is exported for callers that fix the zone to Israel's.
+- Rules, for all: the app is Israel-only. A `GeoLocation` is just `{ latitude, longitude }`;
+  every calculation uses Israel's calendar (one-day Yom Tov) and Israel's time zone
+  (`ISRAEL_TIME_ZONE`) wherever the point is — "today" is the date in Israel, never the server's,
+  and a point abroad gets Israel's rules with that spot's sunset. Candle lighting is 20 min before
+  sunset — 40 in Jerusalem and Petach Tikva, 30 in Haifa, Tzfat and Zikhron Ya'akov (OU Israel /
+  MyZmanim), matched by distance from the city center (`israel-city-customs.ts`; the radius is
+  approximate, so a town right next to a city can count as it). Havdalah is Hebcal's default (sun 8.5° below the horizon).
 
 See `backend/libs/jewish-calendar/README.md` for the non-obvious implementation details (ESM-only
 import, server time zone, finding Havdalah, reminders' repeat rules).

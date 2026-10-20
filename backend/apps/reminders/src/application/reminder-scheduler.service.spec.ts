@@ -1,64 +1,12 @@
-import type { IQueuePublisher, PublishOptions } from '@app/queue-client';
-import {
-  QUEUES,
-  type NotificationRequestedMessage,
-  type ReminderDueMessage,
-} from '@app/queue-contracts';
+import type { CandleLightingDueMessage } from '@app/queue-contracts';
 import { ReminderScheduler } from './reminder-scheduler.service';
 import { ReminderService } from './reminder.service';
+import { ShabbatCalendar } from '@app/jewish-calendar';
+import { ShabbatCalendarCandleLightingSource } from '../infrastructure/calendar/shabbat-calendar.candle-lighting.source';
 import type { ICandleLightingSource } from '../infrastructure/interfaces/candle-lighting-source.interface';
 import type { Coordinates } from '../models/user-location';
+import { FakeQueue } from '../../test/fake-queue';
 import { InMemoryReminderRepository } from '../../test/in-memory-reminder.repository';
-
-/** Behaves like BullMQ for what the scheduler relies on: job ids, dedupe ids, delays, remove. */
-class FakeQueue implements IQueuePublisher {
-  readonly jobs = new Map<
-    string,
-    { queue: string; data: object; runAt: number; done: boolean }
-  >();
-  readonly notifications: NotificationRequestedMessage[] = [];
-  private readonly dedupeUntil = new Map<string, number>();
-  private seq = 0;
-
-  publish<T extends object>(
-    queue: string,
-    data: T,
-    o: PublishOptions = {},
-  ): Promise<void> {
-    const t = Date.now();
-    if (o.dedupeId && (this.dedupeUntil.get(o.dedupeId) ?? 0) > t) {
-      return Promise.resolve();
-    }
-    if (o.dedupeId) this.dedupeUntil.set(o.dedupeId, t + (o.dedupeTtlMs ?? 0));
-    const id = o.jobId ?? `auto-${++this.seq}`;
-    if (this.jobs.has(id)) return Promise.resolve(); // same id: a no-op, even when finished
-    this.jobs.set(id, {
-      queue,
-      data,
-      runAt: t + (o.delayMs ?? 0),
-      done: false,
-    });
-    if (queue === QUEUES.NOTIFICATION_REQUESTED) {
-      this.notifications.push(data as unknown as NotificationRequestedMessage);
-    }
-    return Promise.resolve();
-  }
-
-  remove(_queue: string, jobId: string): Promise<void> {
-    if (!this.jobs.get(jobId)?.done) this.jobs.delete(jobId);
-    return Promise.resolve();
-  }
-
-  pending(): Array<{ id: string; runAt: number; data: ReminderDueMessage }> {
-    return [...this.jobs]
-      .filter(([, j]) => j.queue === QUEUES.REMINDER_DUE && !j.done)
-      .map(([id, j]) => ({
-        id,
-        runAt: j.runAt,
-        data: j.data as ReminderDueMessage,
-      }));
-  }
-}
 
 /** Friday candle lighting at 15:00 UTC minus `lon` minutes, so moving east moves it earlier. */
 const fakeCalendar: ICandleLightingSource = {
@@ -73,19 +21,15 @@ const fakeCalendar: ICandleLightingSource = {
   },
 };
 
-const HERZLIYA: Coordinates = {
-  lat: 32.1782,
-  lon: 34.9076,
-  tz: 'Asia/Jerusalem',
-};
-const EILAT: Coordinates = { lat: 29.5577, lon: 20, tz: 'Asia/Jerusalem' }; // lon nudged for a clear shift
+const HERZLIYA: Coordinates = { lat: 32.1782, lon: 34.9076 };
+const EILAT: Coordinates = { lat: 29.5577, lon: 20 }; // lon nudged for a clear shift
 // Herzliya → Friday 2026-10-09 14:25 UTC (17:25 in Israel).
 const CANDLES_1 = new Date('2026-10-09T14:25:00Z');
 const CANDLES_2 = new Date('2026-10-16T14:25:00Z');
 
 describe('ReminderScheduler', () => {
   let repo: InMemoryReminderRepository;
-  let queue: FakeQueue;
+  let queue: FakeQueue<CandleLightingDueMessage>;
   let locations: Map<string, Coordinates>;
   let scheduler: ReminderScheduler;
   let service: ReminderService;
@@ -106,7 +50,7 @@ describe('ReminderScheduler', () => {
   beforeEach(() => {
     setNow('2026-10-07T10:00:00Z'); // a Wednesday
     repo = new InMemoryReminderRepository();
-    queue = new FakeQueue();
+    queue = new FakeQueue<CandleLightingDueMessage>();
     locations = new Map([['u1', HERZLIYA]]);
     build();
   });
@@ -160,6 +104,20 @@ describe('ReminderScheduler', () => {
     const nextFireAt = new Date(CANDLES_2.getTime() - 90 * 60_000);
     expect((await reminder()).nextFireAt).toEqual(nextFireAt);
     expect(queue.pending().map((j) => j.runAt)).toEqual([nextFireAt.getTime()]);
+  });
+
+  it("words the time in Israel's clock, whatever the server's time zone", async () => {
+    const original = process.env.TZ;
+    process.env.TZ = 'America/New_York';
+    try {
+      await service.save('u1', 'shabbat_candles', { offsetMinutes: 90 });
+      await advanceTo('2026-10-09T12:55:00Z');
+      expect(queue.notifications[0].body).toBe(
+        'Candle lighting is at 17:25 (in 1 h 30 min).',
+      );
+    } finally {
+      process.env.TZ = original;
+    }
   });
 
   it('keeps firing every week', async () => {
@@ -350,5 +308,50 @@ describe('ReminderScheduler', () => {
     expect(saved).toMatchObject({ enabled: true, nextFireAt: null });
     expect(await scheduler.rescheduleAll()).toBe(0);
     expect(queue.pending()).toHaveLength(1);
+  });
+});
+
+// The real calendar under the scheduler, for a point abroad (Israel's rules anywhere).
+describe('ReminderScheduler over the real ShabbatCalendar, a point abroad', () => {
+  const NEW_YORK: Coordinates = { lat: 40.7128, lon: -74.006 };
+  // New York, Friday 2026-10-02: candles 22:16 UTC (18:16 local, 01:16 Saturday in Israel).
+  const CANDLES_NY = new Date('2026-10-02T22:16:00Z');
+
+  let repo: InMemoryReminderRepository;
+  let queue: FakeQueue<CandleLightingDueMessage>;
+  let scheduler: ReminderScheduler;
+  let service: ReminderService;
+
+  beforeAll(() => jest.useFakeTimers());
+  afterAll(() => jest.useRealTimers());
+  beforeEach(() => {
+    jest.setSystemTime(new Date('2026-09-30T10:00:00Z')); // a Wednesday
+    repo = new InMemoryReminderRepository();
+    queue = new FakeQueue<CandleLightingDueMessage>();
+    const reader = { findByUserId: () => Promise.resolve(NEW_YORK) };
+    const source = new ShabbatCalendarCandleLightingSource(
+      new ShabbatCalendar(),
+    );
+    scheduler = new ReminderScheduler(repo, reader, source, queue);
+    service = new ReminderService(repo, reader, scheduler);
+  });
+
+  it("schedules this Friday's local candle lighting", async () => {
+    const saved = await service.save('u1', 'shabbat_candles', {
+      offsetMinutes: 20,
+    });
+    expect(saved.nextFireAt).toEqual(
+      new Date(CANDLES_NY.getTime() - 20 * 60_000),
+    );
+  });
+
+  // West of Israel, this Friday's candle lighting is still ahead after Israel's midnight.
+  it("a sweep after Israel's midnight keeps this Friday's pending job", async () => {
+    await service.save('u1', 'shabbat_candles', { offsetMinutes: 20 });
+    jest.setSystemTime(new Date('2026-10-02T21:15:00Z')); // 17:15 in New York
+    await scheduler.rescheduleAll();
+    expect((await repo.findByUserId('u1'))[0].nextFireAt).toEqual(
+      new Date(CANDLES_NY.getTime() - 20 * 60_000),
+    );
   });
 });

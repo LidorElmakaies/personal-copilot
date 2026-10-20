@@ -1,6 +1,6 @@
 # Notification flow
 
-How a person ends up with a Shabbat reminder on their phone: first they sign up and turn on
+How a person ends up with a reminder — candle lighting or one of their own — on their phone: first they sign up and turn on
 notifications (once), then every reminder travels a BullMQ queue → Notification Service → the
 browser's push service → the phone. The Android app gets the same notifications through FCM —
 see [Android app](#android-app-fcm) below. For the exact rules of each service see
@@ -18,8 +18,8 @@ flowchart TD
         GW2 --> SUB[("push_subscriptions<br/>userId → endpoint, keys")]
     end
 
-    subgraph B["2. Every Friday: the reminder fires"]
-        REM["Reminders Service: reminder-due job<br/>at candle lighting − offset"] -->|"enqueue notification-requested<br/>dedupe id = notificationId<br/>8 attempts, backoff from 30s"| Q1[["Redis: notification-requested"]]
+    subgraph B["2. A reminder fires"]
+        REM["Reminders Service: reminder-due job<br/>at candle lighting − offset,<br/>or a custom reminder's time"] -->|"enqueue notification-requested<br/>dedupe id = notificationId<br/>8 attempts, backoff from 30s"| Q1[["Redis: notification-requested"]]
         Q1 --> ND{"NotificationDeliveryService:<br/>expiresAt passed?"}
         ND -->|yes| DROP["drop (too late)"]
         ND -->|no| WP["WebPushChannel:<br/>user's devices right now,<br/>minus those already done"]
@@ -55,11 +55,12 @@ flowchart TD
 
 ## 2. Every reminder
 
-1. Reminders' `reminder-due` job runs at candle lighting − the user's offset and enqueues one
+1. Reminders' `reminder-due` job runs at candle lighting − the user's offset (or at a custom
+   reminder's time, see [services.md](services.md#reminders)) and enqueues one
    `notification-requested` job (`notificationId`, `userId`, title, body, `expiresAt`, …) with `notificationRequestedPublishOptions`: deduplicated on `notificationId`
    until `expiresAt`, up to 8 attempts with backoff doubling from 30 s.
 2. Notification Service drops the job if `expiresAt` has passed (e.g. it was down past candle
-   lighting). Otherwise `WebPushChannel` looks up the user's devices *as they are now* and skips
+   lighting, or over an hour past a custom reminder's time). Otherwise `WebPushChannel` looks up the user's devices *as they are now* and skips
    any an earlier attempt of this job already finished.
 3. For each remaining device: if its host is no longer allowed, the subscription is deleted and
    nothing sent. Otherwise the payload is encrypted with that browser's keys (RFC 8291,

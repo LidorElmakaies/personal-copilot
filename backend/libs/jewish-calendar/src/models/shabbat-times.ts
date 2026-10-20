@@ -5,7 +5,7 @@ export interface LocalizedName {
 
 export interface ShabbatTimes {
   candleLighting: Date;
-  /** Can fall after Saturday night when a holiday follows Shabbat (e.g. two-day Yom Tov abroad). */
+  /** Can fall after Saturday night when a holiday follows Shabbat (e.g. Rosh Hashana II or Shavuot on Sunday). */
   havdalah: Date;
   /** Null when a holiday replaces the weekly reading. */
   parasha: LocalizedName | null;

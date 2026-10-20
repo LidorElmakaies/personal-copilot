@@ -717,12 +717,13 @@ and a day card with that day's times.
     names (English/Hebrew letters, plus digits and basic punctuation), a length cap. Time zone from
     the user's profile location (as candle lighting). Tests: API, validation, owner-scoped, cascade,
     skipping a date.
-  - [ ] **3.6d Scheduling.** `ReminderScheduler` keeps one delayed job per custom reminder at its
+  - [x] **3.6d Scheduling.** `ReminderScheduler` keeps one delayed job per custom reminder at its
     next occurrence; firing publishes `notification-requested` (the reminder's title) and queues
-    the next; reschedule on save/edit/delete, on `users.user-state` (a time-zone change), after
-    firing, and in the existing sweep. A once-reminder is done after it fires (kept, shown as
+    the next; reschedule on save/edit/delete, after firing, and in the existing sweep.
+    *Changed 2026-10-20: the app is Israel-only, so custom reminders always use Israel's time
+    (`Asia/Jerusalem`) and need no location — no rescheduling on `users.user-state`.* A once-reminder is done after it fires (kept, shown as
     past). A skipped date is never scheduled (skipping the next one moves the job on). Tests: each
-    repeat kind's next job, edits, deletes, a skipped date, time-zone change, the sweep.
+    repeat kind's next job, edits, deletes, a skipped date, the sweep, Israel time with no location.
   - [ ] **3.6e Frontend.** Per the mockup: add / edit / delete (a `customRemindersSlice` or the
     calendar slice; I/O in `services/http/`), `dayReminders` filled from `GET /reminders/custom`
     for the loaded months while signed in (cleared on sign-out); the sample switch and
@@ -732,6 +733,24 @@ and a day card with that day's times.
   - [ ] **3.6f On the phone + docs.** Each kind added on the phone fires as a notification at its
     time (app closed, screen off); docs: services.md, event-schemas.md (`reminder-due` for custom
     reminders), architecture.md, CLAUDE.md.
+- [x] **3.7 Israel only: the calendar and candle lighting** (after 3.6, before 3.4; decided
+  2026-10-20). The app is for Israel only, so drop everything that exists for abroad. Today the
+  time zone comes from the device with each location and picks the rules (`calendar-options.ts`:
+  Israel when `Asia/Jerusalem`, else 18-min candle lighting and two-day Yom Tov). After: always
+  Israel's rules and time zone; GPS still decides sunset and the city customs (Jerusalem 40,
+  Haifa 30, …).
+  - `@app/jewish-calendar`: no `israel`/abroad option or 18-min default; `ISRAEL_TIME_ZONE`
+    everywhere a time zone is passed today; the abroad tests go.
+  - Gateway: `tz` dropped from `GET /calendar/shabbat` and `GET /calendar/month`.
+  - Users/Reminders: the profile location without `tz` (column, `PUT /users/me/location`,
+    `users.user-state`, `users-schema`, the location reader); `ReminderScheduler` and its
+    notification text in Israel time.
+  - Frontend: no `tz` sent with calendar calls or the location; `LocationSyncManager` resends only
+    on a > 5 km move (no time-zone trigger).
+  - Open: a GPS fix outside Israel (a trip abroad) — Israel's rules at that spot, or fall back to
+    a default city (e.g. Jerusalem)?
+  - Tests updated across all of the above; docs: services.md, architecture.md, the lib's README,
+    CLAUDE.md.
 - **3.4 Holiday reminders, on/off per holiday** (after 3.6; asked and decided 2026-10-19; replaces "holiday-eve
   reminders"). Holidays can't be removed, but each one can remind you. Three kinds: **candle
   lighting before Yom Tov** (like Shabbat's, minutes before); **a fast's start and end**; **"the
@@ -739,7 +758,7 @@ and a day card with that day's times.
   Rosh Chodesh, Purim…). Turned on and off **per holiday, in its day card** on the Calendar (tap
   the holiday's day → a bell switch), for that holiday every year; every one starts **off**. Signed
   in only (signed out, the bell asks to log in). Fires through the Notification Service like the
-  rest; Israel vs. abroad (one or two Yom Tov days) as the calendar shows.
+  rest; Israel's calendar only (one Yom Tov day — see 3.7).
   - [ ] **3.4a Mockup.** **New UI → mockup first:** the bell on a holiday in the day card (one
     switch per holiday, or per kind of reminder it has: candles / fast / heads-up), what each kind
     says and when; and what counts as "one holiday" — the same switch for every day of Pesach and
@@ -748,16 +767,15 @@ and a day card with that day's times.
     what time); whether the Shabbat candle-lighting reminder also covers a Yom Tov that falls on
     Shabbat (no double notification).
   - [ ] **3.4b Rules in `@app/jewish-calendar`.** For a holiday and a location: its candle
-    lightings (eve, and the second night abroad), a fast's start and end, the heads-up's instant;
-    a stable key per holiday across years (from hebcal's untranslated name). Tests in Israel and
-    abroad: Rosh Hashana's two days, Sukkot/Pesach first and last days, Yom Kippur, a minor fast,
+    lightings (eve), a fast's start and end, the heads-up's instant;
+    a stable key per holiday across years (from hebcal's untranslated name). Tests: Rosh Hashana's two days, Sukkot/Pesach first and last days, Yom Kippur, a minor fast,
     Chanukah, a Yom Tov on Shabbat.
   - [ ] **3.4c Reminders Service.** Each user's on holidays (`holiday_reminders`: user, holiday
     key, created; `user_id` → `users.users` `ON DELETE CASCADE`): `GET /reminders/holidays`,
     `PUT`/`DELETE /reminders/holidays/:key`, through Gateway (`JwtAuthGuard`). The scheduler keeps
-    each on holiday's next job, from the user's location and time zone (as candle lighting), and
-    reschedules on a change, a location/time-zone change and in the sweep. Tests: API, owner-scoped,
-    cascade, each kind's next job, Israel vs. abroad.
+    each on holiday's next job, from the user's location (as candle lighting), and
+    reschedules on a change, a location change and in the sweep. Tests: API, owner-scoped,
+    cascade, each kind's next job.
   - [ ] **3.4d Frontend.** The bell per the mockup, the on holidays from `GET /reminders/holidays`
     while signed in (cleared on sign-out), the signed-out prompt. e2e: turn one on and off, it
     stays per holiday across years, signed out.

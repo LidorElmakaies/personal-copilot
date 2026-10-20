@@ -26,9 +26,6 @@ export class ProfileEntity {
   @Column({ type: 'double precision', nullable: true })
   lon: number | null;
 
-  @Column({ type: 'varchar', nullable: true })
-  tz: string | null;
-
   @Column({ name: 'location_updated_at', type: 'timestamptz', nullable: true })
   locationUpdatedAt: Date | null;
 

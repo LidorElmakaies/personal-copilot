@@ -73,7 +73,6 @@ test.describe('with location allowed', () => {
       month: '9',
       lat: '32.0853',
       lon: '34.7818',
-      tz: 'Asia/Jerusalem',
     });
 
     await settle(page);

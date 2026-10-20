@@ -18,6 +18,7 @@ const toModel = (r: CustomReminderEntity): CustomReminder => ({
   calendar: r.calendar,
   start: r.start,
   skipped: [...r.skipped].sort(),
+  nextFireAt: r.nextFireAt,
   createdAt: r.createdAt,
   updatedAt: r.updatedAt,
 });
@@ -28,6 +29,15 @@ export class TypeOrmCustomReminderRepository implements ICustomReminderRepositor
     @InjectRepository(CustomReminderEntity)
     private readonly repo: Repository<CustomReminderEntity>,
   ) {}
+
+  async findById(id: string): Promise<CustomReminder | null> {
+    const row = await this.repo.findOneBy({ id });
+    return row ? toModel(row) : null;
+  }
+
+  async findAll(): Promise<CustomReminder[]> {
+    return (await this.repo.find()).map(toModel);
+  }
 
   async findByUserId(userId: string): Promise<CustomReminder[]> {
     return (
@@ -42,6 +52,10 @@ export class TypeOrmCustomReminderRepository implements ICustomReminderRepositor
 
   countByUserId(userId: string): Promise<number> {
     return this.repo.countBy({ userId });
+  }
+
+  async setNextFireAt(id: string, nextFireAt: Date | null): Promise<void> {
+    await this.repo.update({ id }, { nextFireAt });
   }
 
   async create(

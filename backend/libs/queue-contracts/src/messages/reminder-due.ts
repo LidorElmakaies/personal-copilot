@@ -1,7 +1,8 @@
 import { isIsoDate, isNonEmptyString } from './validators';
 
-/** A job on the `reminder-due` queue: one reminder's next firing. See docs/specs/event-schemas.md. */
-export interface ReminderDueMessage {
+/** A candle-lighting reminder's firing. Jobs queued before `kind` existed have none. */
+export interface CandleLightingDueMessage {
+  kind?: 'shabbat_candles';
   reminderId: string;
   /** ISO 8601 — when it should fire; must still equal the reminder's `next_fire_at` when it runs. */
   fireAt: string;
@@ -9,14 +10,27 @@ export interface ReminderDueMessage {
   candleLighting: string;
 }
 
+/** A user's own (custom) reminder's firing. */
+export interface CustomReminderDueMessage {
+  kind: 'custom';
+  reminderId: string;
+  /** ISO 8601 — when it should fire; must still equal the reminder's `next_fire_at` when it runs. */
+  fireAt: string;
+}
+
+/** A job on the `reminder-due` queue: one reminder's next firing. See docs/specs/event-schemas.md. */
+export type ReminderDueMessage =
+  CandleLightingDueMessage | CustomReminderDueMessage;
+
 export function isReminderDueMessage(
   value: unknown,
 ): value is ReminderDueMessage {
   if (typeof value !== 'object' || value === null) return false;
   const m = value as Record<string, unknown>;
+  if (!isNonEmptyString(m.reminderId) || !isIsoDate(m.fireAt)) return false;
+  if (m.kind === 'custom') return true;
   return (
-    isNonEmptyString(m.reminderId) &&
-    isIsoDate(m.fireAt) &&
+    (m.kind === undefined || m.kind === 'shabbat_candles') &&
     isIsoDate(m.candleLighting)
   );
 }

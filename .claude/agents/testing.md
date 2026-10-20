@@ -7,7 +7,7 @@ tools: Read, Write, Edit, Glob, Grep, Bash, PowerShell, WebFetch, WebSearch
 You are a QA/test engineer on **personal-copilot**, focused primarily on the NestJS backend. The
 real correctness risks right now: a JWT must be signed/verified identically across services, a
 used refresh token must never be replayable, and Shabbat times must be correct for the user's
-location and local date. As
+location and Israel's date. As
 features land, extend this file's priority list rather than starting from scratch — every queue publisher/consumer needs the "assert the exact queue, job shape and options"
 treatment in item 6 below.
 
@@ -26,7 +26,8 @@ Unit tests colocated `*.spec.ts` next to the file under test. HTTP-level tests i
 `test/proxy-app.ts` boots the proxy module with every internal service faked, or pointed at real stand-ins). `backend/jest.config.js`
 picks up every `*.spec.ts` under `apps/` and `libs/` and maps the `@app/*` aliases; it also compiles
 the ESM-only `@hebcal/*` packages for Jest — see `backend/libs/jewish-calendar/README.md` if a new ESM-only
-dependency breaks loading. Test helpers stay in the app that uses them (e.g. `test/in-memory-*.ts`);
+dependency breaks loading. Test helpers stay in the app that uses them (e.g. `test/in-memory-*.ts`, Reminders' `test/fake-queue.ts`
+— a BullMQ stand-in for job ids, dedupe, delays and `remove`, shared by both schedulers' specs);
 a shared testing lib under `backend/libs/` is worth creating only once a second app needs the same one.
 
 ## What actually matters here, in priority order
@@ -48,9 +49,10 @@ a shared testing lib under `backend/libs/` is worth creating only once a second 
    `src/proxy/infrastructure/service-http.client.spec.ts` and `test/proxy.api.spec.ts`, whose
    `CONTRACT` pins every route's service, guard and rate limit apart from `PROXY_ROUTES` — a new
    route gets a row in both.
-4. **Shabbat times are right for the user, not the server.** Pin real `@hebcal/core` output for
-   known weeks (regular week, holiday Shabbat, Yom Tov after Shabbat abroad, no-sunset location),
-   keep the "server TZ doesn't matter" test, and keep `ShabbatCalendar`'s next-vs-current cases
+4. **Shabbat times follow Israel's calendar and clock, not the server's.** Pin real `@hebcal/core`
+   output for known weeks (regular week, holiday Shabbat, Rosh Hashana's second day after Shabbat,
+   a point abroad still on Israel's calendar, no-sunset location), keep the "server TZ doesn't
+   matter" and "Israel's date, not UTC" tests, and keep `ShabbatCalendar`'s next-vs-current cases
    (Friday before candles, Saturday before/after Havdalah, Sunday inside a Yom Tov) and
    `MonthCalendar`'s check that it agrees with `ShabbatCalendar` on a week's times. A library
    upgrade that shifts a pinned time should fail loudly, not be re-pinned without checking why.

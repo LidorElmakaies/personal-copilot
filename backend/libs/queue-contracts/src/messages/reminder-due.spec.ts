@@ -11,8 +11,21 @@ describe('reminder-due', () => {
     candleLighting: '2026-10-09T14:55:00.000Z',
   };
 
+  const custom = {
+    kind: 'custom',
+    reminderId: 'r-2',
+    fireAt: '2026-10-21T16:30:00.000Z',
+  };
+
   it('accepts a valid message', () => {
     expect(isReminderDueMessage(valid)).toBe(true);
+    expect(isReminderDueMessage({ ...valid, kind: 'shabbat_candles' })).toBe(
+      true,
+    );
+  });
+
+  it('accepts a custom reminder without candleLighting', () => {
+    expect(isReminderDueMessage(custom)).toBe(true);
   });
 
   it.each([
@@ -20,6 +33,8 @@ describe('reminder-due', () => {
     ['no reminderId', { ...valid, reminderId: '' }],
     ['a bad fireAt', { ...valid, fireAt: 'soon' }],
     ['no candleLighting', { ...valid, candleLighting: undefined }],
+    ['an unknown kind', { ...valid, kind: 'birthday' }],
+    ['a custom one with a bad fireAt', { ...custom, fireAt: 'soon' }],
   ])('rejects %s', (_name, value) => {
     expect(isReminderDueMessage(value)).toBe(false);
   });

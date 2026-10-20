@@ -8,12 +8,14 @@ import {
 } from '../src/application/custom-reminder.service';
 import {
   CUSTOM_REMINDER_REPOSITORY,
+  CUSTOM_REMINDER_SCHEDULER,
   CUSTOM_REMINDER_SERVICE,
   REMINDER_OCCURRENCES,
 } from '../src/tokens';
 import { InMemoryCustomReminderRepository } from './in-memory-custom-reminder.repository';
 
-// Over the real ReminderOccurrences: its rules have their own spec (libs/jewish-calendar).
+// Over the real ReminderOccurrences: its rules have their own spec (libs/jewish-calendar). Scheduling
+// has its own spec too (custom-reminder-scheduler.service.spec.ts): here it's a no-op.
 describe('custom reminders API (reminders)', () => {
   let app: INestApplication;
   let base: string;
@@ -27,6 +29,13 @@ describe('custom reminders API (reminders)', () => {
         { provide: CUSTOM_REMINDER_SERVICE, useClass: CustomReminderService },
         { provide: CUSTOM_REMINDER_REPOSITORY, useValue: repo },
         { provide: REMINDER_OCCURRENCES, useValue: new ReminderOccurrences() },
+        {
+          provide: CUSTOM_REMINDER_SCHEDULER,
+          useValue: {
+            schedule: (r: unknown) => Promise.resolve(r),
+            cancel: () => Promise.resolve(),
+          },
+        },
       ],
     }).compile();
     app = moduleRef.createNestApplication();

@@ -15,11 +15,8 @@ export function toProfile(p: ProfileEntity): Profile {
     lastName: p.lastName,
     phone: p.phone,
     location:
-      p.lat !== null &&
-      p.lon !== null &&
-      p.tz !== null &&
-      p.locationUpdatedAt !== null
-        ? { lat: p.lat, lon: p.lon, tz: p.tz, updatedAt: p.locationUpdatedAt }
+      p.lat !== null && p.lon !== null && p.locationUpdatedAt !== null
+        ? { lat: p.lat, lon: p.lon, updatedAt: p.locationUpdatedAt }
         : null,
     version: p.version,
   };
@@ -53,7 +50,6 @@ export class TypeOrmProfileRepository implements IProfileRepository {
       if (change.location) {
         profile.lat = change.location.lat;
         profile.lon = change.location.lon;
-        profile.tz = change.location.tz;
         profile.locationUpdatedAt = change.location.updatedAt;
       }
       profile.version += 1;

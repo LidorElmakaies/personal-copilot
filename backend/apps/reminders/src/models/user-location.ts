@@ -2,6 +2,4 @@
 export interface Coordinates {
   lat: number;
   lon: number;
-  /** IANA time zone. */
-  tz: string;
 }

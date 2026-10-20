@@ -5,20 +5,16 @@ const calculator = new HebcalCalendarCalculator();
 const TEL_AVIV = {
   latitude: 32.0853,
   longitude: 34.7818,
-  timeZone: 'Asia/Jerusalem',
 };
 const NEW_YORK = {
   latitude: 40.7128,
   longitude: -74.006,
-  timeZone: 'America/New_York',
 };
 const TROMSO = {
   latitude: 69.6492,
   longitude: 18.9553,
-  timeZone: 'Europe/Oslo',
 };
-const ISRAEL = { israel: true, candleLightingMinutes: 20 };
-const ABROAD = { israel: false, candleLightingMinutes: 18 };
+const ISRAEL = { candleLightingMinutes: 20 };
 
 describe('HebcalCalendarCalculator.shabbatFor', () => {
   it('a regular week in Tel Aviv: times and parasha', () => {
@@ -58,19 +54,31 @@ describe('HebcalCalendarCalculator.shabbatFor', () => {
     expect(at(9, 24)).toEqual([]); // not Leil Selichot
   });
 
-  it('abroad, Havdalah waits for the Yom Tov after Shabbat to end', () => {
+  it('Havdalah waits for the Yom Tov after Shabbat to end (Rosh Hashana II on Sunday)', () => {
+    const times = calculator.shabbatFor(
+      TEL_AVIV,
+      { year: 2026, month: 9, day: 11 },
+      ISRAEL,
+    );
+    const havdalah = times!.havdalah.getTime();
+    expect(havdalah).toBeGreaterThan(Date.parse('2026-09-13T12:00:00Z')); // Sunday night
+    expect(havdalah).toBeLessThan(Date.parse('2026-09-14T00:00:00Z'));
+  });
+
+  it("abroad too, Israel's calendar: Shmini Atzeret is one day, Havdalah on Saturday night", () => {
     const times = calculator.shabbatFor(
       NEW_YORK,
       { year: 2026, month: 10, day: 2 },
-      ABROAD,
+      ISRAEL,
     );
-    expect(times?.candleLighting).toEqual(new Date('2026-10-02T22:18:00Z'));
-    expect(times?.havdalah).toEqual(new Date('2026-10-04T23:13:00Z')); // Sunday night
+    const havdalah = times!.havdalah.getTime();
+    expect(havdalah).toBeGreaterThan(Date.parse('2026-10-03T12:00:00Z'));
+    expect(havdalah).toBeLessThan(Date.parse('2026-10-04T12:00:00Z'));
   });
 
   it('returns null where the sun never sets', () => {
     expect(
-      calculator.shabbatFor(TROMSO, { year: 2026, month: 6, day: 19 }, ABROAD),
+      calculator.shabbatFor(TROMSO, { year: 2026, month: 6, day: 19 }, ISRAEL),
     ).toBeNull();
   });
 

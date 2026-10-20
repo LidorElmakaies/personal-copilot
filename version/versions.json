@@ -1,7 +1,7 @@
 {
-  "frontend": "0.6.0-test.2",
+  "frontend": "0.6.0-test.3",
   "gateway": "0.3.4",
   "users": "0.2.1",
-  "reminders": "0.1.4",
+  "reminders": "0.2.0",
   "notifications": "0.2.0"
 }

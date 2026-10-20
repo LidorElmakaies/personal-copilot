@@ -15,7 +15,6 @@ export function toUserStateMessage(p: Profile): UserStateMessage {
     location: p.location && {
       lat: p.location.lat,
       lon: p.location.lon,
-      tz: p.location.tz,
       updatedAt: p.location.updatedAt.toISOString(),
     },
   };

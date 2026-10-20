@@ -1,4 +1,9 @@
-import type { ReminderCalendar, ReminderRepeat } from '@app/jewish-calendar';
+import type {
+  CivilDate,
+  ReminderCalendar,
+  ReminderRepeat,
+  ReminderRule,
+} from '@app/jewish-calendar';
 
 /** A user's own reminder: a title at a wall-clock time, once or repeating (see ReminderOccurrences). */
 export interface CustomReminder {
@@ -13,6 +18,8 @@ export interface CustomReminder {
   start: string;
   /** 'YYYY-MM-DD' days it's left out on ("only this day"), oldest first. */
   skipped: string[];
+  /** When its queued `reminder-due` job fires; null when it has no more occurrences. */
+  nextFireAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -27,3 +34,19 @@ export type CustomReminderInput = Pick<
 export interface CustomReminderInRange extends CustomReminder {
   dates: string[];
 }
+
+/** 'YYYY-MM-DD' → CivilDate. */
+export const civilDate = (s: string): CivilDate => {
+  const [year, month, day] = s.split('-').map(Number);
+  return { year, month, day };
+};
+
+/** The rule ReminderOccurrences works on; `withSkips: false` ignores its skipped days. */
+export const ruleOf = (r: CustomReminder, withSkips = true): ReminderRule => ({
+  start: civilDate(r.start),
+  hour: r.hour,
+  minute: r.minute,
+  repeat: r.repeat,
+  calendar: r.calendar,
+  skipped: withSkips ? r.skipped.map(civilDate) : [],
+});

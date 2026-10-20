@@ -11,7 +11,4 @@ export class UsersProfileEntity {
 
   @Column({ type: 'double precision', nullable: true })
   lon: number | null;
-
-  @Column({ type: 'varchar', nullable: true })
-  tz: string | null;
 }

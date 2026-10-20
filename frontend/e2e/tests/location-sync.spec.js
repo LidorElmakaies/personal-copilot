@@ -85,12 +85,12 @@ const isProfileGet = (r) => r.url().endsWith('/users/me') && r.request().method(
 const isLocationPut = (r) =>
   r.url().endsWith('/users/me/location') && r.request().method() === 'PUT';
 
-const saved = (where, tz) => ({ ...where, tz, updatedAt: '2026-10-01T10:00:00.000Z' });
+const saved = (where) => ({ ...where, updatedAt: '2026-10-01T10:00:00.000Z' });
 
 test.describe('signed in, GPS in Tel Aviv, Asia/Jerusalem', () => {
   test.use({ geolocation: TEL_AVIV, permissions: ['geolocation'], timezoneId: 'Asia/Jerusalem' });
 
-  test('no saved location: sends the fix and the device time zone', async ({ page }) => {
+  test('no saved location: sends the fix, no time zone', async ({ page }) => {
     const token = await signIn(page);
     const calls = await mockGateway(page, null);
     const put = page.waitForResponse(isLocationPut);
@@ -99,14 +99,14 @@ test.describe('signed in, GPS in Tel Aviv, Asia/Jerusalem', () => {
     await settle(page);
 
     expect(calls.puts).toEqual([
-      { method: 'PUT', body: { lat: 32.0853, lon: 34.7818, tz: 'Asia/Jerusalem' } },
+      { method: 'PUT', body: { lat: 32.0853, lon: 34.7818 } },
     ]);
     expect(calls.putAuth).toEqual([`Bearer ${token}`]);
   });
 
-  test('saved location ~2 km away, same zone: sends nothing', async ({ page }) => {
+  test('saved location ~2 km away: sends nothing', async ({ page }) => {
     await signIn(page);
-    const calls = await mockGateway(page, saved(NEAR_TEL_AVIV, 'Asia/Jerusalem'));
+    const calls = await mockGateway(page, saved(NEAR_TEL_AVIV));
     const get = page.waitForResponse(isProfileGet);
     await page.goto('/');
     await get;
@@ -118,14 +118,14 @@ test.describe('signed in, GPS in Tel Aviv, Asia/Jerusalem', () => {
 
   test('saved location ~50 km away: sends the new fix', async ({ page }) => {
     await signIn(page);
-    const calls = await mockGateway(page, saved(JERUSALEM, 'Asia/Jerusalem'));
+    const calls = await mockGateway(page, saved(JERUSALEM));
     const put = page.waitForResponse(isLocationPut);
     await page.goto('/');
     await put;
     await settle(page);
 
     expect(calls.puts).toEqual([
-      { method: 'PUT', body: { lat: 32.0853, lon: 34.7818, tz: 'Asia/Jerusalem' } },
+      { method: 'PUT', body: { lat: 32.0853, lon: 34.7818 } },
     ]);
   });
 });
@@ -133,20 +133,16 @@ test.describe('signed in, GPS in Tel Aviv, Asia/Jerusalem', () => {
 test.describe('signed in, same place, device zone changed', () => {
   test.use({ geolocation: TEL_AVIV, permissions: ['geolocation'], timezoneId: 'Europe/London' });
 
-  test('saved in Asia/Jerusalem, device now Europe/London: sends the new zone', async ({ page }) => {
+  test('the device time zone alone is no reason to send (the app is Israel-only)', async ({ page }) => {
     await signIn(page);
-    const calls = await mockGateway(
-      page,
-      saved({ lat: TEL_AVIV.latitude, lon: TEL_AVIV.longitude }, 'Asia/Jerusalem'),
-    );
-    const put = page.waitForResponse(isLocationPut);
+    const calls = await mockGateway(page, saved({ lat: TEL_AVIV.latitude, lon: TEL_AVIV.longitude }));
+    const get = page.waitForResponse(isProfileGet);
     await page.goto('/');
-    await put;
+    await get;
     await settle(page);
 
-    expect(calls.puts).toEqual([
-      { method: 'PUT', body: { lat: 32.0853, lon: 34.7818, tz: 'Europe/London' } },
-    ]);
+    expect(calls.profileGets).toBe(1);
+    expect(calls.puts).toEqual([]);
   });
 });
 
