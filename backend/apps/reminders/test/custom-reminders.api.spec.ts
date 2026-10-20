@@ -186,6 +186,140 @@ describe('custom reminders API (reminders)', () => {
     });
   });
 
+  describe('the months shown (from, to): a change answers with its dates there', () => {
+    const range = { from: '2026-10-01', to: '2026-10-31' };
+    const vitamins = {
+      ...grandma,
+      title: 'Take vitamins',
+      repeat: 'daily',
+      start: '2026-10-29',
+    };
+
+    it('create, edit and skip answer with `dates` in the range; without one, none', async () => {
+      const created = await create({ ...vitamins, ...range });
+      expect(created.json.dates).toEqual([
+        '2026-10-29',
+        '2026-10-30',
+        '2026-10-31',
+      ]);
+      expect((await create(vitamins)).json).not.toHaveProperty('dates');
+
+      const path = `/reminders/custom/${String(created.json.id)}`;
+      const edited = await call('PATCH', path, {
+        start: '2026-10-30',
+        ...range,
+      });
+      expect(await edited.json()).toMatchObject({
+        start: '2026-10-30',
+        dates: ['2026-10-30', '2026-10-31'],
+      });
+
+      const skipped = await call('POST', `${path}/skip`, {
+        date: '2026-10-31',
+        ...range,
+      });
+      expect(await skipped.json()).toMatchObject({
+        skipped: ['2026-10-31'],
+        dates: ['2026-10-30'],
+      });
+    });
+
+    it('needs both or neither, and at most 400 days (400)', async () => {
+      expect((await create({ ...vitamins, from: range.from })).res.status).toBe(
+        400,
+      );
+      expect(
+        (await create({ ...vitamins, from: '2026-01-01', to: '2027-12-31' }))
+          .res.status,
+      ).toBe(400);
+      expect(repo.rows.size).toBe(0);
+    });
+
+    it("a range alone isn't an edit (400)", async () => {
+      const { json } = await create();
+      expect(
+        (await call('PATCH', `/reminders/custom/${String(json.id)}`, range))
+          .status,
+      ).toBe(400);
+    });
+
+    it('a change whose days fall outside the range answers `dates: []`, not none', async () => {
+      // The client swaps in what comes back: an empty list is how it learns the reminder left the
+      // months shown (no `dates` would mean "no range was sent" and leave the old days on screen).
+      const { json } = await create({ ...grandma, ...range }); // once, 21 Oct
+      const res = await call('PATCH', `/reminders/custom/${String(json.id)}`, {
+        start: '2026-11-21',
+        ...range,
+      });
+      expect(await res.json()).toMatchObject({
+        start: '2026-11-21',
+        dates: [],
+      });
+    });
+
+    it('the range is never saved as part of the reminder', async () => {
+      const { json } = await create({ ...vitamins, ...range });
+      await call('PATCH', `/reminders/custom/${String(json.id)}`, {
+        title: 'Vitamin D',
+        ...range,
+      });
+      const row = repo.rows.get(String(json.id));
+      expect(row).toMatchObject({ title: 'Vitamin D' });
+      expect(row).not.toHaveProperty('from');
+      expect(row).not.toHaveProperty('to');
+    });
+
+    it.each([
+      ['only to', { to: range.to }],
+      ['from after to', { from: range.to, to: range.from }],
+      ['more than 400 days', { from: '2026-01-01', to: '2027-02-05' }],
+      ['a bad date', { from: '2026-10-32', to: range.to }],
+    ])(
+      'a bad range (%s) is refused before anything changes (400)',
+      async (_name, bad) => {
+        const { json } = await create(vitamins);
+        const path = `/reminders/custom/${String(json.id)}`;
+        const before = structuredClone(repo.rows.get(String(json.id)));
+
+        expect((await call('PATCH', path, { hour: 7, ...bad })).status).toBe(
+          400,
+        );
+        expect(
+          (await call('POST', `${path}/skip`, { date: '2026-10-30', ...bad }))
+            .status,
+        ).toBe(400);
+        expect((await create({ ...vitamins, ...bad })).res.status).toBe(400);
+
+        expect(repo.rows.get(String(json.id))).toEqual(before);
+        expect(repo.rows.size).toBe(1);
+      },
+    );
+
+    it('skipping a day already skipped still answers with `dates`', async () => {
+      const { json } = await create(vitamins);
+      const path = `/reminders/custom/${String(json.id)}/skip`;
+      await call('POST', path, { date: '2026-10-30' });
+      const again = await call('POST', path, { date: '2026-10-30', ...range });
+      expect(again.status).toBe(200);
+      expect(await again.json()).toMatchObject({
+        skipped: ['2026-10-30'],
+        dates: ['2026-10-29', '2026-10-31'],
+      });
+    });
+
+    it("someone else's reminder is still a 404 with a range", async () => {
+      const { json } = await create(vitamins, 'user-2');
+      const path = `/reminders/custom/${String(json.id)}`;
+      expect((await call('PATCH', path, { hour: 7, ...range })).status).toBe(
+        404,
+      );
+      expect(
+        (await call('POST', `${path}/skip`, { date: '2026-10-30', ...range }))
+          .status,
+      ).toBe(404);
+    });
+  });
+
   describe('edit', () => {
     it('changes only the fields sent', async () => {
       const { json } = await create();
@@ -243,6 +377,76 @@ describe('custom reminders API (reminders)', () => {
         422,
       );
       expect((await call('POST', path, { date: 'tomorrow' })).status).toBe(400);
+    });
+  });
+
+  describe('preview (the add sheet\'s "Next" dates)', () => {
+    const preview = async (query: string) => {
+      const res = await call('GET', `/reminders/custom/preview?${query}`);
+      return { status: res.status, body: (await res.json()) as unknown };
+    };
+
+    it('gives the next three days, saving nothing', async () => {
+      expect(
+        await preview('hour=9&minute=0&repeat=daily&start=2099-01-01'),
+      ).toEqual({
+        status: 200,
+        body: { next: ['2099-01-01', '2099-01-02', '2099-01-03'] },
+      });
+      expect(await list('2099-01-01', '2099-01-31')).toEqual([]);
+    });
+
+    it('follows the repeat rules: the 31st falls on a shorter month’s last day', async () => {
+      expect(
+        (await preview('hour=9&minute=0&repeat=monthly&start=2099-01-31')).body,
+      ).toEqual({ next: ['2099-01-31', '2099-02-28', '2099-03-31'] });
+    });
+
+    it('a Hebrew yearly one: the same Hebrew date each year', async () => {
+      // 1 Tishrei (Rosh Hashana) 5860, 5861, 5862.
+      const { body } = await preview(
+        'hour=9&minute=0&repeat=yearly&calendar=hebrew&start=2099-09-15',
+      );
+      const { next } = body as { next: string[] };
+      expect(next).toHaveLength(3);
+      expect(next[0]).toBe('2099-09-15');
+      expect(next.map((d) => d.slice(0, 4))).toEqual(['2099', '2100', '2101']);
+    });
+
+    it('takes a two-digit hour with a leading zero', async () => {
+      expect(
+        (await preview('hour=09&minute=05&repeat=once&start=2099-01-01')).body,
+      ).toEqual({ next: ['2099-01-01'] });
+    });
+
+    it('is empty for a once-reminder whose time has passed', async () => {
+      expect(
+        (await preview('hour=9&minute=0&repeat=once&start=2020-01-01')).body,
+      ).toEqual({ next: [] });
+    });
+
+    it.each([
+      ['an hour of 24', 'hour=24&minute=0&repeat=daily&start=2099-01-01'],
+      ['an empty hour', 'hour=&minute=0&repeat=daily&start=2099-01-01'],
+      [
+        'an hour in exponent form',
+        'hour=1e1&minute=0&repeat=daily&start=2099-01-01',
+      ],
+      ['a non-numeric minute', 'hour=9&minute=x&repeat=daily&start=2099-01-01'],
+      ['a negative hour', 'hour=-1&minute=0&repeat=daily&start=2099-01-01'],
+      ['a three-digit hour', 'hour=009&minute=0&repeat=daily&start=2099-01-01'],
+      [
+        'a fractional minute',
+        'hour=9&minute=7.5&repeat=daily&start=2099-01-01',
+      ],
+      [
+        'a repeated hour',
+        'hour=9&hour=10&minute=0&repeat=daily&start=2099-01-01',
+      ],
+      ['an unknown repeat', 'hour=9&minute=0&repeat=weekly&start=2099-01-01'],
+      ['no start', 'hour=9&minute=0&repeat=daily'],
+    ])('rejects %s with 400', async (_name, query) => {
+      expect((await preview(query)).status).toBe(400);
     });
   });
 

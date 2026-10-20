@@ -109,6 +109,14 @@ Conventions and known traps:
   crop). `getByText(exact: true)` can resolve to a hidden duplicate; `elementFromPoint` skips
   `pointerEvents: 'none'` layers. See `.claude/agents/frontend.md`'s "Seeing your changes".
 - Register/log in through the UI, not by calling the API, so the flow under test is the real one.
+  A spec testing something else behind sign-in either fakes the session (a fake unexpired token in
+  `persist:auth`, Gateway mocked — mock every call the mounted tabs make on their own too, or the
+  real Gateway refuses the token and signs out mid-test) or, to exercise the real backend, registers
+  one throwaway account through the API for the file and deletes it in `afterAll`
+  (`tests/custom-reminders.spec.js`). The whole suite shares Gateway's per-IP rate limit: mock what
+  isn't under test (e.g. `/calendar/month`), and expect a `429` on the strict-limit routes
+  (`/auth/*`, 5 a minute). A mocked route that records its calls also lets a spec assert what
+  wasn't sent (e.g. no list refetch after a change, `tests/custom-reminder-sheet.spec.js`).
 - Rebuild the frontend container after a code change (`cd devops && docker compose up -d --build
   frontend`) — the tests hit the built static export, not a dev server.
 - Location-dependent screens: use `context.grantPermissions(['geolocation'])` +

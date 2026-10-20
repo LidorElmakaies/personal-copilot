@@ -57,6 +57,9 @@ async function mockGateway(page, savedLocation) {
   const profile = (location) => ({ firstName: null, lastName: null, phone: null, location });
 
   await page.route('**/ws/**', (route) => route.abort()); // fake token — keep the socket off the real Gateway
+  // Calls the mounted tabs make on their own; the real Gateway would refuse the fake token and end the session.
+  await page.route('**/reminders/custom?*', (route) => route.fulfill({ json: [], headers: CORS }));
+  await page.route('**/reminders', (route) => route.fulfill({ json: [], headers: CORS }));
   await page.route('**/calendar/shabbat?*', (route) =>
     route.fulfill({ json: SHABBAT, headers: CORS }),
   );

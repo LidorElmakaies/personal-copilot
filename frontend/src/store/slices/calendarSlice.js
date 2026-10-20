@@ -1,8 +1,6 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import * as calendarService from '../../services/http/calendarService';
 import { monthAt, monthIndex } from '../../utils/calendar';
-import { sampleReminders } from '../../utils/sampleReminders';
-import { clearAuth, deleteAccount } from './authSlice';
 
 export const fetchShabbat = createAsyncThunk(
   'calendar/fetchShabbat',
@@ -22,7 +20,7 @@ export const fetchShabbat = createAsyncThunk(
 const placeOf = (coords) =>
   `${coords.latitude.toFixed(2)},${coords.longitude.toFixed(2)}`;
 // How many months either side of the one shown are fetched ahead, and kept.
-const PRELOAD = 2;
+export const PRELOAD = 2;
 const KEEP = 6;
 
 // One Calendar-tab month. Skipped when it's already loaded or loading for this place, so the
@@ -77,20 +75,8 @@ const calendarSlice = createSlice({
     // (cleared when it changes), the few around the month shown — see loadMonthsAround.
     months: {},
     monthsPlace: null,
-    // Per-day reminders by date: { 'YYYY-MM-DD': [{ id, title, at }] }, sorted by time. Nothing
-    // fills it for real yet (per-day reminders are a later feature); the Admin tab's sample switch
-    // does, so the busy-day display can be seen. Not persisted; cleared on sign-out.
-    dayReminders: {},
-    sampleReminders: false,
   },
-  reducers: {
-    // `around` is { year, month }: samples cover six months either side of it.
-    setSampleReminders: (state, action) => {
-      const { on, around } = action.payload;
-      state.sampleReminders = on;
-      state.dayReminders = on ? sampleReminders(around) : {};
-    },
-  },
+  reducers: {},
   extraReducers: (builder) => {
     builder
       .addCase(fetchShabbat.pending, (state) => {
@@ -133,16 +119,8 @@ const calendarSlice = createSlice({
         if (!month) return;
         month.status = 'failed';
         month.error = action.payload ?? action.error.message;
-      })
-      .addCase(clearAuth, clearDayReminders)
-      .addCase(deleteAccount.fulfilled, clearDayReminders);
+      });
   },
 });
 
-function clearDayReminders(state) {
-  state.dayReminders = {};
-  state.sampleReminders = false;
-}
-
-export const { setSampleReminders } = calendarSlice.actions;
 export default calendarSlice.reducer;

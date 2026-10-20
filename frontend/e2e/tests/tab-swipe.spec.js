@@ -23,10 +23,14 @@ function fakeAccessToken(role) {
 
 async function mockGateway(page) {
   await page.route('**/ws/**', (route) => route.abort());
+  // Calls the mounted tabs make on their own; the real Gateway would refuse the fake token and end the session.
+  await page.route('**/reminders/custom?*', (route) => route.fulfill({ json: [], headers: CORS }));
   await page.route('**/realtime/device', (route) => route.fulfill({ status: 503, headers: CORS }));
   await page.route('**/calendar/shabbat?*', (route) => route.fulfill({ status: 503, headers: CORS }));
   await page.route('**/reminders', (route) => route.fulfill({ json: [], headers: CORS }));
   await page.route('**/users/me', (route) => route.fulfill({ json: { firstName: null, lastName: null, phone: null }, headers: CORS }));
+  // Signed in with GPS on, the location sync sends the fix; the real Gateway would refuse the fake token.
+  await page.route('**/users/me/location', (route) => route.fulfill({ json: {}, headers: CORS }));
   await page.route('**/admin/status', (route) => route.fulfill({ json: [], headers: CORS }));
   await page.route('**/calendar/month?*', (route) => {
     const url = new URL(route.request().url());

@@ -20,6 +20,7 @@ export const PROXY_ROUTES: readonly ProxyRoute[] = [
   { method: 'PUT', path: '/reminders/shabbat-candles', service: 'reminders', auth: 'user' },
   { method: 'DELETE', path: '/reminders/shabbat-candles', service: 'reminders', auth: 'user' },
   { method: 'GET', path: '/reminders/custom', service: 'reminders', auth: 'user' },
+  { method: 'GET', path: '/reminders/custom/preview', service: 'reminders', auth: 'user' },
   { method: 'POST', path: '/reminders/custom', service: 'reminders', auth: 'user' },
   { method: 'PATCH', path: '/reminders/custom/:id', service: 'reminders', auth: 'user' },
   { method: 'DELETE', path: '/reminders/custom/:id', service: 'reminders', auth: 'user' },

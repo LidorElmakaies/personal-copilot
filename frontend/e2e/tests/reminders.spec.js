@@ -54,6 +54,8 @@ async function mockGateway(page, { saved = [], putStatus = 200 } = {}) {
   await page.clock.install({ time: new Date('2026-09-27T08:00:00Z') });
   await page.clock.resume();
   await page.route('**/ws/**', (route) => route.abort());
+  // Calls the mounted tabs make on their own; the real Gateway would refuse the fake token and end the session.
+  await page.route('**/reminders/custom?*', (route) => route.fulfill({ json: [], headers: CORS }));
   await page.route('**/calendar/shabbat?*', (route) => route.fulfill({ json: SHABBAT, headers: CORS }));
   await page.route('**/users/me**', (route) =>
     route.fulfill({

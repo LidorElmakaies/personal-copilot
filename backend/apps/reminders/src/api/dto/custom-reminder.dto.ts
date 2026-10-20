@@ -1,4 +1,4 @@
-import { applyDecorators } from '@nestjs/common';
+import { applyDecorators, BadRequestException } from '@nestjs/common';
 import { Transform, type TransformFnParams } from 'class-transformer';
 import {
   IsIn,
@@ -14,6 +14,7 @@ import {
 import type {
   CustomReminder,
   CustomReminderInRange,
+  DateRange,
 } from '../../models/custom-reminder';
 
 /** English or Hebrew letters, digits and basic punctuation, single spaces between words. */
@@ -27,6 +28,9 @@ type Calendar = (typeof CALENDARS)[number];
 
 const trim = ({ value }: TransformFnParams): unknown =>
   typeof value === 'string' ? value.trim() : value;
+// A query string's number: digits only ('', '1e1', ' 9' stay text, so @IsInt refuses them).
+const queryInt = ({ value }: TransformFnParams): unknown =>
+  typeof value === 'string' && /^\d{1,2}$/.test(value) ? Number(value) : value;
 
 // One rule per field, shared by create (required) and PATCH (each optional) — not by inheritance,
 // which would carry PATCH's @IsOptional() into create.
@@ -51,7 +55,16 @@ const CivilDateField = () =>
     IsISO8601({ strict: true }, DATE_RULE), // rejects 2026-02-30
   );
 
-export class CreateCustomReminderDto {
+/**
+ * The months the client shows, both or neither: with them, a change answers with the reminder's
+ * `dates` in that range, so the client can show it without asking for the list again.
+ */
+class ShowingRange {
+  @IsOptional() @CivilDateField() from?: string;
+  @IsOptional() @CivilDateField() to?: string;
+}
+
+export class CreateCustomReminderDto extends ShowingRange {
   @Title() title!: string;
   @Hour() hour!: number;
   @Minute() minute!: number;
@@ -61,7 +74,7 @@ export class CreateCustomReminderDto {
   @CivilDateField() start!: string;
 }
 
-export class UpdateCustomReminderDto {
+export class UpdateCustomReminderDto extends ShowingRange {
   @IsOptional() @Title() title?: string;
   @IsOptional() @Hour() hour?: number;
   @IsOptional() @Minute() minute?: number;
@@ -75,7 +88,16 @@ export class RangeQueryDto {
   @CivilDateField() to!: string;
 }
 
-export class SkipDto {
+/** A query string's numbers arrive as text. */
+export class PreviewQueryDto {
+  @Transform(queryInt) @Hour() hour!: number;
+  @Transform(queryInt) @Minute() minute!: number;
+  @RepeatField() repeat!: Repeat;
+  @IsOptional() @CalendarField() calendar?: Calendar;
+  @CivilDateField() start!: string;
+}
+
+export class SkipDto extends ShowingRange {
   @CivilDateField() date!: string;
 }
 
@@ -95,3 +117,23 @@ export const toCustomReminderInRangeResponse = (r: CustomReminderInRange) => ({
   ...toCustomReminderResponse(r),
   dates: r.dates,
 });
+
+/** A change's answer: with `dates` when a range was sent. */
+export const toChangedResponse = (r: CustomReminder | CustomReminderInRange) =>
+  'dates' in r
+    ? toCustomReminderInRangeResponse(r)
+    : toCustomReminderResponse(r);
+
+/** `from` and `to` as a range, both or neither (400). */
+export function showingRange({
+  from,
+  to,
+}: {
+  from?: string;
+  to?: string;
+}): DateRange | undefined {
+  if (from === undefined && to === undefined) return undefined;
+  if (from === undefined || to === undefined)
+    throw new BadRequestException('Send both from and to, or neither');
+  return { from, to };
+}

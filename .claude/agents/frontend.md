@@ -21,7 +21,10 @@ second one.
 and Shabbat times for the device's location via `locationSlice` + `calendarSlice` — `GET /calendar/shabbat`, served by Gateway;
 under them the candle-lighting reminder bell + offset sheet, `CandleReminder` + `remindersSlice` —
 `/reminders*`) + a Calendar tab (month grid, `MonthGrid` + `calendarSlice.fetchMonth` —
-`GET /calendar/month`) + an auth-gated
+`GET /calendar/month`; signed in, the user's own reminders on it — add/edit/delete in
+`CustomReminderSheet` via `customRemindersSlice` — `/reminders/custom*`; a change sends the
+months shown and swaps in the reminder(s) the server answers with, never a list refetch — see
+`docs/specs/services.md#frontend`) + an auth-gated
 Account tab (theme, notifications, email/password, profile, logout, delete account — one card
 component each — then `VersionInfo`) + a background location sync to the Users Service while signed in
 (`LocationSyncManager` → `profileSlice.syncLocation`) + notifications opt-in — Web Push on the web
@@ -85,10 +88,11 @@ two folders:
   use React Native primitives, Reanimated, `expo-blur`/`expo-linear-gradient`, and
   `useAppTheme()`/hooks. Grouped into subfolders by purpose: `background/` (`Meteors`, `Stars` —
   animated background-effect primitives; `paused` stops them, `AmbientBackground` sets it while
-  its screen isn't focused), `buttons/` (`GradientButton`, `PillButton`), `feedback/`
+  its screen isn't focused), `buttons/` (`FloatingButton`, `GradientButton`, `PillButton`), `feedback/`
   (`Alert`, `VersionInfo` — status/feedback indicators), `form/` (`InputField`, `SelectField`, `Stepper`,
   `Switch` — form input controls), `layout/` (`BottomSheet`, `GlowCard`, `Row`, `SwipePager`, `TabPager` — layout/surface
-  primitives). Props worth knowing:
+  primitives). Props worth knowing: `FloatingButton`'s `icon` (Ionicons name, default `add`) — the
+  caller positions it via `style` (`position: 'absolute'` and its corner);
   `Alert`'s `variant` (`error` default, `warning`, `success`); `Switch`'s `disabled` and
   `accessibilityLabel` (rendered with role `switch`); `GlowCard`'s `solid` (opaque panel under the
   glass, for a card drawn over other content such as a modal; Android always gets the panel
@@ -122,8 +126,13 @@ two folders:
   days, `selected`/`onSelect`) and loading/error state; the screen owns the Redux wiring and the
   selected day; `MonthGrid` (memoized) also exports `WeekdayRow` and takes `reminders`), `DayCard` (from
   `GlowCard` — the selected day's names and times, and its reminders' preview; exports
-  `ReminderRow`), `RemindersSheet` (from `BottomSheet` — "Show all": a day's reminders by hour),
-  `SampleRemindersCard` (`GlowCard`, `Row`, `Switch` — the Admin tab's sample per-day reminders), `SystemStatus`
+  `ReminderRow`, which takes a `selectDayReminders` row, `now` and `onPress`), `RemindersSheet`
+  (from `BottomSheet` — "Show all": a day's reminders by hour; `onPressReminder`),
+  `CustomReminderSheet` (from `BottomSheet`, `InputField`, `Stepper`, `PillButton`,
+  `GradientButton`, `Alert` — the Calendar tab's add/edit sheet for a user's own reminder; `target`
+  `{ reminder, date }` — no reminder adds one on `date`, a reminder edits it with `date` as the
+  "Only this day", offered on an edit only while date, repeat and calendar are unchanged; owns its
+  Redux wiring, the form is private), `SystemStatus`
   (presentational — the Admin tab's list of services from `GET /admin/status`), and the
   Account tab's cards — `ThemeCard` (`GlowCard`, `Row`, `Switch`), `NotificationsCard`
   (`GlowCard`, `Row`, `Switch`, `Alert`), `AccountCard`, `ProfileCard`,
@@ -163,7 +172,7 @@ when a component genuinely needs something no thunk/selector combination can giv
 - Don't hand-write to AsyncStorage — redux-persist handles persisted slices (`auth` — tokens only, `theme`,
   `location` — `coords` only, `calendar` — `shabbat` only, `notifications` — `promptDismissed`
   and `optedOut` only, `appUpdate` — `dismissedVersionCode` only, `ws` — `deviceToken` only).
-  `profile`, `reminders` and `admin` aren't persisted, and are reset on `clearAuth`/`deleteAccount`
+  `profile`, `reminders`, `customReminders` and `admin` aren't persisted, and are reset on `clearAuth`/`deleteAccount`
   so one user's data never reaches the next.
 - `enableNotifications` must be dispatched synchronously from the tap handler —
   `Notification.requestPermission()` only prompts inside a user gesture, so it's the thunk's first

@@ -279,6 +279,48 @@ sequenceDiagram
     end
 ```
 
+## Flow: your own reminders on the Calendar tab (signed in)
+
+Contracts: `services.md#reminders` (routes, scheduling) and `services.md#frontend` (the sheet's
+choices). Delivery once one fires: `docs/specs/notification-flow.md`.
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant App as Frontend (Calendar, CustomReminderSheet)
+    participant Gateway
+    participant Rem as reminders
+    participant DB as Postgres
+    participant Redis
+
+    App->>Gateway: GET /reminders/custom?from&to (month shown ± 2, on every month change)
+    Gateway->>Rem: forward + X-User-Id
+    Rem->>DB: the user's custom_reminders
+    Rem-->>App: [{ id, title, hour, minute, repeat, calendar, start, skipped, dates }]
+    App->>App: per-day counts on the grid, rows on DayCard
+    User->>App: + (or tap a row) → sheet
+    loop 250 ms after each change to the timing
+        App->>Gateway: GET /reminders/custom/preview?hour&minute&repeat&calendar&start
+        Gateway->>Rem: forward + X-User-Id
+        Rem-->>App: { next: [up to 3 dates] } (nothing saved)
+    end
+    User->>App: Save
+    alt new, or "Every time"
+        App->>Gateway: POST /reminders/custom, or PATCH /reminders/custom/:id (+ from, to shown)
+        Gateway->>Rem: forward + X-User-Id
+        Rem->>DB: insert / update
+        Rem->>Redis: replace delayed reminder-due job (kind custom, next occurrence)
+        Rem->>DB: save nextFireAt
+        Rem-->>App: the reminder + its dates in from..to
+    else "Only <day>" on a repeating one
+        App->>Gateway: POST /reminders/custom (once, on that day, + from, to)
+        Rem-->>App: the new once-reminder + dates
+        App->>Gateway: POST /reminders/custom/:id/skip { date, from, to }
+        Rem-->>App: the series + dates
+    end
+    App->>App: swap the answered reminder(s) into the list (no refetch), sheet closes
+```
+
 ## Flow: Android app update
 
 Android APK only, no login. The registry is static files the frontend's Caddy serves at `/apk/`,

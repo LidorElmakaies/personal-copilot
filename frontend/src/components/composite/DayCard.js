@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { dayNames, dayTimeRows, longDate } from '../../utils/calendar';
+import { isDone, repeatLabel, timeText } from '../../utils/customReminders';
 import { formatTime } from '../../utils/time';
 import GlowCard from '../base/layout/GlowCard';
 
@@ -10,8 +11,15 @@ const PREVIEW = 3;
 
 // The Calendar tab's selected day (mockup D1): its dates, names, parasha and times — one
 // GET /calendar/month day — then its reminders, if any: the first few and "+N more · Show all"
-// (`onShowAll`). Presentational; the screen picks the day.
-export default function DayCard({ day, isToday, reminders = [], onShowAll }) {
+// (`onShowAll`); tapping one calls `onPressReminder(row)`. Presentational; the screen picks the day.
+export default function DayCard({
+  day,
+  isToday,
+  reminders = [],
+  now,
+  onShowAll,
+  onPressReminder,
+}) {
   const { colors } = useAppTheme();
   const names = dayNames(day);
   const rows = dayTimeRows(day);
@@ -96,7 +104,12 @@ export default function DayCard({ day, isToday, reminders = [], onShowAll }) {
             />
           </View>
           {reminders.slice(0, PREVIEW).map((r) => (
-            <ReminderRow key={r.id} reminder={r} />
+            <ReminderRow
+              key={r.id}
+              row={r}
+              now={now}
+              onPress={() => onPressReminder?.(r)}
+            />
           ))}
           {reminders.length > PREVIEW && (
             <Pressable
@@ -121,21 +134,39 @@ export default function DayCard({ day, isToday, reminders = [], onShowAll }) {
   );
 }
 
-// One reminder: its title and time (amber). Shared with RemindersSheet.
-export function ReminderRow({ reminder }) {
+// One reminder (a selectDayReminders row): its title, how it repeats and its time (amber); a
+// once-reminder that's gone off is dimmed. Tapping it edits it. Shared with RemindersSheet.
+export function ReminderRow({ row, now, onPress }) {
   const { colors } = useAppTheme();
+  const done = isDone(row.reminder, now);
   return (
-    <View style={styles.row}>
-      <Text
-        numberOfLines={1}
-        style={[styles.rowLabel, styles.remTitleText, { color: colors.text }]}
-      >
-        {reminder.title}
-      </Text>
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${row.title}, ${timeText(row)}${done ? ', done' : ''}`}
+      style={({ pressed }) => [
+        styles.row,
+        { opacity: done ? 0.5 : pressed ? 0.7 : 1 },
+      ]}
+    >
+      <View style={styles.remTitleText}>
+        <Text
+          numberOfLines={1}
+          style={[styles.rowLabel, { color: colors.text }]}
+        >
+          {row.title}
+        </Text>
+        <Text
+          numberOfLines={1}
+          style={[styles.remRepeat, { color: colors.textFaint }]}
+        >
+          {`${done ? 'Done · ' : ''}${repeatLabel(row.reminder)}`}
+        </Text>
+      </View>
       <Text style={[styles.time, styles.remTime, { color: colors.pending }]}>
-        {formatTime(new Date(reminder.at))}
+        {timeText(row)}
       </Text>
-    </View>
+    </Pressable>
   );
 }
 
@@ -198,6 +229,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   remTitleText: { flexShrink: 1, marginRight: 12 },
+  remRepeat: { fontSize: 11.5, marginTop: 2 },
   remTime: { fontSize: 14 },
   more: {
     marginTop: 12,

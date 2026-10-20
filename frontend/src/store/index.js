@@ -16,6 +16,7 @@ import adminReducer from './slices/adminSlice';
 import appUpdateReducer from './slices/appUpdateSlice';
 import authReducer, { refreshSession, selectUserId } from './slices/authSlice';
 import calendarReducer from './slices/calendarSlice';
+import customRemindersReducer from './slices/customRemindersSlice';
 import locationReducer from './slices/locationSlice';
 import notificationsReducer from './slices/notificationsSlice';
 import profileReducer from './slices/profileSlice';
@@ -73,6 +74,7 @@ export const store = configureStore({
     calendar: persistReducer(calendarPersistConfig, calendarReducer),
     profile: profileReducer, // not persisted — fetched when needed (profileSlice)
     reminders: remindersReducer, // not persisted — fetched on sign-in (CandleReminder)
+    customReminders: customRemindersReducer, // not persisted — the Calendar tab's months
     admin: adminReducer, // not persisted — fetched when the Admin tab opens
     notifications: persistReducer(
       notificationsPersistConfig,

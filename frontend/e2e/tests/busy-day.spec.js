@@ -1,8 +1,8 @@
 const { test, expect } = require('@playwright/test');
 
 // A day with many reminders on the Calendar tab (mockup B2): the cell's count, the card's preview
-// and the "Show all" sheet, at 120 and 500. Per-day reminders don't exist yet, so the Admin tab's
-// sample switch fills them; signed in as an admin with a fake token, Gateway mocked.
+// and the "Show all" sheet, at 120 and 500. Signed in with a fake token, Gateway mocked: GET
+// /reminders/custom answers with monthly reminders — 120 on the 24th, 500 on the 10th, 7 on the 19th.
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -16,7 +16,7 @@ function fakeAccessToken() {
   const payload = {
     sub: '11111111-1111-1111-1111-111111111111',
     email: 'e2e@example.com',
-    role: 'admin',
+    role: 'user',
     exp: Math.floor(Date.now() / 1000) + 3600,
   };
   return `${b64url({ alg: 'HS256', typ: 'JWT' })}.${b64url(payload)}.signature`;
@@ -34,9 +34,35 @@ function monthBody(year, month) {
   return { year, month, days };
 }
 
-// Signed in as an admin, the clock on Sat 17 Oct 2026, then the sample switch turned on from the
-// Admin tab and the Calendar tab opened through the tab bar (the samples live in memory only).
-async function openWithSamples(page) {
+// How many monthly reminders fall on each day of the month.
+const COUNTS = { 10: 500, 19: 7, 24: 120 };
+
+// A GET /reminders/custom answer for `from`–`to`: per day in COUNTS, that many monthly reminders,
+// each with every month's day in the range as `dates`. Times spread over 06:00–23:55.
+function customRemindersBody(from, to) {
+  const months = [];
+  for (let d = new Date(`${from.slice(0, 7)}-01T00:00:00Z`); d.toISOString().slice(0, 10) <= to; d.setUTCMonth(d.getUTCMonth() + 1))
+    months.push(d.toISOString().slice(0, 7));
+  return Object.entries(COUNTS).flatMap(([day, count]) =>
+    Array.from({ length: count }, (_, i) => {
+      const minutes = 6 * 60 + Math.floor((i * 211) % (18 * 60)) - ((i * 211) % 5);
+      return {
+        id: `r-${day}-${i}`,
+        title: `Reminder ${i + 1}`,
+        hour: Math.floor(minutes / 60),
+        minute: minutes % 60,
+        repeat: 'monthly',
+        calendar: 'gregorian',
+        start: `2026-01-${String(day).padStart(2, '0')}`,
+        skipped: [],
+        dates: months.map((m) => `${m}-${String(day).padStart(2, '0')}`).filter((d) => d >= from && d <= to),
+      };
+    }),
+  );
+}
+
+// Signed in, the clock on Sat 17 Oct 2026, the Calendar tab open.
+async function openWithReminders(page) {
   const persisted = JSON.stringify({
     accessToken: JSON.stringify(fakeAccessToken()),
     refreshToken: JSON.stringify('fake-refresh'),
@@ -58,6 +84,13 @@ async function openWithSamples(page) {
   await page.route('**/admin/status', (route) => route.fulfill({ json: [], headers: CORS }));
   await page.route('**/calendar/shabbat?*', (route) => route.fulfill({ status: 503, headers: CORS }));
   await page.route('**/reminders', (route) => route.fulfill({ json: [], headers: CORS }));
+  await page.route('**/reminders/custom?*', (route) => {
+    const url = new URL(route.request().url());
+    return route.fulfill({
+      json: customRemindersBody(url.searchParams.get('from'), url.searchParams.get('to')),
+      headers: CORS,
+    });
+  });
   await page.route('**/calendar/month?*', (route) => {
     const url = new URL(route.request().url());
     return route.fulfill({
@@ -66,10 +99,7 @@ async function openWithSamples(page) {
     });
   });
 
-  await page.goto('/admin');
-  await page.getByLabel('Sample reminders on the calendar').click();
-  await expect(page.getByText(/^On · 120 on the 24th/)).toBeVisible();
-  await page.getByText('Calendar', { exact: true }).click();
+  await page.goto('/calendar');
   await expect(page.getByText('October 2026')).toBeVisible();
 }
 
@@ -103,7 +133,7 @@ const pinnedHour = (page) =>
 test.use({ geolocation: TEL_AVIV, permissions: ['geolocation'], timezoneId: 'Asia/Jerusalem' });
 
 test('the busy day: 99+ in its cell, cells keep one size, the card keeps its size', async ({ page }) => {
-  await openWithSamples(page);
+  await openWithReminders(page);
 
   const busy = day(page, 'Saturday, October 24,');
   await expect(busy).toHaveAttribute('aria-label', /, 120 reminders$/);
@@ -130,7 +160,7 @@ test('the busy day: 99+ in its cell, cells keep one size, the card keeps its siz
 });
 
 test('Show all: every reminder grouped by hour, the hour pinned while the list scrolls', async ({ page }) => {
-  await openWithSamples(page);
+  await openWithReminders(page);
   await day(page, 'Saturday, October 24,').click();
   await page.getByText('+117 more · Show all').click();
 
@@ -156,7 +186,7 @@ test('Show all: every reminder grouped by hour, the hour pinned while the list s
 });
 
 test('500 on one day: the sheet opens fast and reaches the last one', async ({ page }) => {
-  await openWithSamples(page);
+  await openWithReminders(page);
   await day(page, 'Saturday, October 10,').click();
   await expect(page.getByText('+497 more · Show all')).toBeVisible();
 
@@ -175,8 +205,8 @@ test('500 on one day: the sheet opens fast and reaches the last one', async ({ p
   }).toPass({ timeout: 20000 });
 });
 
-test('swiping months still works with the samples on, and counts come along', async ({ page }) => {
-  await openWithSamples(page);
+test('swiping months still works with a busy month, and counts come along', async ({ page }) => {
+  await openWithReminders(page);
   await page.getByLabel('Next month').click();
   await expect(page.getByText('November 2026')).toBeVisible();
   await expect(day(page, 'Tuesday, November 24,')).toHaveAttribute('aria-label', /, 120 reminders$/);

@@ -724,7 +724,7 @@ and a day card with that day's times.
     (`Asia/Jerusalem`) and need no location — no rescheduling on `users.user-state`.* A once-reminder is done after it fires (kept, shown as
     past). A skipped date is never scheduled (skipping the next one moves the job on). Tests: each
     repeat kind's next job, edits, deletes, a skipped date, the sweep, Israel time with no location.
-  - [ ] **3.6e Frontend.** Per the mockup: add / edit / delete (a `customRemindersSlice` or the
+  - [x] **3.6e Frontend.** Per the mockup: add / edit / delete (a `customRemindersSlice` or the
     calendar slice; I/O in `services/http/`), `dayReminders` filled from `GET /reminders/custom`
     for the loaded months while signed in (cleared on sign-out); the sample switch and
     `sampleReminders.js` removed. e2e: add each kind and see it on the right days, edit, delete,

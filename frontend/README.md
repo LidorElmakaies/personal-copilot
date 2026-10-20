@@ -2,7 +2,8 @@
 
 Expo/React Native app — optional login/register (the app doesn't gate itself on a session), a Home
 tab (clock, dates, Shabbat times for the device's location, and a candle-lighting reminder bell),
-an auth-gated Account tab (theme, notifications, email/password, profile, logout, delete account),
+a Calendar tab (the Jewish-calendar month; signed in, the user's own reminders on it, added and
+edited in a bottom sheet), an auth-gated Account tab (theme, notifications, email/password, profile, logout, delete account),
 and an Admin tab of service status that only admins see. See the root
 [CLAUDE.md](../CLAUDE.md) for architecture, [.claude/agents/frontend.md](../.claude/agents/frontend.md)
 for the conventions to follow when changing anything here.
@@ -26,11 +27,13 @@ gradient) is a known stepping-stone, expected to be replaced by a different, mor
 later — keep it internally consistent until then rather than treating it as a fixed brand.
 
 `src/components/` splits into `base/` (primitives, grouped into subfolders by purpose:
-`background/` — `Meteors`, `Stars`; `buttons/` — `GradientButton`, `PillButton`; `feedback/` —
+`background/` — `Meteors`, `Stars`; `buttons/` — `FloatingButton`, `GradientButton`, `PillButton`; `feedback/` —
 `Alert`, `VersionInfo`; `form/` — `InputField`, `SelectField`, `Stepper`, `Switch`; `layout/` —
-`BottomSheet`, `GlowCard`, `Row`) and `composite/` (built from one or more base/composite
-components — `AmbientBackground`, `CandleReminder`, `ConfirmModal`,
-`FormActions`, `NotificationsPrompt`, `ProfileFields`, `RequireAuthNotice`, `ShabbatSection`, `SystemStatus`, `UpdateChip`, `UpdateSheet`, and the Account
+`BottomSheet`, `GlowCard`, `Row`, `SwipePager`, `TabPager`) and `composite/` (built from one or more base/composite
+components — `AmbientBackground`, `CandleReminder`, `ConfirmModal`, `CustomReminderSheet`, `DayCard`,
+`FormActions`, `MonthGrid`, `MonthHeader`, `MonthStatus`, `NotificationsPrompt`, `ProfileFields`,
+`RemindersSheet`, `RequireAuthNotice`, `ShabbatSection`, `SwipeTabs`, `SystemStatus`, `UpdateChip`,
+`UpdateSheet`, and the Account
 tab's `ThemeCard`, `NotificationsCard`, `AccountCard`, `ProfileCard`, `LogoutCard`, `DeleteAccountCard`). See `.claude/agents/frontend.md` for the classification rule when adding one.
 
 Same Redux Toolkit + services-layer + Expo Router conventions otherwise: all I/O lives in

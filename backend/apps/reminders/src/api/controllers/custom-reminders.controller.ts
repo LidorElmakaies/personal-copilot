@@ -16,10 +16,12 @@ import { CUSTOM_REMINDER_SERVICE } from '../../tokens';
 import type { ICustomReminderService } from '../../application/interfaces/custom-reminder-service.interface';
 import {
   CreateCustomReminderDto,
+  PreviewQueryDto,
   RangeQueryDto,
+  showingRange,
   SkipDto,
+  toChangedResponse,
   toCustomReminderInRangeResponse,
-  toCustomReminderResponse,
   UpdateCustomReminderDto,
 } from '../dto/custom-reminder.dto';
 
@@ -39,9 +41,23 @@ export class CustomRemindersController {
     @ForwardedUserId() userId: string,
     @Query() { from, to }: RangeQueryDto,
   ) {
-    return (await this.service.list(userId, from, to)).map(
+    return (await this.service.list(userId, { from, to })).map(
       toCustomReminderInRangeResponse,
     );
+  }
+
+  // The add sheet's "Next" dates while it's being filled in; nothing is saved.
+  @Get('preview')
+  preview(@Query() q: PreviewQueryDto) {
+    return {
+      next: this.service.preview({
+        hour: q.hour,
+        minute: q.minute,
+        repeat: q.repeat,
+        calendar: q.calendar ?? 'gregorian',
+        start: q.start,
+      }),
+    };
   }
 
   @Post()
@@ -49,15 +65,19 @@ export class CustomRemindersController {
     @ForwardedUserId() userId: string,
     @Body() dto: CreateCustomReminderDto,
   ) {
-    return toCustomReminderResponse(
-      await this.service.create(userId, {
-        title: dto.title,
-        hour: dto.hour,
-        minute: dto.minute,
-        repeat: dto.repeat,
-        calendar: dto.calendar ?? 'gregorian',
-        start: dto.start,
-      }),
+    return toChangedResponse(
+      await this.service.create(
+        userId,
+        {
+          title: dto.title,
+          hour: dto.hour,
+          minute: dto.minute,
+          repeat: dto.repeat,
+          calendar: dto.calendar ?? 'gregorian',
+          start: dto.start,
+        },
+        showingRange(dto),
+      ),
     );
   }
 
@@ -67,11 +87,12 @@ export class CustomRemindersController {
     @ReminderId() id: string,
     @Body() dto: UpdateCustomReminderDto,
   ) {
+    const { from, to, ...fields } = dto;
     const patch = Object.fromEntries(
-      Object.entries(dto).filter(([, v]) => v !== undefined),
+      Object.entries(fields).filter(([, v]) => v !== undefined),
     );
-    return toCustomReminderResponse(
-      await this.service.update(userId, id, patch),
+    return toChangedResponse(
+      await this.service.update(userId, id, patch, showingRange({ from, to })),
     );
   }
 
@@ -89,8 +110,10 @@ export class CustomRemindersController {
   async skip(
     @ForwardedUserId() userId: string,
     @ReminderId() id: string,
-    @Body() { date }: SkipDto,
+    @Body() dto: SkipDto,
   ) {
-    return toCustomReminderResponse(await this.service.skip(userId, id, date));
+    return toChangedResponse(
+      await this.service.skip(userId, id, dto.date, showingRange(dto)),
+    );
   }
 }

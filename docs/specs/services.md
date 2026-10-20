@@ -46,8 +46,8 @@ tunnel from a Caddy instance on the public internet. HTTP + WebSocket.
   `PUT`/`DELETE /notifications/fcm-devices` (`JwtAuthGuard`) → Notification Service's routes of the
   same name. Body relayed untouched.
 - `GET /reminders`, `PUT /reminders/shabbat-candles`, `DELETE /reminders/shabbat-candles`, and
-  `GET`/`POST /reminders/custom`, `PATCH`/`DELETE /reminders/custom/:id`,
-  `POST /reminders/custom/:id/skip` (`JwtAuthGuard`) → Reminders Service's routes of the same name.
+  `GET`/`POST /reminders/custom`, `GET /reminders/custom/preview`, `PATCH`/`DELETE
+  /reminders/custom/:id`, `POST /reminders/custom/:id/skip` (`JwtAuthGuard`) → Reminders Service's routes of the same name.
   Body relayed untouched.
 - `GET /admin/status` (`AdminGuard`, `src/admin/`) — **answered by Gateway itself**: its own
   [`buildInfo`](#libsbuild-info) read in-process, plus each internal service's `/health` (Users,
@@ -225,10 +225,21 @@ can't be saved for a user that doesn't exist. The only type so far is `shabbat_c
   reminder (`calendar` defaults to `gregorian`, `skipped` starts empty). `title` 1–60 characters
   after trimming: English or Hebrew letters, digits and `. , ' ! ? : ( ) " & / -`, single spaces
   between words; `hour` 0–23, `minute` 0–59; `repeat` `once`/`daily`/`monthly`/`yearly`;
-  `calendar` `gregorian`/`hebrew`; `start` a real `YYYY-MM-DD` date — `400` otherwise. At most 200
-  per user → `422`.
-- `PATCH /reminders/custom/:id` — any of those fields → the reminder (the whole series); none →
-  `400`. `DELETE /reminders/custom/:id` → `204`.
+  `calendar` `gregorian`/`hebrew`; `start` a real `YYYY-MM-DD` date — `400` otherwise. At most 300
+  per user (`MAX_REMINDERS_PER_USER`) → `422`.
+- `POST /reminders/custom`, `PATCH /reminders/custom/:id` and `POST /reminders/custom/:id/skip`
+  also take optional `from`/`to` (`YYYY-MM-DD`) in the body — the months the client shows, both
+  or neither, under the same rules as the list's range, else `400`. With them the answer also has
+  `dates` (the reminder's days in that range), so the client can show the change without asking
+  for the list again; without them it doesn't. They're in the body because Gateway passes a query
+  string on only for a `GET`.
+- `GET /reminders/custom/preview?hour&minute&repeat&calendar&start` — the same timing fields
+  (same rules, `calendar` defaults to `gregorian`, `hour`/`minute` plain digits — `''` or `1e1` →
+  `400`) → `{ next: ['YYYY-MM-DD', …] }`: the next 3 days
+  (`PREVIEW_COUNT`) it would fire on, as if saved now, in Israel time; empty when it won't fire
+  again (a once-reminder whose time passed). Nothing is saved — the add/edit sheet's "Next" dates.
+- `PATCH /reminders/custom/:id` — any of those fields → the reminder (the whole series); none
+  (`from`/`to` alone included) → `400`. `DELETE /reminders/custom/:id` → `204`.
 - `POST /reminders/custom/:id/skip` — `{ date }` → the reminder with `date` in `skipped` ("only
   this day"; changing one day is this plus a once-reminder on it). Idempotent; `422` if the
   reminder doesn't fall on `date`, or past 500 skipped days.
@@ -430,13 +441,39 @@ screen over the row with the swipe off.
   date, Hebrew date, its events' names in English and Hebrew (else Shabbat / Erev Shabbat / the
   weekday), Today / Yom Tov / Fast chips, Saturday's parasha, and its times (candle lighting in
   `pending`; a fast starting with candle lighting is one row, "Candle lighting · fast begins"),
-  or "No candle lighting or fast times"; dimmed while a swipe is between months. Per-day reminders
-  (`calendarSlice.dayReminders`, `{ date: [{ id, title, at }] }`; nothing fills it yet but the Admin
-  tab's sample switch, `SampleRemindersCard`) show as an amber count under a day's dot (`99+` past
-  99; the count line only in a month that has some, so plain months keep their height), and on
-  the card as "Your reminders" with the total, the first 3 by time and "+N more · Show all", which
-  opens `RemindersSheet`: all of them grouped by hour, each hour's header pinned, in a virtualized
-  list scrolling inside the sheet (only its grab bar drags it). Cleared on sign-out.
+  or "No candle lighting or fast times"; dimmed while a swipe is between months.
+  **Your reminders** (signed in): `customRemindersSlice.fetchCustomReminders` asks
+  `GET /reminders/custom` for the month shown ± `PRELOAD` (2, exported by `calendarSlice`;
+  `remindersRange` in `src/utils/customReminders.js`) on every month change; only the latest
+  request's reply is used (`listRequest`), and a reply that crossed a change (`changeSeq`) is asked
+  for again, up to 3 tries. A create/edit/skip sends that range and swaps in the reminder(s) the
+  server answers with, a delete just removes it locally — no refetch; if the shown months moved
+  while it was saving, the current range is fetched instead. The
+  `selectDayReminders` selector turns the reply into `{ date: [{ id, title, hour, minute,
+  reminder }] }`, sorted by time. A day's count shows in amber under its dot (`99+` past 99; the
+  count line only in a month that has some, so plain months keep their height), and the card lists
+  "Your reminders" with the total, the first 3 by time and "+N more · Show all", which opens
+  `RemindersSheet`: all of them grouped by hour, each hour's header pinned, in a virtualized list
+  scrolling inside the sheet (only its grab bar drags it). Each row shows the title, how it repeats
+  ("Monthly · the 8th (Hebrew)") and its time; a once-reminder whose time has passed in Israel
+  time (`isDone`, `Asia/Jerusalem`) is dimmed "Done · …". The tab's `now` ticks once a minute, so
+  a reminder dims while the tab is open and "today" moves on after midnight. A floating + (`FloatingButton`, base/buttons) adds a reminder on the selected day —
+  signed out, it asks "Log in to add reminders?" (`ConfirmModal`) and goes to login. Tapping a row
+  (card or sheet) opens the same `CustomReminderSheet` (composite, a `BottomSheet`) as "Edit
+  reminder" with Delete. The sheet: a title (the server's rules client-side, `titleProblem`, 60
+  max; curly quotes straightened as typed, `straightenQuotes`), the start date with ‹ › and its Hebrew date, hour and 5-minute steppers, Once / Daily /
+  Monthly / Yearly, Gregorian or Hebrew for monthly and yearly (each choice showing the day it
+  means), notes for dates some months or years lack (`oddDateNotes`), and a summary with the next
+  dates from `GET /reminders/custom/preview` (asked 250 ms after the last change; a late answer
+  for an older form is dropped). Changing or deleting a repeating reminder asks "Only <day>" —
+  delete → `POST …/:id/skip` for the tapped day; edit → a new once-reminder that day with the new
+  title and time, then the skip (`editCustomReminderDay` — in that order, so a failure between
+  leaves the day twice, never missing; the created one still shows, with the error) — or "Every
+  time" (`PATCH`/`DELETE` the series). An edit that changed the date, repeat or calendar offers
+  only "Every time", since those are the series'. Deleting a
+  once-reminder asks Keep / Delete. Saving selects the reminder's start day when it's in the month
+  shown. `customRemindersSlice` isn't persisted and resets on sign-out and account deletion;
+  signing out also closes the sheet.
 - `(tabs)/account` — a heading and six cards (`src/components/composite/`): `ThemeCard` (light/
   dark toggle), `NotificationsCard` (see Notifications below), `AccountCard` (email; edit email/password via `POST /auth/account` — the
   `updateAccount` thunk, see `apps/users` above), `ProfileCard` (name and phone; fetches
@@ -461,9 +498,7 @@ screen over the row with the swipe off.
   link, showing `RequireAuthNotice` otherwise; the server checks the role too (`AdminGuard`).
   `SystemStatus` lists `GET /admin/status` (`adminSlice.fetchSystemStatus`, not persisted, reset on
   sign-out): each service up/down with its version, build time and uptime. Refreshed on every
-  visit, by its button and by pull; then `SampleRemindersCard` — a switch that fills the Calendar
-  tab with made-up per-day reminders (120 on the 24th, 500 on the 10th, a few on other days; memory
-  only, until real per-day reminders exist) — and `VersionInfo`.
+  visit, by its button and by pull; then `VersionInfo`.
 - **Location sync** — `app/_layout.js`'s `LocationSyncManager` dispatches `profileSlice`'s
   `syncLocation` whenever the user is signed in and `locationSlice.status` is `'ready'` (a fresh
   GPS fix this session — the persisted last-known `coords` alone never trigger it).
@@ -598,14 +633,14 @@ plus `frontend/public/index.html` (Expo's single-page template with the manifest
 Themed via `themeSlice` → `useAppTheme()` and shared
 components under `src/components/base/` (grouped into `background`/`buttons`/`feedback`/`form`/
 `layout` subfolders by purpose) and `src/components/composite/` (the Account cards above,
-`AmbientBackground`, `CandleReminder`, `ConfirmModal`, `DayCard`, `FormActions`, `MonthGrid`, `MonthHeader`,
-`MonthStatus`, `NotificationsPrompt`, `ProfileFields`, `RemindersSheet`, `RequireAuthNotice`,
-`SampleRemindersCard`, `ShabbatSection`, `SystemStatus`, `UpdateChip`, `UpdateSheet`) — see `.claude/agents/frontend.md` for the base/composite split, the full
+`AmbientBackground`, `CandleReminder`, `ConfirmModal`, `CustomReminderSheet`, `DayCard`, `FormActions`,
+`MonthGrid`, `MonthHeader`, `MonthStatus`, `NotificationsPrompt`, `ProfileFields`, `RemindersSheet`,
+`RequireAuthNotice`, `ShabbatSection`, `SystemStatus`, `UpdateChip`, `UpdateSheet`) — see `.claude/agents/frontend.md` for the base/composite split, the full
 convention, and why there's no Gluestack layer here.
 
 `src/services/` is split by transport: `http/` (fetch-based calls — `authService`,
 `usersService` for `/users/me*`, `calendarService` for `/calendar/shabbat`, `remindersService` for
-`/reminders*`, `notificationsService` for `/notifications/*`, `adminService` for `/admin/status`,
+`/reminders` and `/reminders/shabbat-candles`, `customRemindersService` for `/reminders/custom*`, `notificationsService` for `/notifications/*`, `adminService` for `/admin/status`,
 `realtimeService` for the device token, `appUpdateService` for the APK registry's `latest.json`;
 signed-in calls go through `httpClient`'s `authorizedFetch`), `ws/`
 (`socketService`, a single shared Socket.IO connection), and `device/` (`locationService` —

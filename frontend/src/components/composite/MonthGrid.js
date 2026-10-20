@@ -47,7 +47,7 @@ export function WeekdayRow() {
 }
 
 // `today` and `selected` are YYYY-MM-DD; tapping a day calls `onSelect(date)`; `reminders` is
-// calendarSlice.dayReminders (each day's count shows under its dot). Memoized: the Calendar tab
+// selectDayReminders' map (each day's count shows under its dot). Memoized: the Calendar tab
 // keeps five of these mounted, and a swipe step shouldn't redraw the ones that didn't change. A day with no
 // `hebrew` yet (placeholderDays) shows its number only; its Hebrew date and dot fade in once the
 // month arrives. See docs/specs/services.md#frontend for what the grid shows.

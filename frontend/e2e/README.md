@@ -31,6 +31,21 @@ that two screens share (Home's and Calendar's "Location is off") needs a narrowe
 `tests/reminders.spec.js` mocks Gateway and seeds a token the same way; it
 starts the clock at a fixed time with `page.clock.install` + `resume` rather than freezing it with
 `setFixedTime`, since a frozen clock also stops the bottom sheet's JS slide-in animation.
+Fake-token specs also mock the calls the mounted tabs make on their own (`GET /reminders`,
+`/reminders/custom`, `/users/me`): the real Gateway would refuse the fake token and end the session
+mid-test. `tests/busy-day.spec.js` is one of them: its mocked `GET /reminders/custom` answers with
+monthly reminders — 120 on the 24th, 500 on the 10th, 7 on the 19th — for the Calendar's counts and
+"Show all" sheet. `tests/custom-reminder-sheet.spec.js` fakes the session the same way and covers the add/edit
+sheet's edges around the server: the title rule, a refused save, a past once-reminder shown
+"Done", an "Only this day" edit that fails part-way (the day never lost), and that a change's
+answer is used with no second `GET /reminders/custom`.
+`tests/custom-reminders.spec.js` is the one spec that uses the real backend for a
+signed-in feature: it registers one throwaway account through the API for the whole file, seeds
+its tokens into `persist:auth`, clears its reminders before each test and deletes the account at
+the end — real time, real repeat rules. Only the months (`/calendar/month`) are mocked, since the
+whole suite shares Gateway's per-IP rate limit and a page loads five months; the file runs in
+order (`mode: 'serial'`), and its account delete — on the strict 5-a-minute limit — waits a
+minute out once on a `429`.
 `tests/apk-registry.spec.js` checks the published APK registry at `/apk/` read-only (headers, the
 page lists `releases.json`) and skips where nothing is published; the publisher itself is tested by
 `node --test devops/android/apk.test.js`.

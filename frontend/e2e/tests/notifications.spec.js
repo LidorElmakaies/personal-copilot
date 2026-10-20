@@ -113,6 +113,9 @@ const browserSubscription = (page) =>
 async function mockGateway(page) {
   const calls = { posts: [], deletes: [] };
   await page.route('**/ws/**', (route) => route.abort());
+  // Calls the mounted tabs make on their own; the real Gateway would refuse the fake token and end the session.
+  await page.route('**/reminders/custom?*', (route) => route.fulfill({ json: [], headers: CORS }));
+  await page.route('**/reminders', (route) => route.fulfill({ json: [], headers: CORS }));
   await page.route('**/calendar/shabbat?*', (route) => route.fulfill({ status: 503, headers: CORS }));
   await page.route('**/users/me', (route) =>
     route.fulfill({

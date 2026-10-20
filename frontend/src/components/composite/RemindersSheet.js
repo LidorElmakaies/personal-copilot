@@ -16,7 +16,14 @@ import { ReminderRow } from './DayCard';
 // The day card's "Show all" (mockup B2): every reminder of `date`, grouped by hour — each hour's
 // header (with its count) stays pinned while its reminders scroll under it. A virtualized list
 // scrolling inside the sheet, so 100 or 500 stay smooth; only the grab bar drags the sheet.
-export default function RemindersSheet({ date, reminders, onClose }) {
+// Tapping one calls `onPressReminder(row)`.
+export default function RemindersSheet({
+  date,
+  reminders,
+  now,
+  onClose,
+  onPressReminder,
+}) {
   const { colors } = useAppTheme();
   const { height } = useWindowDimensions();
   const { rows, headers } = useMemo(() => groupByHour(reminders), [reminders]);
@@ -59,7 +66,11 @@ export default function RemindersSheet({ date, reminders, onClose }) {
             </View>
           ) : (
             <View style={styles.item}>
-              <ReminderRow reminder={item.reminder} />
+              <ReminderRow
+                row={item.row}
+                now={now}
+                onPress={() => onPressReminder?.(item.row)}
+              />
               <View
                 style={[
                   styles.line,
@@ -80,15 +91,14 @@ function groupByHour(reminders) {
   const rows = [];
   const headers = [];
   let current = null;
-  for (const reminder of reminders) {
-    const hour = new Date(reminder.at).getHours();
-    if (hour !== current) {
-      current = hour;
+  for (const row of reminders) {
+    if (row.hour !== current) {
+      current = row.hour;
       headers.push(rows.length);
-      rows.push({ key: `h${hour}`, hour, count: 0 });
+      rows.push({ key: `h${row.hour}`, hour: row.hour, count: 0 });
     }
     rows[headers.at(-1)].count += 1;
-    rows.push({ key: reminder.id, reminder });
+    rows.push({ key: row.id, row });
   }
   return { rows, headers };
 }

@@ -15,7 +15,6 @@ import Alert from '../../src/components/base/feedback/Alert';
 import VersionInfo from '../../src/components/base/feedback/VersionInfo';
 import AmbientBackground from '../../src/components/composite/AmbientBackground';
 import RequireAuthNotice from '../../src/components/composite/RequireAuthNotice';
-import SampleRemindersCard from '../../src/components/composite/SampleRemindersCard';
 import SystemStatus from '../../src/components/composite/SystemStatus';
 import { useAppTheme } from '../../src/hooks/useAppTheme';
 import { useHasRole } from '../../src/hooks/useHasRole';
@@ -102,7 +101,6 @@ function AdminStatus() {
         {services ? (
           <SystemStatus services={services} checkedAt={checkedAt} />
         ) : null}
-        <SampleRemindersCard />
         <VersionInfo />
       </ScrollView>
     </AmbientBackground>

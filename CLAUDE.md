@@ -114,8 +114,8 @@ scripts/docs-check.js     docs drift check (+ docs-check.test.js) — see Comman
     token, and `account` is body-driven the same way, see `apps/users` below) — plus
     `GET`/`PATCH /users/me` and `PUT /users/me/location`. No `/me`: the access token itself
     carries `{ sub, role, email }`. Reminders: `GET /reminders`, `PUT`/`DELETE
-    /reminders/shabbat-candles`, `GET`/`POST /reminders/custom`, `PATCH`/`DELETE
-    /reminders/custom/:id`, `POST /reminders/custom/:id/skip`. Notifications: `GET /notifications/vapid-public-key` (open),
+    /reminders/shabbat-candles`, `GET`/`POST /reminders/custom`, `GET /reminders/custom/preview`,
+    `PATCH`/`DELETE /reminders/custom/:id`, `POST /reminders/custom/:id/skip`. Notifications: `GET /notifications/vapid-public-key` (open),
     `POST`/`DELETE /notifications/subscriptions`, `PUT`/`DELETE /notifications/fcm-devices`.
   - `src/calendar/` — both open, answered in-process from `@app/jewish-calendar`:
     `GET /calendar/shabbat?lat&lon` (the Shabbat in progress, otherwise the next one) and
@@ -163,7 +163,11 @@ scripts/docs-check.js     docs drift check (+ docs-check.test.js) — see Comman
   only `{ offsetMinutes }`). Plus users' own reminders (`custom_reminders`: title, time, once /
   daily / monthly / yearly, Gregorian or Hebrew, skipped days; same cascade): `GET
   /reminders/custom?from&to` (each with its days in the range, from `ReminderOccurrences`), `POST`,
-  `PATCH`/`DELETE /reminders/custom/:id`, `POST …/:id/skip` ("only this day"); another user's id →
+  `PATCH`/`DELETE /reminders/custom/:id`, `POST …/:id/skip` ("only this day") — `POST`, `PATCH`
+  and skip take optional body `from`/`to` (the months shown, both or neither) and then answer with
+  the reminder's `dates` there (body, since Gateway forwards a query string only on `GET`) — and
+  `GET /reminders/custom/preview?hour&minute&repeat&calendar&start` (`{ next }`: the next 3 days it
+  would fire on, in Israel time, nothing saved); at most 300 per user; another user's id →
   `404`. Reads the user's location straight from `users.profiles` (read-only
   mapping) — no copy. Candle-lighting maths is the in-process `@app/jewish-calendar` lib
   (`@hebcal/core` v6; Israel-only: Israel's rules and time zone (`ISRAEL_TIME_ZONE`) wherever the
@@ -213,9 +217,18 @@ scripts/docs-check.js     docs drift check (+ docs-check.test.js) — see Comman
   grid — both dates per day, holiday/fast dots, today outlined; swipe or ‹ › between months
   (`SwipePager`), a Today button back — from `GET /calendar/month` (the month shown plus two
   either side, preloaded: `calendarSlice.loadMonthsAround`), and `DayCard` under it for
-  the day tapped: names, parasha and times; today on opening; per-day reminders, when there are
-  any, as cell counts and a preview with "Show all" (`RemindersSheet`) — only the Admin tab's
-  sample switch fills them so far), `(tabs)/account`
+  the day tapped: names, parasha and times; today on opening. Signed in, the user's own reminders
+  for the loaded months (`customRemindersSlice.fetchCustomReminders` → `GET /reminders/custom`,
+  month shown ± `PRELOAD`; `selectDayReminders` the per-day map; not persisted, reset on
+  sign-out; a change sends the range and swaps in the reminder(s) answered, no refetch — a list
+  reply that crossed a change is asked for again) show as cell counts and on `DayCard` with "Show all" (`RemindersSheet`); a floating +
+  adds one on the selected day (signed out: "Log in to add reminders?"), a tapped row edits it —
+  both in `CustomReminderSheet`: title, start date, time, Once/Daily/Monthly/Yearly, Gregorian or
+  Hebrew, odd-date notes, and the next dates from `GET /reminders/custom/preview`; changing or
+  deleting a repeating one asks "Only <day>" (skip; for an edit, a new once-reminder first, then
+  the skip — offered only if date, repeat and calendar are unchanged) or "Every time"; a
+  once-reminder whose time passed in Israel time is dimmed "Done", the tab's clock ticking each
+  minute), `(tabs)/account`
   (a heading plus `ThemeCard`, `NotificationsCard` (this browser's or phone's notifications on/off), `AccountCard`
   (edit email/password), `ProfileCard` (name/phone via
   `GET`/`PATCH /users/me`, fetched on mount), `LogoutCard` (`logOut`), `DeleteAccountCard` (password, then
@@ -279,7 +292,9 @@ scripts/docs-check.js     docs drift check (+ docs-check.test.js) — see Comman
   shared Yes/No overlay (the `requiresAuth` tab guard, `NotificationsPrompt`, the signed-out
   reminder bell); `FormActions` (composite) the Save/Cancel pair under the Account cards' edit
   forms; `PillButton` (base/buttons), `Stepper` (base/form) and `BottomSheet` (base/layout)
-  build `CandleReminder`; `MonthHeader`, `MonthGrid` and `MonthStatus` (composite) build the Calendar tab (`src/utils/calendar.js` its date helpers).
+  build `CandleReminder`; `MonthHeader`, `MonthGrid`, `MonthStatus`, `DayCard`, `RemindersSheet` and
+  `CustomReminderSheet` (composite) plus `FloatingButton` (base/buttons) build the Calendar tab
+  (`src/utils/calendar.js` and `src/utils/customReminders.js` its helpers).
 - **Queues** — BullMQ on Redis (`devops/redis/docker-compose.yml`, internal-only, AOF-persisted,
   `noeviction`, holds nothing but queues). Cross-service queues and job guards in
   `@app/queue-contracts` (`notification-requested` — Reminders publishes, Notifications

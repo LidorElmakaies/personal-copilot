@@ -30,9 +30,18 @@ export type CustomReminderInput = Pick<
   'title' | 'hour' | 'minute' | 'repeat' | 'calendar' | 'start'
 >;
 
+/** When it fires, without the title — what the add sheet's preview is asked for. */
+export type CustomReminderTiming = Omit<CustomReminderInput, 'title'>;
+
 /** A reminder and the days it falls on in the range asked for. */
 export interface CustomReminderInRange extends CustomReminder {
   dates: string[];
+}
+
+/** 'YYYY-MM-DD' to 'YYYY-MM-DD', both included — the months a client shows. */
+export interface DateRange {
+  from: string;
+  to: string;
 }
 
 /** 'YYYY-MM-DD' → CivilDate. */
@@ -42,7 +51,10 @@ export const civilDate = (s: string): CivilDate => {
 };
 
 /** The rule ReminderOccurrences works on; `withSkips: false` ignores its skipped days. */
-export const ruleOf = (r: CustomReminder, withSkips = true): ReminderRule => ({
+export const ruleOf = (
+  r: CustomReminderTiming & Pick<CustomReminder, 'skipped'>,
+  withSkips = true,
+): ReminderRule => ({
   start: civilDate(r.start),
   hour: r.hour,
   minute: r.minute,
