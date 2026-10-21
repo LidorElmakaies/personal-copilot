@@ -124,7 +124,8 @@ Kafka events in [`docs/specs/event-schemas.md`](docs/specs/event-schemas.md), di
   days). Reads the user's location from `users.profiles` (read-only). Each reminder keeps one
   delayed `reminder-due` job at its next firing (`ReminderScheduler`, `CustomReminderScheduler`),
   which publishes `notification-requested` and queues the next; a sweep at startup and every
-  15 min re-queues any missing job and removes those of deleted reminders.
+  15 min re-queues any missing job and removes those of deleted reminders. No longer called by
+  the app (it keeps reminders on the phone); reminders already saved here keep firing.
 - **notifications** (`backend/apps/notifications`) — internal-only, schema `notifications`. Stores
   browsers' Web Push subscriptions and the Android app's FCM devices, and delivers
   `notification-requested` jobs to them end-to-end encrypted (`WebPushChannel`, `FcmChannel`),
@@ -133,7 +134,9 @@ Kafka events in [`docs/specs/event-schemas.md`](docs/specs/event-schemas.md), di
 - **frontend** (`frontend/`) — Expo Router app, web export and Android APK; login optional. Swipeable
   tabs: Home (clock, Hebrew date, Shabbat times for the GPS location — computed on the phone, like
   the months — the candle-lighting reminder bell), Calendar (Jewish-calendar month; signed in, the user's own reminders, added and edited in a
-  bottom sheet), Account (signed in only: theme, notifications, email/password, profile, log out,
+  bottom sheet); both kinds of reminder are kept on the phone (persisted) and
+  fired as local notifications (`ReminderScheduleManager` → `reconcileReminderNotifications`, a
+  30-day window, at most 100 scheduled; nothing on the web build). Account (signed in only: theme, notifications, email/password, profile, log out,
   delete account, version) and Admin (admins only: service status). App-wide (`app/_layout.js`):
   one Socket.IO connection per install, location sync after a > 5 km move, quiet token renewal,
   notifications (Web Push via `public/sw.js`, FCM in the APK) and the APK's in-app update. See

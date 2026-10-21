@@ -48,6 +48,18 @@ const calendarPersistConfig = {
   whitelist: ['shabbat'],
 };
 
+const remindersPersistConfig = {
+  key: 'reminders',
+  storage: AsyncStorage,
+  whitelist: ['candles'], // the candle-lighting reminder lives on the phone
+};
+
+const customRemindersPersistConfig = {
+  key: 'customReminders',
+  storage: AsyncStorage,
+  whitelist: ['items'], // the user's own reminders; the months shown are set by the Calendar tab
+};
+
 const notificationsPersistConfig = {
   key: 'notifications',
   storage: AsyncStorage,
@@ -80,8 +92,11 @@ export const store = configureStore({
     location: persistReducer(locationPersistConfig, locationReducer),
     calendar: persistReducer(calendarPersistConfig, calendarReducer),
     profile: profileReducer, // not persisted — fetched when needed (profileSlice)
-    reminders: remindersReducer, // not persisted — fetched on sign-in (CandleReminder)
-    customReminders: customRemindersReducer, // not persisted — the Calendar tab's months
+    reminders: persistReducer(remindersPersistConfig, remindersReducer),
+    customReminders: persistReducer(
+      customRemindersPersistConfig,
+      customRemindersReducer,
+    ),
     admin: adminReducer, // not persisted — fetched when the Admin tab opens
     notifications: persistReducer(
       notificationsPersistConfig,

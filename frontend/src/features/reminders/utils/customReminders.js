@@ -3,8 +3,8 @@ import { israelClock, monthAt } from '../../../shared/utils/date';
 import { pad2 } from '../../../shared/utils/time';
 
 // Words for a user's own reminder — the add sheet's lines and the day card's rows (mockup 3.6a).
-// Which days it falls on is the server's (GET /reminders/custom and its preview); these only
-// describe a reminder from its own fields. Dates are 'YYYY-MM-DD'.
+// Which days it falls on is in occurrences.js; these only describe a reminder from its own fields
+// and check the title (titleProblem). Dates are 'YYYY-MM-DD'.
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = [
@@ -106,7 +106,7 @@ export function calendarChoices({ repeat, start }) {
     : { gregorian: `${d} ${MONTHS[m - 1]}`, hebrew: hebrewDayMonth(start) };
 }
 
-// What happens on a date some months or years don't have (rules: libs/jewish-calendar's README).
+// What happens on a date some months or years don't have (rules: src/lib/jewish-calendar/README.md).
 export function oddDateNotes({ repeat, calendar, start }) {
   if (repeat === 'once' || repeat === 'daily') return [];
   const [, m, d] = parts(start);
@@ -140,7 +140,7 @@ export function isDone(reminder, now) {
   return `${reminder.start} ${timeText(reminder)}` <= israelClock(now);
 }
 
-// The dates the Calendar tab asks reminders for: `around` months either side of month `index`
+// The dates the Calendar tab shows reminders for: `around` months either side of month `index`
 // (monthIndex), first day to last.
 export function remindersRange(index, around) {
   const first = monthAt(index - around);
@@ -152,8 +152,8 @@ export function remindersRange(index, around) {
   };
 }
 
-// Same rule as the Reminders Service's TITLE_PATTERN: English or Hebrew letters, digits and basic
-// punctuation, single spaces between words; up to 60.
+// The Reminders Service's TITLE_PATTERN: English or Hebrew letters, digits and basic punctuation,
+// single spaces between words; up to 60.
 export const TITLE_MAX_LENGTH = 60;
 const TITLE_PATTERN =
   /^[A-Za-zא-ת0-9.,'!?:()"&/-]+(?: [A-Za-zא-ת0-9.,'!?:()"&/-]+)*$/;

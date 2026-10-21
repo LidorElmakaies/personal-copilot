@@ -12,10 +12,10 @@ import { israelIsoDate, monthAt, monthIndex } from '../../../shared/utils/date';
 import { selectUserId } from '../../account';
 import {
   CustomReminderSheet,
-  fetchCustomReminders,
   RemindersSheet,
   remindersRange,
   selectDayReminders,
+  setRemindersRange,
 } from '../../reminders';
 import DayCard from '../components/DayCard';
 import MonthGrid, { WeekdayRow } from '../components/MonthGrid';
@@ -30,7 +30,7 @@ import {
 } from '../utils/calendar';
 
 // Times and holidays are for the device's location — the same one Home uses. The user's own
-// reminders (signed in) are fetched for the loaded months; the + adds one to the selected day.
+// reminders (signed in) are shown over the loaded months; the + adds one to the selected day.
 export default function CalendarScreen() {
   const dispatch = useDispatch();
   const router = useRouter();
@@ -89,7 +89,7 @@ export default function CalendarScreen() {
 
   // The user's reminders over the same months (they don't need a location).
   useEffect(() => {
-    if (userId) dispatch(fetchCustomReminders(remindersRange(shown, PRELOAD)));
+    if (userId) dispatch(setRemindersRange(remindersRange(shown, PRELOAD)));
   }, [shown, userId, dispatch]);
 
   // Signing out closes the add/edit sheet (it needs a session).
@@ -103,8 +103,7 @@ export default function CalendarScreen() {
     setSheetDate(null);
     setEditing({ reminder: row.reminder, date });
   };
-  // A new or moved reminder in the month on screen when the save lands (not when it started — the
-  // months may have moved meanwhile): show its day.
+  // A new or moved reminder in the month on screen when the save lands: show its day.
   const shownNow = useRef(shown);
   shownNow.current = shown;
   const showSaved = (start) => {

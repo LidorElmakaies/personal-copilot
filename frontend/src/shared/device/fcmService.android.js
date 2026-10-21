@@ -3,6 +3,7 @@ import * as Crypto from 'expo-crypto';
 import * as Notifications from 'expo-notifications';
 import * as SecureStore from 'expo-secure-store';
 import { AppState, Linking } from 'react-native';
+import { CHANNEL_ID, ensureChannel } from './localNotificationsService';
 
 // The Android app's push I/O (FCM), no Redux knowledge — called only from notificationsSlice's
 // thunks, and by fcmReceiver for incoming messages. The web build gets fcmService.js instead.
@@ -11,18 +12,14 @@ import { AppState, Linking } from 'react-native';
 // key and the FCM token go to the server together (PUT /notifications/fcm-devices); every
 // notification arrives encrypted with the key — see docs/specs/services.md#notifications.
 const KEY_ITEM = 'fcmDeviceKey';
-export const CHANNEL_ID = 'reminders';
 
 export function isSupported() {
   return true;
 }
 
-// The channel every reminder is shown in (Android settings lists it). Safe to repeat.
+// The channel every reminder is shown in — localNotificationsService owns it. Safe to repeat.
 export async function init() {
-  await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
-    name: 'Reminders',
-    importance: Notifications.AndroidImportance.HIGH,
-  });
+  await ensureChannel();
 }
 
 // 'default' | 'granted' | 'denied' — 'denied' only once Android won't ask again (Android 13+

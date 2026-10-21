@@ -4,7 +4,7 @@ export * from './shabbat-calendar';
 export * from './reminder-occurrences';
 export { ISRAEL_TIME_ZONE } from './calendar-options';
 export type { CivilDate } from './models/civil-date';
-export { civilDateIn, isoDate } from './models/civil-date';
+export { civilDateIn, instantAt, isoDate } from './models/civil-date';
 export type * from './models/reminder-rule';
 export type { GeoLocation } from './models/geo-location';
 export type { LocalizedName, ShabbatTimes } from './models/shabbat-times';

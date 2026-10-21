@@ -20,11 +20,13 @@ second one.
 (login/register, not a whole-app gate) + a Home tab (landing, no session required; clock, dates,
 and Shabbat times for the device's location via `locationSlice` + `calendarSlice` — computed on the phone by `calendarService` from `src/lib/jewish-calendar/`, no network;
 under them the candle-lighting reminder bell + offset sheet, `CandleReminder` + `remindersSlice` —
-`/reminders*`) + a Calendar tab (month grid, `MonthGrid` + `calendarSlice.fetchMonth` —
+kept on the phone) + a Calendar tab (month grid, `MonthGrid` + `calendarSlice.fetchMonth` —
 computed the same way; signed in, the user's own reminders on it — add/edit/delete in
-`CustomReminderSheet` via `customRemindersSlice` — `/reminders/custom*`; a change sends the
-months shown and swaps in the reminder(s) the server answers with, never a list refetch — see
-`docs/specs/services.md#frontend`) + an auth-gated
+`CustomReminderSheet` via `customRemindersSlice`, definitions kept on the phone, their days in the
+loaded months worked out by `selectDayReminders` (`reminders/utils/occurrences.js`) — see
+`docs/specs/services.md#frontend`) + both kinds of reminder fired as local Android notifications
+(`ReminderScheduleManager` → `reconcileReminderNotifications`, planned by
+`reminders/utils/schedulePlan.js`, scheduled via `shared/device/localNotificationsService.android.js`) + an auth-gated
 Account tab (theme, notifications, email/password, profile, logout, delete account — one card
 component each — then `VersionInfo`) + a background location sync to the Users Service while signed in
 (`LocationSyncManager` → `profileSlice.syncLocation`) + notifications opt-in — Web Push on the web
@@ -178,7 +180,8 @@ src/store/index.js        the root store: each feature's reducer (from its index
 ## Services layer — where all I/O lives
 
 Every network call (HTTP or WebSocket) and every device API (location, the browser's
-service worker/`Notification`/`PushManager`, the file system and Android intents) lives in a plain module
+service worker/`Notification`/`PushManager`, scheduled local notifications, `AppState`, the file
+system and Android intents) lives in a plain module
 in its feature's `services/`, or under `src/shared/` (`device/`, `http/`, `realtime/`) when several
 features use it — never inline inside a thunk
 and never inside a component. Services
@@ -199,9 +202,10 @@ when a component genuinely needs something no thunk/selector combination can giv
   screen/component.
 - Don't hand-write to AsyncStorage — redux-persist handles persisted slices (`auth` — tokens only, `theme`,
   `location` — `coords` only, `calendar` — `shabbat` only, `notifications` — `promptDismissed`
-  and `optedOut` only, `appUpdate` — `dismissedVersionCode` only, `ws` — `deviceToken` only).
-  `profile`, `reminders`, `customReminders` and `admin` aren't persisted, and are reset on `clearAuth`/`deleteAccount`
-  so one user's data never reaches the next.
+  and `optedOut` only, `appUpdate` — `dismissedVersionCode` only, `ws` — `deviceToken` only,
+  `reminders` — `candles` only, `customReminders` — `items` only; neither reminder slice is reset
+  on `clearAuth`/`deleteAccount`). `profile` and `admin` aren't persisted, and are reset on
+  `clearAuth`/`deleteAccount` so one user's data never reaches the next.
 - `enableNotifications` must be dispatched synchronously from the tap handler —
   `Notification.requestPermission()` only prompts inside a user gesture, so it's the thunk's first
   await; don't put another await (or a confirm step) in front of it.
@@ -215,8 +219,10 @@ when a component genuinely needs something no thunk/selector combination can giv
   it — a cycle); it reads the token via `getState()`.
 - Provider order in `app/_layout.js` is load-bearing (`Provider` → `PersistGate` →
   `ThemedStatusBar`/`AuthGate`/`RealtimeConnectionManager`/
-  `LocationSyncManager`/`PushSubscriptionManager` → `Stack` → `AppUpdateManager`, last so its
-  `UpdateSheet` renders over any screen) — adding a provider means
+  `LocationSyncManager`/`PushSubscriptionManager` → `Stack` → `ReminderScheduleManager` →
+  `AppUpdateManager`. `ReminderScheduleManager` must be inside `PersistGate` (it schedules from the
+  saved reminders) and after `Stack` (a tapped notification navigates); `AppUpdateManager` is last
+  so its `UpdateSheet` renders over any screen) — adding a provider means
   deciding where it sits deliberately, not appending it wherever's convenient.
 - **The frontend only ever talks to Gateway, never the Users Service or any other backend service
   directly** — see `.claude/memory/feedback_gateway_only_service_access.md`. The single exception

@@ -3,10 +3,13 @@ import { useAppTheme } from '../../../shared/theme/useAppTheme';
 import { isDone, repeatLabel, timeText } from '../utils/customReminders';
 
 // One reminder (a selectDayReminders row): its title, how it repeats and its time (amber); a
-// once-reminder that's gone off is dimmed. Tapping it edits it. Shared with RemindersSheet.
+// once-reminder that's gone off (at the row's own time) is dimmed. Tapping it edits it. Shared with RemindersSheet.
 export function ReminderRow({ row, now, onPress }) {
   const { colors } = useAppTheme();
-  const done = isDone(row.reminder, now);
+  const done = isDone(
+    { ...row.reminder, hour: row.hour, minute: row.minute },
+    now,
+  );
   return (
     <Pressable
       onPress={onPress}

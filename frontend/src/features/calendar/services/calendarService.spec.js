@@ -29,16 +29,8 @@ describe('calendarService', () => {
 
   it("rejects with the lib's message where there's no sunset", async () => {
     jest.useFakeTimers().setSystemTime(new Date('2026-06-20T09:00:00Z'));
-    await expect(
-      getShabbat({ latitude: 89.9, longitude: 0 }),
-    ).rejects.toThrow("Shabbat times can't be calculated for this location");
-  });
-
-  it('rejects what Gateway refused with 400', async () => {
-    await expect(
-      getShabbat({ latitude: 91, longitude: 0 }),
-    ).rejects.toThrow('lat must be a latitude');
-    await expect(getMonth(TEL_AVIV, 2026, 13)).rejects.toThrow('month must');
-    await expect(getMonth(TEL_AVIV, 1899, 1)).rejects.toThrow('year must');
+    await expect(getShabbat({ latitude: 89.9, longitude: 0 })).rejects.toThrow(
+      "Shabbat times can't be calculated for this location",
+    );
   });
 });

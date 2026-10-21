@@ -2,8 +2,15 @@
 // jest-expo's environment is already Node's (+ the 'react-native' export condition), so specs may set process.env.TZ.
 const expoPreset = require('jest-expo/jest-preset');
 
-// @hebcal/core and its deps are ESM-only: compile them too, on top of jest-expo's RN/expo list.
-const esmOnly = ['@hebcal', 'quick-lru', 'temporal-polyfill', 'temporal-utils'];
+// ESM-only under Jest's 'react-native' condition — @hebcal/core and its deps, and immer (Redux
+// Toolkit's): compile them too, on top of jest-expo's RN/expo list.
+const esmOnly = [
+  '@hebcal',
+  'quick-lru',
+  'temporal-polyfill',
+  'temporal-utils',
+  'immer',
+];
 const [nodeModules, ...otherIgnores] = expoPreset.transformIgnorePatterns;
 
 module.exports = {

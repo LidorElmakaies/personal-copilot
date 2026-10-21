@@ -13,3 +13,7 @@ export function distanceKm(a, b) {
       Math.sin(dLon / 2) ** 2;
   return 2 * EARTH_RADIUS_KM * Math.asin(Math.sqrt(h));
 }
+
+// A location rounded to ~1 km, as a string: GPS wobble gives the same one, a real move doesn't.
+export const placeOf = (coords) =>
+  `${coords.latitude.toFixed(2)},${coords.longitude.toFixed(2)}`;

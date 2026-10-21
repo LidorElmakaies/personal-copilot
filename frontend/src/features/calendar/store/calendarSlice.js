@@ -1,6 +1,7 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import * as calendarService from '../services/calendarService';
 import { monthAt, monthIndex } from '../../../shared/utils/date';
+import { placeOf } from '../../../shared/utils/geo';
 
 export const fetchShabbat = createAsyncThunk(
   'calendar/fetchShabbat',
@@ -15,10 +16,8 @@ export const fetchShabbat = createAsyncThunk(
   },
 );
 
-// Months are kept per location rounded to ~1 km: GPS wobble keeps them, a real move refetches
-// (the times depend on where you are).
-const placeOf = (coords) =>
-  `${coords.latitude.toFixed(2)},${coords.longitude.toFixed(2)}`;
+// Months are kept per location rounded to ~1 km (placeOf): GPS wobble keeps them, a real move
+// refetches (the times depend on where you are).
 // How many months either side of the one shown are fetched ahead, and kept.
 export const PRELOAD = 1;
 const KEEP = 6;

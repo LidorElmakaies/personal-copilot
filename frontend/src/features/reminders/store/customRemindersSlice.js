@@ -2,144 +2,117 @@ import {
   createAsyncThunk,
   createSelector,
   createSlice,
+  nanoid,
 } from '@reduxjs/toolkit';
-import * as customRemindersService from '../services/customRemindersService';
-import { clearAuth, deleteAccount, selectUserId } from '../../account';
+import { titleProblem } from '../utils/customReminders';
+import { datesFor, fallsOn } from '../utils/occurrences';
+import { reconcileReminderNotifications } from './scheduleNotifications';
 
-// The user's own reminders, for the Calendar tab's loaded months (see CalendarScreen.js). A change sends
-// those months along and the server answers with the changed reminder's days in them, so the app
-// swaps in just that one — no second request for the list.
+// The user's own reminders, kept on the phone (`items` persisted — src/store/index.js). `items`
+// are the definitions only; which days each falls on in the Calendar tab's loaded months (`range`)
+// is worked out by selectDayReminders. A definition's `changed` holds days given their own title
+// and time ("Only this day" on an edit).
 
-const token = (getState) => getState().auth.accessToken;
-const message = (err) => err?.message ?? String(err);
-const sameRange = (a, b) => a?.from === b?.from && a?.to === b?.to;
+const MAX_REMINDERS = 300;
 
-// A list that left before a change and arrives after it would undo it on screen, so it's asked
-// for again (a few times at most — each retry only follows another change).
-const MAX_LIST_ATTEMPTS = 3;
+const findReminder = (getState, id) =>
+  getState().customReminders.items.find((r) => r.id === id);
 
-export const fetchCustomReminders = createAsyncThunk(
-  'customReminders/fetch',
-  async ({ from, to }, { getState, rejectWithValue }) => {
-    try {
-      for (let attempt = 1; ; attempt++) {
-        const seq = getState().customReminders.changeSeq;
-        const list = await customRemindersService.getCustomReminders(
-          token(getState),
-          from,
-          to,
-        );
-        if (
-          getState().customReminders.changeSeq === seq ||
-          attempt === MAX_LIST_ATTEMPTS
-        )
-          return list;
-      }
-    } catch (err) {
-      return rejectWithValue(message(err));
-    }
+const trimTitle = (fields) =>
+  typeof fields.title === 'string'
+    ? { ...fields, title: fields.title.trim() }
+    : fields;
+
+// Each change saves with one plain action and starts the notifications' reconcile without waiting
+// for it. A bad title or the reminders cap rejects with the message the sheet shows (state.error);
+// a missing reminder does nothing.
+export const createCustomReminder = createAsyncThunk(
+  'customReminders/create',
+  async (input, { getState, dispatch, rejectWithValue }) => {
+    const problem = titleProblem(input.title);
+    if (problem) return rejectWithValue(problem);
+    if (getState().customReminders.items.length >= MAX_REMINDERS)
+      return rejectWithValue(`At most ${MAX_REMINDERS} reminders`);
+    const reminder = {
+      calendar: 'gregorian',
+      ...trimTitle(input),
+      id: nanoid(),
+      skipped: [],
+      changed: {},
+    };
+    dispatch(reminderAdded(reminder));
+    dispatch(reconcileReminderNotifications());
+    return reminder;
   },
 );
 
-// The sheet's "Next" dates. `key` identifies what was asked, so an older answer arriving late is
-// dropped.
-export const previewCustomReminder = createAsyncThunk(
-  'customReminders/preview',
-  (timing, { getState, rejectWithValue }) =>
-    customRemindersService
-      .previewCustomReminder(token(getState), timing)
-      .catch((err) => rejectWithValue(message(err))),
-);
-
-// One change against the months shown. `run` resolves with { changed: [reminders with `dates`],
-// removed: [ids] }; an error may carry `changed` too (a step that went through before one failed).
-// An answer that lands after its user signed out is dropped (`ignored`), so it never reaches the
-// next one; if the months moved while it was saving, its days are for the old ones — ask again.
-const change = (type, run) =>
-  createAsyncThunk(
-    `customReminders/${type}`,
-    async (arg, { getState, dispatch, rejectWithValue }) => {
-      const { range } = getState().customReminders;
-      const userId = selectUserId(getState());
-      const settle = () => {
-        if (selectUserId(getState()) !== userId) return false;
-        const now = getState().customReminders.range;
-        if (now && !sameRange(range, now)) dispatch(fetchCustomReminders(now));
-        return true;
-      };
-      try {
-        const result = await run(token(getState), arg, range ?? undefined);
-        if (!settle()) return { ignored: true };
-        return { changed: [], removed: [], ...result, range };
-      } catch (err) {
-        if (!settle()) return rejectWithValue({ ignored: true });
-        return rejectWithValue({
-          error: message(err),
-          changed: err?.changed ?? [],
-          removed: [],
-          range,
-        });
-      }
-    },
-  );
-
-export const createCustomReminder = change(
-  'create',
-  async (t, input, range) => ({
-    changed: [
-      await customRemindersService.createCustomReminder(t, input, range),
-    ],
-  }),
-);
-export const updateCustomReminder = change(
-  'update',
-  async (t, { id, patch }, range) => ({
-    changed: [
-      await customRemindersService.updateCustomReminder(t, id, patch, range),
-    ],
-  }),
-);
-export const deleteCustomReminder = change('delete', async (t, id) => {
-  await customRemindersService.deleteCustomReminder(t, id);
-  return { removed: [id] };
-});
-export const skipCustomReminderDay = change(
-  'skip',
-  async (t, { id, date }, range) => ({
-    changed: [
-      await customRemindersService.skipCustomReminderDay(t, id, date, range),
-    ],
-  }),
-);
-// "Only this day" on an edit: `date` becomes a once-reminder of its own, then the series skips it.
-// In that order, so a failure in between leaves the day twice (deletable), never missing. A retry
-// passes `copyId`, the once-reminder the failed try already made: it's updated, not made again.
-export const editCustomReminderDay = change(
-  'editDay',
-  async (t, { id, date, input, copyId }, range) => {
-    const created = copyId
-      ? await customRemindersService.updateCustomReminder(
-          t,
-          copyId,
-          input,
-          range,
-        )
-      : await customRemindersService.createCustomReminder(
-          t,
-          { ...input, repeat: 'once', calendar: 'gregorian', start: date },
-          range,
-        );
-    try {
-      const series = await customRemindersService.skipCustomReminderDay(
-        t,
-        id,
-        date,
-        range,
-      );
-      return { changed: [created, series] };
-    } catch (err) {
-      throw Object.assign(new Error(message(err)), { changed: [created] });
+// Only the fields in `patch` change ("Every time"). Changed days the new rule no longer falls on
+// (skips counted, as for editCustomReminderDay) are dropped, and so is `date`'s — the day the sheet
+// was opened from, whose title and time the form started from; the others keep their own.
+export const updateCustomReminder = createAsyncThunk(
+  'customReminders/update',
+  async ({ id, patch, date }, { getState, dispatch, rejectWithValue }) => {
+    const fields = trimTitle(patch);
+    if (fields.title !== undefined) {
+      const problem = titleProblem(fields.title);
+      if (problem) return rejectWithValue(problem);
     }
+    const reminder = findReminder(getState, id);
+    if (!reminder) return;
+    const next = { ...reminder, ...fields };
+    const changed = Object.fromEntries(
+      Object.entries(reminder.changed).filter(
+        ([day]) => day !== date && fallsOn(next, day),
+      ),
+    );
+    dispatch(reminderUpdated({ id, fields: { ...fields, changed } }));
+    dispatch(reconcileReminderNotifications());
+    return findReminder(getState, id);
+  },
+);
+
+export const deleteCustomReminder = createAsyncThunk(
+  'customReminders/delete',
+  async (id, { dispatch }) => {
+    dispatch(reminderRemoved(id));
+    dispatch(reconcileReminderNotifications());
+    return id;
+  },
+);
+
+// "Only this day" on a delete: the reminder leaves `date` out, and that day's own title/time with
+// it. Already left out: nothing changes.
+export const skipCustomReminderDay = createAsyncThunk(
+  'customReminders/skip',
+  async ({ id, date }, { getState, dispatch }) => {
+    dispatch(daySkipped({ id, date }));
+    dispatch(reconcileReminderNotifications());
+    return findReminder(getState, id);
+  },
+);
+
+// "Only this day" on an edit: `date` gets `input`'s own title, hour and minute (`changed[date]`);
+// the same as the series' own drops the entry. Again for the same day overwrites it. Resolves with
+// the reminder.
+export const editCustomReminderDay = createAsyncThunk(
+  'customReminders/editDay',
+  async ({ id, date, input }, { getState, dispatch, rejectWithValue }) => {
+    const problem = titleProblem(input.title);
+    if (problem) return rejectWithValue(problem);
+    const reminder = findReminder(getState, id);
+    if (!reminder) return;
+    const day = {
+      title: input.title.trim(),
+      hour: input.hour,
+      minute: input.minute,
+    };
+    const same =
+      day.title === reminder.title &&
+      day.hour === reminder.hour &&
+      day.minute === reminder.minute;
+    dispatch(dayEdited({ id, date, day: same ? null : day }));
+    dispatch(reconcileReminderNotifications());
+    return findReminder(getState, id);
   },
 );
 
@@ -151,105 +124,99 @@ const MUTATIONS = [
   editCustomReminderDay,
 ];
 
-// Not persisted; reset on sign-out so one user's reminders never reach the next.
 const initialState = {
-  items: [], // each reminder with `dates` in `range`
-  range: null, // { from, to } last asked for
-  listRequest: null, // the latest list request's id; only its answer is used
-  changeSeq: 0, // +1 on every change, so a list that crossed one is asked for again
-  saving: false, // a change in flight
+  items: [], // { id, title, hour, minute, repeat, calendar, start, skipped, changed } — persisted
+  range: null, // { from, to }: the Calendar tab's loaded months
   error: null, // of the last change; the sheet shows it
-  preview: { key: null, next: null, failed: false },
 };
-
-// Swaps in the changed reminders (their days in `range`) and drops the removed ones.
-function applyChange(state, { changed, removed, range }) {
-  state.changeSeq += 1;
-  state.items = state.items.filter((r) => !removed.includes(r.id));
-  if (!sameRange(range, state.range)) return; // a fresh list is on its way
-  for (const reminder of changed) {
-    if (!reminder.dates) continue;
-    const i = state.items.findIndex((r) => r.id === reminder.id);
-    if (i >= 0) state.items[i] = reminder;
-    else state.items.push(reminder);
-  }
-}
 
 const customRemindersSlice = createSlice({
   name: 'customReminders',
   initialState,
   reducers: {
+    setRemindersRange(state, action) {
+      state.range = action.payload;
+    },
     clearCustomReminderError(state) {
       state.error = null;
     },
+    reminderAdded(state, action) {
+      state.items.push(action.payload);
+    },
+    reminderUpdated(state, { payload: { id, fields } }) {
+      const reminder = state.items.find((r) => r.id === id);
+      if (reminder) Object.assign(reminder, fields);
+    },
+    reminderRemoved(state, action) {
+      state.items = state.items.filter((r) => r.id !== action.payload);
+    },
+    daySkipped(state, { payload: { id, date } }) {
+      const reminder = state.items.find((r) => r.id === id);
+      if (!reminder) return;
+      if (!reminder.skipped.includes(date))
+        reminder.skipped = [...reminder.skipped, date].sort();
+      delete reminder.changed[date];
+    },
+    // `day` { title, hour, minute }, or null to give the day back the series' own.
+    dayEdited(state, { payload: { id, date, day } }) {
+      const reminder = state.items.find((r) => r.id === id);
+      if (!reminder) return;
+      if (day) reminder.changed[date] = day;
+      else delete reminder.changed[date];
+    },
   },
   extraReducers: (builder) => {
-    builder
-      .addCase(fetchCustomReminders.pending, (state, action) => {
-        state.range = action.meta.arg;
-        state.listRequest = action.meta.requestId;
-      })
-      .addCase(fetchCustomReminders.fulfilled, (state, action) => {
-        if (action.meta.requestId === state.listRequest)
-          state.items = action.payload;
-      })
-      .addCase(previewCustomReminder.pending, (state, action) => {
-        state.preview = {
-          key: previewKey(action.meta.arg),
-          next: null,
-          failed: false,
-        };
-      })
-      .addCase(previewCustomReminder.fulfilled, (state, action) => {
-        if (state.preview.key === previewKey(action.meta.arg))
-          state.preview.next = action.payload.next;
-      })
-      .addCase(previewCustomReminder.rejected, (state, action) => {
-        if (state.preview.key === previewKey(action.meta.arg))
-          state.preview.failed = true;
-      });
     for (const thunk of MUTATIONS) {
       builder
         .addCase(thunk.pending, (state) => {
-          state.saving = true;
           state.error = null;
         })
-        .addCase(thunk.fulfilled, (state, action) => {
-          state.saving = false;
-          if (!action.payload.ignored) applyChange(state, action.payload);
-        })
         .addCase(thunk.rejected, (state, action) => {
-          state.saving = false;
-          const payload = action.payload;
-          if (payload?.ignored) return;
-          state.error = payload?.error ?? action.error.message;
-          if (payload?.changed.length) applyChange(state, payload);
+          state.error = action.payload ?? action.error.message;
         });
     }
-    builder
-      .addCase(clearAuth, () => initialState)
-      .addCase(deleteAccount.fulfilled, () => initialState);
   },
 });
 
-export const previewKey = ({ hour, minute, repeat, calendar, start }) =>
-  `${hour}:${minute}:${repeat}:${calendar}:${start}`;
+const {
+  reminderAdded,
+  reminderUpdated,
+  reminderRemoved,
+  daySkipped,
+  dayEdited,
+} = customRemindersSlice.actions;
+
+// A reminder's days in a range, kept per definition object: a change replaces only that
+// reminder's object, so the others' days aren't worked out again.
+const datesCache = new WeakMap();
+function cachedDates(reminder, range) {
+  const hit = datesCache.get(reminder);
+  if (hit && hit.from === range.from && hit.to === range.to) return hit.dates;
+  const dates = datesFor(reminder, range);
+  datesCache.set(reminder, { from: range.from, to: range.to, dates });
+  return dates;
+}
 
 // { 'YYYY-MM-DD': [{ id, title, hour, minute, reminder }] }, each day sorted by time — what the
-// grid counts and the day card lists.
+// grid counts and the day card lists. On a changed day the row has that day's own title and time;
+// `reminder` is always the series. Empty until the Calendar tab sets a range.
 export const selectDayReminders = createSelector(
   (state) => state.customReminders.items,
-  (items) => {
+  (state) => state.customReminders.range,
+  (items, range) => {
     const byDate = {};
+    if (!range) return byDate;
     for (const reminder of items) {
-      for (const date of reminder.dates) {
-        (byDate[date] ??= []).push({
+      for (const date of cachedDates(reminder, range)) {
+        const day = reminder.changed[date];
+        const row = {
           id: reminder.id,
           title: reminder.title,
           hour: reminder.hour,
           minute: reminder.minute,
           reminder,
-        });
+        };
+        (byDate[date] ??= []).push(day ? { ...row, ...day } : row);
       }
     }
     for (const list of Object.values(byDate))
@@ -258,5 +225,6 @@ export const selectDayReminders = createSelector(
   },
 );
 
-export const { clearCustomReminderError } = customRemindersSlice.actions;
+export const { setRemindersRange, clearCustomReminderError } =
+  customRemindersSlice.actions;
 export default customRemindersSlice.reducer;

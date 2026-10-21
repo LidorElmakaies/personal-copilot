@@ -48,7 +48,7 @@ flowchart LR
     FrontendLocal -->|"serves /apk/ (read-only)"| ApkRegistry
     Kafka -->|"frontend.releases → app-update over /ws"| Gateway
     Gateway -->|"HTTP (+ X-User-Id on /users/me*)"| Users
-    Gateway -->|"HTTP + X-User-Id"| Reminders
+    Gateway -->|"HTTP + X-User-Id\n(no longer called by the app)"| Reminders
     Gateway -->|"HTTP + X-User-Id"| Notifications
     Users --> Postgres
     Users -->|"outbox: users.user-state"| Kafka
@@ -76,7 +76,8 @@ a public port either way. `users`, `reminders`, and `notifications` are
 internal-only; `users` publishes every profile change to Kafka (`users.user-state`, through
 its outbox; Reminders consumes it); `reminders` stores the candle-lighting reminder and the
 user's own reminders and fires each as a delayed BullMQ job (`reminder-due`), publishing
-`notification-requested`. All calendar maths is the in-process `@app/jewish-calendar` library,
+`notification-requested` — no longer called by the app, which keeps its reminders on the phone;
+those already saved there keep firing. All calendar maths is the in-process `@app/jewish-calendar` library,
 used by Reminders and by Gateway, which serves `GET /calendar/shabbat` and `GET /calendar/month`
 itself — no longer called by the app, which computes both on the phone from its own copy
 (`frontend/src/lib/jewish-calendar/`); `notifications` stores browsers' Web Push subscriptions and the
@@ -249,79 +250,81 @@ sequenceDiagram
 
 ## Flow: setting the candle-lighting reminder (signed in)
 
-Delivery once it fires: `docs/specs/notification-flow.md`.
+Kept on the phone (`remindersSlice`, `candles` persisted) and fired as a local notification;
+no network. Planner and triggers: `services.md#frontend`'s "Reminder notifications".
 
 ```mermaid
 sequenceDiagram
     actor User
     participant App as Frontend (Home, CandleReminder)
-    participant Gateway
-    participant Rem as reminders
-    participant DB as Postgres
-    participant Redis
+    participant Store as Redux (reminders, persisted)
 
-    App->>Gateway: GET /reminders (whenever a token appears)
-    Gateway->>Rem: forward + X-User-Id
-    Rem-->>App: [{ type, offsetMinutes, enabled, nextFireAt, waitingForLocation }]
-    User->>App: bell → sheet → pick offset → Save
-    App->>Gateway: PUT /reminders/shabbat-candles { offsetMinutes }
-    Gateway->>Rem: forward + X-User-Id
-    Rem->>DB: upsert reminder (enabled)
-    Rem->>DB: read location (users.profiles)
-    alt location known
-        Rem->>Redis: replace delayed reminder-due job (candle lighting − offset)
-        Rem->>DB: save nextFireAt
-    end
-    Rem-->>App: reminder (nextFireAt, or waitingForLocation)
+    Store-->>App: candles { enabled, offsetMinutes } (offset 90 until saved)
+    User->>App: bell → sheet → pick offset
+    App->>App: "fires at" = Home's candle lighting − offset
+    User->>App: Save
+    App->>Store: saveCandleReminder(offset)
+    Store-->>App: { enabled: true, offsetMinutes }
     App->>App: bell turns amber, sheet closes
     opt Turn off
-        App->>Gateway: DELETE /reminders/shabbat-candles
-        Gateway->>Rem: forward + X-User-Id
-        Rem->>DB: disable (offset kept)
-        Rem->>Redis: remove pending job (best effort)
+        App->>Store: turnOffCandleReminder → enabled false (offset kept)
     end
+    Store->>Store: reconcileReminderNotifications (see "reminder notifications" below)
 ```
 
 ## Flow: your own reminders on the Calendar tab (signed in)
 
-Contracts: `services.md#reminders` (routes, scheduling) and `services.md#frontend` (the sheet's
-choices). Delivery once one fires: `docs/specs/notification-flow.md`.
+Kept on the phone (`customRemindersSlice`, `items` persisted); no network. The sheet's choices:
+`services.md#frontend`. Fired as local notifications, as in the candle-lighting flow.
 
 ```mermaid
 sequenceDiagram
     actor User
     participant App as Frontend (Calendar, CustomReminderSheet)
-    participant Gateway
-    participant Rem as reminders
-    participant DB as Postgres
-    participant Redis
+    participant Store as Redux (customReminders, items persisted)
+    participant Lib as src/lib/jewish-calendar (on the phone)
 
-    App->>Gateway: GET /reminders/custom?from&to (month shown ± 2, on every month change)
-    Gateway->>Rem: forward + X-User-Id
-    Rem->>DB: the user's custom_reminders
-    Rem-->>App: [{ id, title, hour, minute, repeat, calendar, start, skipped, dates }]
-    App->>App: per-day counts on the grid, rows on DayCard
+    App->>Store: setRemindersRange(month shown ± 1), on every month change
+    Store->>Lib: selectDayReminders: each definition's days in range (cached per definition)
+    Lib-->>App: { date: [rows] } → per-day counts on the grid, rows on DayCard
     User->>App: + (or tap a row) → sheet
-    loop 250 ms after each change to the timing
-        App->>Gateway: GET /reminders/custom/preview?hour&minute&repeat&calendar&start
-        Gateway->>Rem: forward + X-User-Id
-        Rem-->>App: { next: [up to 3 dates] } (nothing saved)
-    end
+    App->>Lib: nextDates(timing) as the timing changes → "Next" (up to 3 dates)
     User->>App: Save
     alt new, or "Every time"
-        App->>Gateway: POST /reminders/custom, or PATCH /reminders/custom/:id (+ from, to shown)
-        Gateway->>Rem: forward + X-User-Id
-        Rem->>DB: insert / update
-        Rem->>Redis: replace delayed reminder-due job (kind custom, next occurrence)
-        Rem->>DB: save nextFireAt
-        Rem-->>App: the reminder + its dates in from..to
+        App->>Store: createCustomReminder / updateCustomReminder (checked, then one action)
     else "Only <day>" on a repeating one
-        App->>Gateway: POST /reminders/custom (once, on that day, + from, to)
-        Rem-->>App: the new once-reminder + dates
-        App->>Gateway: POST /reminders/custom/:id/skip { date, from, to }
-        Rem-->>App: the series + dates
+        App->>Store: editCustomReminderDay: changed[day] = { title, hour, minute }, in place
     end
-    App->>App: swap the answered reminder(s) into the list (no refetch), sheet closes
+    alt a problem (title, limits, day it doesn't fall on, …)
+        Store-->>App: rejected with the message, sheet stays open
+    else saved
+        App->>App: days recomputed for the changed definition, sheet closes
+        Store->>Store: reconcileReminderNotifications (see "reminder notifications" below)
+    end
+```
+
+## Flow: reminder notifications on the phone (Android)
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant Mgr as ReminderScheduleManager / a reminder thunk
+    participant Rec as reconcileReminderNotifications
+    participant Plan as schedulePlan (+ src/lib/jewish-calendar)
+    participant LN as localNotificationsService (expo-notifications)
+    participant Android
+
+    Mgr->>Rec: on start, foreground, a move of ~1 km (placeOf), or after a change
+    Rec->>LN: ensureChannel ("Reminders")
+    Rec->>Plan: planFor(state, now): 30 days + each one's next, at most 100
+    Plan-->>Rec: [{ id, at, title, body, url }]
+    Rec->>LN: listScheduled (ours: rem: ids)
+    Rec->>LN: cancel ours not planned or changed, schedule the missing
+    LN->>Android: exact alarms (re-armed after reboot or update)
+    Android-->>User: notification at its time (app closed or not)
+    User->>Android: tap
+    Android-->>Mgr: watchTaps → data.url
+    Mgr->>Mgr: router.navigate("/" or "/calendar")
 ```
 
 ## Flow: Android app update

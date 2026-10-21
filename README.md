@@ -4,8 +4,10 @@ A personal NestJS + Expo app, self-hosted on a home PC and used from a phone ove
 Today it shows Shabbat times (candle lighting, Havdalah, countdown) for the phone's location on the
 Home screen and a Jewish-calendar month (both dates, holidays and fasts) on the Calendar tab, with
 optional login; signed in, you can set a weekly candle-lighting reminder and add your own
-reminders on the calendar (once, daily, monthly or yearly, by the Gregorian or Hebrew date), each
-delivered as a notification (Web Push in the browser, FCM in the Android app).
+reminders on the calendar (once, daily, monthly or yearly, by the Gregorian or Hebrew date), both
+kept on the phone and fired by the Android app as local notifications (exact alarms, no server).
+Reminders saved on the server earlier still arrive as push notifications (Web Push in the browser,
+FCM in the Android app) until they're removed — so one set in both places arrives twice.
 
 See [CLAUDE.md](CLAUDE.md) for architecture, setup, and how this repo is organized —
 [docs/specs/](docs/specs/) for the service/event contracts. To start the stack, follow CLAUDE.md's

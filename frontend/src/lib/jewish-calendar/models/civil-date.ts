@@ -5,9 +5,26 @@ export interface CivilDate {
   day: number;
 }
 
+// Building an Intl.DateTimeFormat is slow (on Hermes especially) and these run per day per
+// reminder: one of each per time zone, made on first use.
+const dateFormats = new Map<string, Intl.DateTimeFormat>();
+const dateTimeFormats = new Map<string, Intl.DateTimeFormat>();
+
+function cached(
+  cache: Map<string, Intl.DateTimeFormat>,
+  timeZone: string,
+  options: Intl.DateTimeFormatOptions,
+): Intl.DateTimeFormat {
+  let format = cache.get(timeZone);
+  if (!format) {
+    format = new Intl.DateTimeFormat('en-US', { timeZone, ...options });
+    cache.set(timeZone, format);
+  }
+  return format;
+}
+
 export function civilDateIn(timeZone: string, instant: Date): CivilDate {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone,
+  const parts = cached(dateFormats, timeZone, {
     year: 'numeric',
     month: 'numeric',
     day: 'numeric',
@@ -59,8 +76,7 @@ export function instantAt(
 
 // How far `timeZone`'s clock is ahead of UTC at `instant`, in ms.
 function offsetAt(timeZone: string, instant: number): number {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone,
+  const parts = cached(dateTimeFormats, timeZone, {
     hourCycle: 'h23',
     year: 'numeric',
     month: 'numeric',

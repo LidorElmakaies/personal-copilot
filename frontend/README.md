@@ -3,7 +3,7 @@
 Expo/React Native app — optional login/register (the app doesn't gate itself on a session), a Home
 tab (clock, dates, Shabbat times for the device's location, and a candle-lighting reminder bell),
 a Calendar tab (the Jewish-calendar month; signed in, the user's own reminders on it, added and
-edited in a bottom sheet), an auth-gated Account tab (theme, notifications, email/password, profile, logout, delete account),
+edited in a bottom sheet — both kinds of reminder kept on the phone), an auth-gated Account tab (theme, notifications, email/password, profile, logout, delete account),
 and an Admin tab of service status that only admins see. See the root
 [CLAUDE.md](../CLAUDE.md) for architecture, [.claude/agents/frontend.md](../.claude/agents/frontend.md)
 for the conventions to follow when changing anything here.
@@ -119,7 +119,9 @@ served at `/sw.js` with scope `/`. It needs a secure context like GPS does — o
 the `tailscale serve` HTTPS URL. The Android app uses FCM instead: `src/shared/device/
 fcmService.android.js` registers the phone (its key in `expo-secure-store`, its FCM token) and
 `fcmReceiver.android.js` — loaded by `index.js`, the entry, before the app — decrypts and shows
-each message, even with the app swiped away. Metro picks the files ending in .android.js on Android; the
+each message, even with the app swiped away. The phone's own reminders are exact local alarms
+(`localNotificationsService.android.js`, which also owns the "Reminders" channel; expo-notifications
+re-arms them after a reboot or an update, and `app.json`'s `USE_EXACT_ALARM` keeps them exact). Metro picks the files ending in .android.js on Android; the
 plain `.js` ones are the web build's empty stand-ins. The APK needs `google-services.json` in
 `devops/data/android/` (README's "Android app (APK)"). Flow and state rules:
 `docs/specs/services.md#frontend` and `docs/specs/notification-flow.md`.

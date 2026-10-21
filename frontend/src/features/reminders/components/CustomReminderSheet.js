@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import Alert from '../../../shared/components/base/feedback/Alert';
@@ -13,8 +13,6 @@ import {
   createCustomReminder,
   deleteCustomReminder,
   editCustomReminderDay,
-  previewCustomReminder,
-  previewKey,
   skipCustomReminderDay,
   updateCustomReminder,
 } from '../store/customRemindersSlice';
@@ -30,16 +28,16 @@ import {
   TITLE_MAX_LENGTH,
   titleProblem,
 } from '../utils/customReminders';
+import { nextDates } from '../utils/occurrences';
 
 const REPEATS = ['once', 'daily', 'monthly', 'yearly'];
 const label = (s) => s[0].toUpperCase() + s.slice(1);
-// The sheet asks for its "Next" dates this long after the last change.
-const PREVIEW_DELAY_MS = 250;
 
 // Composite component (BottomSheet/InputField/Stepper/PillButton/GradientButton/Alert) — the add and
 // edit sheet for a user's own reminder (mockups 3.6a P2/X1). `target` is { reminder, date }: no
 // reminder adds one starting on `date`; a reminder edits it, `date` being the day it was tapped on
-// (what "Only this day" means). Owns its Redux wiring; the form is private, so closing drops it.
+// (what "Only this day" means) — the form starts from that day's own title and time if it has
+// them (`changed`). Owns its Redux wiring; the form is private, so closing drops it.
 // `onSaved(start)` after a save.
 export default function CustomReminderSheet({ target, onClose, onSaved }) {
   const dispatch = useDispatch();
@@ -59,12 +57,13 @@ export default function CustomReminderSheet({ target, onClose, onSaved }) {
 function ReminderForm({ target, onClose, onSaved }) {
   const dispatch = useDispatch();
   const { colors } = useAppTheme();
-  const { saving, error, preview } = useSelector((s) => s.customReminders);
+  const error = useSelector((s) => s.customReminders.error);
   const original = target.reminder;
+  const day = original?.changed[target.date] ?? original;
   const [draft, setDraft] = useState(() => ({
-    title: original?.title ?? '',
-    hour: original?.hour ?? 19,
-    minute: original?.minute ?? 0,
+    title: day?.title ?? '',
+    hour: day?.hour ?? 19,
+    minute: day?.minute ?? 0,
     repeat: original?.repeat ?? 'once',
     calendar: original?.calendar ?? 'gregorian',
     start: original?.start ?? target.date,
@@ -72,8 +71,6 @@ function ReminderForm({ target, onClose, onSaved }) {
   // 'form', 'confirmDelete', or { kind: 'edit' | 'delete' } — "Only this day or every time?"
   const [step, setStep] = useState('form');
   const set = (patch) => setDraft((d) => ({ ...d, ...patch }));
-  // The day's own copy a failed "Only this day" already made: a retry updates it, not a new one.
-  const [copyId, setCopyId] = useState(null);
 
   const timing = {
     hour: draft.hour,
@@ -82,14 +79,11 @@ function ReminderForm({ target, onClose, onSaved }) {
     calendar: draft.calendar,
     start: draft.start,
   };
-  const key = previewKey(timing);
-  useEffect(() => {
-    const id = setTimeout(
-      () => dispatch(previewCustomReminder(timing)),
-      PREVIEW_DELAY_MS,
-    );
-    return () => clearTimeout(id);
-  }, [key, dispatch]); // `key` stands for `timing`'s fields
+  const next = useMemo(
+    () => nextDates(timing, new Date()),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `timing` is these fields
+    [draft.hour, draft.minute, draft.repeat, draft.calendar, draft.start],
+  );
 
   const problem = titleProblem(draft.title);
   const repeating = original && original.repeat !== 'once';
@@ -104,8 +98,6 @@ function ReminderForm({ target, onClose, onSaved }) {
   const finish = async (action, savedStart) => {
     const result = await dispatch(action);
     if (result.error) {
-      const made = result.payload?.changed?.[0];
-      if (made) setCopyId(made.id);
       setStep('form');
       return;
     }
@@ -150,7 +142,6 @@ function ReminderForm({ target, onClose, onSaved }) {
                     : editCustomReminderDay({
                         id: original.id,
                         date: target.date,
-                        copyId,
                         input: {
                           title: input.title,
                           hour: input.hour,
@@ -160,7 +151,6 @@ function ReminderForm({ target, onClose, onSaved }) {
                   isDelete ? null : target.date,
                 )
               }
-              disabled={saving}
               contentStyle={styles.actionContent}
             />
           )}
@@ -171,18 +161,19 @@ function ReminderForm({ target, onClose, onSaved }) {
               finish(
                 isDelete
                   ? deleteCustomReminder(original.id)
-                  : updateCustomReminder({ id: original.id, patch: input }),
+                  : updateCustomReminder({
+                      id: original.id,
+                      patch: input,
+                      date: target.date,
+                    }),
                 isDelete ? null : input.start,
               )
             }
-            loading={saving}
-            disabled={saving}
             contentStyle={styles.actionContent}
           />
           <GradientButton
             label="Cancel"
             onPress={() => setStep('form')}
-            disabled={saving}
             contentStyle={styles.actionContent}
           />
         </View>
@@ -300,7 +291,7 @@ function ReminderForm({ target, onClose, onSaved }) {
         </Alert>
       ))}
 
-      <Summary draft={draft} preview={preview} previewFor={key} />
+      <Summary draft={draft} next={next} />
 
       {error ? <Alert>{error}</Alert> : null}
 
@@ -313,7 +304,6 @@ function ReminderForm({ target, onClose, onSaved }) {
             <GradientButton
               label="Keep"
               onPress={() => setStep('form')}
-              disabled={saving}
               style={styles.flex}
               contentStyle={styles.actionContent}
             />
@@ -321,8 +311,6 @@ function ReminderForm({ target, onClose, onSaved }) {
               label="Delete"
               variant="danger"
               onPress={() => finish(deleteCustomReminder(original.id), null)}
-              loading={saving}
-              disabled={saving}
               style={styles.flex}
               contentStyle={styles.actionContent}
             />
@@ -335,7 +323,6 @@ function ReminderForm({ target, onClose, onSaved }) {
               label="Delete"
               variant="danger"
               onPress={remove}
-              disabled={saving}
               style={styles.flex}
               contentStyle={styles.actionContent}
             />
@@ -343,7 +330,6 @@ function ReminderForm({ target, onClose, onSaved }) {
             <GradientButton
               label="Cancel"
               onPress={onClose}
-              disabled={saving}
               style={styles.flex}
               contentStyle={styles.actionContent}
             />
@@ -351,8 +337,7 @@ function ReminderForm({ target, onClose, onSaved }) {
           <GradientButton
             label="Save"
             onPress={save}
-            loading={saving}
-            disabled={saving || !!problem}
+            disabled={!!problem}
             style={styles.flex}
             contentStyle={styles.actionContent}
           />
@@ -362,18 +347,11 @@ function ReminderForm({ target, onClose, onSaved }) {
   );
 }
 
-// What it'll do and, from the server, the next days it falls on in both calendars.
-function Summary({ draft, preview, previewFor }) {
+// What it'll do and the next days it falls on, in both calendars.
+function Summary({ draft, next }) {
   const { colors } = useAppTheme();
-  const next = preview.key === previewFor ? preview.next : null;
-  let body;
-  if (preview.key === previewFor && preview.failed) {
-    body = "Couldn't check the next dates.";
-  } else if (!next) {
-    body = '…';
-  } else if (next.length === 0) {
-    body = "That time has passed — it won't go off.";
-  }
+  const body =
+    next.length === 0 ? "That time has passed — it won't go off." : null;
   return (
     <View
       style={[

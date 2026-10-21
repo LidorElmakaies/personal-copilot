@@ -21,7 +21,8 @@ tunnel from a Caddy instance on the public internet. HTTP + WebSocket.
 - `GET /reminders`, `PUT /reminders/shabbat-candles`, `DELETE /reminders/shabbat-candles`, and
   `GET`/`POST /reminders/custom`, `GET /reminders/custom/preview`, `PATCH`/`DELETE
   /reminders/custom/:id`, `POST /reminders/custom/:id/skip` (`JwtAuthGuard`) → Reminders Service's routes of the same name.
-  Body relayed untouched.
+  Body relayed untouched. **No longer called by the app**, which keeps both kinds of reminder on
+  the phone (see [frontend](#frontend)).
 - Every forwarded route above (`/auth/*`, `/users/me*`, `/reminders*`, `/notifications/*`) is one
   row of `PROXY_ROUTES` (`src/proxy/proxy.routes.ts`): method, path (the same on Gateway and the
   service; a `:param` is filled in from the request, URL-encoded so it stays one path segment, and
@@ -203,7 +204,9 @@ issues a new pair, so a stolen-and-replayed refresh token only ever works once.
 HTTP + BullMQ worker, internal-only, schema `reminders` in the shared database plus the shared
 Redis (`REDIS_URL`) and Kafka (`KAFKA_BROKERS`). Owns two kinds of reminder: the candle-lighting
 reminder and the user's own (custom) reminders, and turns each into a notification at its time.
-User from Gateway's `X-User-Id` (`@ForwardedUserId()`, 401 without it).
+User from Gateway's `X-User-Id` (`@ForwardedUserId()`, 401 without it). **No longer called by
+the app** (it keeps reminders on the phone); the reminders already saved here keep firing until
+they're removed.
 
 - `GET /reminders` → the caller's reminders, enabled or not:
   `[{ type, offsetMinutes, enabled, nextFireAt, waitingForLocation }]`. `waitingForLocation` is
@@ -399,16 +402,15 @@ screen over the row with the swipe off.
     only while there are times): a bell pill reading "Remind me before candle lighting", or, while
     on, "Reminder · 1h 30m before" (amber). Signed out, it shows `ConfirmModal` ("Log in to set a
     reminder?", Yes → `/login`). Signed in, it opens a `BottomSheet` whose private form starts on
-    the saved offset (else 90 min): hours 0–23 and minutes in steps of 5 (`Stepper`), presets 30m /
-    1h / 1h 30m / 2h / 3h, and "Every Friday · fires at HH:MM this week" — the server's
-    `nextFireAt` while the saved offset is shown ("on Fri 9 Oct" instead of "this week" once it's
-    past this week's candle lighting), otherwise an estimate from Home's candle lighting
-    ("first one next week" if that's already past); "We'll schedule it once we know your location"
-    when the server reports `waitingForLocation`. If this browser isn't subscribed to push, a nudge
-    says the reminder won't arrive here, with a Turn on link (`enableNotifications`) unless
-    notifications are blocked or unsupported. Save (`PUT /reminders/shabbat-candles`, only
-    `{ offsetMinutes }`) and Turn off (`DELETE`, shown only while on) close the sheet on success; a
-    failure keeps it open with an `Alert`. Closing the sheet drops an unsaved offset.
+    the saved offset (90 min until one is saved): hours 0–23 and minutes in steps of 5
+    (`Stepper`), presets 30m / 1h / 1h 30m / 2h / 3h, and "Every Friday · fires at HH:MM this
+    week" — Home's candle lighting minus the offset ("first one next week" if that's already
+    past); "We'll schedule it once we know your location" for the saved offset while the phone has
+    no `location.coords`. If this device isn't subscribed to push, a nudge says the reminder won't
+    arrive here, with a Turn on link (`enableNotifications`) unless notifications are blocked or
+    unsupported. Save (`saveCandleReminder`) and Turn off (`turnOffCandleReminder`, shown only
+    while on) are local and close the sheet. Closing the sheet drops an unsaved offset. Each change
+    reschedules its notifications (see Reminder notifications below).
 - `(auth)/register` — email and password, plus optional first name, last name and phone
   (`ProfileFields`, shared with `ProfileCard`). Names accept English and Hebrew letters only, with
   single spaces between words — `sanitizeName` in `src/shared/utils/validation.js` drops anything else
@@ -442,38 +444,46 @@ screen over the row with the swipe off.
   weekday), Today / Yom Tov / Fast chips, Saturday's parasha, and its times (candle lighting in
   `pending`; a fast starting with candle lighting is one row, "Candle lighting · fast begins"),
   or "No candle lighting or fast times"; dimmed while a swipe is between months.
-  **Your reminders** (signed in): `customRemindersSlice.fetchCustomReminders` asks
-  `GET /reminders/custom` for the month shown ± `PRELOAD` (1, exported by `calendarSlice`;
-  `remindersRange` in `src/features/reminders/utils/customReminders.js`) on every month change; only the latest
-  request's reply is used (`listRequest`), and a reply that crossed a change (`changeSeq`) is asked
-  for again, up to 3 tries. A create/edit/skip sends that range and swaps in the reminder(s) the
-  server answers with, a delete just removes it locally — no refetch; if the shown months moved
-  while it was saving, the current range is fetched instead. The
-  `selectDayReminders` selector turns the reply into `{ date: [{ id, title, hour, minute,
-  reminder }] }`, sorted by time. A day's count shows in amber under its dot (`99+` past 99; the
+  **Your reminders** (signed in): kept on the phone — `customRemindersSlice`'s `items`, each a
+  definition `{ id, title, hour, minute, repeat, calendar, start, skipped, changed }` — `changed`
+  maps a day (`YYYY-MM-DD`) to its own `{ title, hour, minute }` (`{}` on create; create and update
+  can't set it). On every month change
+  the tab sets `range` (`setRemindersRange`) to the month shown ± `PRELOAD` (1, exported by
+  `calendarSlice`; `remindersRange` in `src/features/reminders/utils/customReminders.js`), and the
+  `selectDayReminders` selector works out each definition's days in it
+  (`src/features/reminders/utils/occurrences.js`, over `src/lib/jewish-calendar`'s
+  `ReminderOccurrences`, Israel time; cached per definition, so a change recomputes only that
+  one) as `{ date: [{ id, title, hour, minute, reminder }] }`, sorted by time — on a changed day
+  the row has that day's title and time; `reminder` is always the series. A day's count shows in amber under its dot (`99+` past 99; the
   count line only in a month that has some, so plain months keep their height), and the card lists
   "Your reminders" with the total, the first 3 by time and "+N more · Show all", which opens
   `RemindersSheet`: all of them grouped by hour, each hour's header pinned, in a virtualized list
   scrolling inside the sheet (only its grab bar drags it). Each row shows the title, how it repeats
-  ("Monthly · the 8th (Hebrew)") and its time; a once-reminder whose time has passed in Israel
-  time (`isDone`, `Asia/Jerusalem`) is dimmed "Done · …". The tab's `now` ticks once a minute, so
+  ("Monthly · the 8th (Hebrew)") and its time; a once-reminder whose time (the row's) has passed
+  in Israel time (`isDone`, `Asia/Jerusalem`) is dimmed "Done · …". The tab's `now` ticks once a minute, so
   a reminder dims while the tab is open and "today" moves on after midnight. A floating + (`FloatingButton`, base/buttons) adds a reminder on the selected day —
   signed out, it asks "Log in to add reminders?" (`ConfirmModal`) and goes to login. Tapping a row
   (card or sheet) opens the same `CustomReminderSheet` (composite, a `BottomSheet`) as "Edit
-  reminder" with Delete. The sheet: a title (the server's rules client-side, `titleProblem`, 60
+  reminder" with Delete, filled with that day's values on a changed day. The sheet: a title (`titleProblem`, 60
   max; curly quotes straightened as typed, `straightenQuotes`), the start date with ‹ › and its Hebrew date, hour and 5-minute steppers, Once / Daily /
   Monthly / Yearly, Gregorian or Hebrew for monthly and yearly (each choice showing the day it
   means), notes for dates some months or years lack (`oddDateNotes`), and a summary with the next
-  dates from `GET /reminders/custom/preview` (asked 250 ms after the last change; a late answer
-  for an older form is dropped). Changing or deleting a repeating reminder asks "Only <day>" —
-  delete → `POST …/:id/skip` for the tapped day; edit → a new once-reminder that day with the new
-  title and time, then the skip (`editCustomReminderDay` — in that order, so a failure between
-  leaves the day twice, never missing; the created one still shows, with the error) — or "Every
-  time" (`PATCH`/`DELETE` the series). An edit that changed the date, repeat or calendar offers
-  only "Every time", since those are the series'. Deleting a
-  once-reminder asks Keep / Delete. Saving selects the reminder's start day when it's in the month
-  shown. `customRemindersSlice` isn't persisted and resets on sign-out and account deletion;
-  signing out also closes the sheet.
+  3 dates (`nextDates` in `occurrences.js`, recomputed as the timing changes). Changing or
+  deleting a repeating reminder asks "Only <day>" — delete → `skipCustomReminderDay` for the
+  tapped day (dropping its `changed` entry); edit → `editCustomReminderDay`: sets
+  `changed[day]` to the new title and time, in place (again for the same day overwrites it; the
+  series' own values remove the entry) — or "Every time" (`updateCustomReminder` /
+  `deleteCustomReminder` on the series; an update drops the tapped day's `changed` entry — the
+  form started from its values — and those on days the new rule no longer falls on). An edit that changed the date, repeat or calendar offers
+  only "Every time", since those are the series'. Deleting a once-reminder asks Keep / Delete.
+  Each thunk saves with one plain action (ids from RTK's `nanoid`, titles trimmed, `calendar`
+  `gregorian` unless given, `skipped` sorted without duplicates); the only checks are the title
+  (`titleProblem`) and at most 300 reminders — the sheet's controls can't produce anything else —
+  and a failed one rejects with the message the sheet shows (`error`). An id that's gone does
+  nothing. Saving selects the reminder's start day when
+  it's in the month shown. `customRemindersSlice` persists only `items` and isn't reset on sign-out
+  or account deletion; signing out closes the sheet. Each change reschedules the
+  notifications (see Reminder notifications below).
 - `(tabs)/account` — a heading and six cards (`src/features/account/components/`, `ThemeCard` in
   `src/shared/components/composite/`): `ThemeCard` (light/
   dark toggle), `NotificationsCard` (see Notifications below), `AccountCard` (email; edit email/password via `POST /auth/account` — the
@@ -550,8 +560,9 @@ screen over the row with the swipe off.
     before the app, since a message can start the JS headless with the app swiped away. Its
     `expo-task-manager` task finds `{ v: '1', enc }`, decrypts it with the key (AES-256-GCM,
     `@noble/ciphers`), skips it past `expiresAt`, and shows it in the "Reminders" channel with
-    `identifier` = `notificationId` (a retry duplicate replaces the first); a tap opens the app. No
-    key (turned off) → nothing shown.
+    `identifier` = `notificationId` (a retry duplicate replaces the first) and `data.url`; a tap
+    opens that page (`ReminderScheduleManager`, as for local reminders). No key (turned off) →
+    nothing shown.
   - `authSlice`'s `logOut` (`LogoutCard`) and a successful `deleteAccount` run
     `disableNotifications({ loggingOut: true })` before clearing the session (it also re-arms the
     prompt, so the next person here is asked); a session the server ends (a refused refresh →
@@ -575,7 +586,7 @@ screen over the row with the swipe off.
   `setUnauthorizedHandler` (`src/store/index.js`) — the current token → `refreshSession`; an
   older one → the current token if it's still the same user's — and retries that call once with
   the token it resolves with, never more. Signed-in effects that load the user's data
-  (`CandleReminder`, `LocationSyncManager`, `PushSubscriptionManager`, `syncLocation`'s same-user
+  (`LocationSyncManager`, `PushSubscriptionManager`, `syncLocation`'s same-user
   check) key on `selectUserId`, not the token, so a renewal doesn't re-run them.
 - **Session ended** — only a refresh the server refuses (`400`/`401`: revoked by Log Out, account
   deletion or a password change elsewhere, or 30 days unused) signs out:
@@ -590,10 +601,37 @@ screen over the row with the swipe off.
 - `profileSlice` (`{ profile, status, error, locationSyncing }`) isn't persisted; it's fetched when
   `ProfileCard` mounts or a sync needs it, and reset on `clearAuth` and a successful
   `deleteAccount` so one user's profile is never shown to the next.
-- `remindersSlice` (`{ candles, saving, error }` — `candles` is the `shabbat_candles` reminder or
-  `null`) isn't persisted either; `CandleReminder` fetches `GET /reminders` whenever a user signs
-  in (`selectUserId`), and it's reset on `clearAuth` and a successful `deleteAccount`. Turning off keeps
-  the offset (the server does too), so the sheet reopens on it.
+- `remindersSlice` (`{ candles }` — `{ enabled, offsetMinutes }`,
+  starting `{ enabled: false, offsetMinutes: 90 }`, never `null`) persists only `candles` and isn't
+  reset on sign-out or account deletion. Turning off keeps the offset, so the sheet reopens on it.
+- **Reminder notifications** (Android APK only — `localNotificationsService.js`, the web build's
+  stand-in, does nothing). Both kinds of reminder fire as exact local alarms the phone schedules
+  itself (`src/shared/device/localNotificationsService.android.js` over expo-notifications: a date
+  trigger in the "Reminders" channel, which it also creates — `ensureChannel`, also called by
+  `fcmService.init`). `reminders/utils/schedulePlan.js` is the pure planner: each reminder's
+  firings from now to 30 days ahead (`WINDOW_DAYS`) plus its very next one even when further, at
+  most 100 in all (`MAX_TOTAL` — every reminder's next firing first, then the earliest of the rest).
+  - Candle lighting: each successive `ShabbatCalendar.nextCandleLighting` for `location.coords`,
+    fired at candle lighting − offset (whole minutes) — "Shabbat candle lighting" / "Candle lighting
+    is at 17:34 (in 1 h 30 min).", opening `/`. No location, or one with no sunset (polar) → none.
+  - Custom: its days walked from Israel's midnight today, each at that day's `changed` time and
+    title if any, else the series' — its title / "Your reminder for 08:00.", opening `/calendar`.
+  - Ids are deterministic: `rem:candles:<candle lighting ms>`, `rem:c:<reminder id>:<YYYY-MM-DD>`;
+    only `rem:` ids count as ours. Data `{ url, at }`; HH:MM from `israelClock`
+    (`src/shared/utils/date.js`).
+  - `reconcileReminderNotifications` (`reminders/store/scheduleNotifications.js`) cancels every one
+    of ours not in the plan or different from it and schedules the missing ones. One run at a time
+    (asked for during one, it runs once more after); it never rejects — a failure is logged and the
+    next trigger retries. Triggers: every custom-reminder change thunk and both candle thunks (after
+    their plain action, not awaited), and `ReminderScheduleManager` (`app/_layout.js`) on start —
+    which also covers the first start after an update — on return to the foreground
+    (`appStateService.watchForeground`) and when the location really moves (`placeOf` in
+    `src/shared/utils/geo.js`: coordinates rounded to 2 decimals, ~1 km — GPS wobble doesn't count). A tap on any
+    notification with `data.url` (local or FCM; also the one that opened the app) navigates there.
+  - expo-notifications re-arms pending alarms after a reboot or an APK update; one due while the
+    phone was off is dropped, never shown late. `app.json`'s `USE_EXACT_ALARM` keeps them exact.
+    Reminders still saved on the server fire there too, so the same one can arrive twice until
+    it's removed from the server.
 - **App update** (Android APK only — `appUpdateSlice` does nothing on the web, or when
   `URLS.apkRegistry`/`EXPO_PUBLIC_FRONTEND_VERSION` isn't baked in). `app/_layout.js`'s
   `AppUpdateManager` dispatches `deleteOldUpdates` and `checkForUpdate` at start, and
@@ -639,14 +677,13 @@ the calendar maths in `src/lib/jewish-calendar/` — layout and import rules in 
 "Feature folders".
 
 I/O lives in each feature's `services/` and in `src/shared/`. HTTP (fetch-based calls — `authService`,
-`usersService` for `/users/me*`, `remindersService` for
-`/reminders` and `/reminders/shabbat-candles`, `customRemindersService` for `/reminders/custom*`, `notificationsService` for `/notifications/*`, `adminService` for `/admin/status`,
+`usersService` for `/users/me*`, `notificationsService` for `/notifications/*`, `adminService` for `/admin/status`,
 `realtimeService` for the device token, `appUpdateService` for the APK registry's `latest.json`;
 signed-in calls go through `httpClient`'s `authorizedFetch` (`shared/http/`)), `shared/realtime/`
 (`socketService`, a single shared Socket.IO connection), and on-device I/O (`shared/device/`: `locationService` —
 `expo-location` permission + position; `pushService` — the
 browser's service worker, `Notification` permission and `PushManager`; `fcmService` /
-`fcmReceiver` — the Android app's FCM registration and incoming messages; app-update's `apkInstallerService` —
+`fcmReceiver` — the Android app's FCM registration and incoming messages; `localNotificationsService` — the phone's own scheduled reminder notifications and the "Reminders" channel; `appStateService` — foreground changes; app-update's `apkInstallerService` —
 the update APK's download into the app cache, Android's installer, and cleanup). calendar's
 `calendarService` does no I/O but keeps the same boundary: Shabbat times and months computed on
 the phone from `src/lib/jewish-calendar/`, returned as plain JSON (times as ISO strings, the shape

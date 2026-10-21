@@ -266,18 +266,105 @@ Proposed on 2026-10-21 (1–3 now decided, 4–6 still open):
 
 ## Stage R3: reminders on the phone
 
-- [ ] **R3.1 Local store.** Persisted, whitelisted state for the candle-lighting reminder
+- [x] **R3.1 Local store.** Persisted, whitelisted state for the candle-lighting reminder
   (`{ enabled, offsetMinutes }`) and the custom reminders (definitions: title, time, repeat,
   calendar, anchor, skipped dates). `customRemindersSlice` keeps its shape for the calendar
   (`dayReminders` from the definitions over the loaded months); the server race handling
   (`changeSeq`, list retries, sign-out drop) goes.
-- [ ] **R3.2 Local scheduler.** `services/device/localNotificationsService.js` over
+  *Done 2026-10-21:* redux-persist whitelists `reminders` → `candles` (`{ enabled, offsetMinutes }`,
+  starts `{ false, 90 }`, never `null`; turning off keeps the offset) and `customReminders` →
+  `items` (definitions `{ id, title, hour, minute, repeat, calendar, start, skipped, changed }`,
+  no `dates`). Neither resets on sign-out or account deletion any more, and neither imports
+  `features/account`. `customRemindersSlice`'s thunks keep their names: each checks the title and
+  the 300-reminder cap (see "Trimmed" below), then dispatches one plain action; ids from RTK's
+  `nanoid`.
+  Asked at review: "Only this day" on an edit is an in-place edit, not a once-copy + skip (that
+  design only guarded against a lost connection mid-edit). `changed: { 'YYYY-MM-DD': { title,
+  hour, minute } }` (create sets `{}`, not settable by create/update);
+  `editCustomReminderDay` sets that day's entry (the series' own values remove it; again
+  overwrites it); a skip drops the day's entry; an "Every time" update drops the tapped day's entry
+  and those on days the new rule no longer falls on.
+  `selectDayReminders` rows on a changed day carry its title/time; the sheet
+  opens a changed day with its values; `ReminderRow`'s "done" uses the row's time.
+  `fetchCustomReminders` → `setRemindersRange({ from, to })` (`CalendarScreen`);
+  `selectDayReminders` works the dates out from `items` × `range` (`reminders/utils/occurrences.js`
+  over `ReminderOccurrences`, Israel time, cached per definition); the sheet's "Next" is
+  `nextDates()` in a `useMemo`. `remindersSlice`: `fetchReminders` gone, `saveCandleReminder`
+  and `turnOffCandleReminder` local; `CandleReminder`'s "fires at" is the estimate from
+  Home's candle lighting, "We'll schedule it once we know your location" without
+  `location.coords`. Both reminder services deleted; the app no longer calls `/reminders*` (Gateway's
+  rows and the Reminders Service stay documented as no longer called until R5). Reminders already
+  on the server aren't shown and keep firing until removed (decision 5). Not yet: notifications
+  from the phone (R3.2), the bell's and the +'s login gating (R3.4).
+  Tests: `jest.config.js` adds `immer` to the ESM transform list; new specs
+  `customRemindersSlice.spec.js`, `occurrences.spec.js`, shabbat's `remindersSlice.spec.js`,
+  `src/store/persistence.spec.js`, `ReminderRow.spec.js` (RNTL with `await render`); `npm test`:
+  15 suites, 219 tests pass. Frontend 0.6.0-test.10. Docs follow (services.md, architecture.md, CLAUDE.md, frontend.md, the READMEs);
+  docs-check passes.
+  Still open from R2.2: `PushSubscriptionManager` (`features/account`) also creates Android's
+  notification channel — split it out before R4 hides account. *(Channel part done in R3.2.)*
+- [x] **R3.2 Local scheduler.** `services/device/localNotificationsService.js` over
   `scheduleNotificationAsync` / `cancelScheduledNotificationAsync`, and one reconcile thunk: for
   each reminder, its next N firings (a rolling window; total capped, e.g. 100), deterministic ids,
   cancel what's no longer due. Runs on save/delete, app start, return to the foreground, a > 5 km
   location move (the old `LocationSyncManager` trigger, no server call), and the first start after
-  an update. Notification texts as today ("Shabbat candle lighting" / "Candle lighting is at 17:34
+  an update. A day in a reminder's `changed` fires with that day's title and time (R3.1).
+  Notification texts as today ("Shabbat candle lighting" / "Candle lighting is at 17:34
   (in 1 h 30 min)."; a custom reminder's title / "Your reminder for …").
+  *Done 2026-10-21 (built; not yet seen on the phone):*
+  - `shared/device/localNotificationsService.android.js` (+ a web no-op `.js`): `ensureChannel`
+    (the `reminders` channel, moved here from `fcmService` — `fcmService.init` calls it, so the
+    channel no longer depends on account's `PushSubscriptionManager`, which still dispatches
+    `initNotifications` and the FCM sync before R4), `schedule` (date trigger, `channelId`
+    `reminders`, data `{ url, at }`), `cancel`, `listScheduled` (ours: the `rem:` id prefix), `watchTaps`. `shared/device/appStateService.js`: `watchForeground`.
+  - `reminders/utils/schedulePlan.js`, pure: each reminder's firings from now to +30 days plus its
+    very next one, capped at 100 (each reminder's next firing first, then the earliest of the
+    rest). Candle lighting: successive `nextCandleLighting`, fire = candle − offset (whole
+    minutes), url `/`; a polar location → none. Custom: days from Israel midnight today, each at its
+    `changed` time/title if any, url `/calendar`. Ids `rem:candles:<candleLightingMs>`,
+    `rem:c:<reminderId>:<YYYY-MM-DD>`.
+  - `reminders/store/scheduleNotifications.js`: `reconcileReminderNotifications` (single-flight;
+    cancels ours not planned or changed, schedules the missing; never rejects),
+    `watchForegroundReconcile`, `watchNotificationTaps`. Dispatched by every custom-reminder change
+    thunk and both candle thunks (`remindersSlice` now saves with plain `candlesSet`/
+    `candlesTurnedOff`; shabbat imports the reminders index — shabbat → reminders).
+  - `ReminderScheduleManager`, in `app/_layout.js` inside `PersistGate` after `Stack`, before
+    `AppUpdateManager`: reconcile on start (covers the first start after an update), on the
+    foreground, on a move of ~1 km (`placeOf`, coords rounded to 2 decimals); a tap navigates to
+    its url —
+    FCM taps too (nothing handled them before).
+  - Lib: `index.ts` exports `instantAt`; `civil-date.ts` caches one `Intl.DateTimeFormat` per time
+    zone (planner, 300 reminders: ~870 → ~270 ms in Node, same output; the backend copy now
+    differs, fine until R5).
+  - expo-notifications 57.0.22's manifest already adds `RECEIVE_BOOT_COMPLETED`,
+    `POST_NOTIFICATIONS` and the boot/`MY_PACKAGE_REPLACED` receiver; `app.json`'s
+    `USE_EXACT_ALARM` suffices.
+  - Tests: `schedulePlan.spec.js` (10), `scheduleNotifications.spec.js` (3); shabbat's
+    `remindersSlice.spec` mocks `../../reminders`; `npm test`: 17 suites, 232 tests pass. Docs
+    follow (services.md, architecture.md — a new "reminder notifications" flow, CLAUDE.md,
+    frontend.md, the READMEs); docs-check passes.
+  - Phone check moves to R3.4/R3.5: the bell and the + still need a login until R3.4.
+  - Open: firings due while the phone was off are lost (nothing shown late); R3.3's decision (the
+    window is 30 days); time the planner on Hermes in R3.5; reminders still on the server can
+    arrive twice until removed (decision 5).
+  *Trimmed 2026-10-21 (asked at review):* the R1–R3 frontend code, plus one bug fix.
+  - Fix: an "Every time" update from a changed day drops that day's `changed` entry
+    (`updateCustomReminder({ id, patch, date })`, the sheet passes the tapped day); before, the day
+    kept its old title/time for good.
+  - Custom-reminder checks: only the title (`titleProblem`) and the 300 cap; the other copied
+    Reminders Service rules (hour/minute/repeat/calendar/date, "Nothing to update", "Reminder not
+    found", 500 skipped/changed days, "doesn't fall on") are gone — the sheet's controls can't
+    produce them; a missing id does nothing. No support for items saved before `changed` existed.
+    `customRemindersSlice` has no `saving` (`error` stays).
+  - Candle slice: `{ candles }` only; the two thunks are plain (no 1–1440 check, no
+    `saving`/`error`); `CandleReminder` has no error `Alert`.
+  - `selectDayReminders` rows have no `changed: true`; `calendarService` drops Gateway's 400 input
+    checks; "ours" is the `rem:` prefix only (no `kind` marker); `schedulePlan` uses
+    `israelClock` for HH:MM; `placeOf` moved to `src/shared/utils/geo.js` (`calendarSlice` and
+    `ReminderScheduleManager` use it); `account/index.js` no longer exports `RequireAuthNotice`,
+    `useRequireAuth`, `clearAuth`, `deleteAccount`.
+  - Tests: validation cases and specs re-testing the lib/redux-persist removed, the fix's test
+    added; `npm test`: 17 suites, 172 tests pass. Docs follow; docs-check passes.
 - [ ] **R3.3 Background top-up.** If the app isn't opened for weeks the window runs out:
   a periodic background task (`expo-background-task` / WorkManager) re-runs the reconcile —
   or accept the gap. Decide after R1.2.

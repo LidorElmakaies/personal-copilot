@@ -2,9 +2,11 @@
 export { default as CustomReminderSheet } from './components/CustomReminderSheet';
 export { ReminderRow } from './components/ReminderRow';
 export { default as RemindersSheet } from './components/RemindersSheet';
+export { default as ReminderScheduleManager } from './components/ReminderScheduleManager';
+export { reconcileReminderNotifications } from './store/scheduleNotifications';
 export {
   default as customRemindersReducer,
-  fetchCustomReminders,
   selectDayReminders,
+  setRemindersRange,
 } from './store/customRemindersSlice';
 export { remindersRange } from './utils/customReminders';

@@ -3,28 +3,23 @@ import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
-import Alert from '../../../shared/components/base/feedback/Alert';
 import GradientButton from '../../../shared/components/base/buttons/GradientButton';
 import PillButton from '../../../shared/components/base/buttons/PillButton';
 import Stepper from '../../../shared/components/base/form/Stepper';
 import BottomSheet from '../../../shared/components/base/layout/BottomSheet';
 import ConfirmModal from '../../../shared/components/composite/ConfirmModal';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
-import { selectUserId } from '../../account';
 import {
   enableNotifications,
   openNotificationSettings,
 } from '../../../shared/device/notificationsSlice';
 import {
-  clearReminderError,
-  fetchReminders,
   saveCandleReminder,
   turnOffCandleReminder,
 } from '../store/remindersSlice';
-import { formatDay, formatTime } from '../../../shared/utils/time';
+import { formatTime } from '../../../shared/utils/time';
 
 const PRESETS = [30, 60, 90, 120, 180];
-const DEFAULT_OFFSET = 90;
 
 function formatOffset(minutes) {
   const h = Math.floor(minutes / 60);
@@ -36,21 +31,16 @@ const bellIcon = (color) => (
   <Ionicons name="notifications-outline" size={16} color={color} />
 );
 
-// Composite component (PillButton/BottomSheet/Stepper/GradientButton/Alert/ConfirmModal) — the
+// Composite component (PillButton/BottomSheet/Stepper/GradientButton/ConfirmModal) — the
 // candle-lighting reminder on Home's Shabbat section (mockups R1–R3). Owns its Redux wiring; the
 // sheet's form is private, so closing the sheet drops an unsaved offset.
 export default function CandleReminder({ candleLighting, now }) {
   const dispatch = useDispatch();
   const router = useRouter();
   const accessToken = useSelector((state) => state.auth.accessToken);
-  const userId = useSelector(selectUserId);
   const candles = useSelector((state) => state.reminders.candles);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [askLogin, setAskLogin] = useState(false);
-
-  useEffect(() => {
-    if (userId) dispatch(fetchReminders());
-  }, [userId, dispatch]);
 
   // Signing out closes the sheet (its form needs a session).
   useEffect(() => {
@@ -62,11 +52,10 @@ export default function CandleReminder({ candleLighting, now }) {
       setAskLogin(true);
       return;
     }
-    dispatch(clearReminderError());
     setSheetOpen(true);
   };
 
-  const on = !!candles?.enabled;
+  const on = candles.enabled;
 
   return (
     <>
@@ -107,21 +96,20 @@ export default function CandleReminder({ candleLighting, now }) {
 function ReminderForm({ candles, candleLighting, now, onDone }) {
   const dispatch = useDispatch();
   const { colors } = useAppTheme();
-  const { saving, error } = useSelector((state) => state.reminders);
-  const initial = candles?.offsetMinutes ?? DEFAULT_OFFSET;
+  const initial = candles.offsetMinutes;
   const [hours, setHours] = useState(Math.floor(initial / 60));
   const [minutes, setMinutes] = useState(initial % 60);
   const offset = hours * 60 + minutes;
-  const on = !!candles?.enabled;
+  const on = candles.enabled;
 
   const pickPreset = (value) => {
     setHours(Math.floor(value / 60));
     setMinutes(value % 60);
   };
 
-  const run = async (action) => {
-    const result = await dispatch(action);
-    if (!result.error) onDone();
+  const run = (action) => {
+    dispatch(action);
+    onDone();
   };
 
   return (
@@ -164,13 +152,11 @@ function ReminderForm({ candles, candleLighting, now, onDone }) {
         now={now}
       />
       <NotificationsNudge />
-      {error ? <Alert>{error}</Alert> : null}
       <View style={styles.actions}>
         {on ? (
           <GradientButton
             label="Turn off"
             onPress={() => run(turnOffCandleReminder())}
-            disabled={saving}
             style={styles.actionFlex}
             contentStyle={styles.actionContent}
           />
@@ -178,8 +164,7 @@ function ReminderForm({ candles, candleLighting, now, onDone }) {
         <GradientButton
           label="Save"
           onPress={() => run(saveCandleReminder(offset))}
-          loading={saving}
-          disabled={saving || offset < 1}
+          disabled={offset < 1}
           style={styles.actionFlex}
           contentStyle={styles.actionContent}
         />
@@ -188,22 +173,15 @@ function ReminderForm({ candles, candleLighting, now, onDone }) {
   );
 }
 
-// The server's time for the saved offset; while the offset is being changed, an estimate from the
-// candle lighting Home shows (same calculation, the phone's own location).
+// When it goes off this week, from the candle lighting Home shows. A saved reminder can't be
+// scheduled until the phone knows where it is.
 function FiresAt({ candles, offset, candleLighting, now }) {
   const { colors } = useAppTheme();
-  const saved = !!candles?.enabled && candles.offsetMinutes === offset;
+  const hasLocation = useSelector((state) => !!state.location.coords);
+  const saved = candles.enabled && candles.offsetMinutes === offset;
   let detail;
-  if (saved && candles.waitingForLocation) {
+  if (saved && !hasLocation) {
     detail = "We'll schedule it once we know your location";
-  } else if (saved && candles.nextFireAt) {
-    const fire = new Date(candles.nextFireAt);
-    detail = (
-      <>
-        fires at <Time value={fire} />{' '}
-        {fire <= candleLighting ? 'this week' : `on ${formatDay(fire)}`}
-      </>
-    );
   } else {
     const fire = new Date(candleLighting.getTime() - offset * 60000);
     detail =
@@ -231,8 +209,8 @@ function Time({ value }) {
   );
 }
 
-// Shown when this browser or phone won't get the reminder; saving still works for the user's other
-// devices (mockup N4 for the Android wording).
+// Shown when this browser or phone won't get the reminder; saving still keeps it (mockup N4 for the
+// Android wording).
 const NUDGES = {
   web: {
     denied:

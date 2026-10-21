@@ -7,13 +7,9 @@ export { default as RegisterScreen } from './screens/RegisterScreen';
 export { default as AuthGate } from './components/AuthGate';
 export { default as LocationSyncManager } from './components/LocationSyncManager';
 export { default as PushSubscriptionManager } from './components/PushSubscriptionManager';
-export { default as RequireAuthNotice } from './components/RequireAuthNotice';
 export { useHasRole } from './hooks/useHasRole';
-export { useRequireAuth } from './hooks/useRequireAuth';
 export {
   default as authReducer,
-  clearAuth,
-  deleteAccount,
   refreshSession,
   selectUserId,
 } from './store/authSlice';
