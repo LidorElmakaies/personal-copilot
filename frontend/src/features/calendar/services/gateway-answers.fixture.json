@@ -1,0 +1,694 @@
+{
+  "shabbat": {
+    "candleLighting": "2026-10-23T14:39:00.000Z",
+    "havdalah": "2026-10-24T15:36:00.000Z",
+    "parasha": {
+      "en": "Parashat Lech-Lecha",
+      "he": "פרשת לך־לך"
+    },
+    "holidays": [],
+    "isNow": false
+  },
+  "shabbatNow": {
+    "candleLighting": "2026-10-23T14:39:00.000Z",
+    "havdalah": "2026-10-24T15:36:00.000Z",
+    "parasha": {
+      "en": "Parashat Lech-Lecha",
+      "he": "פרשת לך־לך"
+    },
+    "holidays": [],
+    "isNow": true
+  },
+  "month": {
+    "year": 2026,
+    "month": 9,
+    "days": [
+      {
+        "date": "2026-09-01",
+        "hebrew": {
+          "day": 19,
+          "dayHe": "י״ט",
+          "month": {
+            "en": "Elul",
+            "he": "אלול"
+          },
+          "year": 5786,
+          "yearHe": "תשפ״ו"
+        },
+        "events": [],
+        "parasha": null,
+        "times": []
+      },
+      {
+        "date": "2026-09-02",
+        "hebrew": {
+          "day": 20,
+          "dayHe": "כ׳",
+          "month": {
+            "en": "Elul",
+            "he": "אלול"
+          },
+          "year": 5786,
+          "yearHe": "תשפ״ו"
+        },
+        "events": [],
+        "parasha": null,
+        "times": []
+      },
+      {
+        "date": "2026-09-03",
+        "hebrew": {
+          "day": 21,
+          "dayHe": "כ״א",
+          "month": {
+            "en": "Elul",
+            "he": "אלול"
+          },
+          "year": 5786,
+          "yearHe": "תשפ״ו"
+        },
+        "events": [],
+        "parasha": null,
+        "times": []
+      },
+      {
+        "date": "2026-09-04",
+        "hebrew": {
+          "day": 22,
+          "dayHe": "כ״ב",
+          "month": {
+            "en": "Elul",
+            "he": "אלול"
+          },
+          "year": 5786,
+          "yearHe": "תשפ״ו"
+        },
+        "events": [],
+        "parasha": null,
+        "times": [
+          {
+            "kind": "candleLighting",
+            "at": "2026-09-04T15:41:00.000Z"
+          }
+        ]
+      },
+      {
+        "date": "2026-09-05",
+        "hebrew": {
+          "day": 23,
+          "dayHe": "כ״ג",
+          "month": {
+            "en": "Elul",
+            "he": "אלול"
+          },
+          "year": 5786,
+          "yearHe": "תשפ״ו"
+        },
+        "events": [
+          {
+            "kind": "holiday",
+            "name": {
+              "en": "Leil Selichot",
+              "he": "סליחות"
+            }
+          }
+        ],
+        "parasha": {
+          "en": "Parashat Nitzavim-Vayeilech",
+          "he": "פרשת נצבים־וילך"
+        },
+        "times": [
+          {
+            "kind": "havdalah",
+            "at": "2026-09-05T16:37:00.000Z"
+          }
+        ]
+      },
+      {
+        "date": "2026-09-06",
+        "hebrew": {
+          "day": 24,
+          "dayHe": "כ״ד",
+          "month": {
+            "en": "Elul",
+            "he": "אלול"
+          },
+          "year": 5786,
+          "yearHe": "תשפ״ו"
+        },
+        "events": [],
+        "parasha": null,
+        "times": []
+      },
+      {
+        "date": "2026-09-07",
+        "hebrew": {
+          "day": 25,
+          "dayHe": "כ״ה",
+          "month": {
+            "en": "Elul",
+            "he": "אלול"
+          },
+          "year": 5786,
+          "yearHe": "תשפ״ו"
+        },
+        "events": [],
+        "parasha": null,
+        "times": []
+      },
+      {
+        "date": "2026-09-08",
+        "hebrew": {
+          "day": 26,
+          "dayHe": "כ״ו",
+          "month": {
+            "en": "Elul",
+            "he": "אלול"
+          },
+          "year": 5786,
+          "yearHe": "תשפ״ו"
+        },
+        "events": [],
+        "parasha": null,
+        "times": []
+      },
+      {
+        "date": "2026-09-09",
+        "hebrew": {
+          "day": 27,
+          "dayHe": "כ״ז",
+          "month": {
+            "en": "Elul",
+            "he": "אלול"
+          },
+          "year": 5786,
+          "yearHe": "תשפ״ו"
+        },
+        "events": [],
+        "parasha": null,
+        "times": []
+      },
+      {
+        "date": "2026-09-10",
+        "hebrew": {
+          "day": 28,
+          "dayHe": "כ״ח",
+          "month": {
+            "en": "Elul",
+            "he": "אלול"
+          },
+          "year": 5786,
+          "yearHe": "תשפ״ו"
+        },
+        "events": [],
+        "parasha": null,
+        "times": []
+      },
+      {
+        "date": "2026-09-11",
+        "hebrew": {
+          "day": 29,
+          "dayHe": "כ״ט",
+          "month": {
+            "en": "Elul",
+            "he": "אלול"
+          },
+          "year": 5786,
+          "yearHe": "תשפ״ו"
+        },
+        "events": [
+          {
+            "kind": "holiday",
+            "name": {
+              "en": "Erev Rosh Hashana",
+              "he": "ערב ראש השנה"
+            }
+          }
+        ],
+        "parasha": null,
+        "times": [
+          {
+            "kind": "candleLighting",
+            "at": "2026-09-11T15:32:00.000Z"
+          }
+        ]
+      },
+      {
+        "date": "2026-09-12",
+        "hebrew": {
+          "day": 1,
+          "dayHe": "א׳",
+          "month": {
+            "en": "Tishrei",
+            "he": "תשרי"
+          },
+          "year": 5787,
+          "yearHe": "תשפ״ז"
+        },
+        "events": [
+          {
+            "kind": "yomTov",
+            "name": {
+              "en": "Rosh Hashana I",
+              "he": "ראש השנה א׳"
+            }
+          }
+        ],
+        "parasha": null,
+        "times": [
+          {
+            "kind": "candleLighting",
+            "at": "2026-09-12T16:28:00.000Z"
+          }
+        ]
+      },
+      {
+        "date": "2026-09-13",
+        "hebrew": {
+          "day": 2,
+          "dayHe": "ב׳",
+          "month": {
+            "en": "Tishrei",
+            "he": "תשרי"
+          },
+          "year": 5787,
+          "yearHe": "תשפ״ז"
+        },
+        "events": [
+          {
+            "kind": "yomTov",
+            "name": {
+              "en": "Rosh Hashana II",
+              "he": "ראש השנה ב׳"
+            }
+          }
+        ],
+        "parasha": null,
+        "times": [
+          {
+            "kind": "havdalah",
+            "at": "2026-09-13T16:26:00.000Z"
+          }
+        ]
+      },
+      {
+        "date": "2026-09-14",
+        "hebrew": {
+          "day": 3,
+          "dayHe": "ג׳",
+          "month": {
+            "en": "Tishrei",
+            "he": "תשרי"
+          },
+          "year": 5787,
+          "yearHe": "תשפ״ז"
+        },
+        "events": [
+          {
+            "kind": "fast",
+            "name": {
+              "en": "Tzom Gedaliah",
+              "he": "צום גדליה"
+            }
+          }
+        ],
+        "parasha": null,
+        "times": [
+          {
+            "kind": "fastBegins",
+            "at": "2026-09-14T02:11:00.000Z"
+          },
+          {
+            "kind": "fastEnds",
+            "at": "2026-09-14T16:03:00.000Z"
+          }
+        ]
+      },
+      {
+        "date": "2026-09-15",
+        "hebrew": {
+          "day": 4,
+          "dayHe": "ד׳",
+          "month": {
+            "en": "Tishrei",
+            "he": "תשרי"
+          },
+          "year": 5787,
+          "yearHe": "תשפ״ז"
+        },
+        "events": [],
+        "parasha": null,
+        "times": []
+      },
+      {
+        "date": "2026-09-16",
+        "hebrew": {
+          "day": 5,
+          "dayHe": "ה׳",
+          "month": {
+            "en": "Tishrei",
+            "he": "תשרי"
+          },
+          "year": 5787,
+          "yearHe": "תשפ״ז"
+        },
+        "events": [],
+        "parasha": null,
+        "times": []
+      },
+      {
+        "date": "2026-09-17",
+        "hebrew": {
+          "day": 6,
+          "dayHe": "ו׳",
+          "month": {
+            "en": "Tishrei",
+            "he": "תשרי"
+          },
+          "year": 5787,
+          "yearHe": "תשפ״ז"
+        },
+        "events": [],
+        "parasha": null,
+        "times": []
+      },
+      {
+        "date": "2026-09-18",
+        "hebrew": {
+          "day": 7,
+          "dayHe": "ז׳",
+          "month": {
+            "en": "Tishrei",
+            "he": "תשרי"
+          },
+          "year": 5787,
+          "yearHe": "תשפ״ז"
+        },
+        "events": [],
+        "parasha": null,
+        "times": [
+          {
+            "kind": "candleLighting",
+            "at": "2026-09-18T15:23:00.000Z"
+          }
+        ]
+      },
+      {
+        "date": "2026-09-19",
+        "hebrew": {
+          "day": 8,
+          "dayHe": "ח׳",
+          "month": {
+            "en": "Tishrei",
+            "he": "תשרי"
+          },
+          "year": 5787,
+          "yearHe": "תשפ״ז"
+        },
+        "events": [
+          {
+            "kind": "holiday",
+            "name": {
+              "en": "Shabbat Shuva",
+              "he": "שבת שובה"
+            }
+          }
+        ],
+        "parasha": {
+          "en": "Parashat Ha’azinu",
+          "he": "פרשת האזינו"
+        },
+        "times": [
+          {
+            "kind": "havdalah",
+            "at": "2026-09-19T16:18:00.000Z"
+          }
+        ]
+      },
+      {
+        "date": "2026-09-20",
+        "hebrew": {
+          "day": 9,
+          "dayHe": "ט׳",
+          "month": {
+            "en": "Tishrei",
+            "he": "תשרי"
+          },
+          "year": 5787,
+          "yearHe": "תשפ״ז"
+        },
+        "events": [
+          {
+            "kind": "holiday",
+            "name": {
+              "en": "Erev Yom Kippur",
+              "he": "ערב יום כיפור"
+            }
+          }
+        ],
+        "parasha": null,
+        "times": [
+          {
+            "kind": "candleLighting",
+            "at": "2026-09-20T15:20:00.000Z"
+          },
+          {
+            "kind": "fastBegins",
+            "at": "2026-09-20T15:20:00.000Z"
+          }
+        ]
+      },
+      {
+        "date": "2026-09-21",
+        "hebrew": {
+          "day": 10,
+          "dayHe": "י׳",
+          "month": {
+            "en": "Tishrei",
+            "he": "תשרי"
+          },
+          "year": 5787,
+          "yearHe": "תשפ״ז"
+        },
+        "events": [
+          {
+            "kind": "yomTov",
+            "name": {
+              "en": "Yom Kippur",
+              "he": "יום כיפור"
+            }
+          }
+        ],
+        "parasha": null,
+        "times": [
+          {
+            "kind": "fastEnds",
+            "at": "2026-09-21T16:15:00.000Z"
+          }
+        ]
+      },
+      {
+        "date": "2026-09-22",
+        "hebrew": {
+          "day": 11,
+          "dayHe": "י״א",
+          "month": {
+            "en": "Tishrei",
+            "he": "תשרי"
+          },
+          "year": 5787,
+          "yearHe": "תשפ״ז"
+        },
+        "events": [],
+        "parasha": null,
+        "times": []
+      },
+      {
+        "date": "2026-09-23",
+        "hebrew": {
+          "day": 12,
+          "dayHe": "י״ב",
+          "month": {
+            "en": "Tishrei",
+            "he": "תשרי"
+          },
+          "year": 5787,
+          "yearHe": "תשפ״ז"
+        },
+        "events": [],
+        "parasha": null,
+        "times": []
+      },
+      {
+        "date": "2026-09-24",
+        "hebrew": {
+          "day": 13,
+          "dayHe": "י״ג",
+          "month": {
+            "en": "Tishrei",
+            "he": "תשרי"
+          },
+          "year": 5787,
+          "yearHe": "תשפ״ז"
+        },
+        "events": [],
+        "parasha": null,
+        "times": []
+      },
+      {
+        "date": "2026-09-25",
+        "hebrew": {
+          "day": 14,
+          "dayHe": "י״ד",
+          "month": {
+            "en": "Tishrei",
+            "he": "תשרי"
+          },
+          "year": 5787,
+          "yearHe": "תשפ״ז"
+        },
+        "events": [
+          {
+            "kind": "holiday",
+            "name": {
+              "en": "Erev Sukkot",
+              "he": "ערב סוכות"
+            }
+          }
+        ],
+        "parasha": null,
+        "times": [
+          {
+            "kind": "candleLighting",
+            "at": "2026-09-25T15:13:00.000Z"
+          }
+        ]
+      },
+      {
+        "date": "2026-09-26",
+        "hebrew": {
+          "day": 15,
+          "dayHe": "ט״ו",
+          "month": {
+            "en": "Tishrei",
+            "he": "תשרי"
+          },
+          "year": 5787,
+          "yearHe": "תשפ״ז"
+        },
+        "events": [
+          {
+            "kind": "yomTov",
+            "name": {
+              "en": "Sukkot I",
+              "he": "סוכות א׳"
+            }
+          }
+        ],
+        "parasha": null,
+        "times": [
+          {
+            "kind": "havdalah",
+            "at": "2026-09-26T16:09:00.000Z"
+          }
+        ]
+      },
+      {
+        "date": "2026-09-27",
+        "hebrew": {
+          "day": 16,
+          "dayHe": "ט״ז",
+          "month": {
+            "en": "Tishrei",
+            "he": "תשרי"
+          },
+          "year": 5787,
+          "yearHe": "תשפ״ז"
+        },
+        "events": [
+          {
+            "kind": "holiday",
+            "name": {
+              "en": "Sukkot · day 2 (Chol HaMoed)",
+              "he": "סוכות · יום ב׳ (חול המועד)"
+            }
+          }
+        ],
+        "parasha": null,
+        "times": []
+      },
+      {
+        "date": "2026-09-28",
+        "hebrew": {
+          "day": 17,
+          "dayHe": "י״ז",
+          "month": {
+            "en": "Tishrei",
+            "he": "תשרי"
+          },
+          "year": 5787,
+          "yearHe": "תשפ״ז"
+        },
+        "events": [
+          {
+            "kind": "holiday",
+            "name": {
+              "en": "Sukkot · day 3 (Chol HaMoed)",
+              "he": "סוכות · יום ג׳ (חול המועד)"
+            }
+          }
+        ],
+        "parasha": null,
+        "times": []
+      },
+      {
+        "date": "2026-09-29",
+        "hebrew": {
+          "day": 18,
+          "dayHe": "י״ח",
+          "month": {
+            "en": "Tishrei",
+            "he": "תשרי"
+          },
+          "year": 5787,
+          "yearHe": "תשפ״ז"
+        },
+        "events": [
+          {
+            "kind": "holiday",
+            "name": {
+              "en": "Sukkot · day 4 (Chol HaMoed)",
+              "he": "סוכות · יום ד׳ (חול המועד)"
+            }
+          }
+        ],
+        "parasha": null,
+        "times": []
+      },
+      {
+        "date": "2026-09-30",
+        "hebrew": {
+          "day": 19,
+          "dayHe": "י״ט",
+          "month": {
+            "en": "Tishrei",
+            "he": "תשרי"
+          },
+          "year": 5787,
+          "yearHe": "תשפ״ז"
+        },
+        "events": [
+          {
+            "kind": "holiday",
+            "name": {
+              "en": "Sukkot · day 5 (Chol HaMoed)",
+              "he": "סוכות · יום ה׳ (חול המועד)"
+            }
+          }
+        ],
+        "parasha": null,
+        "times": []
+      }
+    ]
+  }
+}

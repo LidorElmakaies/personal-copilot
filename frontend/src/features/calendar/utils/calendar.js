@@ -56,7 +56,7 @@ export const openingDate = ({ year, month }, today) => {
   return today.slice(0, 7) === first.slice(0, 7) ? today : first;
 };
 
-// A month's days before /calendar/month answers: just the dates, which the phone can work out.
+// A month's days before calendarService.getMonth answers: just the dates, which the phone can work out.
 // Cached, so a page re-rendered mid-swipe gets the same array (and its memoized grid skips).
 const placeholders = new Map();
 export function placeholderDays(index) {

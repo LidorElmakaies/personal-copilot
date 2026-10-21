@@ -11,7 +11,7 @@ import GlowCard from '../../../shared/components/base/layout/GlowCard';
 const PREVIEW = 3;
 
 // The Calendar tab's selected day (mockup D1): its dates, names, parasha and times — one
-// GET /calendar/month day — then its reminders, if any: the first few and "+N more · Show all"
+// calendarService.getMonth day — then its reminders, if any: the first few and "+N more · Show all"
 // (`onShowAll`); tapping one calls `onPressReminder(row)`. Presentational; the screen picks the day.
 export default function DayCard({
   day,

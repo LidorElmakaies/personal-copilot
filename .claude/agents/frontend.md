@@ -18,10 +18,10 @@ second one.
 
 `frontend/` — see root `CLAUDE.md` for the overall stack. This app is currently optional auth
 (login/register, not a whole-app gate) + a Home tab (landing, no session required; clock, dates,
-and Shabbat times for the device's location via `locationSlice` + `calendarSlice` — `GET /calendar/shabbat`, served by Gateway;
+and Shabbat times for the device's location via `locationSlice` + `calendarSlice` — computed on the phone by `calendarService` from `src/lib/jewish-calendar/`, no network;
 under them the candle-lighting reminder bell + offset sheet, `CandleReminder` + `remindersSlice` —
 `/reminders*`) + a Calendar tab (month grid, `MonthGrid` + `calendarSlice.fetchMonth` —
-`GET /calendar/month`; signed in, the user's own reminders on it — add/edit/delete in
+computed the same way; signed in, the user's own reminders on it — add/edit/delete in
 `CustomReminderSheet` via `customRemindersSlice` — `/reminders/custom*`; a change sends the
 months shown and swaps in the reminder(s) the server answers with, never a list refetch — see
 `docs/specs/services.md#frontend`) + an auth-gated
@@ -171,6 +171,9 @@ src/store/index.js        the root store: each feature's reducer (from its index
   — no cycles (shabbat → calendar → reminders → account). `shared/` and `lib/` never import a
   feature; that's why the root store is `src/store/`, not `shared/`.
 - A new feature = a folder, a route, a `TABS` entry, its reducer in `src/store/index.js`.
+- A service that computes rather than fetches (calendar's `calendarService` over
+  `src/lib/jewish-calendar/`) still sits in `services/` and returns a Promise of plain JSON — no
+  `Date`s or class instances in Redux state.
 
 ## Services layer — where all I/O lives
 

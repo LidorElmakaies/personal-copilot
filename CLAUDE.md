@@ -106,7 +106,7 @@ Kafka events in [`docs/specs/event-schemas.md`](docs/specs/event-schemas.md), di
     forwarded as `X-User-Id`) or `'none'`, `throttle`. Unlisted → `404`. Users: `/auth/*`,
     `/users/me*`; Reminders: `/reminders*`; Notifications: `/notifications/*`.
   - `src/calendar/` — `GET /calendar/shabbat` and `GET /calendar/month` (open), answered
-    in-process from `@app/jewish-calendar`.
+    in-process from `@app/jewish-calendar`. No longer called by the app (it computes them itself).
   - `src/realtime/` — `POST /realtime/device` (a device token per app install) and Socket.IO at
     `/ws` (device token required, plus the access token once signed in; one connection per
     device). A feature module pushes with `IRealtimeConnectionService` (`pushToUser`/`broadcast`).
@@ -131,8 +131,8 @@ Kafka events in [`docs/specs/event-schemas.md`](docs/specs/event-schemas.md), di
   retrying only the devices not yet reached, never after `expiresAt`. Won't boot without `VAPID_*`;
   FCM is off without the optional `FCM_*`.
 - **frontend** (`frontend/`) — Expo Router app, web export and Android APK; login optional. Swipeable
-  tabs: Home (clock, Hebrew date, Shabbat times for the GPS location, the candle-lighting reminder
-  bell), Calendar (Jewish-calendar month; signed in, the user's own reminders, added and edited in a
+  tabs: Home (clock, Hebrew date, Shabbat times for the GPS location — computed on the phone, like
+  the months — the candle-lighting reminder bell), Calendar (Jewish-calendar month; signed in, the user's own reminders, added and edited in a
   bottom sheet), Account (signed in only: theme, notifications, email/password, profile, log out,
   delete account, version) and Admin (admins only: service status). App-wide (`app/_layout.js`):
   one Socket.IO connection per install, location sync after a > 5 km move, quiet token renewal,

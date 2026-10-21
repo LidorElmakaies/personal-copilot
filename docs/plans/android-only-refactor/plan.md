@@ -245,9 +245,24 @@ Proposed on 2026-10-21 (1–3 now decided, 4–6 still open):
   tests pass (the earlier "79" was a miscount; the backend copy runs the same 95), Israel-time cases
   unchanged. The `tsc` errors were already fixed by 37f0bfd's typed fake; tsc is clean, and the
   open issue is ticked. Docs-check passes.
-- [ ] **R2.4 The app computes locally.** `services/http/calendarService.js` → a local module with
+- [x] **R2.4 The app computes locally.** `services/http/calendarService.js` → a local module with
   the same shapes (`/calendar/shabbat` and `/calendar/month`); `calendarSlice` and its month cache
   unchanged. *Check:* Home and the Calendar tab work in airplane mode.
+  *Done 2026-10-21:* `features/calendar/services/calendarService.js` computes both on the phone
+  (`ShabbatCalendar`/`MonthCalendar` from `src/lib/jewish-calendar`, created once), same functions
+  and answers: the result goes through JSON, so Redux keeps ISO strings (the persisted
+  `calendar.shabbat` is unchanged; `calendar.js` compares two times as strings). Gateway's 400
+  checks are repeated in the service; a polar day still rejects with `InvalidLocationError`'s
+  message. `getMonth` yields one task per month, so the shown month paints first. Asked at review:
+  `PRELOAD` 2 → 1 (the month shown and one either side; `SwipePager` still mounts ±2, the outer
+  ones as placeholders until a swipe loads them). New spec: 5 tests against a fixture of Gateway's
+  real answers (Tel Aviv: Shabbat on Wed 21 and Sat 24 Oct 2026, September 2026); 10 suites, 100
+  tests pass. Hermes bundle 5.29 → 5.72 MB; APK 0.6.0-test.9 46,434,590 → 46,778,318 bytes.
+  Docs follow (services.md, architecture.md, CLAUDE.md, frontend.md, the READMEs); Gateway's
+  `/calendar/*` stay documented as no longer called (they go in R5).
+  On the phone (S23 Ultra, 0.6.0-test.9, airplane mode, no route to the PC), cold start: Home's
+  Shabbat card (Lech-Lecha, 17:40 / 18:36), the Calendar tab's October, and two swipes on, December
+  2026 (Hanukkah, the 10 Tevet fast) all shown.
 
 ## Stage R3: reminders on the phone
 

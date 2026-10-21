@@ -82,7 +82,7 @@ export default function CalendarScreen() {
     if (location.status === 'idle') dispatch(locate());
   }, [location.status, dispatch]);
 
-  // The month landed on and two either side: a swipe lands on a month that's already there.
+  // The month landed on and one either side: a swipe lands on a month that's already there.
   useEffect(() => {
     if (location.coords) dispatch(loadMonthsAround(monthAt(shown)));
   }, [shown, location.coords, dispatch]);

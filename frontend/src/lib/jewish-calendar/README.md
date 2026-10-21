@@ -5,6 +5,8 @@ place for every rule (Shabbat times, month calendars, custom reminders' repeat r
 from the backend's `libs/jewish-calendar` (task R2.1 of
 [`docs/plans/android-only-refactor/plan.md`](../../../../docs/plans/android-only-refactor/plan.md));
 the backend keeps its own copy until Reminders is deleted (R5).
+The app reads it only through calendar's `calendarService` (Home's Shabbat times, the Calendar
+tab's months), which JSON-round-trips the results so Redux gets ISO strings, never `Date`s.
 This file is the "why" behind decisions here that aren't obvious from the code.
 
 ## `@hebcal/core` v6

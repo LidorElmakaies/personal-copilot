@@ -40,7 +40,9 @@ tunnel from a Caddy instance on the public internet. HTTP + WebSocket.
   the Shabbat in progress, otherwise the next one, for that location, computed in-process with
   [`@app/jewish-calendar`](#libsjewish-calendar). With `/calendar/month`, the only Gateway routes
   with logic of their own — the maths is the shared lib, so there's nothing for another service to
-  add. Unguarded, so Home works signed out.
+  add. Unguarded, so Home works signed out. **No longer called by the app** (R2.4 of the
+  android-only plan): it computes the same answer on the phone (`calendarService`); the route
+  goes with `libs/jewish-calendar` in R5.
   ```json
   { "candleLighting": "2026-10-02T15:04:00.000Z", "havdalah": "2026-10-03T16:00:00.000Z",
     "parasha": null, "holidays": [{ "en": "Shmini Atzeret", "he": "שמיני עצרת" }], "isNow": false }
@@ -49,7 +51,8 @@ tunnel from a Caddy instance on the public internet. HTTP + WebSocket.
   client's `tz`) is dropped. Israel's rules and time zone apply wherever the point is (see
   [`libs/jewish-calendar`](#libsjewish-calendar)). `422` where there's no sunset to count from
   (e.g. polar summer).
-- `GET /calendar/month?year&month&lat&lon` — served by Gateway itself the same way, unguarded:
+- `GET /calendar/month?year&month&lat&lon` — served by Gateway itself the same way, unguarded (and
+  likewise no longer called by the app):
   every day of that civil month — its Hebrew date, holidays/fasts (`kind`: `yomTov` | `fast` |
   `holiday`), Saturday's parasha, and its enter/leave times (`candleLighting` | `havdalah` |
   `fastBegins` | `fastEnds`, on the day each happens; Yom Kippur's are `fastBegins` at its eve's
@@ -383,8 +386,9 @@ screen over the row with the swipe off.
   the device's location: a label (holiday or parasha, or "Shabbat Shalom" while it's in progress),
   candle lighting and Havdalah with their dates, and a countdown to whichever comes next. "In
   progress" and the countdown are computed from the device clock against the two returned times
-  (`GET /calendar/shabbat`, served by Gateway).
-  - When it fetches: on Home's first mount (`locate()` for a fresh GPS fix; the persisted
+  (`calendarService.getShabbat`, computed on the phone from `src/lib/jewish-calendar` — no network,
+  so it works offline; the same answer `GET /calendar/shabbat` gives, times as ISO strings).
+  - When it computes: on Home's first mount (`locate()` for a fresh GPS fix; the persisted
     last-known location is used meanwhile), when the fix arrives, when Havdalah passes (next
     Shabbat, same location), and on Retry. Switching tabs or returning from the background doesn't
     refetch.
@@ -414,14 +418,14 @@ screen over the row with the swipe off.
   Blank optional fields are left out of the request.
 - `(tabs)/calendar` — no session required: a month grid (`MonthHeader`, `WeekdayRow`, then
   `MonthGrid` pages in `SwipePager`; `MonthStatus` under it when location or the month fails;
-  presentational) for the device's location (`GET /calendar/month`, `calendarSlice.fetchMonth`,
-  not persisted). Opens on the device's current month. A sideways drag moves the month with the
+  presentational) for the device's location (`calendarSlice.fetchMonth` → `calendarService.getMonth`,
+  computed on the phone like Home's times — the same answer as `GET /calendar/month`; not persisted). Opens on the device's current month. A sideways drag moves the month with the
   finger (vertical still scrolls); let go past a quarter of the width or with a flick and it slides
   on (~250 ms), else springs back; a held drag runs through as many months as it covers, the title
   following the month mostly in view; ‹ › run the same slide, and quick taps add up. A "Today"
   pill in the header, shown whenever another month or day is in view, slides back to this month (a
   far jump starts one month short and slides one) and selects today. The month landed on is fetched
-  first, then the two either side (`calendarSlice.loadMonthsAround`), so a swipe lands on a month
+  first, then the one either side (`calendarSlice.loadMonthsAround`), so a swipe lands on a month
   already filled in (drawn complete, no fade; `SwipePager` keeps two built either side, the
   header's Hebrew title follows the month in view); one not loaded yet shows its day numbers
   (`placeholderDays`) and only then do its Hebrew dates and dots fade in when it answers. Fetched months are kept by month for the current place
@@ -439,7 +443,7 @@ screen over the row with the swipe off.
   `pending`; a fast starting with candle lighting is one row, "Candle lighting · fast begins"),
   or "No candle lighting or fast times"; dimmed while a swipe is between months.
   **Your reminders** (signed in): `customRemindersSlice.fetchCustomReminders` asks
-  `GET /reminders/custom` for the month shown ± `PRELOAD` (2, exported by `calendarSlice`;
+  `GET /reminders/custom` for the month shown ± `PRELOAD` (1, exported by `calendarSlice`;
   `remindersRange` in `src/features/reminders/utils/customReminders.js`) on every month change; only the latest
   request's reply is used (`listRequest`), and a reply that crossed a change (`changeSeq`) is asked
   for again, up to 3 tries. A create/edit/skip sends that range and swaps in the reminder(s) the
@@ -635,7 +639,7 @@ the calendar maths in `src/lib/jewish-calendar/` — layout and import rules in 
 "Feature folders".
 
 I/O lives in each feature's `services/` and in `src/shared/`. HTTP (fetch-based calls — `authService`,
-`usersService` for `/users/me*`, `calendarService` for `/calendar/shabbat`, `remindersService` for
+`usersService` for `/users/me*`, `remindersService` for
 `/reminders` and `/reminders/shabbat-candles`, `customRemindersService` for `/reminders/custom*`, `notificationsService` for `/notifications/*`, `adminService` for `/admin/status`,
 `realtimeService` for the device token, `appUpdateService` for the APK registry's `latest.json`;
 signed-in calls go through `httpClient`'s `authorizedFetch` (`shared/http/`)), `shared/realtime/`
@@ -643,7 +647,10 @@ signed-in calls go through `httpClient`'s `authorizedFetch` (`shared/http/`)), `
 `expo-location` permission + position; `pushService` — the
 browser's service worker, `Notification` permission and `PushManager`; `fcmService` /
 `fcmReceiver` — the Android app's FCM registration and incoming messages; app-update's `apkInstallerService` —
-the update APK's download into the app cache, Android's installer, and cleanup).
+the update APK's download into the app cache, Android's installer, and cleanup). calendar's
+`calendarService` does no I/O but keeps the same boundary: Shabbat times and months computed on
+the phone from `src/lib/jewish-calendar/`, returned as plain JSON (times as ISO strings, the shape
+Gateway's `/calendar/*` answered) so Redux state stays serializable.
 
 The Socket.IO connection is open signed in or not, always with this install's device token:
 `wsSlice` fetches it once (`realtimeService.requestDeviceToken`, `POST /realtime/device`) and
@@ -719,9 +726,10 @@ All of the project's Jewish-calendar maths, in one place.
 `@hebcal/core` v6, imported only under `hebcal/` (`HebcalCalendarCalculator` behind
 `ICalendarCalculator`, and `hebrew-dates.ts`); `ShabbatCalendar` (`IShabbatCalendar`),
 `MonthCalendar` (`IMonthCalendar`) and `ReminderOccurrences` (`IReminderOccurrences`) are the
-entry points, pure and synchronous. Used in-process by Gateway (`GET /calendar/shabbat` for
-Home, `GET /calendar/month`) and the Reminders scheduler — so Home, the calendar and reminders
-always agree, and a rule changes in one place (`calendar-options.ts` picks the candle-lighting
+entry points, pure and synchronous. Used in-process by Gateway (`GET /calendar/shabbat`,
+`GET /calendar/month` — no longer called by the app) and the Reminders scheduler. The app computes
+Home's times and the Calendar tab's months from its own copy, `frontend/src/lib/jewish-calendar/`
+(the same source, until this one goes in R5) — so Home, the calendar and reminders always agree, and a rule changes in one place (`calendar-options.ts` picks the candle-lighting
 minutes for all of them).
 
 - `current(location, now)` — the Shabbat in progress at `now`, otherwise the next one: candle

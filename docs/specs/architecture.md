@@ -77,8 +77,9 @@ internal-only; `users` publishes every profile change to Kafka (`users.user-stat
 its outbox; Reminders consumes it); `reminders` stores the candle-lighting reminder and the
 user's own reminders and fires each as a delayed BullMQ job (`reminder-due`), publishing
 `notification-requested`. All calendar maths is the in-process `@app/jewish-calendar` library,
-used by Reminders and by Gateway, which serves `GET /calendar/shabbat` (Home) and
-`GET /calendar/month` itself; `notifications` stores browsers' Web Push subscriptions and the
+used by Reminders and by Gateway, which serves `GET /calendar/shabbat` and `GET /calendar/month`
+itself — no longer called by the app, which computes both on the phone from its own copy
+(`frontend/src/lib/jewish-calendar/`); `notifications` stores browsers' Web Push subscriptions and the
 Android app's FCM devices, and processes `notification-requested` jobs from Redis, sending each to
 every device the user has — through the browser's push service or FCM, end-to-end encrypted — and
 retrying the job for devices that weren't reached (see `notification-flow.md`). Gateway's WS
@@ -182,17 +183,17 @@ sequenceDiagram
     actor User
     participant App as Frontend (Home)
     participant GPS as Device location
-    participant Gateway
+    participant Lib as src/lib/jewish-calendar (on the phone)
 
     User->>App: open app
     App->>GPS: request permission + position (locate)
-    App->>Gateway: GET /calendar/shabbat?lat&lon (last known location, if cached)
+    App->>Lib: calendarService.getShabbat(last known location, if cached)
     GPS-->>App: { latitude, longitude }
-    App->>Gateway: GET /calendar/shabbat?lat&lon
-    Gateway->>Gateway: @app/jewish-calendar: today in Israel → Friday → city custom → @hebcal/core (Israel rules)
-    Gateway-->>App: { candleLighting, havdalah, parasha, holidays, isNow }
+    App->>Lib: calendarService.getShabbat(location)
+    Lib->>Lib: today in Israel → Friday → city custom → @hebcal/core (Israel rules)
+    Lib-->>App: { candleLighting, havdalah, parasha, holidays, isNow } (times as ISO strings)
     App->>App: countdown + "in progress" from the device clock
-    Note over App: after Havdalah passes → fetch again for next Shabbat
+    Note over App: after Havdalah passes → compute again for next Shabbat. No network.
 ```
 
 ## Flow: month on the Calendar tab
@@ -201,19 +202,19 @@ sequenceDiagram
 sequenceDiagram
     actor User
     participant App as Frontend (Calendar)
-    participant Gateway
+    participant Lib as src/lib/jewish-calendar (on the phone)
 
     User->>App: open Calendar tab
     opt no location asked for yet (opened straight to this tab)
         App->>App: locate
     end
-    App->>Gateway: GET /calendar/month?year&month&lat&lon (device's current month)
-    Gateway->>Gateway: @app/jewish-calendar: each day's Hebrew date, events, times
-    Gateway-->>App: { year, month, days }
+    App->>Lib: calendarService.getMonth(location, year, month) (device's current month)
+    Lib->>Lib: each day's Hebrew date, events, times
+    Lib-->>App: { year, month, days } (times as ISO strings)
     App->>App: MonthGrid
-    App->>Gateway: GET /calendar/month for the two months either side (preload)
+    App->>Lib: getMonth for the month either side (preload)
     User->>App: swipe, or ‹ ›
-    App->>Gateway: GET /calendar/month for any month within two of it not loaded yet
+    App->>Lib: getMonth for any month within two of it not loaded yet
     Note over App: months kept per place (~1 km), pruned to those near the month shown
 ```
 

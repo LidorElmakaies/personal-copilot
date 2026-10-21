@@ -20,7 +20,7 @@ export const fetchShabbat = createAsyncThunk(
 const placeOf = (coords) =>
   `${coords.latitude.toFixed(2)},${coords.longitude.toFixed(2)}`;
 // How many months either side of the one shown are fetched ahead, and kept.
-export const PRELOAD = 2;
+export const PRELOAD = 1;
 const KEEP = 6;
 
 // One Calendar-tab month. Skipped when it's already loaded or loading for this place, so the
@@ -53,7 +53,7 @@ export const fetchMonth = createAsyncThunk(
   },
 );
 
-// The month shown first, then the ones next to it, then two away — so a swipe lands on a month
+// The month shown first, then the one either side — so a swipe lands on a month
 // that's already there.
 export const loadMonthsAround =
   ({ year, month }) =>

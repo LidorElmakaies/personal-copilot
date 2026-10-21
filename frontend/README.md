@@ -61,7 +61,9 @@ adding one.
 Same Redux Toolkit + services-layer + Expo Router conventions otherwise: all I/O lives in a
 feature's `services/` or `src/shared/` — `device/` (on-device I/O: `expo-location`, push),
 `http/` (`httpClient`), `realtime/` (the Socket.IO client) — called only from thunks, never inline
-in a component.
+in a component. Shabbat times and the Calendar tab's months need no network: calendar's
+`calendarService` computes them from `src/lib/jewish-calendar/` (as JSON, the shape Gateway's
+`/calendar/*` answered), so Home and the Calendar tab work offline.
 
 ## Version
 

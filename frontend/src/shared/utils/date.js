@@ -16,7 +16,7 @@ export function israelClock(at) {
   return `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}`;
 }
 
-// Israel's date at `at`, YYYY-MM-DD — the form GET /calendar/month's `date` uses.
+// Israel's date at `at`, YYYY-MM-DD — the form a month's days' `date` uses.
 export const israelIsoDate = (at) => israelClock(at).slice(0, 10);
 
 // Months as one running number, so a swipe can count across year ends.
