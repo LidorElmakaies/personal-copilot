@@ -9,6 +9,8 @@ export interface IReminderRepository {
   findById(id: string): Promise<Reminder | null>;
   findByUserId(userId: string): Promise<Reminder[]>;
   findEnabled(): Promise<Reminder[]>;
+  /** Which of these ids still have a row (the sweep, for orphaned jobs). */
+  existingIds(ids: string[]): Promise<Set<string>>;
   setNextFireAt(id: string, nextFireAt: Date | null): Promise<void>;
   /** One row per user and type: inserts or overwrites it, enabled, with next_fire_at cleared. */
   upsertEnabled(

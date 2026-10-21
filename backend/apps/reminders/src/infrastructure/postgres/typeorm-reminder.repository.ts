@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import type {
   Reminder,
   ReminderSettings,
@@ -8,6 +8,9 @@ import type {
 } from '../../models/reminder';
 import type { IReminderRepository } from '../interfaces/reminder-repository.interface';
 import { ReminderEntity } from '../../entities/reminder.entity';
+
+// Ids come from queued jobs (unvalidated); one that isn't a uuid would fail the whole query.
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const toModel = (r: ReminderEntity): Reminder => ({
   id: r.id,
@@ -36,6 +39,16 @@ export class TypeOrmReminderRepository implements IReminderRepository {
 
   async findEnabled(): Promise<Reminder[]> {
     return (await this.repo.findBy({ enabled: true })).map(toModel);
+  }
+
+  async existingIds(ids: string[]): Promise<Set<string>> {
+    const valid = ids.filter((id) => UUID.test(id));
+    if (valid.length === 0) return new Set();
+    const rows = await this.repo.find({
+      select: { id: true },
+      where: { id: In(valid) },
+    });
+    return new Set(rows.map((r) => r.id));
   }
 
   async setNextFireAt(id: string, nextFireAt: Date | null): Promise<void> {

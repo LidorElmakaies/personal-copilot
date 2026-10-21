@@ -34,7 +34,7 @@ const IsAllowedPushEndpoint = () =>
     },
   });
 
-export class PushSubscriptionKeysDto {
+class PushSubscriptionKeysDto {
   @MaxLength(128)
   @DecodesToBytes(65)
   p256dh!: string;

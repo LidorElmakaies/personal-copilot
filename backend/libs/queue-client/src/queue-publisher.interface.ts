@@ -22,4 +22,11 @@ export interface IQueuePublisher {
   ): Promise<void>;
   /** Removes a waiting or delayed job by its `jobId`; a missing or running job is left alone. */
   remove(queue: string, jobId: string): Promise<void>;
+  /** Every delayed job in the queue: its id and data, unvalidated. */
+  delayed(queue: string): Promise<DelayedJob[]>;
+}
+
+export interface DelayedJob {
+  jobId: string;
+  data: unknown;
 }

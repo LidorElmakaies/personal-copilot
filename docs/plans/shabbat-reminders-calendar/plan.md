@@ -730,9 +730,12 @@ and a day card with that day's times.
     `sampleReminders.js` removed. e2e: add each kind and see it on the right days, edit, delete,
     "only this day" and "every time" for a repeating one,
     signed-out prompt, Hebrew yearly on its Hebrew date across Gregorian years.
-  - [ ] **3.6f On the phone + docs.** Each kind added on the phone fires as a notification at its
+  - [x] **3.6f On the phone + docs.** Each kind added on the phone fires as a notification at its
     time (app closed, screen off); docs: services.md, event-schemas.md (`reminder-due` for custom
     reminders), architecture.md, CLAUDE.md.
+    - 2026-10-21, Android phone: all six kinds (once, daily, monthly Gregorian/Hebrew, yearly
+      Gregorian/Hebrew) arrived as FCM notifications with the app swiped away and the screen off,
+      and each rescheduled correctly afterwards.
 - [x] **3.7 Israel only: the calendar and candle lighting** (after 3.6, before 3.4; decided
   2026-10-20). The app is for Israel only, so drop everything that exists for abroad. Today the
   time zone comes from the device with each location and picks the rules (`calendar-options.ts`:

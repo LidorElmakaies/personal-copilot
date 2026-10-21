@@ -1,12 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import type {
   CustomReminder,
   CustomReminderInput,
 } from '../../models/custom-reminder';
 import type { ICustomReminderRepository } from '../interfaces/custom-reminder-repository.interface';
 import { CustomReminderEntity } from '../../entities/custom-reminder.entity';
+
+// Ids come from queued jobs (unvalidated); one that isn't a uuid would fail the whole query.
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const toModel = (r: CustomReminderEntity): CustomReminder => ({
   id: r.id,
@@ -37,6 +40,16 @@ export class TypeOrmCustomReminderRepository implements ICustomReminderRepositor
 
   async findAll(): Promise<CustomReminder[]> {
     return (await this.repo.find()).map(toModel);
+  }
+
+  async existingIds(ids: string[]): Promise<Set<string>> {
+    const valid = ids.filter((id) => UUID.test(id));
+    if (valid.length === 0) return new Set();
+    const rows = await this.repo.find({
+      select: { id: true },
+      where: { id: In(valid) },
+    });
+    return new Set(rows.map((r) => r.id));
   }
 
   async findByUserId(userId: string): Promise<CustomReminder[]> {

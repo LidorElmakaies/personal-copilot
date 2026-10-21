@@ -30,7 +30,7 @@ const hebrewOf = (date) => {
   return new HDate(new Date(y, m - 1, d)); // hebcal reads local Y/M/D
 };
 
-export function ordinal(n) {
+function ordinal(n) {
   const suffix = ['th', 'st', 'nd', 'rd'];
   const v = n % 100;
   return n + (suffix[(v - 20) % 10] || suffix[v] || suffix[0]);

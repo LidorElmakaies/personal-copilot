@@ -24,7 +24,7 @@ import {
 } from '@opentelemetry/semantic-conventions';
 
 /** Where the OTel Collector lives inside the compose network when nothing overrides it. */
-export const DEFAULT_OTLP_ENDPOINT = 'http://otel-collector:4317';
+const DEFAULT_OTLP_ENDPOINT = 'http://otel-collector:4317';
 
 let sdk: NodeSDK | undefined;
 let startedServiceName: string | undefined;

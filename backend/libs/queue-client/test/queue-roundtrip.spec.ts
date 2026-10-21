@@ -176,4 +176,22 @@ maybe('publisher → Redis → consumer (real BullMQ)', () => {
       await rescuer.close();
     }
   }, 20_000);
+
+  it('lists every delayed job, past one page, and none that are due', async () => {
+    const queue = `it-${randomUUID()}`;
+    publisher = new BullmqQueuePublisher(config);
+    for (let n = 0; n < 501; n++) {
+      await publisher.publish(
+        queue,
+        { n },
+        { jobId: `job-${n}`, delayMs: 60_000 },
+      );
+    }
+    await publisher.publish(queue, { n: -1 }, { jobId: 'now' });
+
+    const jobs = await publisher.delayed(queue);
+    expect(jobs).toHaveLength(501);
+    expect(jobs.map((j) => j.jobId)).not.toContain('now');
+    expect(jobs).toContainEqual({ jobId: 'job-500', data: { n: 500 } });
+  }, 20_000);
 });

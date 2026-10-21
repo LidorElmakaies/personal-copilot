@@ -22,12 +22,14 @@ with `EXPO_PUBLIC_GATEWAY_ORIGIN` pointing at the PC's tailnet IP. Browser tests
 Matches the sibling project it's modeled on (`ask-my-crawl`) for theme/component conventions — the
 same theme pipeline (`themeSlice` → `useAppTheme()`; `AmbientBackground` cross-fades its two
 backdrops in 600ms on a switch), minus the Gluestack layer underneath `ask-my-crawl`'s own pipeline — nothing here
-renders an actual Gluestack component, so it wasn't carried over. The current look (space/glow/
+renders an actual Gluestack component, so it isn't here. `src/theme/colors.js` holds the two
+static palettes (dark: indigo/violet space theme; light: indigo/teal). The current look (space/glow/
 gradient) is a known stepping-stone, expected to be replaced by a different, more animated style
 later — keep it internally consistent until then rather than treating it as a fixed brand.
 
-`src/components/` splits into `base/` (primitives, grouped into subfolders by purpose:
-`background/` — `Meteors`, `Stars`; `buttons/` — `FloatingButton`, `GradientButton`, `PillButton`; `feedback/` —
+`src/components/` splits into `base/` (building blocks that use no other component — not UI-only, e.g. `AuthLinks` navigates —
+grouped into subfolders by purpose:
+`background/` — `Meteors`, `Stars`; `buttons/` — `AuthLinks`, `FloatingButton`, `GradientButton`, `PillButton`; `feedback/` —
 `Alert`, `VersionInfo`; `form/` — `InputField`, `SelectField`, `Stepper`, `Switch`; `layout/` —
 `BottomSheet`, `GlowCard`, `Row`, `SwipePager`, `TabPager`) and `composite/` (built from one or more base/composite
 components — `AmbientBackground`, `CandleReminder`, `ConfirmModal`, `CustomReminderSheet`, `DayCard`,

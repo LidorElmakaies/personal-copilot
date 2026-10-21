@@ -13,6 +13,7 @@ import { RemindersController } from './api/controllers/reminders.controller';
 import { ReminderSweeper } from './api/schedulers/reminder-sweeper';
 import { CustomReminderScheduler } from './application/custom-reminder-scheduler.service';
 import { CustomReminderService } from './application/custom-reminder.service';
+import { ReminderJobCleaner } from './application/reminder-job-cleaner.service';
 import { ReminderScheduler } from './application/reminder-scheduler.service';
 import { ReminderService } from './application/reminder.service';
 import { CustomReminderEntity } from './entities/custom-reminder.entity';
@@ -30,6 +31,7 @@ import {
   EVENT_CONSUMER,
   QUEUE_CONSUMER,
   QUEUE_PUBLISHER,
+  REMINDER_JOB_CLEANER,
   REMINDER_OCCURRENCES,
   REMINDER_REPOSITORY,
   REMINDER_SCHEDULER,
@@ -77,6 +79,7 @@ const ENTITIES = [
     { provide: SHABBAT_CALENDAR, useValue: new ShabbatCalendar() },
     { provide: CUSTOM_REMINDER_SERVICE, useClass: CustomReminderService },
     { provide: CUSTOM_REMINDER_SCHEDULER, useClass: CustomReminderScheduler },
+    { provide: REMINDER_JOB_CLEANER, useClass: ReminderJobCleaner },
     {
       provide: CUSTOM_REMINDER_REPOSITORY,
       useClass: TypeOrmCustomReminderRepository,

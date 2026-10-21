@@ -5,16 +5,19 @@ import {
   OnApplicationBootstrap,
   OnModuleDestroy,
 } from '@nestjs/common';
-import { CUSTOM_REMINDER_SCHEDULER, REMINDER_SCHEDULER } from '../../tokens';
+import {
+  CUSTOM_REMINDER_SCHEDULER,
+  REMINDER_JOB_CLEANER,
+  REMINDER_SCHEDULER,
+} from '../../tokens';
 import type { ICustomReminderScheduler } from '../../application/interfaces/custom-reminder-scheduler.interface';
+import type { IReminderJobCleaner } from '../../application/interfaces/reminder-job-cleaner.interface';
 import type { IReminderScheduler } from '../../application/interfaces/reminder-scheduler.interface';
 
 export const SWEEP_INTERVAL_MS = 15 * 60_000;
 
-// Clock entry point: at startup and every 15 min, makes Redis match the database — every enabled
-// candle-lighting reminder and every custom one gets exactly its job (idempotent: same job ids).
-// The safety net behind the immediate rescheduling on save, profile change and firing; whatever
-// failed there is fixed by the next sweep.
+// Clock entry point: at startup and every 15 min, queues every reminder's next job (same job ids, so
+// idempotent) and removes deleted reminders' jobs — the safety net, see docs/specs/services.md#reminders.
 @Injectable()
 export class ReminderSweeper
   implements OnApplicationBootstrap, OnModuleDestroy
@@ -27,6 +30,8 @@ export class ReminderSweeper
     @Inject(REMINDER_SCHEDULER) private readonly scheduler: IReminderScheduler,
     @Inject(CUSTOM_REMINDER_SCHEDULER)
     private readonly custom: ICustomReminderScheduler,
+    @Inject(REMINDER_JOB_CLEANER)
+    private readonly cleaner: IReminderJobCleaner,
   ) {}
 
   onApplicationBootstrap(): void {
@@ -50,6 +55,10 @@ export class ReminderSweeper
         this.logger.warn(
           `${failed} reminder(s) not scheduled; next sweep in 15 min`,
         );
+      }
+      const removed = await this.cleaner.removeOrphans();
+      if (removed > 0) {
+        this.logger.log(`Removed ${removed} job(s) of deleted reminders`);
       }
     } catch (err) {
       this.logger.warn(`Sweep failed: ${String(err)}`);

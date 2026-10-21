@@ -12,15 +12,17 @@ import { EMPTY_PROFILE_DETAILS } from '../../users/src/models/profile';
 import { CustomReminderEntity } from '../src/entities/custom-reminder.entity';
 import { ReminderEntity } from '../src/entities/reminder.entity';
 import { TypeOrmCustomReminderRepository } from '../src/infrastructure/postgres/typeorm-custom-reminder.repository';
+import { TypeOrmReminderRepository } from '../src/infrastructure/postgres/typeorm-reminder.repository';
 import { UsersProfileEntity, UsersUserEntity } from '@app/users-schema';
 import { TypeOrmUserLocationReader } from '../src/infrastructure/postgres/typeorm-user-location.reader';
 
 // Opt-in: needs a real Postgres. Builds the shared layout (users/reminders/notifications schemas,
 // each service syncing only its own) in a throwaway database, dropped afterwards. The stack's
-// Postgres isn't published to the host, so from backend/, on its Docker network:
-//   docker run --rm --network devops_personal-copilot -v "$PWD":/app -w /app \
-//     -e SHARED_DB_IT_URL=postgres://postgres:postgres@postgres:5432/postgres \
-//     node:22-alpine npx jest shared-database.it
+// Postgres isn't published to the host, so from backend/, on its Docker network, with the
+// container's own node_modules (jest's resolver is native — a Windows install has no Linux build):
+//   docker run --rm --network devops_personal-copilot -v "$PWD":/app -v /app/node_modules -w /app \
+//     -e SHARED_DB_IT_URL=postgres://postgres:postgres@postgres:5432/postgres node:22-alpine \
+//     sh -c 'npm ci --no-audit --no-fund && node node_modules/jest/bin/jest.js shared-database.it'
 const adminUrl = process.env.SHARED_DB_IT_URL;
 const maybe = adminUrl ? describe : describe.skip;
 
@@ -144,6 +146,42 @@ maybe('one database, a schema per service (real Postgres)', () => {
     } finally {
       process.env.TZ = original;
     }
+  });
+
+  it('existingIds: only ids that still have a row, after an account is deleted, junk ignored', async () => {
+    const [gone, kept] = [await newUser(), await newUser()];
+    const candles = new TypeOrmReminderRepository(
+      remindersDs.getRepository(ReminderEntity),
+    );
+    const custom = new TypeOrmCustomReminderRepository(
+      remindersDs.getRepository(CustomReminderEntity),
+    );
+    const input = {
+      title: 'Call Grandma',
+      hour: 8,
+      minute: 0,
+      repeat: 'daily' as const,
+      calendar: 'gregorian' as const,
+      start: '2026-10-21',
+    };
+    const goneCandle = await candles.upsertEnabled(gone.id, 'shabbat_candles', {
+      offsetMinutes: 30,
+    });
+    const keptCandle = await candles.upsertEnabled(kept.id, 'shabbat_candles', {
+      offsetMinutes: 30,
+    });
+    const goneCustom = await custom.create(gone.id, input);
+    const keptCustom = await custom.create(kept.id, input);
+
+    await users().delete(gone.id);
+
+    expect(
+      await candles.existingIds([goneCandle.id, keptCandle.id, 'not-a-uuid']),
+    ).toEqual(new Set([keptCandle.id]));
+    expect(
+      await custom.existingIds([goneCustom.id, keptCustom.id, 'not-a-uuid']),
+    ).toEqual(new Set([keptCustom.id]));
+    expect(await custom.existingIds([])).toEqual(new Set());
   });
 
   it('Reminders reads the location straight from users.profiles', async () => {

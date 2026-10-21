@@ -11,10 +11,11 @@ import { EmailTakenError } from '../src/infrastructure/interfaces/user-repositor
 import { EMPTY_PROFILE_DETAILS } from '../src/models/profile';
 
 // Opt-in: needs a real Postgres. Runs in its own throwaway schema, dropped afterwards. The stack's
-// Postgres isn't published to the host, so from backend/, on its Docker network:
-//   docker run --rm --network devops_personal-copilot -v "$PWD":/app -w /app \
-//     -e USERS_IT_DATABASE_URL=postgres://postgres:postgres@postgres:5432/personal_copilot \
-//     node:22-alpine npx jest typeorm-repositories.it
+// Postgres isn't published to the host, so from backend/, on its Docker network, with the
+// container's own node_modules (jest's resolver is native — a Windows install has no Linux build):
+//   docker run --rm --network devops_personal-copilot -v "$PWD":/app -v /app/node_modules -w /app \
+//     -e USERS_IT_DATABASE_URL=postgres://postgres:postgres@postgres:5432/personal_copilot node:22-alpine \
+//     sh -c 'npm ci --no-audit --no-fund && node node_modules/jest/bin/jest.js typeorm-repositories.it'
 const url = process.env.USERS_IT_DATABASE_URL;
 const maybe = url ? describe : describe.skip;
 

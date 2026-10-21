@@ -1,21 +1,15 @@
 import { useState } from 'react';
-import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import { useRouter } from 'expo-router';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import AmbientBackground from '../../src/components/composite/AmbientBackground';
+import AuthLinks from '../../src/components/base/buttons/AuthLinks';
 import Alert from '../../src/components/base/feedback/Alert';
 import GlowCard from '../../src/components/base/layout/GlowCard';
 import GradientButton from '../../src/components/base/buttons/GradientButton';
 import InputField from '../../src/components/base/form/InputField';
 import ProfileFields from '../../src/components/composite/ProfileFields';
 import { useAppTheme } from '../../src/hooks/useAppTheme';
-import { clearAuthError, registerUser } from '../../src/store/slices/authSlice';
+import { registerUser } from '../../src/store/slices/authSlice';
 import {
   DEFAULT_PHONE_COUNTRY,
   phoneError,
@@ -38,7 +32,6 @@ export default function RegisterScreen() {
   });
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const dispatch = useDispatch();
-  const router = useRouter();
   const { status, error } = useSelector((state) => state.auth);
   const { colors } = useAppTheme();
 
@@ -132,29 +125,11 @@ export default function RegisterScreen() {
           <Alert variant="error">{error}</Alert>
         ) : null}
 
-        <TouchableOpacity
-          onPress={() => {
-            dispatch(clearAuthError());
-            router.push('/login');
-          }}
-          style={styles.switchLink}
-        >
-          <Text style={[styles.switchText, { color: colors.textMuted }]}>
-            Already have an account?{' '}
-            <Text style={[styles.switchTextBold, { color: colors.primary }]}>
-              Log in
-            </Text>
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={() => router.push('/')}
-          style={styles.switchLink}
-        >
-          <Text style={[styles.switchText, { color: colors.textMuted }]}>
-            Continue without logging in
-          </Text>
-        </TouchableOpacity>
+        <AuthLinks
+          prompt="Already have an account?"
+          linkLabel="Log in"
+          href="/login"
+        />
       </ScrollView>
     </AmbientBackground>
   );
@@ -174,7 +149,4 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   submit: { marginTop: 0 },
-  switchLink: { alignItems: 'center', paddingVertical: 8 },
-  switchText: { fontSize: 14, textAlign: 'center' },
-  switchTextBold: { fontWeight: '700' },
 });

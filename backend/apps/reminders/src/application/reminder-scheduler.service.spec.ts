@@ -78,6 +78,7 @@ describe('ReminderScheduler', () => {
       expect.objectContaining({
         runAt: fireAt.getTime(),
         data: {
+          kind: 'shabbat_candles',
           reminderId: saved.id,
           fireAt: fireAt.toISOString(),
           candleLighting: CANDLES_1.toISOString(),

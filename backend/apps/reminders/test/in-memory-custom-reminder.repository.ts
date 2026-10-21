@@ -18,6 +18,11 @@ export class InMemoryCustomReminderRepository implements ICustomReminderReposito
     return Promise.resolve([...this.rows.values()].map((r) => this.copy(r)));
   }
 
+  existingIds(ids: string[]): Promise<Set<string>> {
+    const have = new Set([...this.rows.values()].map((r) => r.id));
+    return Promise.resolve(new Set(ids.filter((id) => have.has(id))));
+  }
+
   findByUserId(userId: string): Promise<CustomReminder[]> {
     return Promise.resolve(
       [...this.rows.values()]

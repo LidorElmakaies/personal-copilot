@@ -1,4 +1,8 @@
-import type { IQueuePublisher, PublishOptions } from '@app/queue-client';
+import type {
+  DelayedJob,
+  IQueuePublisher,
+  PublishOptions,
+} from '@app/queue-client';
 import {
   QUEUES,
   type NotificationRequestedMessage,
@@ -47,6 +51,15 @@ export class FakeQueue<
   remove(_queue: string, jobId: string): Promise<void> {
     if (!this.jobs.get(jobId)?.done) this.jobs.delete(jobId);
     return Promise.resolve();
+  }
+
+  delayed(queue: string): Promise<DelayedJob[]> {
+    const now = Date.now();
+    return Promise.resolve(
+      [...this.jobs]
+        .filter(([, j]) => j.queue === queue && !j.done && j.runAt > now)
+        .map(([jobId, j]) => ({ jobId, data: j.data })),
+    );
   }
 
   pending(): Array<{ id: string; runAt: number; data: M }> {

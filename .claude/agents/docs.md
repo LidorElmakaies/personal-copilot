@@ -78,7 +78,7 @@ one, plus that each path and link a doc names exists and that nothing outside
   Postgres instance, any external API a feature integrates with, the frontend, and the Tailscale
   boundary. This is the single "how does it all fit together" page — keep it one diagram, not one
   per service.
-- **One sequence diagram per real end-to-end flow** (`sequenceDiagram`) — register/login today; add
+- **One sequence diagram per real end-to-end flow** (`sequenceDiagram`) — add
   one for each new flow as it ships. A flow gets a diagram once it's real and working, not while
   it's still being designed.
 - When a service, topic, or flow changes shape, update the diagram in the same pass as the prose —

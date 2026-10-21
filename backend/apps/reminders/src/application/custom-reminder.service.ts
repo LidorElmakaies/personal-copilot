@@ -33,8 +33,8 @@ import type { ICustomReminderService } from './interfaces/custom-reminder-servic
 /** Enough for a calendar month and two either side, with room to spare. */
 export const MAX_RANGE_DAYS = 400;
 export const MAX_REMINDERS_PER_USER = 300;
-export const MAX_SKIPPED_DATES = 500;
-export const PREVIEW_COUNT = 3;
+const MAX_SKIPPED_DATES = 500;
+const PREVIEW_COUNT = 3;
 
 @Injectable()
 export class CustomReminderService implements ICustomReminderService {

@@ -7,8 +7,9 @@ behind this.
 - **`backend/.env`** (gitignored) — the same file every backend app also reads for local
   (non-Docker) dev. Supplied to every backend container as `common.yml`'s base `env_file:` (`redis` and `kafka` reset it
   with `env_file: !reset []` — a third-party image has no use for app secrets). See
-  [docs/gateway/environment.md](../gateway/environment.md) and
-  [docs/users/environment.md](../users/environment.md) for what's in it.
+  each app's page — [gateway](../gateway/environment.md), [users](../users/environment.md),
+  [reminders](../reminders/environment.md), [notifications](../notifications/environment.md) — and
+  [docs/backend/environment.md](../backend/environment.md) for what's in it.
 - **`devops/docker.env`** (checked into git — no secrets) — container-network overrides layered on
   top of `backend/.env` via each service's own `env_file:` list: `DATABASE_URL`
   (every service — one database, a schema each), `REDIS_URL` (Redis, which also

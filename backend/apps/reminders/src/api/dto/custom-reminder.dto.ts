@@ -18,9 +18,9 @@ import type {
 } from '../../models/custom-reminder';
 
 /** English or Hebrew letters, digits and basic punctuation, single spaces between words. */
-export const TITLE_PATTERN =
+const TITLE_PATTERN =
   /^[A-Za-zא-ת0-9.,'!?:()"&/-]+(?: [A-Za-zא-ת0-9.,'!?:()"&/-]+)*$/;
-export const TITLE_MAX_LENGTH = 60;
+const TITLE_MAX_LENGTH = 60;
 const REPEATS = ['once', 'daily', 'monthly', 'yearly'] as const;
 const CALENDARS = ['gregorian', 'hebrew'] as const;
 type Repeat = (typeof REPEATS)[number];
@@ -102,7 +102,7 @@ export class SkipDto extends ShowingRange {
 }
 
 /** The client-facing shape: no user id. */
-export const toCustomReminderResponse = (r: CustomReminder) => ({
+const toCustomReminderResponse = (r: CustomReminder) => ({
   id: r.id,
   title: r.title,
   hour: r.hour,

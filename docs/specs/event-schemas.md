@@ -78,7 +78,7 @@ Service; the reminder's row (`reminders` or `custom_reminders`) stays the source
 type ReminderDueMessage = CandleLightingDueMessage | CustomReminderDueMessage;
 
 interface CandleLightingDueMessage {
-  kind?: 'shabbat_candles'; // absent on jobs queued before `kind` existed
+  kind?: 'shabbat_candles'; // optional only for jobs queued before it was set
   reminderId: string;
   fireAt: string;           // ISO 8601: candle lighting − offset; must still equal the row's next_fire_at
   candleLighting: string;   // ISO 8601: the notification's expiresAt
@@ -97,14 +97,15 @@ interface CustomReminderDueMessage {
   the old job is removed and a new one added.
 - Candle lighting, when it runs: nothing if the reminder is gone (account deleted), off, or its
   `next_fire_at` no longer equals `fireAt` (moved since). Otherwise it publishes
-  `notification-requested` (`notificationId = reminder-<reminderId>-<candleLighting ms>`, body
-  `Candle lighting is at HH:MM (in …).` in Israel time, `expiresAt` = candle lighting; skipped if candle lighting already passed) and queues the
+  `notification-requested` (`notificationId = reminder-<reminderId>-<candleLighting ms>`, title
+  `Shabbat candle lighting`, body `Candle lighting is at HH:MM (in …).` in Israel time, `url` `/`,
+  `expiresAt` = candle lighting; skipped if candle lighting already passed) and queues the
   following week's job.
 - Custom, when it runs: nothing if the reminder is gone or its `next_fire_at` no longer equals
   `fireAt`. Otherwise it publishes `notification-requested` (`notificationId =
   custom-reminder-<reminderId>-<fireAt ms>`, title = the reminder's title, body `Your reminder for
   HH:MM.` in Israel time, `url` `/calendar`, `expiresAt` = `fireAt` + 1 h; skipped if that
-  has passed) and queues the next occurrence after the later of `fireAt` and now — none for a
+  has passed, so a firing more than an hour late sends nothing) and queues the next occurrence after the later of `fireAt` and now — none for a
   finished once-reminder (`next_fire_at` → `null`). See
   [services.md](services.md#reminders).
 - A retry repeats both steps safely — each is deduplicated.
@@ -120,7 +121,7 @@ by `devops/kafka`'s `kafka-init` (auto-create is off). The table below, `KAFKA_T
 
 | Topic | Publisher | Consumers (group) | Notes |
 |---|---|---|---|
-| `users.user-state` | Users (register, `PATCH /users/me`, `PUT /users/me/location`) | Reminders (`reminders`: reschedule candle lighting on a change) | compacted; tombstone on delete |
+| `users.user-state` | Users (register, `PATCH /users/me`, `PUT /users/me/location`, account deletion) | Reminders (`reminders`: reschedule candle lighting on a change) | compacted; tombstone on delete |
 | `frontend.releases` | `devops/android/apk.js publish` (when the newest release changes) | Gateway (`gateway`: `app-update` over `/ws`) | compacted, keyed by platform |
 
 Event rules:

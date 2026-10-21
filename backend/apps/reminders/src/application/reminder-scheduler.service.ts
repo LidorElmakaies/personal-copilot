@@ -128,6 +128,7 @@ export class ReminderScheduler implements IReminderScheduler {
     }
     if (next) {
       const message: CandleLightingDueMessage = {
+        kind: 'shabbat_candles',
         reminderId: reminder.id,
         fireAt: next.fireAt.toISOString(),
         candleLighting: next.candleLighting.toISOString(),
@@ -184,7 +185,7 @@ export class ReminderScheduler implements IReminderScheduler {
 }
 
 /** 90 → "1 h 30 min", 120 → "2 h", 45 → "45 min". */
-export function formatMinutes(total: number): string {
+function formatMinutes(total: number): string {
   const h = Math.floor(total / 60);
   const m = total % 60;
   if (h === 0) return `${m} min`;

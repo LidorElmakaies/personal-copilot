@@ -6,6 +6,7 @@ export const REMINDER_SCHEDULER = Symbol('IReminderScheduler');
 export const CUSTOM_REMINDER_SERVICE = Symbol('ICustomReminderService');
 export const CUSTOM_REMINDER_SCHEDULER = Symbol('ICustomReminderScheduler');
 export const CUSTOM_REMINDER_REPOSITORY = Symbol('ICustomReminderRepository');
+export const REMINDER_JOB_CLEANER = Symbol('IReminderJobCleaner');
 export const REMINDER_OCCURRENCES = Symbol('IReminderOccurrences');
 export const CANDLE_LIGHTING_SOURCE = Symbol('ICandleLightingSource');
 export const SHABBAT_CALENDAR = Symbol('IShabbatCalendar');

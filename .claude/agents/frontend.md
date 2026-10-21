@@ -63,8 +63,7 @@ token, for anything role-dependent; an effect that loads the user's data keys on
 
 Unlike `ask-my-crawl`, there's no Gluestack layer here: nothing in this app renders an actual
 Gluestack component (its own ThemeProvider only feeds Gluestack a `colorMode` that nothing
-reads), so it was left out rather than carried over as inert plumbing. Touch only the layer you
-need:
+reads). Touch only the layer you need:
 
 1. **Redux state** (`themeSlice`): `mode = null | 'light' | 'dark'`. `null` means follow system.
 2. **Derivation** (`useAppTheme`): resolves `isDark`, returns `colors` palette and `colorMode`
@@ -84,14 +83,15 @@ resolved palette can't express.)
 Favor small, composable components over duplicating UI per screen. `src/components/` splits into
 two folders:
 
-- **`base/`** — primitives that don't import any other component from `src/components/`; they only
-  use React Native primitives, Reanimated, `expo-blur`/`expo-linear-gradient`, and
-  `useAppTheme()`/hooks. Grouped into subfolders by purpose: `background/` (`Meteors`, `Stars` —
+- **`base/`** — the building blocks: components that don't import any other component from
+  `src/components/`. Not UI-only — a base component may carry its own logic (dispatch, navigate);
+  `AuthLinks` is a link button between pages. Grouped into subfolders by purpose: `background/` (`Meteors`, `Stars` —
   animated background-effect primitives; `paused` stops them, `AmbientBackground` sets it while
-  its screen isn't focused), `buttons/` (`FloatingButton`, `GradientButton`, `PillButton`), `feedback/`
+  its screen isn't focused), `buttons/` (`AuthLinks`, `FloatingButton`, `GradientButton`, `PillButton`), `feedback/`
   (`Alert`, `VersionInfo` — status/feedback indicators), `form/` (`InputField`, `SelectField`, `Stepper`,
   `Switch` — form input controls), `layout/` (`BottomSheet`, `GlowCard`, `Row`, `SwipePager`, `TabPager` — layout/surface
-  primitives). Props worth knowing: `FloatingButton`'s `icon` (Ionicons name, default `add`) — the
+  primitives). Props worth knowing: `AuthLinks`' `prompt`/`linkLabel`/`href` (login's and
+  register's link to the other screen, plus "Continue without logging in"); `FloatingButton`'s `icon` (Ionicons name, default `add`) — the
   caller positions it via `style` (`position: 'absolute'` and its corner);
   `Alert`'s `variant` (`error` default, `warning`, `success`); `Switch`'s `disabled` and
   `accessibilityLabel` (rendered with role `switch`); `GlowCard`'s `solid` (opaque panel under the
@@ -278,13 +278,14 @@ Driving tips:
   everything below jumped — keep the page in view in normal layout instead.
 - **Many always-running animations: not Reanimated.** ~100 stars × 2 endless `withRepeat` loops
   ran a worklet per animation per frame on the UI thread — ~90% of the app's CPU on a 120 Hz phone
-  (110%+ of a core; 8% with them still). `Stars`/`Meteors` now use RN `Animated` with
+  (110%+ of a core; 8% with them still). `Stars`/`Meteors` use RN `Animated` with
   `useNativeDriver` on the phone (no per-frame JS) and CSS keyframes (`animationKeyframes`,
   `StyleSheet.create` only) on the web, where `Animated` falls back to JS. A native loop repeats
   only its frames — a JS `delay` inside it runs once — so a loop with an idle wait is a
   `sequence`. Hidden tabs stay mounted: pause decorative loops when the screen isn't focused, and
   `memo` them so a parent's per-second re-render doesn't reach them. Measure on the phone
-  (`adb shell top`, `dumpsys gfxinfo`), not by eye. (e.g. a `boxShadow`'s
+  (`adb shell top`, `dumpsys gfxinfo`), not by eye.
+- **Round numbers interpolated into a style string inside a worklet** (e.g. a `boxShadow`'s
   opacity/radius). Near the end of an animation they reach values like `2.8e-8`, which stringify
   in exponent form — an invalid color that crashes Reanimated on Android.
 - **Toggle a style prop's value, not its presence, on Android.** A `borderWidth` added after mount

@@ -4,9 +4,11 @@ This file provides guidance to Claude Code when working with code in this reposi
 
 ## What this project is
 
-**personal-copilot**: a NestJS + Expo app — Gateway, a Postgres-backed Users Service (login + profiles), a Reminders
-Service (candle-lighting reminders), a Notification Service (Web Push), full OTel observability, and a frontend with optional login. The first feature is being
-built in stages from [`docs/plans/shabbat-reminders-calendar/plan.md`](docs/plans/shabbat-reminders-calendar/plan.md)
+**personal-copilot**: a NestJS + Expo app — Gateway, a Postgres-backed Users Service (login +
+profiles), a Reminders Service (candle-lighting reminders and the user's own reminders), a
+Notification Service (Web Push + FCM), full OTel observability, and a frontend with optional login.
+The first feature is being built in stages from
+[`docs/plans/shabbat-reminders-calendar/plan.md`](docs/plans/shabbat-reminders-calendar/plan.md)
 (Shabbat times on Home → per-user candle-lighting reminders → a Jewish-calendar tab); read that
 plan and its design pages (`architecture.html`, `mockups.html`) before working on the feature.
 Progress lives in that plan's checkboxes; "What's implemented" below is what exists now. Work the
@@ -16,24 +18,23 @@ Hosted on the user's personal PC, reachable from their phone via **Tailscale** �
 only backend service published to the host (`frontend` also has its own published port — it's a
 static web export, not a backend service, see "Key constraints" below). `tailscale serve`
 (`devops/tailscale/serve.js`) puts both behind HTTPS on the PC's `*.ts.net` name, which phone
-browsers require for GPS. A second, optional
-deployment path also exists in code (not yet live infra): `frontend` built and run standalone on a
-Hetzner VPS behind Caddy, reaching `gateway` back on the home machine over an SSH reverse tunnel —
-see `docs/specs/architecture.md`'s "System topology" and "SSH reverse-tunnel hardening" sections.
-Tailscale remains the primary access path either way.
+browsers require for GPS. A second, optional deployment path also exists in code (not yet live
+infra): `frontend` built and run standalone on a Hetzner VPS behind Caddy, reaching `gateway` back
+on the home machine over an SSH reverse tunnel — see `docs/specs/architecture.md`'s "System
+topology" and "SSH reverse-tunnel hardening" sections. Tailscale remains the primary access path
+either way.
 
 **Deliberately bootstrapped to match a sibling project's conventions** — `ask-my-crawl`, a separate
-repo not checked out on this machine — same NestJS Nest-CLI monorepo shape, same clean/hexagonal layering, same
-Gateway/auth-service split (here the Users Service) with a shared `auth-kernel` lib, same `devops/<service>/docker-
-compose.yml` structure, same `.claude/agents`/`.claude/memory` setup, and the same frontend
-theme/component conventions (see the Architecture section's Frontend paragraph). Deliberately
-simpler where this project's actual shape allows it: `UserRole` is `'user' | 'admin'`, and the only
-admin is a one-time seeded account that uses the app like any user plus an Admin tab of service
-status (`AdminGuard` on `GET /admin/status`) — see `docs/specs/services.md#users`; no Gluestack
-dependency on the frontend (the theme pipeline is ported, the unused Gluestack layer underneath it
-isn't — see `frontend/README.md`). The current
-look (space/glow/gradient) is a known stepping-stone, not a final design — expect it to be replaced
-by a different, more animated style later.
+repo not checked out on this machine — same NestJS Nest-CLI monorepo shape, same clean/hexagonal
+layering, same Gateway/auth-service split (here the Users Service) with a shared `auth-kernel` lib,
+same `devops/<service>/docker-compose.yml` structure, same `.claude/agents`/`.claude/memory` setup,
+and the same frontend theme/component conventions (see the Architecture section's Frontend
+paragraph). Deliberately simpler where this project's actual shape allows it: `UserRole` is
+`'user' | 'admin'`, and the only admin is a one-time seeded account that uses the app like any user
+plus an Admin tab of service status (`AdminGuard` on `GET /admin/status`) — see
+`docs/specs/services.md#users`; no Gluestack dependency on the frontend (see `frontend/README.md`).
+The current look (space/glow/gradient) is a known stepping-stone, not a final design — expect it to
+be replaced by a different, more animated style later.
 
 Five agent personas exist for working this repo:
 `.claude/agents/{backend,devops,frontend,testing,docs}.md`. `docs` is the one to hand off to when a
@@ -62,24 +63,17 @@ never touches git (it prints the tag to add after the commit, per component: `ga
 "Gateway: minor (new route), frontend: patch?"). Never bump without the answer.
 A change to a shared `backend/libs/` library bumps each service that uses it. Changes to docs,
 plans, tests or agent files only don't bump anything; a `devops/` change that alters how a service
-runs is a patch for that service. Each backend image bakes in only its own version and its build
-time, reported on its internal `/health` (Users, Reminders, Notifications; Gateway has no `/health`
-and its public routes never expose versions); the frontend image bakes in its own version
-and shows it on the Account tab. Applies to every agent in `.claude/agents/` too.
+runs is a patch for that service. Where each version is baked in and shown:
+`docs/specs/services.md#versions`. Applies to every agent in `.claude/agents/` too.
 
 ## Repo layout
 
 ```
-backend/                 NestJS monorepo — apps/{gateway,users,reminders,notifications}
-                          + libs/{auth-kernel,otel,queue-client,queue-contracts,
-                          kafka-client,kafka-contracts,users-schema,
-                          jewish-calendar,build-info}
-frontend/                 Expo/React Native app — login/register (optional, not gated app-wide), a
-                          Home tab (clock + Shabbat times + candle-lighting reminder), a
-                          Calendar tab (Jewish-calendar month), an auth-gated Account tab and an admins-only Admin tab; the Android APK's
-                          in-app update;
-                          public/sw.js is the Web Push service worker;
-                          public/manifest.webmanifest + index.html make it installable;
+backend/                  NestJS monorepo — apps/{gateway,users,reminders,notifications}
+                          + libs/{auth-kernel,build-info,jewish-calendar,kafka-client,
+                          kafka-contracts,otel,queue-client,queue-contracts,users-schema}
+frontend/                 Expo/React Native app (web export + Android APK);
+                          public/ holds the Web Push service worker and the web manifest;
                           e2e/ holds the containerized Playwright tests
 devops/                   docker-compose.yml (app stack: services + shared postgres/redis/kafka)
                           + android/ (the APK builder image + apk.js: build/publish)
@@ -88,6 +82,7 @@ devops/                   docker-compose.yml (app stack: services + shared postg
 docs/specs/               services.md, event-schemas.md (Kafka events, queue jobs), notification-flow.md,
                           architecture.md (Mermaid diagrams) —
                           source of truth for how it's wired
+docs/<service>/           environment.md — every variable each service reads
 docs/plans/               staged feature plans + their HTML design pages
 version/versions.json     every version (one per component) — see "Versions" above
 scripts/version.js        the only way to bump them (Node, + version.test.js)
@@ -96,212 +91,57 @@ scripts/docs-check.js     docs drift check (+ docs-check.test.js) — see Comman
 
 ## What's implemented
 
+Each service's contract is in [`docs/specs/services.md`](docs/specs/services.md), queue jobs and
+Kafka events in [`docs/specs/event-schemas.md`](docs/specs/event-schemas.md), diagrams in
+[`docs/specs/architecture.md`](docs/specs/architecture.md) and
+[`docs/specs/notification-flow.md`](docs/specs/notification-flow.md).
+
 - **gateway** (`backend/apps/gateway`) — HTTP + WS, the only backend service reachable from outside
-  the Docker network. Rate-limited globally (`@nestjs/throttler`, `THROTTLE_TTL_MS`/
-  `THROTTLE_LIMIT`, default 60s/100req) plus a tighter per-route limit on `/auth/register`,
-  `/auth/login`, `/auth/refresh`, `/auth/account`, `/realtime/device`
-  (`AUTH_THROTTLE_TTL_MS`/`AUTH_THROTTLE_LIMIT`, default 60s/5req); every other route stays on the
-  global default (`/auth/logout` and the signed-in routes need a valid token already). Five
-  feature modules:
-  - `src/proxy/` — every route forwarded to an internal service, one row each in
-    `PROXY_ROUTES` (`proxy.routes.ts`): method, path (the same on the service; `:param`s filled in
-    URL-encoded, a `GET`'s query passed on), target service,
-    `auth: 'user'` (`JwtAuthGuard`, user id forwarded as `X-User-Id`) or `'none'`, and
-    `throttle: 'strict'`. `ProxyController` makes each row a real Nest route (unlisted → `404`,
-    never a wildcard); `ProxyService` sends it through that service's `ServiceHttpClient`
-    (`502 <service>_unreachable` when it's down). Users: `POST /auth/register`, `/login`,
-    `/refresh`, `/logout`, `/account` and `DELETE /auth/account` — all open (that's how you get a
-    token, and `account` is body-driven the same way, see `apps/users` below) — plus
-    `GET`/`PATCH /users/me` and `PUT /users/me/location`. No `/me`: the access token itself
-    carries `{ sub, role, email }`. Reminders: `GET /reminders`, `PUT`/`DELETE
-    /reminders/shabbat-candles`, `GET`/`POST /reminders/custom`, `GET /reminders/custom/preview`,
-    `PATCH`/`DELETE /reminders/custom/:id`, `POST /reminders/custom/:id/skip`. Notifications: `GET /notifications/vapid-public-key` (open),
-    `POST`/`DELETE /notifications/subscriptions`, `PUT`/`DELETE /notifications/fcm-devices`.
-  - `src/calendar/` — both open, answered in-process from `@app/jewish-calendar`:
-    `GET /calendar/shabbat?lat&lon` (the Shabbat in progress, otherwise the next one) and
-    `GET /calendar/month?year&month&lat&lon` (each day's Hebrew date, holidays/fasts and
-    enter/leave times).
-  - `src/realtime/` — `POST /realtime/device` (open, on the strict auth rate limit) issues a
-    device token: an app install's signed, anonymous identity, kept for good. Socket.IO at `/ws`
-    needs it in the handshake (`auth.deviceToken`), plus `auth.token` once signed in; either one
-    failing to verify → refused (`device_token_invalid` / `token_invalid`). One connection per
-    device — a newer one closes the old at once. A feature module injects
-    `IRealtimeConnectionService`: `pushToUser(userId, event, payload)` (every device they're signed
-    in on) or `broadcast(event, payload)`. How many connections one client can hold is bounded by
-    how many device tokens it can get, i.e. the rate limit.
-  - `src/app-update/` — no routes: consumes Kafka's `frontend.releases` (sent by
-    `apk.js publish` when the newest release changes) and broadcasts `app-update` (empty payload).
-  - `src/admin/` — `GET /admin/status` (`AdminGuard`): Gateway's own version in-process plus each
-    internal service's `/health` in parallel (timeout `ADMIN_STATUS_TIMEOUT_MS`); a service that
-    doesn't answer is `down`, not an error.
-- **users** (`backend/apps/users`) — HTTP, internal-only (never published to the host — stricter
-  than `ask-my-crawl`'s own Auth Service, which still publishes its port as documented debt; this
-  project starts without that exception). `POST /auth/register`, `/auth/login`, `/auth/refresh`,
-  `/auth/logout` — none return a `user` object, just tokens. `POST /auth/account`
-  (`{email, currentPassword, newEmail?, newPassword?}`, at least one of `newEmail`/`newPassword`
-  required) verifies `currentPassword` the same way `login` does, applies whichever field(s) are
-  present in one transaction (a new password also revokes every refresh token the user has, so
-  every other session ends), and always returns a fresh `{access_token, refresh_token}` — one
-  endpoint rather than two sequential calls, since an atomic single request rules out a caller
-  ever authenticating a second call with an already-stale password. Body-driven rather than
-  `JwtAuthGuard`-gated, deliberately consistent with this service's existing stateless pattern
-  rather than introducing bearer-token auth for just this one caller. `DELETE /auth/account`
-  (`{email, currentPassword}`) deletes immediately — other services' rows about the user go too,
-  through `ON DELETE CASCADE` foreign keys. Profiles: `profiles` (name, phone, location, `version`,
-  keyed by user id) behind `GET`/`PATCH /users/me` and `PUT /users/me/location`; register takes the
-  optional details. Every profile change (and a tombstone on delete) is written to `outbox_events`
-  in the same transaction and published to Kafka (`users.user-state`) by `OutboxRelay`. Postgres
-  schema `users` via TypeORM (`users`, `refresh_tokens`, `profiles`, `outbox_events`),
-  salt+pepper+SHA-256 password hashing (`PASSWORD_PEPPER`),
-  15-min access tokens (`{ sub, role, email }` payload — the client decodes this instead of a
-  separate `/me` call) + 30-day rotating refresh tokens (`backend/libs/auth-kernel` for the
-  shared JWT sign/verify + guards: `JwtAuthGuard` admits any role in `USER_ROLES`, `AdminGuard`
-  admins only → `403`).
-- **reminders** (`backend/apps/reminders`) — internal-only, schema `reminders`. One `reminders`
-  row per user and type (`shabbat_candles` so far; `user_id` → `users.users` `ON DELETE CASCADE`):
-  `GET /reminders`, `PUT`/`DELETE /reminders/shabbat-candles` (user from `X-User-Id`; `PUT` takes
-  only `{ offsetMinutes }`). Plus users' own reminders (`custom_reminders`: title, time, once /
-  daily / monthly / yearly, Gregorian or Hebrew, skipped days; same cascade): `GET
-  /reminders/custom?from&to` (each with its days in the range, from `ReminderOccurrences`), `POST`,
-  `PATCH`/`DELETE /reminders/custom/:id`, `POST …/:id/skip` ("only this day") — `POST`, `PATCH`
-  and skip take optional body `from`/`to` (the months shown, both or neither) and then answer with
-  the reminder's `dates` there (body, since Gateway forwards a query string only on `GET`) — and
-  `GET /reminders/custom/preview?hour&minute&repeat&calendar&start` (`{ next }`: the next 3 days it
-  would fire on, in Israel time, nothing saved); at most 300 per user; another user's id →
-  `404`. Reads the user's location straight from `users.profiles` (read-only
-  mapping) — no copy. Candle-lighting maths is the in-process `@app/jewish-calendar` lib
-  (`@hebcal/core` v6; Israel-only: Israel's rules and time zone (`ISRAEL_TIME_ZONE`) wherever the
-  GPS point is, no `tz` anywhere; 20-min candle lighting, Jerusalem and Petach Tikva 40 / Haifa,
-  Tzfat and Zikhron Ya'akov 30, by distance from the city center — see its README for the
-  ESM-import and time-zone gotchas). The candle-lighting notification gives the time in Israel time. Gateway serves `GET /calendar/shabbat` (Home) and `GET /calendar/month` from the same lib.
-  `ReminderScheduler` keeps one delayed `reminder-due` job per enabled
-  reminder at candle lighting − offset; when it runs it publishes `notification-requested` and queues next
-  week's. `CustomReminderScheduler` does the same per custom reminder (job `kind: 'custom'`) at its
-  next occurrence in Israel time (`ISRAEL_TIME_ZONE` — no location needed; `next_fire_at` `null` once a
-  once-reminder has fired): title + "Your reminder for HH:MM." (Israel time), `expiresAt` = time + 1 h,
-  then the next occurrence; a passed-but-unfired one fires late while under 1 h late. `ReminderDueConsumer`
-  dispatches by `kind`. Both reschedule on save (custom: create/edit/skip; delete drops the job), after
-  firing, and in a sweep at startup and every 15 min that makes Redis match the database; candle
-  lighting also on `users.user-state` (Kafka) — see `docs/specs/event-schemas.md#reminder-due`.
-- **notifications** (`backend/apps/notifications`) — internal-only, schema `notifications`
-  (`push_subscriptions.user_id` → `users.users` `ON DELETE CASCADE`) plus the BullMQ queue on Redis (`REDIS_URL`, consume-only). Stores browsers'
-  Web Push subscriptions (`push_subscriptions`) and serves the VAPID public key (`VAPID_*` env, see
-  `docs/notifications/environment.md`). User from Gateway's `X-User-Id` via `@app/auth-kernel`'s
-  `@ForwardedUserId()`. Processes `notification-requested` jobs: drops expired ones (required
-  `expiresAt`), then calls `deliver(userId, content, expiresAt, progress)` on each wanted channel
-  (`INotificationChannel`), rethrowing the first error after all have run. `WebPushChannel` looks
-  up the user's *current* devices on every attempt, skips those the job's progress marks done
-  (`webpush:<subscriptionId>`), and sends the rest via `web-push` (`aes128gcm`, the push service
-  never sees the text) with TTL = whole seconds left; each device is marked done once sent, gone
-  (404/410 → row deleted) or permanently failed. Any 429/5xx/network answer → it throws
-  `RetryableDeliveryException` and BullMQ retries the job, skipping done devices — a rare duplicate on
-  one device is accepted. Endpoints are limited to known push-service hosts. `FcmChannel` does the
-  same for the Android app's devices (`fcm_devices`: FCM token + a 256-bit key made on the phone,
-  `PUT`/`DELETE /notifications/fcm-devices`, progress `fcm:<deviceId>`): a high-priority data-only
-  FCM message carrying only the content AES-256-GCM-encrypted with that device's key; unregistered
-  token → row deleted. Off (warning at boot) without the optional `FCM_*` sending key. See
-  `docs/specs/services.md` and `docs/specs/notification-flow.md`.
-- **frontend** (`frontend/`) — Expo Router app. Login is optional app-wide, not a gate on the whole
-  app — `(tabs)` routes are freely reachable while signed out; `(auth)/{login,register}` each add a
-  "Continue without logging in" link back to `/` for whoever lands there without wanting to
-  authenticate; register also takes an optional first/last name (English or Hebrew letters only) and phone (country
-  dropdown + local digits, validated with `libphonenumber-js`, sent as E.164). `(tabs)/index` (Home — the landing tab, no session required: live clock, today's
-  Gregorian and Hebrew/Jewish date (`@hebcal/hdate`, see `frontend/README.md` for why not `Intl`),
-  and `ShabbatSection`: candle
-  lighting, Havdalah, holiday/parasha label, and a countdown for the device's GPS location (`GET /calendar/shabbat`),
-  fetched on first mount, after the GPS fix, after Havdalah passes, and on Retry; last location and
-  result persisted for offline; under the times, `CandleReminder`'s bell opens a bottom sheet to
-  set/change/turn off the candle-lighting reminder's offset via `GET /reminders` and
-  `PUT`/`DELETE /reminders/shabbat-candles` (`remindersSlice`, not persisted, reset on sign-out) —
-  signed out, the bell asks to log in instead), `(tabs)/calendar` (no session required: the month
-  grid — both dates per day, holiday/fast dots, today outlined; swipe or ‹ › between months
-  (`SwipePager`), a Today button back — from `GET /calendar/month` (the month shown plus two
-  either side, preloaded: `calendarSlice.loadMonthsAround`), and `DayCard` under it for
-  the day tapped: names, parasha and times; today on opening. Signed in, the user's own reminders
-  for the loaded months (`customRemindersSlice.fetchCustomReminders` → `GET /reminders/custom`,
-  month shown ± `PRELOAD`; `selectDayReminders` the per-day map; not persisted, reset on
-  sign-out; a change sends the range and swaps in the reminder(s) answered, no refetch — a list
-  reply that crossed a change is asked for again) show as cell counts and on `DayCard` with "Show all" (`RemindersSheet`); a floating +
-  adds one on the selected day (signed out: "Log in to add reminders?"), a tapped row edits it —
-  both in `CustomReminderSheet`: title, start date, time, Once/Daily/Monthly/Yearly, Gregorian or
-  Hebrew, odd-date notes, and the next dates from `GET /reminders/custom/preview`; changing or
-  deleting a repeating one asks "Only <day>" (skip; for an edit, a new once-reminder first, then
-  the skip — offered only if date, repeat and calendar are unchanged) or "Every time"; a
-  once-reminder whose time passed in Israel time is dimmed "Done", the tab's clock ticking each
-  minute), `(tabs)/account`
-  (a heading plus `ThemeCard`, `NotificationsCard` (this browser's or phone's notifications on/off), `AccountCard`
-  (edit email/password), `ProfileCard` (name/phone via
-  `GET`/`PATCH /users/me`, fetched on mount), `LogoutCard` (`logOut`), `DeleteAccountCard` (password, then
-  `DELETE /auth/account`, signs out), then `VersionInfo` (frontend version, build time) — each card keeps its form private, and signing out unmounts
-  them all so forms reset; the one tab opted into `requiresAuth: true`; a press on it in the shared `CustomTabBar`, or a swipe onto it, while
-  signed out shows `ConfirmModal` instead of navigating (the swipe springs back), but a direct hit on the route — deep
-  link, web refresh — bypasses that, so the screen itself also calls `useRequireAuth()` on mount and
-  renders `RequireAuthNotice` instead — both generic and reusable by any future `requiresAuth` tab,
-  not Account-specific), and `(tabs)/admin` (`requiresRole: 'admin'`: left out of the tab bar for
-  everyone else, and the screen checks the role again via `useHasRole` for a direct link) —
-  `SystemStatus`, each service's up/down, version, build and start time from `GET /admin/status`,
-  refreshed on every visit, by its button and by pull. The tabs are `SwipeTabs` (composite; Expo
-  Router's `withLayoutContext` + `TabRouter`) over `TabPager` (base/layout): swipe sideways between
-  them in the bar's order (Admin only for admins), a tap slides the same way, springs back past
-  either end; a drag from within 20 dp of a side is left to Android's back gesture, and the Calendar
-  grid's own month swipe wins over it. A tab mounts when shown or next to the one shown, then stays.
-  Redux Toolkit, services-layer convention (all I/O in
-  `src/services/`, split by transport — `http/`, `ws/`, and `device/` (location, browser push, the
-  APK download/installer) — called only
-  from thunks in `src/store/slices/`). One Socket.IO connection, signed in or not, with this
-  install's device token (fetched once, persisted in `wsSlice`; replaced if Gateway refuses it) —
-  `app/_layout.js`'s `RealtimeConnectionManager`, `wsSlice.connectWebSocket`: it reconnects on
-  sign-in/out, keeps the connection on a same-session token change (only the next
-  reconnect's token is replaced), and closes while the app is in the background, reopening on
-  return. Features subscribe with `socketService.on(event, handler)`, which survives reconnects;
-  `app-update` is the one event listened for. While signed in, `LocationSyncManager` (also in
-  `app/_layout.js`) sends a fresh GPS fix to `PUT /users/me/location` only if it's > 5 km from the server's saved location
-  (`profileSlice.syncLocation`, see `docs/specs/services.md#frontend`).
-  The 15-min access token is renewed quietly with the 30-day rotating refresh token
-  (`authSlice.refreshSession`, one at a time): a minute before expiry (`AuthGate`), on start and
-  return to the foreground when due, before any call made with an already-expired token, and once on
-  a `401` (`authorizedFetch` then retries that call once) — so an app opened at least monthly stays signed in. Only a refresh the server refuses signs
-  out, with a notice: `AuthGate` takes the user to login once, which shows "Your session ended —
-  please log in again." until they leave it; offline keeps the session. Log Out signs out silently
-  (and revokes the refresh token, best effort).
-  Notifications (Web Push on the web, FCM on the Android app — `fcmService.android.js` registers
-  the phone's FCM token + a key kept in `expo-secure-store` via `PUT /notifications/fcm-devices`,
-  `fcmReceiver.android.js`, loaded by the `index.js` entry, decrypts and shows each message even
-  with the app swiped away; same slice and screens, Android wording + Open settings): web —
-  `frontend/public/sw.js` shows each push (`tag` =
-  `notificationId`) and opens/focuses the app on tap; `PushSubscriptionManager` (`app/_layout.js`)
-  registers it at start and, while signed in, re-posts the browser's subscription to
-  `POST /notifications/subscriptions`; `NotificationsPrompt` asks once over Home after sign-in.
-  Logging out or deleting the account unsubscribes this browser or phone; a session the server ends doesn't, so
-  reminders keep arriving. See `docs/specs/services.md#frontend`.
-  App update (Android APK only, no login): `AppUpdateManager` (`app/_layout.js`) checks the APK
-  registry's `latest.json` (`URLS.apkRegistry`, baked in by `apk.js build`) at start, on return
-  to the foreground, and on Gateway's `app-update` over `/ws` (`appUpdateSlice.listenForUpdates`),
-  comparing `versionCode`s (`src/utils/versionCode.js`, shared with `app.config.js` and
-  `apk.js publish`). Newer → `UpdateSheet` opens by itself once per version
-  (`dismissedVersionCode` persisted) and `UpdateChip` at the top of Home reopens it; Update
-  downloads the APK into the app cache (`expo-file-system`, progress + Cancel) and opens Android's
-  installer (`expo-intent-launcher`); old cached APKs are deleted at start.
-  Themed via the pipeline described in the Architecture section
-  below — `GlowCard`/`GradientButton`/`InputField`/`Alert` (`src/components/base/`, split into
-  `background`/`buttons`/`feedback`/`form`/`layout` subfolders by purpose — see
-  `.claude/agents/frontend.md`) and `AmbientBackground` (`src/components/composite/`) are the
-  shared building blocks login/register/
-  Home/Calendar/Account all use; `Switch` (base/form) the toggle; `SelectField` (base/form) is the dropdown and `ProfileFields` (composite)
-  the name/phone group shared by register and `ProfileCard`; `ConfirmModal` (composite) is the
-  shared Yes/No overlay (the `requiresAuth` tab guard, `NotificationsPrompt`, the signed-out
-  reminder bell); `FormActions` (composite) the Save/Cancel pair under the Account cards' edit
-  forms; `PillButton` (base/buttons), `Stepper` (base/form) and `BottomSheet` (base/layout)
-  build `CandleReminder`; `MonthHeader`, `MonthGrid`, `MonthStatus`, `DayCard`, `RemindersSheet` and
-  `CustomReminderSheet` (composite) plus `FloatingButton` (base/buttons) build the Calendar tab
-  (`src/utils/calendar.js` and `src/utils/customReminders.js` its helpers).
-- **Queues** — BullMQ on Redis (`devops/redis/docker-compose.yml`, internal-only, AOF-persisted,
-  `noeviction`, holds nothing but queues). Cross-service queues and job guards in
-  `@app/queue-contracts` (`notification-requested` — Reminders publishes, Notifications
-  processes; and `reminder-due`, Reminders' own delayed jobs, candle-lighting or custom by `kind`; every publisher of `notification-requested` must enqueue with `notificationRequestedPublishOptions`
-  — dedupe on `notificationId` until `expiresAt`, 8 attempts, backoff from 30 s);
-  `@app/queue-client` has the publisher (dedupe/delay/attempts/backoff) and a validating consumer
-  whose handler gets the job's `progress`/`saveProgress` (kept across retries). See `docs/specs/event-schemas.md`.
+  the Docker network. Rate-limited per client IP: a global limit (`THROTTLE_TTL_MS`/
+  `THROTTLE_LIMIT`, default 60 s/100) and a strict one (`AUTH_THROTTLE_TTL_MS`/
+  `AUTH_THROTTLE_LIMIT`, 60 s/5) on `/auth/register`, `/login`, `/refresh`, `/account` and
+  `/realtime/device`. Modules:
+  - `src/proxy/` — every route forwarded to an internal service is one row of `PROXY_ROUTES`
+    (`proxy.routes.ts`): method, path, target service, `auth: 'user'` (`JwtAuthGuard`, the user id
+    forwarded as `X-User-Id`) or `'none'`, `throttle`. Unlisted → `404`. Users: `/auth/*`,
+    `/users/me*`; Reminders: `/reminders*`; Notifications: `/notifications/*`.
+  - `src/calendar/` — `GET /calendar/shabbat` and `GET /calendar/month` (open), answered
+    in-process from `@app/jewish-calendar`.
+  - `src/realtime/` — `POST /realtime/device` (a device token per app install) and Socket.IO at
+    `/ws` (device token required, plus the access token once signed in; one connection per
+    device). A feature module pushes with `IRealtimeConnectionService` (`pushToUser`/`broadcast`).
+  - `src/app-update/` — consumes Kafka's `frontend.releases`, broadcasts `app-update`.
+  - `src/admin/` — `GET /admin/status` (`AdminGuard`): every service's version and up/down.
+- **users** (`backend/apps/users`) — internal-only, schema `users`. Register/login/refresh/logout
+  return only tokens: a 15-min access token carrying `{ sub, role, email }` (no `/me`) and a 30-day
+  rotating refresh token. `POST`/`DELETE /auth/account` (change email/password, delete — body-driven,
+  proven by `currentPassword`). Profiles (name, phone, location) behind `GET`/`PATCH /users/me` and
+  `PUT /users/me/location`; every change and deletion goes out on Kafka `users.user-state` through
+  the outbox. Deleting an account removes other services' rows through `ON DELETE CASCADE`.
+- **reminders** (`backend/apps/reminders`) — internal-only, schema `reminders`. The candle-lighting
+  reminder (`GET /reminders`, `PUT`/`DELETE /reminders/shabbat-candles`) and the user's own
+  reminders (`/reminders/custom*`: once / daily / monthly / yearly, Gregorian or Hebrew, skipped
+  days). Reads the user's location from `users.profiles` (read-only). Each reminder keeps one
+  delayed `reminder-due` job at its next firing (`ReminderScheduler`, `CustomReminderScheduler`),
+  which publishes `notification-requested` and queues the next; a sweep at startup and every
+  15 min re-queues any missing job and removes those of deleted reminders.
+- **notifications** (`backend/apps/notifications`) — internal-only, schema `notifications`. Stores
+  browsers' Web Push subscriptions and the Android app's FCM devices, and delivers
+  `notification-requested` jobs to them end-to-end encrypted (`WebPushChannel`, `FcmChannel`),
+  retrying only the devices not yet reached, never after `expiresAt`. Won't boot without `VAPID_*`;
+  FCM is off without the optional `FCM_*`.
+- **frontend** (`frontend/`) — Expo Router app, web export and Android APK; login optional. Swipeable
+  tabs: Home (clock, Hebrew date, Shabbat times for the GPS location, the candle-lighting reminder
+  bell), Calendar (Jewish-calendar month; signed in, the user's own reminders, added and edited in a
+  bottom sheet), Account (signed in only: theme, notifications, email/password, profile, log out,
+  delete account, version) and Admin (admins only: service status). App-wide (`app/_layout.js`):
+  one Socket.IO connection per install, location sync after a > 5 km move, quiet token renewal,
+  notifications (Web Push via `public/sw.js`, FCM in the APK) and the APK's in-app update. See
+  `docs/specs/services.md#frontend`, `frontend/README.md` and `.claude/agents/frontend.md`.
+- **Queues and events** — BullMQ on Redis for jobs (`notification-requested`, `reminder-due`;
+  `@app/queue-contracts`, and every `notification-requested` publisher enqueues with
+  `notificationRequestedPublishOptions`), Kafka for events (`users.user-state`,
+  `frontend.releases`; `@app/kafka-contracts`).
 
 ## First run
 
@@ -346,6 +186,12 @@ Secrets between PCs (never git — one encrypted file kept in Google Drive by ha
 node scripts/secrets.js pull | push | status  # secrets/secrets.enc + secrets/secrets-key.json (gitignored, kept in Google Drive)
 ```
 
+Send a user their candle-lighting reminder's notification now, to check delivery (see
+`docs/specs/notification-flow.md`):
+```bash
+node scripts/fire-reminder.js <email> [minutes=2]
+```
+
 Browser tests (from the repo root, against the running stack — see `frontend/e2e/README.md`):
 ```bash
 docker compose -f devops/playwright/docker-compose.yml run --rm e2e
@@ -362,7 +208,7 @@ Docs drift check (from the repo root, plain Node — a task isn't done while it 
 ```bash
 node scripts/docs-check.js            # every doc ↔ code check; file:line for each problem, exit 1 if any
 node scripts/docs-check.js --changed  # first lists the docs your uncommitted changes touch (DOCS_MAP)
-node --test scripts/                  # tests of version.js and docs-check.js
+node --test "scripts/*.test.js"       # tests of version.js, docs-check.js and secrets.js
 ```
 
 Full stack: see "First run" above — same two-command sequence (`devops/observability` before
@@ -373,35 +219,27 @@ Full stack: see "First run" above — same two-command sequence (`devops/observa
 NestJS monorepo, clean/hexagonal layering (API → Application → Infrastructure, plus a `models/`
 domain layer and an `entities/` folder for TypeORM table mappings) enforced in every app — see
 `.claude/agents/backend.md` before writing backend code.
-Shared code lives in `backend/libs/`: `auth-kernel` (JWT sign/verify, `JwtAuthGuard`, `AdminGuard`,
-`CurrentUser`), `otel` (generic OTel bootstrap, ported unmodified from `ask-my-crawl`),
-`queue-client` (`IQueuePublisher`/`BullmqQueuePublisher`, `IQueueConsumer`/`BullmqQueueConsumer` —
-malformed job fails without retry, handler error retried while attempts remain, job progress kept
-across retries), `queue-contracts`
-(this project's queue names, job types, their guards and publish options — see
-`docs/specs/event-schemas.md`), `kafka-client` (`IEventPublisher`/`IEventConsumer` over `kafkajs`,
-plus the outbox: `addOutboxEvent` in the change's transaction, `OutboxRelay` publishes),
-`kafka-contracts` (topics, consumer groups, event types and guards), `jewish-calendar` (Shabbat times, month calendars and custom reminders' repeat rules over `@hebcal/core`), `build-info`
-(`buildInfo(service)` — the version/build time/start time internal services' `/health` returns), `users-schema` (read-only
-TypeORM mappings of the Users Service's tables, for other services to read and reference). Kafka is for events, BullMQ
-for jobs. Shared infrastructure is one instance each, reused by every service that needs it:
-Postgres (one database, `personal_copilot`, a schema per table-owning service — a service writes
-only its own schema and may read others' tables), Redis (BullMQ queues), Kafka (events, not
-published to the host).
+Shared code lives in `backend/libs/` (each described in `docs/specs/services.md`): `auth-kernel`
+(JWT sign/verify, `JwtAuthGuard`, `AdminGuard`, the forwarded user id), `build-info` (what `/health`
+reports), `jewish-calendar` (all calendar maths: Shabbat times, month calendars, custom reminders'
+repeat rules — over `@hebcal/core`, see its README), `kafka-client` + `kafka-contracts` (events and
+the outbox), `otel` (generic OTel bootstrap, ported unmodified from `ask-my-crawl`),
+`queue-client` + `queue-contracts` (BullMQ jobs), `users-schema` (read-only mappings of the Users
+Service's tables). Kafka is for events, BullMQ for jobs. Shared infrastructure is one instance each,
+reused by every service that needs it: Postgres (one database, `personal_copilot`, a schema per
+table-owning service — a service writes only its own schema and may read others' tables), Redis
+(BullMQ queues), Kafka (events, not published to the host).
 
 **Frontend** — Expo Router, file-based routing, `(auth)`/`(tabs)` groups. Redux Toolkit with a
 strict services-layer convention: all I/O lives in `src/services/`, split by transport —
 `services/http/` (fetch-based calls), `services/ws/` (the Socket.IO client), and
-`services/device/` (on-device I/O such as `expo-location` and the browser's push APIs) — called only from thunks in
+`services/device/` (on-device I/O: location, push, the APK installer) — called only from thunks in
 `src/store/slices/`, never inline in a thunk or a component.
 
-Theming is a two-layer pipeline ported from `ask-my-crawl`, minus its Gluestack layer (nothing
-here rendered an actual Gluestack component, so it was left out rather than carried over as inert
-plumbing): **1)** `themeSlice` (`mode: null | 'light' | 'dark'`, persisted) **2)** `useAppTheme()`
-(derives `isDark`/`colors`/`colorMode` — the only way a screen should read colors). A theme switch
-is instant except `AmbientBackground`, which cross-fades its two backdrops in 600ms.
-`src/theme/colors.js` holds the two static palettes (dark indigo/violet space theme,
-light indigo/teal). See `frontend/README.md` and `.claude/agents/frontend.md`.
+Theming is a two-layer pipeline ported from `ask-my-crawl`, minus its Gluestack layer: **1)**
+`themeSlice` (`mode: null | 'light' | 'dark'`, persisted) **2)** `useAppTheme()` (derives
+`isDark`/`colors`/`colorMode` — the only way a screen should read colors). `src/theme/colors.js`
+holds the two static palettes. See `frontend/README.md` and `.claude/agents/frontend.md`.
 
 **Observability** — `devops/observability/`: app → OTLP/gRPC → Collector → fans out to Loki
 (logs), Prometheus (metrics), Tempo (traces), viewable in Grafana (`:3001`, published directly —
@@ -412,10 +250,10 @@ the rules to follow when adding one per service.
 ## Key constraints to preserve
 
 - **Gateway is the only *backend* service reachable from outside the Docker network** — `users`,
-  and any future internal service, must never get a published port. `frontend` is the one
-  intentional exception (a static web export, not a backend service — it calls Gateway for
-  everything, same as any other client) — see
-  `.claude/memory/feedback_gateway_only_service_access.md`.
+  and any future internal service, must never get a published port (stricter than `ask-my-crawl`,
+  whose Auth Service still publishes its port). `frontend` is the one intentional exception (a
+  static web export, not a backend service — it calls Gateway for everything, same as any other
+  client) — see `.claude/memory/feedback_gateway_only_service_access.md`.
 - Backend: Application-layer code depends only on interfaces (`application/interfaces/`, or
   `infrastructure/interfaces/` for the ports its adapters implement, e.g. repositories), never a
   concrete Infrastructure class directly; a domain model (`models/`) is not the same thing
@@ -424,12 +262,15 @@ the rules to follow when adding one per service.
   directly** — same hard rule as `ask-my-crawl`, carried over deliberately. The one exception is
   read-only static files: the APK's update check fetches `latest.json` and the APK from the
   frontend's own Caddy (`/apk/`) — no API call ever bypasses Gateway.
+- **The app is Israel-only.** Every calendar calculation uses Israel's rules and time zone
+  (`ISRAEL_TIME_ZONE`) wherever the GPS point is; no time zone is sent or stored anywhere. See
+  `docs/specs/services.md#libsjewish-calendar`.
 - `OTEL_EXPORTER_OTLP_ENDPOINT` defaults to the Docker network address (`http://otel-
   collector:4317`) — override to `localhost:4317` for a local (non-Docker) run, or telemetry export
   fails silently.
 - Gateway's port is published on `127.0.0.1` only (`devops/gateway/docker-compose.yml`): every
   connection is a local proxy (`tailscale serve`, the SSH tunnel) arriving through Docker's
   bridge. That is what makes `src/trust-proxy.ts`'s `TRUST_PROXY` (loopback + private networks)
-  safe, so the rate limiter keys on the real client IP. Never publish the port on all interfaces again or widen the trust to
-  `true`: a directly-reached caller could then pick its own IP. See `docs/specs/architecture.md`'s
-  "System topology".
+  safe, so the rate limiter keys on the real client IP. Never publish the port on all interfaces or
+  widen the trust to `true`: a directly-reached caller could then pick its own IP. See
+  `docs/specs/architecture.md`'s "System topology".

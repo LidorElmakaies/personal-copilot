@@ -30,6 +30,11 @@ export class InMemoryReminderRepository implements IReminderRepository {
     );
   }
 
+  existingIds(ids: string[]): Promise<Set<string>> {
+    const have = new Set([...this.rows.values()].map((r) => r.id));
+    return Promise.resolve(new Set(ids.filter((id) => have.has(id))));
+  }
+
   setNextFireAt(id: string, nextFireAt: Date | null): Promise<void> {
     const row = [...this.rows.values()].find((r) => r.id === id);
     if (row) row.nextFireAt = nextFireAt;

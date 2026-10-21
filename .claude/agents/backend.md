@@ -42,21 +42,16 @@ backend/
     users/               # HTTP, internal-only (never published to the host — only Gateway calls
                         # it). Schema `users`. Profiles (/users/me*, user id from X-User-Id),
                         # every change written to outbox_events and published to Kafka
-                        # (users.user-state). register/login/refresh/logout/account — none return a `user`
-                        # object, just tokens (the access token itself carries
-                        # { sub, role, email }). account (one endpoint, both newEmail/newPassword
-                        # optional, at least one required) is body-driven (current password
-                        # proves identity), not JwtAuthGuard-gated, and always reissues tokens
-                        # since email may have changed; a new password revokes every refresh
-                        # token the user has. Emails are unique by the DB constraint alone
-                        # (EmailTakenError → 409), no lookup first. Postgres via TypeORM, salt+pepper+SHA-256
-                        # hashing. UserRole is 'user' | 'admin' (USER_ROLES); the only admin is
-                        # the one-time AdminSeedService account. JwtAuthGuard admits both roles;
-                        # an admin-only route uses AdminGuard (403 for a user) — see services.md#users.
+                        # (users.user-state). register/login/refresh/logout/account return
+                        # only tokens (the access token carries { sub, role, email }); account
+                        # is body-driven (current password proves identity), not JwtAuthGuard-
+                        # gated. UserRole is 'user' | 'admin'; the only admin is the one-time
+                        # AdminSeedService account — see services.md#users.
     reminders/           # Per-user reminders (schema `reminders`); reads the location from users.profiles.
                         # Schedules them as delayed reminder-due jobs (ReminderScheduler for candle
                         # lighting, CustomReminderScheduler for custom_reminders, dispatched by the
-                        # job's `kind`; one 15-min ReminderSweeper for both); next candle lighting
+                        # job's `kind`; one 15-min ReminderSweeper for both, which also
+                        # removes deleted reminders' jobs via ReminderJobCleaner); next candle lighting
                         # and custom occurrences from @app/jewish-calendar,
                         # in-process; Gateway serves Home's Shabbat times from it too.
     notifications/       # Schema `notifications`. Push subscriptions + VAPID public key; processes
@@ -72,14 +67,14 @@ backend/
   libs/
     auth-kernel/          # generic JWT sign/verify (the only class allowed to import
                         # `jsonwebtoken`), USER_ROLES, JwtAuthGuard (any role), AdminGuard
-                        # (admins only, 403 otherwise), CurrentUser decorator — shared by users
+                        # (admins only, 403 otherwise), DeviceTokenService — shared by users
                         # (signs) and gateway (verifies). Plus USER_ID_HEADER/@ForwardedUserId():
                         # how an internal service reads the user Gateway already authenticated.
     otel/                # generic OTel bootstrap — ported near-verbatim from ask-my-crawl, no
                         # project-specific content in here, treat changes to it with that in mind.
     queue-client/        # BullMQ on REDIS_URL — the only code that imports bullmq.
                         # IQueuePublisher/BullmqQueuePublisher: publish(queue, data, { dedupeId,
-                        # dedupeTtlMs, delayMs, attempts, backoffMs }). IQueueConsumer/
+                        # dedupeTtlMs, delayMs, attempts, backoffMs }), remove, delayed. IQueueConsumer/
                         # BullmqQueueConsumer: process(queue, guard, handler, { concurrency }) —
                         # guard fails → never retried; handler throws → retried. The handler's
                         # JobMeta carries progress + saveProgress(patch), kept across retries.
@@ -163,10 +158,9 @@ doesn't (e.g. `new BullmqQueueConsumer(config)` in `apps/notifications/src/notif
   email }` — see `@app/auth-kernel`'s `JwtPayload`). No endpoint (backend or Gateway proxy) hands
   back a separate `user` object; the client decodes the token it already has instead. Don't add a
   `/me`-style endpoint, or a `user` field to a register/login/refresh response, without checking
-  whether the field could just go in the JWT payload instead. Profile editing does exist now
-  (`account`) — the pattern this project uses for a field that changes is to reissue a fresh token
-  pair from that endpoint rather than adding `/me`; follow that precedent for any other editable
-  claim.
+  whether the field could just go in the JWT payload instead. A claim that changes (`email`, via
+  `account`) is handled by reissuing a fresh token pair from the endpoint that changes it; follow
+  that precedent for any other editable claim.
 - **Comments stay terse.** One line, not a paragraph; a comment earns more than one line only for a
   genuine footgun (e.g. OTel's import-order requirement), never for general architecture
   explanation — that belongs in `docs/specs/`, referenced with a short pointer if needed. Don't

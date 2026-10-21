@@ -74,18 +74,19 @@ APK uses the same HTTPS address (Android blocks plain HTTP), and Gateway's `:800
 from the home machine (see "SSH reverse-tunnel hardening" below) — `gateway` itself is never given
 a public port either way. `users`, `reminders`, and `notifications` are
 internal-only; `users` publishes every profile change to Kafka (`users.user-state`, through
-its outbox; Reminders consumes it); `reminders` stores per-user reminders and fires them as delayed
-BullMQ jobs, publishing `notification-requested`. All calendar maths is the in-process
-`@app/jewish-calendar` library, used by Reminders and by Gateway, which serves
-`GET /calendar/shabbat` (Home) and `GET /calendar/month` itself;
-`notifications` stores browsers' Web Push subscriptions and processes `notification-requested`
-jobs from Redis (BullMQ), sending each to every device the user has through that browser's push
-service, end-to-end encrypted, and retrying the job for devices that weren't reached. Gateway's WS (`/ws`) holds one connection per
-device (each app install has a device token from `POST /realtime/device`; signed in or anonymous)
-and can push to every device of a user
-(`IRealtimeConnectionService.pushToUser`) or broadcast to all; today it broadcasts `app-update`
-when `apk.js publish` announces a new release on Kafka (`frontend.releases`); the release itself
-is in the APK registry (`devops/data/apk`), served by the frontend's Caddy at `/apk/`.
+its outbox; Reminders consumes it); `reminders` stores the candle-lighting reminder and the
+user's own reminders and fires each as a delayed BullMQ job (`reminder-due`), publishing
+`notification-requested`. All calendar maths is the in-process `@app/jewish-calendar` library,
+used by Reminders and by Gateway, which serves `GET /calendar/shabbat` (Home) and
+`GET /calendar/month` itself; `notifications` stores browsers' Web Push subscriptions and the
+Android app's FCM devices, and processes `notification-requested` jobs from Redis, sending each to
+every device the user has — through the browser's push service or FCM, end-to-end encrypted — and
+retrying the job for devices that weren't reached (see `notification-flow.md`). Gateway's WS
+(`/ws`) holds one connection per device (each app install has a device token from
+`POST /realtime/device`; signed in or anonymous) and can push to every device of a user
+(`IRealtimeConnectionService.pushToUser`) or broadcast to all; it broadcasts `app-update` when
+`apk.js publish` announces a new release on Kafka (`frontend.releases`); the release itself is in
+the APK registry (`devops/data/apk`), served by the frontend's Caddy at `/apk/`.
 
 Gateway rate-limits globally (`@nestjs/throttler`, `THROTTLE_TTL_MS`/`THROTTLE_LIMIT`) plus a
 tighter per-route limit on `/auth/register`, `/auth/login`, `/auth/refresh`, `/auth/account` (both
@@ -210,9 +211,10 @@ sequenceDiagram
     Gateway->>Gateway: @app/jewish-calendar: each day's Hebrew date, events, times
     Gateway-->>App: { year, month, days }
     App->>App: MonthGrid
-    User->>App: ‹ or ›
-    App->>Gateway: GET /calendar/month for that month
-    Note over App: only the answer for the month still shown is kept
+    App->>Gateway: GET /calendar/month for the two months either side (preload)
+    User->>App: swipe, or ‹ ›
+    App->>Gateway: GET /calendar/month for any month within two of it not loaded yet
+    Note over App: months kept per place (~1 km), pruned to those near the month shown
 ```
 
 ## Flow: location sync (signed in)

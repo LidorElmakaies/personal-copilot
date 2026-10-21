@@ -5,17 +5,20 @@ import type { IReminderScheduler } from '../../application/interfaces/reminder-s
 describe('ReminderSweeper', () => {
   let rescheduleAll: jest.Mock<Promise<number>, []>;
   let rescheduleAllCustom: jest.Mock<Promise<number>, []>;
+  let removeOrphans: jest.Mock<Promise<number>, []>;
   let sweeper: ReminderSweeper;
 
   beforeEach(() => {
     jest.useFakeTimers();
     rescheduleAll = jest.fn<Promise<number>, []>().mockResolvedValue(0);
     rescheduleAllCustom = jest.fn<Promise<number>, []>().mockResolvedValue(0);
+    removeOrphans = jest.fn<Promise<number>, []>().mockResolvedValue(0);
     sweeper = new ReminderSweeper(
       { rescheduleAll } as unknown as IReminderScheduler,
       {
         rescheduleAll: rescheduleAllCustom,
       } as unknown as ICustomReminderScheduler,
+      { removeOrphans },
     );
   });
 
@@ -38,6 +41,20 @@ describe('ReminderSweeper', () => {
     await sweeper.sweep();
     expect(rescheduleAll).toHaveBeenCalledTimes(1);
     expect(rescheduleAllCustom).toHaveBeenCalledTimes(1);
+  });
+
+  it("removes deleted reminders' jobs after rescheduling", async () => {
+    const order: string[] = [];
+    rescheduleAllCustom.mockImplementationOnce(() => {
+      order.push('reschedule');
+      return Promise.resolve(0);
+    });
+    removeOrphans.mockImplementationOnce(() => {
+      order.push('clean');
+      return Promise.resolve(3);
+    });
+    await sweeper.sweep();
+    expect(order).toEqual(['reschedule', 'clean']);
   });
 
   it('keeps sweeping after a failed sweep', async () => {

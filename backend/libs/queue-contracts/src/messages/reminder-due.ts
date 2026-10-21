@@ -1,6 +1,6 @@
 import { isIsoDate, isNonEmptyString } from './validators';
 
-/** A candle-lighting reminder's firing. Jobs queued before `kind` existed have none. */
+/** A candle-lighting reminder's firing. `kind` is optional only for jobs queued before it was set. */
 export interface CandleLightingDueMessage {
   kind?: 'shabbat_candles';
   reminderId: string;

@@ -43,7 +43,7 @@ Forwarding is the same for every service, so the routes are data: `PROXY_ROUTES`
 and `Throttle` to one generated handler per row, the same decorators a hand-written route would
 have. So Nest still does the routing (unlisted → `404`), the guard and the rate limit, and each
 handler is named after its row (`POST /auth/login`), which keys its own rate-limit counter.
-Because the table now decides who needs a token, `test/proxy.api.spec.ts` checks it against a
+Because the table decides who needs a token, `test/proxy.api.spec.ts` checks it against a
 `CONTRACT` written out separately — a wrong row fails there instead of quietly opening a route.
 
 ## Permissive CORS (`app.enableCors({ origin: true })`)

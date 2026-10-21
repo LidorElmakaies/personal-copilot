@@ -133,7 +133,7 @@ function signOut(state) {
   state.error = null;
 }
 
-export const SESSION_ENDED_NOTICE = 'Your session ended — please log in again.';
+const SESSION_ENDED_NOTICE = 'Your session ended — please log in again.';
 
 const authSlice = createSlice({
   name: 'auth',

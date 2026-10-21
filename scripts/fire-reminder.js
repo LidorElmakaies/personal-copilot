@@ -28,13 +28,12 @@ function exec(service, args, input) {
   return r.stdout;
 }
 
-// The reminder's next firing and the user's time zone, one tab-separated row.
+// The reminder's next firing, one tab-separated row.
 function findReminder(email) {
   const sql = `
-    SELECT u.id, r.offset_min, (extract(epoch FROM r.next_fire_at) * 1000)::bigint, coalesce(p.tz, 'UTC')
+    SELECT u.id, r.offset_min, (extract(epoch FROM r.next_fire_at) * 1000)::bigint
     FROM users.users u
     JOIN reminders.reminders r ON r.user_id = u.id AND r.type = 'shabbat_candles' AND r.enabled
-    LEFT JOIN users.profiles p ON p.user_id = u.id
     WHERE lower(u.email) = lower(:'email') AND r.next_fire_at IS NOT NULL`;
   const out = exec(
     'postgres',
@@ -43,9 +42,9 @@ function findReminder(email) {
   ).trim();
   if (!out)
     throw new Refusal(`No turned-on candle-lighting reminder with a scheduled time for ${email}.`);
-  const [userId, offset, nextFireMs, tz] = out.split('\t');
+  const [userId, offset, nextFireMs] = out.split('\t');
   const candleLighting = new Date(Number(nextFireMs) + Number(offset) * 60_000);
-  return { userId, candleLighting, tz };
+  return { userId, candleLighting };
 }
 
 /** Same as the Reminders Service's formatMinutes: 90 → "1 h 30 min". */
@@ -60,12 +59,12 @@ function main([email, minutesArg = '2']) {
   if (!email) throw new Refusal('usage: node scripts/fire-reminder.js <email> [minutes=2]');
   const minutes = Number(minutesArg);
   if (!(minutes >= 0)) throw new Refusal('minutes must be a number ≥ 0');
-  const { userId, candleLighting, tz } = findReminder(email);
+  const { userId, candleLighting } = findReminder(email);
   const fireAt = Date.now() + minutes * 60_000;
   if (fireAt >= candleLighting.getTime())
     throw new Refusal('Candle lighting comes before then — nothing to remind about.');
 
-  const at = new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit' }).format(candleLighting);
+  const at = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Jerusalem', hour: '2-digit', minute: '2-digit' }).format(candleLighting);
   const message = {
     notificationId: `test-reminder-${userId}-${fireAt}`,
     userId,

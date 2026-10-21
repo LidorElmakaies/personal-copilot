@@ -8,6 +8,8 @@ export interface ICustomReminderRepository {
   findById(id: string): Promise<CustomReminder | null>;
   /** Every user's (the sweep). */
   findAll(): Promise<CustomReminder[]>;
+  /** Which of these ids still have a row (the sweep, for orphaned jobs). */
+  existingIds(ids: string[]): Promise<Set<string>>;
   findByUserId(userId: string): Promise<CustomReminder[]>;
   /** Null unless it exists and is this user's. */
   findOwned(userId: string, id: string): Promise<CustomReminder | null>;

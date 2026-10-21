@@ -12,10 +12,30 @@ tunnel from a Caddy instance on the public internet. HTTP + WebSocket.
 - `POST /auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout`, `/auth/account`,
   `DELETE /auth/account` → the Users Service route of the same name, body untouched. No guard on any of them (for
   the first four, that's how you get a token in the first place; `account` is body-driven the same
-  way — see `apps/users` below).
+  way — see [users](#users)).
 - `GET /users/me`, `PATCH /users/me`, `PUT /users/me/location` (`JwtAuthGuard`) → Users Service's
-  routes of the same name. Body relayed untouched. No `GET /me` — there's nothing left for it to return that the
-  client can't already decode from its own access token (see `apps/users`'s note below).
+  routes of the same name. Body relayed untouched.
+- `GET /notifications/vapid-public-key` (open), `POST`/`DELETE /notifications/subscriptions` and
+  `PUT`/`DELETE /notifications/fcm-devices` (`JwtAuthGuard`) → Notification Service's routes of the
+  same name. Body relayed untouched.
+- `GET /reminders`, `PUT /reminders/shabbat-candles`, `DELETE /reminders/shabbat-candles`, and
+  `GET`/`POST /reminders/custom`, `GET /reminders/custom/preview`, `PATCH`/`DELETE
+  /reminders/custom/:id`, `POST /reminders/custom/:id/skip` (`JwtAuthGuard`) → Reminders Service's routes of the same name.
+  Body relayed untouched.
+- Every forwarded route above (`/auth/*`, `/users/me*`, `/reminders*`, `/notifications/*`) is one
+  row of `PROXY_ROUTES` (`src/proxy/proxy.routes.ts`): method, path (the same on Gateway and the
+  service; a `:param` is filled in from the request, URL-encoded so it stays one path segment, and
+  a `GET`'s query string is passed on as sent — `api/forwarded-path.ts`), target service, `auth: 'user'` (`JwtAuthGuard` + `X-User-Id`) or `'none'`, and
+  `throttle: 'strict'` where it applies. `ProxyController` turns each row into its own Nest route,
+  so anything unlisted is a `404` — never a wildcard. `ProxyService` sends it through that service's
+  `ServiceHttpClient` (base URL from `<SERVICE>_SERVICE_URL`); an unreachable service answers
+  `502 { error: { code: '<service>_unreachable', message } }`. Adding a route is one row there,
+  plus the same row in `test/proxy.api.spec.ts`'s `CONTRACT`.
+- **User identity for internal services:** a guarded route forwards only the token's user id, in
+  an `X-User-Id` header Gateway sets itself (`USER_ID_HEADER` in `@app/auth-kernel`). Client
+  headers are never passed through, so a client can't supply its own. The internal service reads
+  it with `@ForwardedUserId()` (401 if absent) and trusts it because only Gateway can reach it, so
+  no internal service needs `JWT_SECRET`.
 - `GET /calendar/shabbat?lat&lon` — **served by Gateway itself, not proxied** (`src/calendar/`):
   the Shabbat in progress, otherwise the next one, for that location, computed in-process with
   [`@app/jewish-calendar`](#libsjewish-calendar). With `/calendar/month`, the only Gateway routes
@@ -42,13 +62,6 @@ tunnel from a Caddy instance on the public internet. HTTP + WebSocket.
       "events": [{ "kind": "yomTov", "name": { "en": "Yom Kippur", "he": "יום כיפור" } }],
       "parasha": null, "times": [{ "kind": "fastEnds", "at": "2026-09-21T16:15:00.000Z" }] }, … ] }
   ```
-- `GET /notifications/vapid-public-key` (open), `POST`/`DELETE /notifications/subscriptions` and
-  `PUT`/`DELETE /notifications/fcm-devices` (`JwtAuthGuard`) → Notification Service's routes of the
-  same name. Body relayed untouched.
-- `GET /reminders`, `PUT /reminders/shabbat-candles`, `DELETE /reminders/shabbat-candles`, and
-  `GET`/`POST /reminders/custom`, `GET /reminders/custom/preview`, `PATCH`/`DELETE
-  /reminders/custom/:id`, `POST /reminders/custom/:id/skip` (`JwtAuthGuard`) → Reminders Service's routes of the same name.
-  Body relayed untouched.
 - `GET /admin/status` (`AdminGuard`, `src/admin/`) — **answered by Gateway itself**: its own
   [`buildInfo`](#libsbuild-info) read in-process, plus each internal service's `/health` (Users,
   Reminders, Notifications — the same `*_SERVICE_URL`s the proxies use), asked in parallel with a
@@ -58,32 +71,6 @@ tunnel from a Caddy instance on the public internet. HTTP + WebSocket.
   [{ "service": "gateway", "status": "up", "version": "0.1.0", "builtAt": "…", "startedAt": "…", "latencyMs": null },
    { "service": "reminders", "status": "down", "version": null, "builtAt": null, "startedAt": null, "latencyMs": null }]
   ```
-- **User identity for internal services:** a guarded route forwards only the token's user id, in
-  an `X-User-Id` header Gateway sets itself (`USER_ID_HEADER` in `@app/auth-kernel`). Client
-  headers are never passed through, so a client can't supply its own. The internal service reads
-  it with `@ForwardedUserId()` (401 if absent) and trusts it because only Gateway can reach it, so
-  no internal service needs `JWT_SECRET`.
-- Every forwarded route above (`/auth/*`, `/users/me*`, `/reminders*`, `/notifications/*`) is one
-  row of `PROXY_ROUTES` (`src/proxy/proxy.routes.ts`): method, path (the same on Gateway and the
-  service; a `:param` is filled in from the request, URL-encoded so it stays one path segment, and
-  a `GET`'s query string is passed on as sent — `api/forwarded-path.ts`), target service, `auth: 'user'` (`JwtAuthGuard` + `X-User-Id`) or `'none'`, and
-  `throttle: 'strict'` where it applies. `ProxyController` turns each row into its own Nest route,
-  so anything unlisted is a `404` — never a wildcard. `ProxyService` sends it through that service's
-  `ServiceHttpClient` (base URL from `<SERVICE>_SERVICE_URL`); an unreachable service answers
-  `502 { error: { code: '<service>_unreachable', message } }`. Adding a route is one row there,
-  plus the same row in `test/proxy.api.spec.ts`'s `CONTRACT`.
-- Global rate limiting (`@nestjs/throttler`, `THROTTLE_TTL_MS`/`THROTTLE_LIMIT`, default
-  60s/100req) plus a tighter limit on `register`/`login`/`refresh`/`account` (both methods) and
-  `/realtime/device`
-  (`AUTH_THROTTLE_TTL_MS`/`AUTH_THROTTLE_LIMIT`, default 60s/5req) — those are the brute-force
-  targets now that Gateway can be reached from the open internet via the cloud path (password
-  guessing, email enumeration, refresh/session abuse). `logout`, `/calendar/*`,
-  `/notifications/*`, `/reminders/*` and `/users/me*` stay on the global default (`logout` needs a valid refresh token already, so
-  hammering it gains nothing); see
-  `backend/apps/gateway/README.md` for the full reasoning behind the two-tier split. Keyed on
-  client IP: `main.ts` sets `trust proxy` to `src/trust-proxy.ts`'s `TRUST_PROXY` (loopback +
-  private networks — safe because the port is published on `127.0.0.1` only), so that IP is the
-  one `tailscale serve` or the SSH tunnel forwarded — see `architecture.md`.
 - `src/realtime/` — the app's live connection.
   - `POST /realtime/device` (open; `authStrictThrottlePolicy`) → `201 { device_token }`: a new
     device id, signed by `@app/auth-kernel`'s `DeviceTokenService` (`{ sub, typ: 'device' }`, no
@@ -116,19 +103,25 @@ tunnel from a Caddy instance on the public internet. HTTP + WebSocket.
   `gateway`) → `AppUpdateNotifierService` broadcasts `app-update`. No version in the payload —
   Gateway's public surface never exposes versions; the app re-reads `latest.json` itself. See
   `event-schemas.md#frontendreleases`.
-- CORS is permissive (`origin: true`, reflects any origin) on both HTTP and the WS handshake —
-  both the local frontend build (different origin than Gateway during dev) and the cloud path
-  (same-origin via Caddy's reverse proxy, so this doesn't come into play there) work either way.
-  Revisit if Gateway is ever reachable directly (not proxied) from the open internet.
+- Rate limiting (`@nestjs/throttler`): a global limit (`THROTTLE_TTL_MS`/`THROTTLE_LIMIT`, default
+  60 s/100) on every route, plus a strict one (`AUTH_THROTTLE_TTL_MS`/`AUTH_THROTTLE_LIMIT`,
+  default 60 s/5) on `register`/`login`/`refresh`/`account` (both methods) and `/realtime/device`.
+  `logout`, `/calendar/*`, `/notifications/*`, `/reminders*` and `/users/me*` stay on the global
+  one. Why two tiers: `backend/apps/gateway/README.md`. Keyed on client IP: `main.ts` sets
+  `trust proxy` to `src/trust-proxy.ts`'s `TRUST_PROXY` (loopback + private networks — safe
+  because the port is published on `127.0.0.1` only), so that IP is the one `tailscale serve` or
+  the SSH tunnel forwarded — see `architecture.md`.
+- CORS is permissive (`origin: true`, reflects any origin) on both HTTP and the WS handshake — why
+  that's safe: `backend/apps/gateway/README.md`.
 - No `/health`, and versions only behind `AdminGuard` (`GET /admin/status`) — Gateway is the
   public entry (including the cloud path). Its image bakes in its version like the others (see
   [Versions](#versions)).
 
 ## users
 
-Owns both how you log in (`users`, `refresh_tokens`) and who you are (`profiles`), and publishes profile changes and deletions on Kafka (see "Profiles" below).
-
-HTTP, internal-only — never published to the host, only Gateway calls it.
+HTTP, internal-only (only Gateway calls it), schema `users` in the shared database. Owns both how
+you log in (`users`, `refresh_tokens`) and who you are (`profiles`), and publishes profile changes
+and deletions on Kafka (see "Profiles" below).
 
 - `POST /auth/register` — `{ email, password, firstName?, lastName?, phone? }` →
   `{ access_token, refresh_token }`. The optional details go into the profile, created in the same
@@ -184,7 +177,8 @@ changed, and always reissuing gives the endpoint one response shape regardless o
 were updated.
 
 Postgres via TypeORM (`users`, `refresh_tokens`, `profiles`, `outbox_events`), password_hash = SHA256(`PASSWORD_PEPPER` + salt +
-plaintext). Access tokens: 15-min TTL, `{ sub, role, email }` payload. `UserRole` is
+plaintext). Access tokens: 15-min TTL, `{ sub, role, email }` payload; refresh tokens: 30 days,
+rotated on every use. `UserRole` is
 `'user' | 'admin'` (`USER_ROLES` in `@app/auth-kernel`); `register` always creates `'user'`. The
 only `'admin'` is the one `AdminSeedService` creates once at boot from `ADMIN_EMAIL`/`ADMIN_PASSWORD`
 (see `docs/users/environment.md`). `JsonWebTokenService.verify` accepts any role in `USER_ROLES`
@@ -203,11 +197,10 @@ issues a new pair, so a stolen-and-replayed refresh token only ever works once.
 
 ## reminders
 
-HTTP, internal-only, schema `reminders` in the shared database. User from Gateway's `X-User-Id`
-(`@ForwardedUserId()`, 401 without it). One `reminders` row per user and type (`user_id`, `type`,
-`offset_min`, `enabled`, `next_fire_at`; unique `(user_id, type)`); `user_id` references
-`users.users(id)` `ON DELETE CASCADE`, so a deleted account's reminders go with it and a reminder
-can't be saved for a user that doesn't exist. The only type so far is `shabbat_candles`.
+HTTP + BullMQ worker, internal-only, schema `reminders` in the shared database plus the shared
+Redis (`REDIS_URL`) and Kafka (`KAFKA_BROKERS`). Owns two kinds of reminder: the candle-lighting
+reminder and the user's own (custom) reminders, and turns each into a notification at its time.
+User from Gateway's `X-User-Id` (`@ForwardedUserId()`, 401 without it).
 
 - `GET /reminders` → the caller's reminders, enabled or not:
   `[{ type, offsetMinutes, enabled, nextFireAt, waitingForLocation }]`. `waitingForLocation` is
@@ -227,60 +220,63 @@ can't be saved for a user that doesn't exist. The only type so far is `shabbat_c
   between words; `hour` 0–23, `minute` 0–59; `repeat` `once`/`daily`/`monthly`/`yearly`;
   `calendar` `gregorian`/`hebrew`; `start` a real `YYYY-MM-DD` date — `400` otherwise. At most 300
   per user (`MAX_REMINDERS_PER_USER`) → `422`.
+- `PATCH /reminders/custom/:id` — any of those fields → the reminder (the whole series); none
+  (`from`/`to` alone included) → `400`. `DELETE /reminders/custom/:id` → `204`.
+- `POST /reminders/custom/:id/skip` — `{ date }` → `200` and the reminder with `date` in `skipped`
+  ("only this day"; changing one day is this plus a once-reminder on it). Idempotent; `422` if the
+  reminder doesn't fall on `date`, or past 500 skipped days.
 - `POST /reminders/custom`, `PATCH /reminders/custom/:id` and `POST /reminders/custom/:id/skip`
   also take optional `from`/`to` (`YYYY-MM-DD`) in the body — the months the client shows, both
   or neither, under the same rules as the list's range, else `400`. With them the answer also has
   `dates` (the reminder's days in that range), so the client can show the change without asking
   for the list again; without them it doesn't. They're in the body because Gateway passes a query
   string on only for a `GET`.
+- A `:id` that isn't the caller's reminder, or isn't a UUID → `404`.
 - `GET /reminders/custom/preview?hour&minute&repeat&calendar&start` — the same timing fields
   (same rules, `calendar` defaults to `gregorian`, `hour`/`minute` plain digits — `''` or `1e1` →
   `400`) → `{ next: ['YYYY-MM-DD', …] }`: the next 3 days
   (`PREVIEW_COUNT`) it would fire on, as if saved now, in Israel time; empty when it won't fire
   again (a once-reminder whose time passed). Nothing is saved — the add/edit sheet's "Next" dates.
-- `PATCH /reminders/custom/:id` — any of those fields → the reminder (the whole series); none
-  (`from`/`to` alone included) → `400`. `DELETE /reminders/custom/:id` → `204`.
-- `POST /reminders/custom/:id/skip` — `{ date }` → the reminder with `date` in `skipped` ("only
-  this day"; changing one day is this plus a once-reminder on it). Idempotent; `422` if the
-  reminder doesn't fall on `date`, or past 500 skipped days.
-- A `:id` that isn't the caller's reminder, or isn't a UUID → `404`. Table `custom_reminders`
-  (`title`, `hour`, `minute`, `repeat`, `calendar`, `start_date` `date`, `skipped_dates`
-  `varchar(10)[]`, `next_fire_at`, `created_at`, `updated_at`; `user_id` → `users.users(id)`
-  `ON DELETE CASCADE`). Each fires as a notification — see "Scheduling custom reminders" below.
 - `GET /health` — see [Versions](#versions).
 
+**Tables.** `reminders`: one row per user and type (`user_id`, `type`, `offset_min`, `enabled`,
+`next_fire_at`; unique `(user_id, type)`); the only type is `shabbat_candles`. `custom_reminders`:
+`title`, `hour`, `minute`, `repeat`, `calendar`, `start_date` `date`, `skipped_dates`
+`varchar(10)[]`, `next_fire_at`, `created_at`, `updated_at`. In both, `user_id` references
+`users.users(id)` `ON DELETE CASCADE`, so a deleted account's reminders go with it and a reminder
+can't be saved for a user that doesn't exist.
+
 **The user's location** is read straight from the Users Service's `users.profiles` (a read-only
-mapping, `UsersProfileEntity` from `@app/users-schema`) — never copied, never written here.
+mapping, `UsersProfileEntity` from `@app/users-schema`) — never copied, never written here. Only
+candle lighting uses it.
 
-**Scheduling candle lighting** (`ReminderScheduler`): an enabled reminder with a location has `next_fire_at` =
-the next candle lighting at that location (`@app/jewish-calendar`, in-process) minus the offset,
-and one delayed `reminder-due` job for exactly that time (see
-[event-schemas.md](event-schemas.md#reminder-due)). It's recomputed on `PUT` (the setting is saved
-even if Redis is down), on every `users.user-state` message for the user (Kafka group
-`reminders` — the location may have moved), after each firing, and — as the safety net — for every
-enabled reminder at startup and every 15 minutes (`ReminderSweeper`), so any failure above (e.g. Redis
-down) is fixed by the next sweep. A firing whose time already passed is skipped to next week —
-except one that was still pending (the service was down), which fires late as long as candle
-lighting is ahead. `DELETE` drops the job; off, no location → `next_fire_at` `null`. Needs
-`REDIS_URL`, `KAFKA_BROKERS`.
+**Scheduling.** Every reminder with a next firing has it in `next_fire_at` and one delayed
+`reminder-due` job for exactly that time; when the job runs it requests the notification and queues
+the next firing — what each kind sends: [event-schemas.md](event-schemas.md#reminder-due).
+`ReminderDueConsumer` hands each job to its scheduler by `kind`. As the safety net,
+`ReminderSweeper` reschedules every enabled candle-lighting reminder and every custom reminder at
+startup and every 15 minutes, so a failure anywhere below (e.g. Redis down — a save still
+succeeds) is fixed by the next sweep. It then removes delayed jobs whose reminder row is gone
+(`ReminderJobCleaner`) — an account deletion takes the rows by cascade, so nothing cancelled
+their jobs. Only a missing row counts: a row is saved before its job is queued, so a reminder
+being created is never taken for one.
 
-**Scheduling custom reminders** (`CustomReminderScheduler`): each custom reminder has
-`next_fire_at` = its next occurrence (`ReminderOccurrences.nextAfter`, skipped days left out) at
-its wall-clock time in Israel (`ISRAEL_TIME_ZONE` from `@app/jewish-calendar` — the user's
-location plays no part, so a reminder is scheduled even without one), and one delayed
-`reminder-due` job of kind `custom` for exactly that time. It's recomputed on `POST`, `PATCH` and
-skip (the change is saved even if Redis is down), after each firing, and by the same
-`ReminderSweeper` (startup and every 15 minutes) for every custom reminder; `users.user-state`
-doesn't affect it. `DELETE` drops the job (best effort — a leftover finds the reminder gone and
-does nothing). A firing that already passed without running (the service was down) is kept when
-the reminder still falls then and it's less than an hour late (`LATE_LIMIT_MS`), so it fires
-late; past that the sweep moves on to the next occurrence — a job that failed every attempt keeps
-its id in Redis, so re-adding it would do nothing and the reminder would never fire again. When
-the job runs and `next_fire_at` still equals its `fireAt`, it publishes `notification-requested` —
-the reminder's title, body `Your reminder for HH:MM.` (Israel time), `url` `/calendar`,
-`expiresAt` = `fireAt` + 1 h, so one more than an hour late sends nothing — then queues the next
-occurrence after the later of `fireAt` and now (occurrences missed meanwhile aren't queued one by
-one). A once-reminder that has fired keeps its row with `next_fire_at` `null`.
+- **Candle lighting** (`ReminderScheduler`): an enabled reminder with a location fires at the next
+  candle lighting there (`@app/jewish-calendar`, in-process) minus the offset. Recomputed on `PUT`,
+  on every `users.user-state` message for the user (Kafka group `reminders` — the location may have
+  moved) and after each firing. A firing whose time already passed is skipped to next week — except
+  one that was still pending (the service was down), which fires late as long as candle lighting is
+  ahead. `DELETE` drops the job; off, or no location → `next_fire_at` `null`.
+- **Custom** (`CustomReminderScheduler`): fires at its next occurrence
+  (`ReminderOccurrences.nextAfter`, skipped days left out) at its wall-clock time in Israel
+  (`ISRAEL_TIME_ZONE`) — the location plays no part, so it's scheduled even without one.
+  Recomputed on `POST`, `PATCH`, skip and after each firing; `users.user-state` doesn't affect it.
+  `DELETE` drops the job (best effort — a leftover finds the reminder gone and does nothing). A
+  firing that passed without running (the service was down) is kept while the reminder still falls
+  then and it's less than an hour late (`LATE_LIMIT_MS`), so it fires late; past that, the next
+  occurrence is scheduled instead — a job that failed every attempt keeps its id in Redis, so
+  re-adding it would do nothing. A once-reminder that has fired keeps its row with `next_fire_at`
+  `null`.
 
 ## notifications
 
@@ -347,7 +343,7 @@ push-service error.
   ciphertext | tag (16) — AES-256-GCM of `{ notificationId, title, body, url?, expiresAt }` with that
   device's key, so Google only carries ciphertext. Android TTL = whole seconds left. The app's
   background task decrypts and shows it — open, in the background, swiped away or in Doze (proven
-  on a phone before this was built). Access tokens come from the service-account key (an RS256 JWT
+  on a phone). Access tokens come from the service-account key (an RS256 JWT
   exchanged at `oauth2.googleapis.com`), cached until a minute before they expire. FCM's answer:
   sent → done; `UNREGISTERED`/404, `SENDER_ID_MISMATCH` or a 400 about the registration token →
   device deleted, done; 429, 5xx, 401 (a fresh access token next time) or no response → left
@@ -630,13 +626,9 @@ plus `frontend/public/index.html` (Expo's single-page template with the manifest
 `theme-color`), the manifest served as `application/manifest+json` by `frontend/Caddyfile` — see
 `frontend/README.md`'s "Installable web app".
 
-Themed via `themeSlice` → `useAppTheme()` and shared
-components under `src/components/base/` (grouped into `background`/`buttons`/`feedback`/`form`/
-`layout` subfolders by purpose) and `src/components/composite/` (the Account cards above,
-`AmbientBackground`, `CandleReminder`, `ConfirmModal`, `CustomReminderSheet`, `DayCard`, `FormActions`,
-`MonthGrid`, `MonthHeader`, `MonthStatus`, `NotificationsPrompt`, `ProfileFields`, `RemindersSheet`,
-`RequireAuthNotice`, `ShabbatSection`, `SystemStatus`, `UpdateChip`, `UpdateSheet`) — see `.claude/agents/frontend.md` for the base/composite split, the full
-convention, and why there's no Gluestack layer here.
+Themed via `themeSlice` → `useAppTheme()` and the shared components under `src/components/`
+(`base/` primitives, `composite/` built from them) — the list is in `frontend/README.md`, the
+conventions in `.claude/agents/frontend.md`.
 
 `src/services/` is split by transport: `http/` (fetch-based calls — `authService`,
 `usersService` for `/users/me*`, `calendarService` for `/calendar/shabbat`, `remindersService` for
@@ -693,11 +685,22 @@ Notifications answer `GET /health` (compose healthcheck; internal-only) with:
   "builtAt": "2026-10-05T18:00:00Z", "startedAt": "2026-10-05T18:02:11.123Z" }
 ```
 
-(`@app/build-info`, see below.) The frontend image bakes in its version and build time
+([`@app/build-info`](#libsbuild-info).) The frontend image bakes in its version and build time
 (`EXPO_PUBLIC_FRONTEND_VERSION`/`EXPO_PUBLIC_BUILT_AT`), shown by the
 Account tab's `VersionInfo` (and at the bottom of the Admin tab, which lists every backend
 service's version from `GET /admin/status`).
 
+## libs/auth-kernel
+
+Shared JWT sign/verify (`IJwtService`/`JsonWebTokenService`, the only class allowed to import
+`jsonwebtoken`), the higher-level `IAuthTokenService`/`AuthTokenService` used by every guard,
+`DeviceTokenService` (Gateway's device tokens), `JwtAuthGuard` (any role in `USER_ROLES`) and
+`AdminGuard` (`JwtAuthGuard` + admins only → `403`). Used by `apps/users` (signs, on
+login/register/refresh/account) and `apps/gateway` (verifies — `JwtAuthGuard` on every
+`auth: 'user'` row of `PROXY_ROUTES`, `AdminGuard` on `GET /admin/status`, and the `/ws`
+handshake). Also `USER_ID_HEADER` + `@ForwardedUserId()`, the internal-service side of Gateway's
+forwarded user id (see Gateway above) — used by `apps/users`, `apps/reminders` and
+`apps/notifications`.
 ## libs/build-info
 
 `buildInfo(service)` → `{ service, version, builtAt, startedAt }`. Reads `versions.json` and
@@ -705,34 +708,6 @@ service's version from `GET /admin/status`).
 so a local `nest start` from `backend/` reads the repo's own file, with `builtAt` `null` (nothing
 writes `built-at` outside Docker). Missing entry or file → `null`. `startedAt` is fixed at module
 load.
-
-## libs/auth-kernel
-
-Shared JWT sign/verify (`IJwtService`/`JsonWebTokenService`, the only class allowed to import
-`jsonwebtoken`), the higher-level `IAuthTokenService`/`AuthTokenService` used by every guard,
-`JwtAuthGuard` (any role in `USER_ROLES`), `AdminGuard` (`JwtAuthGuard` + admins only → `403`; not
-used by any route yet), and the `CurrentUser` param decorator. Used by both `apps/users` (signs, on
-login/register) and `apps/gateway` (verifies — `JwtAuthGuard` on `/users/me*`, `/reminders*`,
-`/notifications/subscriptions`). Also `USER_ID_HEADER` + `@ForwardedUserId()`, the
-internal-service side of Gateway's forwarded user id (see Gateway above) — used by `apps/users`,
-`apps/reminders` and `apps/notifications`.
-
-## libs/queue-contracts / libs/queue-client
-
-`queue-client`: `IQueuePublisher`/`BullmqQueuePublisher` (`publish(queue, data, { dedupeId,
-dedupeTtlMs, delayMs, attempts, backoffMs })`, JSON job data, one BullMQ `Queue` per name) and
-`IQueueConsumer`/`BullmqQueueConsumer` (`process(queue, guard, handler, { concurrency })`, the
-handler getting the data plus `JobMeta` — ids, attempt number, and the job's `progress` with
-`saveProgress(patch)`, which is kept across retries; workers
-start on `onApplicationBootstrap` and close on `onModuleDestroy`, finishing in-flight jobs, before
-the publisher's queues close on `onApplicationShutdown`; a job failing the guard fails with `UnrecoverableError`, never
-retried; a handler that throws is retried while the job has attempts left). Both connect via
-`REDIS_URL`; the only files that import `bullmq`.
-`queue-contracts`: this project's cross-service queue names and job types with their guards —
-`notification-requested` (Reminders → Notification Service) and `reminder-due` (Reminders' own
-delayed jobs, candle-lighting or custom by `kind`).
-Also `notificationRequestedPublishOptions(message)`, the dedupe/retry options every publisher of
-that queue must pass. See `event-schemas.md`.
 
 ## libs/jewish-calendar
 
@@ -784,17 +759,9 @@ minutes for all of them).
 See `backend/libs/jewish-calendar/README.md` for the non-obvious implementation details (ESM-only
 import, server time zone, finding Havdalah, reminders' repeat rules).
 
-## libs/users-schema
-
-The Users Service's tables as other services may see them: read-only TypeORM entities
-(`synchronize: false`, so a service that lists them never creates or alters them) —
-`UsersUserEntity` (`users.users`, id only; the target of other services' `ON DELETE CASCADE`
-foreign keys) and `UsersProfileEntity` (`users.profiles`, location columns; read by Reminders). Only
-the Users Service writes these tables; its own full entities stay in `apps/users`.
-
 ## libs/kafka-contracts / libs/kafka-client
 
-Kafka is for events (a fact any number of services may react to); BullMQ above is for jobs. The
+Kafka is for events (a fact any number of services may react to); BullMQ (below) is for jobs. The
 Users Service publishes (through the outbox); Reminders consumes `users.user-state`.
 
 `kafka-client` (the only code that imports `kafkajs`, via `KAFKA_BROKERS`):
@@ -813,3 +780,29 @@ with a delay doubling from 1 s to 60 s. No polling. At-least-once: a crash betwe
 delete re-sends one, so consumers must be idempotent.
 `kafka-contracts`: `KAFKA_TOPICS`, `KAFKA_CONSUMER_GROUPS`, and each message type with its guard.
 See `event-schemas.md`.
+
+## libs/queue-contracts / libs/queue-client
+
+`queue-client`: `IQueuePublisher`/`BullmqQueuePublisher` (`publish(queue, data, { dedupeId,
+dedupeTtlMs, delayMs, attempts, backoffMs })`, `remove(queue, jobId)`, `delayed(queue)` — every
+delayed job's id and data, JSON job data, one BullMQ `Queue` per name) and
+`IQueueConsumer`/`BullmqQueueConsumer` (`process(queue, guard, handler, { concurrency })`, the
+handler getting the data plus `JobMeta` — ids, attempt number, and the job's `progress` with
+`saveProgress(patch)`, which is kept across retries; workers
+start on `onApplicationBootstrap` and close on `onModuleDestroy`, finishing in-flight jobs, before
+the publisher's queues close on `onApplicationShutdown`; a job failing the guard fails with `UnrecoverableError`, never
+retried; a handler that throws is retried while the job has attempts left). Both connect via
+`REDIS_URL`; the only files that import `bullmq`.
+`queue-contracts`: this project's cross-service queue names and job types with their guards —
+`notification-requested` (Reminders → Notification Service) and `reminder-due` (Reminders' own
+delayed jobs, candle-lighting or custom by `kind`).
+Also `notificationRequestedPublishOptions(message)`, the dedupe/retry options every publisher of
+that queue must pass. See `event-schemas.md`.
+
+## libs/users-schema
+
+The Users Service's tables as other services may see them: read-only TypeORM entities
+(`synchronize: false`, so a service that lists them never creates or alters them) —
+`UsersUserEntity` (`users.users`, id only; the target of other services' `ON DELETE CASCADE`
+foreign keys) and `UsersProfileEntity` (`users.profiles`, location columns; read by Reminders). Only
+the Users Service writes these tables; its own full entities stay in `apps/users`.
