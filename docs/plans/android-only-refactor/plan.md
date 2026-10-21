@@ -36,8 +36,11 @@ Decided (2026-10-21):
 
 - Android only; reminders on the phone with local notifications; no users needed for reminders.
 - Gateway, Users Service, auth code: **kept, dormant**. Account tab: **hidden**, not deleted.
+- Decided after R1 (2026-10-21): **1. calendar maths on the phone**, **2. a `/apk/`-only Caddy** at
+  today's address, **3. Kafka goes** and Users loses its outbox — as proposed below, except that
+  the lib lives in the app only, not a shared package (see R2.1).
 
-Proposed — **the user still has to confirm these** (recommendation first):
+Proposed on 2026-10-21 (1–3 now decided, 4–6 still open):
 
 1. **Calendar maths on the phone.** Move `@app/jewish-calendar` (≈790 lines of pure TypeScript
    over `@hebcal/core`, 79 tests) to a shared `packages/jewish-calendar` that the app imports (and
@@ -142,22 +145,98 @@ Proposed — **the user still has to confirm these** (recommendation first):
   `runChecks.ts`, `nodeCheck.mjs`, `expected.json`); opened with `personalcopilot://spike`.
   The first Docker build failed in `expo-modules-core`'s native step ("build.ninja still dirty",
   Docker's clock was 23 s behind the PC's); the retry built fine.
-- [ ] **R1.2 Local exact notifications (spike).** `expo-notifications` date-triggered
+- [x] **R1.2 Local exact notifications (spike).** `expo-notifications` date-triggered
   notifications, `USE_EXACT_ALARM` in `app.json`. *Check on the phone:* one fires on the minute
   with the app swiped away and the screen off; it survives a reboot; it survives an APK update
   (`MY_PACKAGE_REPLACED`); note the pending-alarm limit. Never change the phone's settings without
   asking (memory: phone adb settings).
-- [ ] **R1.3 Decide.** Record the results here and settle decisions 1–3 (and the background top-up
+  *Done 2026-10-21 (S23 Ultra, APK 0.6.0-test.7, `USE_EXACT_ALARM` granted at install):*
+  - expo-notifications 57.0.22 schedules a date trigger with `setExactAndAllowWhileIdle`
+    (RTC_WAKEUP) when exact alarms are allowed, else silently inexact; it keeps every request in
+    SharedPreferences and re-arms them on BOOT_COMPLETED and MY_PACKAGE_REPLACED. A date that passed
+    while the phone was off is **dropped on boot, not shown late** (matters for R3.2).
+  - `dumpsys alarm`: all six test alarms exact (`window=0`, `exactAllowReason=policy_permission`).
+  - App process killed, screen off (dozing): +1/+2/+3 min posted **0.12–0.33 s** after the minute.
+  - APK reinstalled over itself (update): the remaining three alarms re-armed, still exact, without
+    opening the app (Android started it in the background for MY_PACKAGE_REPLACED).
+  - Reinstalled again with the app never opened afterwards: the re-armed 19:58 alarm posted at
+    **19:58:00.23**. An update also clears the notifications the app has already posted (Android
+    removes them when the package is replaced).
+  - Reboot: after the first unlock the pending alarms came back exact (`dumpsys alarm`), set again
+    by expo-notifications' boot receiver; the ones due while the phone was restarting and locked
+    (19:48–19:50) were dropped, as expected. A re-armed alarm wasn't seen firing after the reboot —
+    the app was opened right after unlocking and the spike replayed its deep link (`?schedule=set`,
+    the screen re-runs it when restored from recents), replacing them. Boot and update use the
+    same re-arm routine (`ExpoSchedulingDelegate.setupScheduledNotifications`), and the update path
+    was seen firing, so this is accepted; recheck once on the phone in R3.5.
+  - For R3.2: the reconcile must also run on app start (alarms dropped while the phone was off or
+    locked after a reboot are not re-created by expo-notifications); the Docker build VM's clock
+    drift and the phone's clock (~24 s behind the PC) don't matter — alarms use the phone's clock.
+  The spike's notification test screen was not kept (removed before committing); only
+  `app.json`'s `USE_EXACT_ALARM` stays, for R3.
+- [x] **R1.3 Decide.** Record the results here and settle decisions 1–3 (and the background top-up
   question in R3.3) before R2.
+  *Done 2026-10-21:* decisions 1–3 taken as proposed (R1.1 and R1.2 both passed). The background
+  top-up (R3.3) stays open until R3.2's window is sized: scheduled alarms survive reboots and
+  updates, so it only matters if the app isn't opened for longer than the window lasts. A daily
+  reminder may not need a window at all (expo-notifications' repeating daily trigger) — check in
+  R3.2.
 
 ## Stage R2: calendar maths on the phone
 
-- [ ] **R2.1 `packages/jewish-calendar`.** Move the lib (source, specs, README) to a shared package;
-  no Nest dependency; Gateway's calendar module imports it from there.
-- [ ] **R2.2 Jest in `frontend/`.** `jest-expo` + React Native Testing Library, `npm test` as the
+- [x] **R2.1 The lib in the app.** *Changed 2026-10-21 (was a shared `packages/jewish-calendar`):*
+  the lib lives **only in the app**, `frontend/src/calendar/` (source, specs, README), from
+  `backend/libs/jewish-calendar` with no Nest dependency and a plain `@hebcal/core` import. Both
+  Docker builds see only their own folder (Gateway builds from `backend/`, the APK mounts
+  `frontend/`), so a root package would mean widening both for a Gateway nobody calls. The backend
+  keeps its copy until Reminders is deleted (R5); then `libs/jewish-calendar` and Gateway's
+  `/calendar/*` routes go too. The R1.1 spike (`frontend/app/spike.js`, `frontend/src/spike/`) is
+  removed here.
+  *Done 2026-10-21:* `frontend/src/calendar/` — every source file and spec (79 tests, run from
+  R2.3), the README adapted to the phone. `@nestjs/common`'s 422 exception → `InvalidLocationError`
+  (exported from `shabbat-calendar.ts`, same messages); `@hebcal/core` imported plainly. Not wired
+  in yet (R2.4). Checked in Node against the running Gateway: Shabbat now and the months 2026-09,
+  2026-12, 2027-10 for Tel Aviv identical, a polar point throws `InvalidLocationError`; the
+  Android bundle builds; docs-check passes.
+- [ ] **R2.2 Feature folders** (asked 2026-10-21: more features are coming, e.g. finance). The
+  frontend moves from "by kind of file" (`components/`, `store/slices/`, `services/`, `utils/`) to
+  one folder per feature. Moves and import fixes only — no behaviour change.
+  ```
+  app/                    routes only, thin: each renders a feature's screen
+  src/features/<name>/    components/ store/ (its slice + thunks) services/ utils/ index.js
+    shabbat/              Home's Shabbat card, the candle-lighting reminder
+    calendar/             month grid, day card, months swipe
+    reminders/            the user's own reminders (+ the local scheduler in R3)
+    app-update/           APK update sheet and chip
+    account/              auth, profile, admin — dormant, fenced off here
+  src/lib/jewish-calendar/  the calendar maths (R2.1's src/calendar/), pure, no React
+  src/shared/             components (base UI kit, ConfirmModal, BottomSheet, SwipeTabs,
+                          background), theme, hooks, device (location, notifications), store
+                          (builds the root store from each feature's slice), utils, config
+  ```
+  Rules: a feature imports from `shared/` and `lib/`, and another feature only through its
+  `index.js`; `shared/` never imports a feature; I/O still only in a feature's `services/` (or
+  `shared/device/`), called only from thunks. A new feature = a folder, a route, a `TABS` entry.
+  `.claude/agents/frontend.md`, `frontend/README.md` and CLAUDE.md's frontend lines follow.
+  *Check:* the app bundles, the e2e suite still passes where it runs, and on the phone every tab
+  looks and works as before.
+  *Built 2026-10-21:* the layout above, plus `src/store/` (the root store — it imports every
+  feature, so not in `shared/`), `shared/{http,realtime,device,theme,config,utils}`; `jwt` in
+  `shared/utils` (`httpClient` uses it); the general date helpers split out of the calendar's utils
+  into `shared/utils/date.js` and `ReminderRow` moved into reminders, so features depend one way
+  (shabbat → calendar → reminders → account); `ThemeCard` in shared (it must outlive the hidden
+  Account tab). `AuthGate`, `LocationSyncManager` and `PushSubscriptionManager` sit in account —
+  the last also creates Android's notification channel, so split that out before R4 hides
+  account. Import-rule and cycle checks clean; the bundle builds; docs-check passes;
+  `devops/android/apk.js` (+ test) follow `versionCode.js` to `shared/utils/`.
+  On the phone (APK 0.6.0-test.8): Home, the bell's and the +'s login prompts, swiping between
+  tabs all as before. Still to see: a month loading on the Calendar tab — "Couldn't load this
+  month" because Tailscale wasn't running on the phone after R1.2's reboot (Gateway itself
+  answers; Home showed its saved Shabbat times).
+- [ ] **R2.3 Jest in `frontend/`.** `jest-expo` + React Native Testing Library, `npm test` as the
   one command (the same ESM transform for `@hebcal/*` the backend uses); the lib's 79 tests run
   there, the Israel-time cases kept as they are.
-- [ ] **R2.3 The app computes locally.** `services/http/calendarService.js` → a local module with
+- [ ] **R2.4 The app computes locally.** `services/http/calendarService.js` → a local module with
   the same shapes (`/calendar/shabbat` and `/calendar/month`); `calendarSlice` and its month cache
   unchanged. *Check:* Home and the Calendar tab work in airplane mode.
 
@@ -276,5 +355,5 @@ Proposed — **the user still has to confirm these** (recommendation first):
   `upsert(['endpoint'])` test item, "Redis overcommit warning", the Redis `dump.rdb` leftover, the
   device list idea and the red "Disconnected" chip all go with the deleted code. Still relevant:
   Postgres receiving the backend secrets (dormant stack), the `testing.md` testcontainers claim, the
-  `tsc` errors in `shabbat-calendar.spec.ts` (fix when the lib moves in R2.1), refreshing Shabbat
+  `tsc` errors in `shabbat-calendar.spec.ts` (fix with the lib's tests in R2.3), refreshing Shabbat
   times when the app returns to the foreground.

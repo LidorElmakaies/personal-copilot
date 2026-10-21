@@ -230,15 +230,18 @@ reused by every service that needs it: Postgres (one database, `personal_copilot
 table-owning service — a service writes only its own schema and may read others' tables), Redis
 (BullMQ queues), Kafka (events, not published to the host).
 
-**Frontend** — Expo Router, file-based routing, `(auth)`/`(tabs)` groups. Redux Toolkit with a
-strict services-layer convention: all I/O lives in `src/services/`, split by transport —
-`services/http/` (fetch-based calls), `services/ws/` (the Socket.IO client), and
-`services/device/` (on-device I/O: location, push, the APK installer) — called only from thunks in
-`src/store/slices/`, never inline in a thunk or a component.
+**Frontend** — Expo Router, file-based routing, `(auth)`/`(tabs)` groups; the route files only
+render a screen from a feature folder, `src/features/<name>/` (`shabbat`, `calendar`, `reminders`,
+`app-update`, and the dormant `account`), each with its components, slice, services, utils and an
+`index.js` — the only way another feature may import it. Cross-feature code is `src/shared/`
+(never imports a feature), the calendar maths `src/lib/jewish-calendar/`, the root store
+`src/store/index.js`. Redux Toolkit with a strict services-layer convention: all I/O lives in a
+feature's `services/` or `src/shared/` (`device/`, `http/`, `realtime/`), called only from thunks,
+never inline in a thunk or a component.
 
 Theming is a two-layer pipeline ported from `ask-my-crawl`, minus its Gluestack layer: **1)**
 `themeSlice` (`mode: null | 'light' | 'dark'`, persisted) **2)** `useAppTheme()` (derives
-`isDark`/`colors`/`colorMode` — the only way a screen should read colors). `src/theme/colors.js`
+`isDark`/`colors`/`colorMode` — the only way a screen should read colors). `src/shared/theme/colors.js`
 holds the two static palettes. See `frontend/README.md` and `.claude/agents/frontend.md`.
 
 **Observability** — `devops/observability/`: app → OTLP/gRPC → Collector → fans out to Loki

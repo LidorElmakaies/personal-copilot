@@ -10,19 +10,26 @@ import {
   REGISTER,
   REHYDRATE,
 } from 'redux-persist';
-import { setUnauthorizedHandler } from '../services/http/httpClient';
-import { getUserFromToken } from '../utils/jwt';
-import adminReducer from './slices/adminSlice';
-import appUpdateReducer from './slices/appUpdateSlice';
-import authReducer, { refreshSession, selectUserId } from './slices/authSlice';
-import calendarReducer from './slices/calendarSlice';
-import customRemindersReducer from './slices/customRemindersSlice';
-import locationReducer from './slices/locationSlice';
-import notificationsReducer from './slices/notificationsSlice';
-import profileReducer from './slices/profileSlice';
-import remindersReducer from './slices/remindersSlice';
-import themeReducer from './slices/themeSlice';
-import wsReducer from './slices/wsSlice';
+import {
+  adminReducer,
+  authReducer,
+  profileReducer,
+  refreshSession,
+  selectUserId,
+} from '../features/account';
+import { appUpdateReducer } from '../features/app-update';
+import { calendarReducer } from '../features/calendar';
+import { customRemindersReducer } from '../features/reminders';
+import { remindersReducer } from '../features/shabbat';
+import locationReducer from '../shared/device/locationSlice';
+import notificationsReducer from '../shared/device/notificationsSlice';
+import { setUnauthorizedHandler } from '../shared/http/httpClient';
+import wsReducer from '../shared/realtime/wsSlice';
+import themeReducer from '../shared/theme/themeSlice';
+import { getUserFromToken } from '../shared/utils/jwt';
+
+// The root store: each feature's reducer (from its index.js) and shared/'s, with what persists.
+// Not in shared/ — it imports every feature.
 
 const themePersistConfig = {
   key: 'theme',

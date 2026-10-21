@@ -5,8 +5,8 @@
 //   node devops/android/apk.js publish --version 0.1.0 "Note"
 //
 // The version is `frontend` in version/versions.json; Android's versionCode comes from it
-// (frontend/src/utils/versionCode.js). `build` runs in Docker (the Android SDK lives only in the image,
-// Dockerfile here); `publish` writes directly, or through a Node container when devops/data/apk is
+// (frontend/src/shared/utils/versionCode.js). `build` runs in Docker (the Android SDK lives only in
+// the image, Dockerfile here); `publish` writes directly, or through a Node container when devops/data/apk is
 // root-owned (Docker created it on Linux), then — when the newest release changed — tells open apps
 // through Kafka (`frontend.releases`). Tests: node --test devops/android/apk.test.js
 'use strict';
@@ -148,7 +148,7 @@ function writeAtomic(file, data) {
 function publish({ version, notes = [], built = BUILT, registry = REGISTRY, icon = ICON }) {
   notes = notes.map((n) => n.trim()).filter(Boolean);
   if (!version) throw new Refusal('usage: node devops/android/apk.js publish [--version X] "note" ...');
-  const { versionCode } = require(path.join(ROOT, 'frontend/src/utils/versionCode.js'));
+  const { versionCode } = require(path.join(ROOT, 'frontend/src/shared/utils/versionCode.js'));
   let code;
   try {
     code = versionCode(version);

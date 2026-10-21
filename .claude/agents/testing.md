@@ -79,7 +79,7 @@ a shared testing lib under `backend/libs/` is worth creating only once a second 
 ## Frontend
 
 No unit-test runner is set up for the frontend yet (browser tests below cover the UI). If one gets
-added, the services layer (`src/services/http/*.js`, `src/services/ws/socketService.js`) is the highest-value target
+added, the services layer (each feature's `services/*.js`, `src/shared/http/`, `src/shared/realtime/socketService.js`) is the highest-value target
 (mostly pure functions, minimal React/Redux involved): assert `authService` builds the right
 request shape and translates a non-2xx response into the message `apiError.js` documents.
 

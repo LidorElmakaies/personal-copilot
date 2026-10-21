@@ -1,172 +1,18 @@
-import { useEffect, useRef } from 'react';
-import { Stack, useRouter, useSegments } from 'expo-router';
-import { AppState, StatusBar } from 'react-native';
-import { Provider, useDispatch, useSelector } from 'react-redux';
+import { Stack } from 'expo-router';
+import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
-import UpdateSheet from '../src/components/composite/UpdateSheet';
-import { useAppTheme } from '../src/hooks/useAppTheme';
+import {
+  AuthGate,
+  LocationSyncManager,
+  PushSubscriptionManager,
+} from '../src/features/account';
+import { AppUpdateManager } from '../src/features/app-update';
+import RealtimeConnectionManager from '../src/shared/realtime/RealtimeConnectionManager';
+import ThemedStatusBar from '../src/shared/theme/ThemedStatusBar';
 import { persistor, store } from '../src/store';
-import {
-  checkForUpdate,
-  deleteOldUpdates,
-  listenForUpdates,
-} from '../src/store/slices/appUpdateSlice';
-import {
-  RENEW_BEFORE_EXPIRY_MS,
-  RENEW_RETRY_MS,
-  renewSessionIfDue,
-  selectUserId,
-} from '../src/store/slices/authSlice';
-import {
-  initNotifications,
-  syncPushSubscription,
-  watchNotificationPermission,
-} from '../src/store/slices/notificationsSlice';
-import { syncLocation } from '../src/store/slices/profileSlice';
-import {
-  connectWebSocket,
-  disconnectWebSocket,
-} from '../src/store/slices/wsSlice';
-import { isTokenExpired, msUntilExpiry } from '../src/utils/jwt';
 
-// One WS connection app-wide, signed in or not (anonymous without a token); reconnects on sign-in/
-// out. Closed while the app is in the background, opened again when it comes back.
-function RealtimeConnectionManager() {
-  const dispatch = useDispatch();
-  const { accessToken } = useSelector((state) => state.auth);
-
-  useEffect(() => {
-    if (AppState.currentState !== 'background') dispatch(connectWebSocket());
-  }, [accessToken, dispatch]);
-
-  useEffect(() => {
-    const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'active') dispatch(connectWebSocket());
-      else if (state === 'background') dispatch(disconnectWebSocket());
-    });
-    return () => sub.remove();
-  }, [dispatch]);
-
-  return null;
-}
-
-// Fresh GPS fix (not the cached one) while signed in → syncLocation; see docs/specs/services.md#frontend.
-function LocationSyncManager() {
-  const dispatch = useDispatch();
-  const userId = useSelector(selectUserId);
-  const { coords, status } = useSelector((state) => state.location);
-
-  useEffect(() => {
-    if (userId && coords && status === 'ready') dispatch(syncLocation());
-  }, [userId, coords, status, dispatch]);
-
-  return null;
-}
-
-// Registers the service worker (web) or notification channel (Android) at start; while signed in,
-// re-sends this browser's subscription or this phone's FCM device (it may have rotated, or belong
-// to whoever signed in here before) — see notificationsSlice.
-function PushSubscriptionManager() {
-  const dispatch = useDispatch();
-  const userId = useSelector(selectUserId);
-  const ready = useSelector((state) => state.notifications.ready);
-
-  useEffect(() => {
-    dispatch(initNotifications());
-    return dispatch(watchNotificationPermission());
-  }, [dispatch]);
-
-  useEffect(() => {
-    if (userId && ready) dispatch(syncPushSubscription());
-  }, [userId, ready, dispatch]);
-
-  return null;
-}
-
-// The APK checks for a newer version on start, whenever it comes back to the foreground, and when
-// Gateway announces one over /ws (`app-update`); it clears update files it no longer needs on
-// start. appUpdateSlice skips this everywhere else. UpdateSheet is app-wide, so it opens over any
-// tab.
-function AppUpdateManager() {
-  const dispatch = useDispatch();
-
-  useEffect(() => {
-    dispatch(deleteOldUpdates());
-    dispatch(checkForUpdate());
-    const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'active') dispatch(checkForUpdate());
-    });
-    const stopListening = dispatch(listenForUpdates());
-    return () => {
-      sub.remove();
-      stopListening();
-    };
-  }, [dispatch]);
-
-  return <UpdateSheet />;
-}
-
-// Login is optional app-wide (see CLAUDE.md) — renews the session a minute before it expires
-// (at once if it already has, e.g. on start) and keeps a logged-in visitor out of (auth).
-function AuthGate() {
-  const router = useRouter();
-  const segments = useSegments();
-  const dispatch = useDispatch();
-  const { accessToken, notice } = useSelector((state) => state.auth);
-
-  // A renewal or sign-out changes accessToken and restarts this; one the server didn't answer
-  // (offline) leaves it, so it's tried again later.
-  useEffect(() => {
-    if (!accessToken) return;
-    let cancelled = false;
-    let timer;
-    const renew = async () => {
-      const renewed = await dispatch(renewSessionIfDue());
-      if (!renewed && !cancelled) timer = setTimeout(renew, RENEW_RETRY_MS);
-    };
-    timer = setTimeout(
-      renew,
-      Math.max(0, msUntilExpiry(accessToken) - RENEW_BEFORE_EXPIRY_MS),
-    );
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-  }, [accessToken, dispatch]);
-
-  // Timers don't run while a phone app is in the background.
-  useEffect(() => {
-    const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'active') dispatch(renewSessionIfDue());
-    });
-    return () => sub.remove();
-  }, [dispatch]);
-
-  useEffect(() => {
-    const inAuthGroup = segments[0] === '(auth)';
-    const hasValidSession = !!accessToken && !isTokenExpired(accessToken);
-    if (hasValidSession && inAuthGroup) {
-      router.replace('/');
-    }
-  }, [accessToken, segments, router]);
-
-  // The server ended the session: take the user to login once, where the notice says why. Only
-  // when the notice appears — leaving login (Back, "Continue without logging in") isn't undone.
-  const segmentsRef = useRef(segments);
-  segmentsRef.current = segments;
-  useEffect(() => {
-    if (notice && segmentsRef.current[0] !== '(auth)') router.push('/login');
-  }, [notice, router]);
-
-  return null;
-}
-
-// Status-bar icons follow the app's theme, not the phone's — light icons on a light page vanish.
-function ThemedStatusBar() {
-  const { isDark } = useAppTheme();
-  return <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />;
-}
-
+// The order is load-bearing — see .claude/agents/frontend.md. AppUpdateManager is last so its
+// UpdateSheet renders over any screen.
 export default function RootLayout() {
   return (
     <Provider store={store}>

@@ -42,12 +42,12 @@ swipe springs back), while signed out shows `ConfirmModal` instead of navigating
 tap or a swipe; a direct hit on the route (deep link, web refresh,
 reopening the app on that tab) bypasses it, so a `requiresAuth` screen also needs its own mount-time
 check. Both halves are generic, not Account-specific: `useRequireAuth()`
-(`src/hooks/useRequireAuth.js`) is the mount-time check, `RequireAuthNotice`
-(`src/components/composite/RequireAuthNotice.js`) is the logged-out fallback to render when it's false — see
-`(tabs)/account.js` for the pattern the next `requiresAuth` tab should follow. A tab for one role
+(`src/features/account/hooks/useRequireAuth.js`) is the mount-time check, `RequireAuthNotice`
+(`src/features/account/components/RequireAuthNotice.js`) is the logged-out fallback to render when it's false — see
+`AccountScreen` (`src/features/account/screens/`) for the pattern the next `requiresAuth` tab should follow. A tab for one role
 only sets `requiresRole: '<role>'` instead: it's left out of the bar and the swipe order for
 everyone else, and the
-screen checks again with `useHasRole` (`(tabs)/admin.js`); the server checks the role too.
+screen checks again with `useHasRole` (`AdminScreen`); the server checks the role too.
 
 A signed-in HTTP call goes through `httpClient`'s `authorizedFetch`: an already-expired token is
 renewed before sending, and a `401` renews the session (`authSlice.refreshSession` — single-flight,
@@ -73,23 +73,24 @@ A theme switch is instant; only `AmbientBackground` animates it (its own 600ms c
 the two backdrops). To theme a new component: import `useAppTheme` and use `colors.*`. A component
 that wants its own transition animates it itself, the way `AmbientBackground` does.
 
-**Always use `useAppTheme()` for colors — never hardcode or import `src/theme/colors.js` directly
+**Always use `useAppTheme()` for colors — never hardcode or import `src/shared/theme/colors.js` directly
 in a screen/component.** (`AmbientBackground` and a themed tab bar are the two deliberate exceptions
 — they interpolate between the two static palettes directly, which `useAppTheme()`'s single
 resolved palette can't express.)
 
 ## Build for reuse — components, not per-screen markup
 
-Favor small, composable components over duplicating UI per screen. `src/components/` splits into
-two folders:
+Favor small, composable components over duplicating UI per screen. The shared kit,
+`src/shared/components/`, splits into two folders; a component only one feature uses lives in that
+feature's `components/` (listed under `composite/` below with its feature):
 
 - **`base/`** — the building blocks: components that don't import any other component from
-  `src/components/`. Not UI-only — a base component may carry its own logic (dispatch, navigate);
-  `AuthLinks` is a link button between pages. Grouped into subfolders by purpose: `background/` (`Meteors`, `Stars` —
+  `src/shared/components/`. Not UI-only — a base component may carry its own logic (dispatch,
+  navigate); `AuthLinks` (in `features/account/components/`) is a link button between pages. Grouped into subfolders by purpose: `background/` (`Meteors`, `Stars` —
   animated background-effect primitives; `paused` stops them, `AmbientBackground` sets it while
-  its screen isn't focused), `buttons/` (`AuthLinks`, `FloatingButton`, `GradientButton`, `PillButton`), `feedback/`
+  its screen isn't focused), `buttons/` (`FloatingButton`, `GradientButton`, `PillButton`), `feedback/`
   (`Alert`, `VersionInfo` — status/feedback indicators), `form/` (`InputField`, `SelectField`, `Stepper`,
-  `Switch` — form input controls), `layout/` (`BottomSheet`, `GlowCard`, `Row`, `SwipePager`, `TabPager` — layout/surface
+  `Switch` — form input controls), `layout/` (`BottomSheet`, `CustomTabBar`, `GlowCard`, `Row`, `SwipePager`, `TabPager` — layout/surface
   primitives). Props worth knowing: `AuthLinks`' `prompt`/`linkLabel`/`href` (login's and
   register's link to the other screen, plus "Continue without logging in"); `FloatingButton`'s `icon` (Ionicons name, default `add`) — the
   caller positions it via `style` (`position: 'absolute'` and its corner);
@@ -105,7 +106,12 @@ two folders:
   if there's no room; scrolls past 4 options) — inline, any `overflow:'hidden'` ancestor such as
   `GlowCard` would clip it and later siblings would draw over it.
 - **`composite/`** — built by composing one or more `base` (or other `composite`) components, flat
-  (no subfolders). Currently: `AmbientBackground` (from `Meteors`, `Stars`), `SwipeTabs` (from
+  (no subfolders). Shared: `AmbientBackground`, `SwipeTabs`, `ConfirmModal`, `FormActions`,
+  `ThemeCard`. The rest sit in their feature's `components/` — shabbat: `ShabbatSection`,
+  `CandleReminder`, `NotificationsPrompt`; calendar: `MonthHeader`/`MonthGrid`/`MonthStatus`,
+  `DayCard`; reminders: `ReminderRow`, `RemindersSheet`, `CustomReminderSheet`; app-update:
+  `UpdateSheet`, `UpdateChip`; account: `ProfileFields`, `RequireAuthNotice`, `SystemStatus` and
+  the Account tab's cards but `ThemeCard`. Each: `AmbientBackground` (from `Meteors`, `Stars`), `SwipeTabs` (from
   `TabPager` — the `(tabs)` navigator: Expo Router's `withLayoutContext` + `TabRouter`, the screens
   side by side; `order`, `canEnter`, `onBlocked`, `tabBar({ navigation, activeName })`), `ConfirmModal` (from
   `GlowCard` (solid), `GradientButton`; optional `icon`/`title` above the message),
@@ -125,8 +131,8 @@ two folders:
   `onToday` pill), month (tappable
   days, `selected`/`onSelect`) and loading/error state; the screen owns the Redux wiring and the
   selected day; `MonthGrid` (memoized) also exports `WeekdayRow` and takes `reminders`), `DayCard` (from
-  `GlowCard` — the selected day's names and times, and its reminders' preview; exports
-  `ReminderRow`, which takes a `selectDayReminders` row, `now` and `onPress`), `RemindersSheet`
+  `GlowCard`, `ReminderRow` — the selected day's names and times, and its reminders' preview),
+  `ReminderRow` (a `selectDayReminders` row, `now` and `onPress`), `RemindersSheet`
   (from `BottomSheet` — "Show all": a day's reminders by hour; `onPressReminder`),
   `CustomReminderSheet` (from `BottomSheet`, `InputField`, `Stepper`, `PillButton`,
   `GradientButton`, `Alert` — the Calendar tab's add/edit sheet for a user's own reminder; `target`
@@ -143,16 +149,35 @@ two folders:
 
 Use these instead of hand-rolling a `TextInput`/card/button/background/confirm-dialog/message-box
 per screen. If a UI pattern is about to appear a second time, extract it to a component before a
-third screen copies it again — new component that imports another `src/components/` file goes in
-`composite/`; one that doesn't goes in `base/`, in the subfolder matching its purpose (a new
-subfolder only if none of the five fit). Pages (`app/`) stay composition + Redux wiring only — no
-component definitions or business logic in a page file.
+third screen copies it again — a shared one that imports another `src/shared/components/` file
+goes in `composite/`; one that doesn't goes in `base/`, in the subfolder matching its purpose (a
+new subfolder only if none of the five fit). Route files (`app/`) only render a feature's screen; a
+screen (`features/<name>/screens/`) stays composition + Redux wiring only — no component
+definitions or business logic in it.
+
+## Feature folders
+
+```
+app/                      routes only: each renders a feature's screen (+ the layouts, TABS)
+src/features/<name>/      components/ screens/ store/ services/ utils/ hooks/ + index.js (public API)
+  shabbat/ calendar/ reminders/ app-update/ account/ (dormant: auth, profile, admin)
+src/lib/jewish-calendar/  the calendar maths — pure, no React
+src/shared/               components/ (base/, composite/), theme/, config/, http/, utils/,
+                          device/ (location, notifications), realtime/ (the one /ws)
+src/store/index.js        the root store: each feature's reducer (from its index.js) + persistence
+```
+
+- A feature imports from `shared/` and `lib/`, and another feature only through its `index.js`
+  — no cycles (shabbat → calendar → reminders → account). `shared/` and `lib/` never import a
+  feature; that's why the root store is `src/store/`, not `shared/`.
+- A new feature = a folder, a route, a `TABS` entry, its reducer in `src/store/index.js`.
 
 ## Services layer — where all I/O lives
 
 Every network call (HTTP or WebSocket) and every device API (location, the browser's
 service worker/`Notification`/`PushManager`, the file system and Android intents) lives in a plain module
-under `src/services/`, split by transport (`http/`, `ws/`, `device/`) — never inline inside a thunk
+in its feature's `services/`, or under `src/shared/` (`device/`, `http/`, `realtime/`) when several
+features use it — never inline inside a thunk
 and never inside a component. Services
 know nothing about Redux (no `dispatch`, no reading state); thunks call the service and translate
 its result/callbacks into dispatched actions; components only ever `dispatch()` a thunk and
@@ -161,7 +186,7 @@ when a component genuinely needs something no thunk/selector combination can giv
 
 ## Non-negotiables
 
-- Build-time values come from `src/config/`: `urls.js` (`URLS.gateway` from
+- Build-time values come from `src/shared/config/`: `urls.js` (`URLS.gateway` from
   `EXPO_PUBLIC_GATEWAY_ORIGIN`, throws if unset — every API call and `/ws`; `apkRegistry` from
   `EXPO_PUBLIC_APK_REGISTRY_URL`, set only by `apk.js build`, `null` elsewhere) and `version.js`
   (`VERSION { frontend, builtAt }` — set by `frontend/Dockerfile` or `apk.js build` from

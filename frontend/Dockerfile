@@ -10,7 +10,7 @@ COPY . .
 ARG GATEWAY_PUBLIC_URL=http://localhost:8000
 ENV EXPO_PUBLIC_GATEWAY_ORIGIN=$GATEWAY_PUBLIC_URL
 # The frontend's version (version/versions.json, a separate build context) and build time, inlined
-# by Metro — src/config/version.js.
+# by Metro — src/shared/config/version.js.
 COPY --from=version versions.json /version/versions.json
 RUN EXPO_PUBLIC_FRONTEND_VERSION=$(node -p "require('/version/versions.json').frontend") \
     EXPO_PUBLIC_BUILT_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ) \

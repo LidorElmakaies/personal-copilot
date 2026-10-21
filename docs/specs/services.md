@@ -407,9 +407,9 @@ screen over the row with the swipe off.
     failure keeps it open with an `Alert`. Closing the sheet drops an unsaved offset.
 - `(auth)/register` — email and password, plus optional first name, last name and phone
   (`ProfileFields`, shared with `ProfileCard`). Names accept English and Hebrew letters only, with
-  single spaces between words — `sanitizeName` in `src/utils/validation.js` drops anything else
+  single spaces between words — `sanitizeName` in `src/shared/utils/validation.js` drops anything else
   (digits, punctuation, niqqud, other alphabets) as it's typed; the Users Service enforces the same. Phone is a country dropdown (`PHONE_COUNTRIES` in
-  `src/utils/phone.js`, Israel only today) plus a digits-only local number, validated with
+  `src/features/account/utils/phone.js`, Israel only today) plus a digits-only local number, validated with
   `libphonenumber-js` and sent as E.164; its error shows once the field is left (or on submit).
   Blank optional fields are left out of the request.
 - `(tabs)/calendar` — no session required: a month grid (`MonthHeader`, `WeekdayRow`, then
@@ -440,7 +440,7 @@ screen over the row with the swipe off.
   or "No candle lighting or fast times"; dimmed while a swipe is between months.
   **Your reminders** (signed in): `customRemindersSlice.fetchCustomReminders` asks
   `GET /reminders/custom` for the month shown ± `PRELOAD` (2, exported by `calendarSlice`;
-  `remindersRange` in `src/utils/customReminders.js`) on every month change; only the latest
+  `remindersRange` in `src/features/reminders/utils/customReminders.js`) on every month change; only the latest
   request's reply is used (`listRequest`), and a reply that crossed a change (`changeSeq`) is asked
   for again, up to 3 tries. A create/edit/skip sends that range and swaps in the reminder(s) the
   server answers with, a delete just removes it locally — no refetch; if the shown months moved
@@ -470,7 +470,8 @@ screen over the row with the swipe off.
   once-reminder asks Keep / Delete. Saving selects the reminder's start day when it's in the month
   shown. `customRemindersSlice` isn't persisted and resets on sign-out and account deletion;
   signing out also closes the sheet.
-- `(tabs)/account` — a heading and six cards (`src/components/composite/`): `ThemeCard` (light/
+- `(tabs)/account` — a heading and six cards (`src/features/account/components/`, `ThemeCard` in
+  `src/shared/components/composite/`): `ThemeCard` (light/
   dark toggle), `NotificationsCard` (see Notifications below), `AccountCard` (email; edit email/password via `POST /auth/account` — the
   `updateAccount` thunk, see `apps/users` above), `ProfileCard` (name and phone; fetches
   `GET /users/me` on mount, saves via `PATCH /users/me`, an emptied field sent as `null`),
@@ -484,10 +485,10 @@ screen over the row with the swipe off.
   `CustomTabBar`, or a swipe onto it (it springs back), while signed out shows `ConfirmModal`
   ("Log in to view Account?") instead of navigating; a direct hit on the route (deep link, web refresh, reopening the app on this tab)
   bypasses that entirely, so `AccountScreen` also calls `useRequireAuth()` on mount and renders
-  `RequireAuthNotice` in that case — both are generic (`src/hooks/`, `src/components/composite/`),
+  `RequireAuthNotice` in that case — both are generic (`src/features/account/hooks/`, `src/features/account/components/`),
   reusable by any future `requiresAuth` tab, not Account-specific. Below the cards, `VersionInfo`
   (`base/feedback/`): "Personal Copilot <frontend version>" and "built <date>" from
-  `src/config/version.js` — "dev", and no date, when not built by the Dockerfile or `apk.js build`
+  `src/shared/config/version.js` — "dev", and no date, when not built by the Dockerfile or `apk.js build`
   (see [Versions](#versions)).
 - `(tabs)/admin` — admins only: `requiresRole: 'admin'` in `TABS` leaves the tab out of the bar and
   the swipe order for everyone else, and the screen checks again (`useRequireAuth`, `useHasRole('admin')`) for a direct
@@ -500,13 +501,13 @@ screen over the row with the swipe off.
   GPS fix this session — the persisted last-known `coords` alone never trigger it).
   `syncLocation` compares the fix with the location the server already has (`GET /users/me`'s
   `location`, fetched first if the profile isn't loaded) and sends `PUT /users/me/location` only if
-  the device moved more than `LOCATION_SYNC_MIN_KM` (5, haversine in `src/utils/geo.js`). The server's copy is the reference — there's no local "last sent" record to go
+  the device moved more than `LOCATION_SYNC_MIN_KM` (5, haversine in `src/shared/utils/geo.js`). The server's copy is the reference — there's no local "last sent" record to go
   stale across accounts or devices. One sync runs at a time; a reply that lands after sign-out
   (or a different sign-in) is dropped; a failure is simply retried on the next fix.
 - **Notifications** — one `notificationsSlice` state (`permission`, `subscribed`, `platform`) over
-  two transports: the web build registers the browser (Web Push, `src/services/device/pushService.js`;
+  two transports: the web build registers the browser (Web Push, `src/shared/device/pushService.js`;
   `'unsupported'` outside a secure context), the Android app registers the phone (FCM,
-  `src/services/device/fcmService.android.js`; `fcmService.js` is the web build's empty stand-in).
+  `src/shared/device/fcmService.android.js`; `fcmService.js` is the web build's empty stand-in).
   Each thunk picks its path; the screens only change wording (`platform`). Web: `frontend/public/sw.js` is exported to the site root, so its scope is `/`: on
   `push` it shows the payload's `title`/`body` with `tag` = `notificationId` (a retry duplicate
   replaces rather than doubles); a tap focuses an open app tab, else opens the payload's `url`; on
@@ -541,7 +542,7 @@ screen over the row with the swipe off.
     a new FCM token. Disable sends `DELETE { token }`, deletes the key and unregisters the token, so
     a late message can't be read and the next send is answered "unregistered". Blocked → the card
     and the reminder sheet offer **Open settings** (`openNotificationSettings`, Android's app page).
-    Receiving: `frontend/index.js` (the entry) loads `services/device/fcmReceiver.android.js`
+    Receiving: `frontend/index.js` (the entry) loads `src/shared/device/fcmReceiver.android.js`
     before the app, since a message can start the JS headless with the app swiped away. Its
     `expo-task-manager` task finds `{ v: '1', enc }`, decrypts it with the key (AES-256-GCM,
     `@noble/ciphers`), skips it past `expiresAt`, and shows it in the "Reminders" channel with
@@ -596,7 +597,7 @@ screen over the row with the swipe off.
   over `/ws` (`listenForUpdates`, via `socketService.on`). The check fetches the registry's
   `latest.json` (`appUpdateService`, `cache: 'no-store'`; a relative `url` resolved against the
   registry folder) and compares its `versionCode` with the installed one —
-  `src/utils/versionCode.js` applied to the baked frontend version; a failed check is ignored. No
+  `src/shared/utils/versionCode.js` applied to the baked frontend version; a failed check is ignored. No
   login needed.
   - Newer → `latest` is set, `UpdateSheet` (composite, a `BottomSheet` mounted app-wide by
     `AppUpdateManager`, so it opens over any tab) opens by itself once per version: Later, Update
@@ -615,7 +616,7 @@ screen over the row with the swipe off.
     `versionCode`. Update files never go to Downloads.
 
 Talks only to Gateway for every API call (`EXPO_PUBLIC_GATEWAY_ORIGIN`, baked in at build time,
-required — `src/config/urls.js` throws at load if it's unset) — never the Users Service or any
+required — `src/shared/config/urls.js` throws at load if it's unset) — never the Users Service or any
 other backend service directly. The one other origin it reads is the APK registry
 (`URLS.apkRegistry`, `EXPO_PUBLIC_APK_REGISTRY_URL`): static, read-only files (`latest.json` and
 the APK) served by the frontend's own Caddy at `/apk/` — not a backend service and no API, see
@@ -626,19 +627,22 @@ plus `frontend/public/index.html` (Expo's single-page template with the manifest
 `theme-color`), the manifest served as `application/manifest+json` by `frontend/Caddyfile` — see
 `frontend/README.md`'s "Installable web app".
 
-Themed via `themeSlice` → `useAppTheme()` and the shared components under `src/components/`
+Themed via `themeSlice` → `useAppTheme()` and the shared components under `src/shared/components/`
 (`base/` primitives, `composite/` built from them) — the list is in `frontend/README.md`, the
-conventions in `.claude/agents/frontend.md`.
+conventions in `.claude/agents/frontend.md`. The code is in feature folders (`src/features/<name>/`:
+`shabbat`, `calendar`, `reminders`, `app-update`, `account`), cross-feature code in `src/shared/`,
+the calendar maths in `src/lib/jewish-calendar/` — layout and import rules in `frontend/README.md`'s
+"Feature folders".
 
-`src/services/` is split by transport: `http/` (fetch-based calls — `authService`,
+I/O lives in each feature's `services/` and in `src/shared/`. HTTP (fetch-based calls — `authService`,
 `usersService` for `/users/me*`, `calendarService` for `/calendar/shabbat`, `remindersService` for
 `/reminders` and `/reminders/shabbat-candles`, `customRemindersService` for `/reminders/custom*`, `notificationsService` for `/notifications/*`, `adminService` for `/admin/status`,
 `realtimeService` for the device token, `appUpdateService` for the APK registry's `latest.json`;
-signed-in calls go through `httpClient`'s `authorizedFetch`), `ws/`
-(`socketService`, a single shared Socket.IO connection), and `device/` (`locationService` —
+signed-in calls go through `httpClient`'s `authorizedFetch` (`shared/http/`)), `shared/realtime/`
+(`socketService`, a single shared Socket.IO connection), and on-device I/O (`shared/device/`: `locationService` —
 `expo-location` permission + position; `pushService` — the
 browser's service worker, `Notification` permission and `PushManager`; `fcmService` /
-`fcmReceiver` — the Android app's FCM registration and incoming messages; `apkInstallerService` —
+`fcmReceiver` — the Android app's FCM registration and incoming messages; app-update's `apkInstallerService` —
 the update APK's download into the app cache, Android's installer, and cleanup).
 
 The Socket.IO connection is open signed in or not, always with this install's device token:

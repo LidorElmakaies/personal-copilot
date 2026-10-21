@@ -60,7 +60,7 @@ Semantic colors (status chips, alerts) stay the same hex across both themes — 
 readable contrast on both a near-black and a near-white surface rather than getting a separate
 light-mode variant: online/success `#12a866`, pending `#c9791a`, danger `#a4271e`
 (`#ff9d8f`/`rgba(255,107,91,…)` on dark surfaces reads better with a brighter danger tone — the
-per-theme values are `colors.error`/`errorBorder` in `src/theme/colors.js`).
+per-theme values are `colors.error`/`errorBorder` in `src/shared/theme/colors.js`).
 
 Glass itself is not a naive color invert between themes:
 
@@ -94,7 +94,7 @@ Glass itself is not a naive color invert between themes:
 ## Background / ambient motion
 
 One layer, strictly decorative — legibility of whatever's on top always wins. A simpler version is
-already built and live (`src/components/composite/AmbientBackground.js`): a static per-theme
+already built and live (`src/shared/components/composite/AmbientBackground.js`): a static per-theme
 gradient backdrop, cross-faded 600ms on theme toggle, plus twinkling stars and a looping meteor
 pool (`Stars.js`/`Meteors.js`, gated behind `useReducedMotion()`; RN `Animated` on the native
 driver on the phone, CSS keyframes on the web — not Reanimated, whose per-frame worklets for ~100
@@ -112,7 +112,7 @@ Same reduced-motion requirement as the live version: the drift/breathe loop must
 
 ## Typography
 
-Keeps the pairing already established in `src/theme/`, not a new choice:
+Keeps the pairing already established in `src/shared/theme/`, not a new choice:
 
 - **UI / headings** — Rajdhani, falls back to Inter.
 - **Body** — Inter.
@@ -131,15 +131,15 @@ React Native. Real implementation:
 
 | Concept | Real implementation |
 |---|---|
-| `.card` / Glass Card | Restyle of `GlowCard` (`src/components/base/layout/`) — same glass token logic, theme-aware per the table above |
-| `.btn--glass` / `.btn--glass-danger` | Restyle of `GradientButton` (`src/components/base/buttons/`) — glass instead of gradient fill, `variant="danger"` prop for the tint |
+| `.card` / Glass Card | Restyle of `GlowCard` (`src/shared/components/base/layout/`) — same glass token logic, theme-aware per the table above |
+| `.btn--glass` / `.btn--glass-danger` | Restyle of `GradientButton` (`src/shared/components/base/buttons/`) — glass instead of gradient fill, `variant="danger"` prop for the tint |
 | Bottom tab bar | New component — Expo Router `(tabs)` already provides the routing; this is the visual chrome around it |
-| Ambient wash background | Further refinement of the already-live `AmbientBackground.js` (`src/components/composite/`) — see "Background / ambient motion" above for what's built vs. what this row still requires |
+| Ambient wash background | Further refinement of the already-live `AmbientBackground.js` (`src/shared/components/composite/`) — see "Background / ambient motion" above for what's built vs. what this row still requires |
 | Theme switch | Already exists (`themeSlice`, `useAppTheme()`) — this design doesn't change the pipeline, only what it themes |
 | Tab-switch fade | `react-native-reanimated` `entering`/`exiting` on the focused screen, ~180ms |
-| Stat tile | New component — doesn't exist in `src/components/` yet |
-| Switch, Row | Already exist (`src/components/base/{form,layout}/`) in the current space/glow look — this design only restyles them onto glass tokens |
-| Chip | New component — none in `src/components/` (the old one went with Home's connection chip) |
+| Stat tile | New component — doesn't exist in `src/shared/components/` yet |
+| Switch, Row | Already exist (`src/shared/components/base/{form,layout}/`) in the current space/glow look — this design only restyles them onto glass tokens |
+| Chip | New component — none in `src/shared/components/` (the old one went with Home's connection chip) |
 
 ## Explored and rejected
 

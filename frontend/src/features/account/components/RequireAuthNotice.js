@@ -1,0 +1,49 @@
+import { useRouter } from 'expo-router';
+import { StyleSheet, Text, View } from 'react-native';
+import AmbientBackground from '../../../shared/components/composite/AmbientBackground';
+import GlowCard from '../../../shared/components/base/layout/GlowCard';
+import GradientButton from '../../../shared/components/base/buttons/GradientButton';
+import { useAppTheme } from '../../../shared/theme/useAppTheme';
+
+// Composite component — pairs with useRequireAuth (and useHasRole) as the standard fallback for any
+// requiresAuth/requiresRole screen. `showLogin={false}` for a signed-in user who lacks the role.
+export default function RequireAuthNotice({
+  title,
+  message,
+  showLogin = true,
+}) {
+  const router = useRouter();
+  const { colors } = useAppTheme();
+
+  return (
+    <AmbientBackground>
+      <View style={styles.container}>
+        <Text style={[styles.heading, { color: colors.text }]}>{title}</Text>
+        <GlowCard>
+          <Text style={[styles.message, { color: colors.text }]}>
+            {message}
+          </Text>
+          {showLogin ? (
+            <GradientButton
+              label="Log In"
+              onPress={() => router.push('/login')}
+              style={styles.button}
+            />
+          ) : null}
+        </GlowCard>
+      </View>
+    </AmbientBackground>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, padding: 20, paddingTop: 64, gap: 14 },
+  heading: {
+    fontSize: 26,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+    marginBottom: 6,
+  },
+  message: { fontSize: 14, lineHeight: 20, marginBottom: 16 },
+  button: { marginTop: 0 },
+});

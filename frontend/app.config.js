@@ -4,7 +4,7 @@
 // copied in by the build only when devops/data/android/ has one.
 const fs = require('fs');
 const path = require('path');
-const { versionCode } = require('./src/utils/versionCode');
+const { versionCode } = require('./src/shared/utils/versionCode');
 
 module.exports = ({ config }) => {
   const version = process.env.FRONTEND_VERSION;

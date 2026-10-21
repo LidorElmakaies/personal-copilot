@@ -209,9 +209,9 @@ test('the page tells how to get past the install warnings', () => {
   assert.match(html(), /More details → Install anyway/);
 });
 
-// versionCode lives with the app (frontend/src/utils/versionCode.js): app.config.js stamps it on the
+// versionCode lives with the app (frontend/src/shared/utils/versionCode.js): app.config.js stamps it on the
 // APK, publish writes it to latest.json, the app compares the two.
-const { versionCode } = require('../../frontend/src/utils/versionCode.js');
+const { versionCode } = require('../../frontend/src/shared/utils/versionCode.js');
 
 test('versionCode: test builds sort below their release, releases below the next patch', () => {
   assert.equal(versionCode('1.3.0-test.2'), 1030002);

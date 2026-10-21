@@ -176,7 +176,7 @@ broadcasts `app-update` with no version, and the app reads `latest.json` itself.
 // libs/kafka-contracts/src/messages/frontend-release.ts
 interface FrontendReleaseMessage {
   version: string;      // e.g. 0.4.0
-  versionCode: number;  // Android's (frontend/src/utils/versionCode.js)
+  versionCode: number;  // Android's (frontend/src/shared/utils/versionCode.js)
   publishedAt: string;  // ISO 8601
 }
 ```

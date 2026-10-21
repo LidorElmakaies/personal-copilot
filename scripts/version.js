@@ -56,7 +56,7 @@ function bump(version, level, test = false) {
     target = `${target}-test.${n}`;
   }
   const t = parse(target);
-  // Android's versionCode (frontend/src/utils/versionCode.js) has two digits each for them.
+  // Android's versionCode (frontend/src/shared/utils/versionCode.js) has two digits each for them.
   if (t.minor > 99 || t.patch > 99) {
     throw new Refusal('minor and patch must stay ≤ 99 (Android versionCode)');
   }

@@ -22,30 +22,49 @@ with `EXPO_PUBLIC_GATEWAY_ORIGIN` pointing at the PC's tailnet IP. Browser tests
 Matches the sibling project it's modeled on (`ask-my-crawl`) for theme/component conventions — the
 same theme pipeline (`themeSlice` → `useAppTheme()`; `AmbientBackground` cross-fades its two
 backdrops in 600ms on a switch), minus the Gluestack layer underneath `ask-my-crawl`'s own pipeline — nothing here
-renders an actual Gluestack component, so it isn't here. `src/theme/colors.js` holds the two
+renders an actual Gluestack component, so it isn't here. `src/shared/theme/colors.js` holds the two
 static palettes (dark: indigo/violet space theme; light: indigo/teal). The current look (space/glow/
 gradient) is a known stepping-stone, expected to be replaced by a different, more animated style
 later — keep it internally consistent until then rather than treating it as a fixed brand.
 
-`src/components/` splits into `base/` (building blocks that use no other component — not UI-only, e.g. `AuthLinks` navigates —
-grouped into subfolders by purpose:
-`background/` — `Meteors`, `Stars`; `buttons/` — `AuthLinks`, `FloatingButton`, `GradientButton`, `PillButton`; `feedback/` —
-`Alert`, `VersionInfo`; `form/` — `InputField`, `SelectField`, `Stepper`, `Switch`; `layout/` —
-`BottomSheet`, `GlowCard`, `Row`, `SwipePager`, `TabPager`) and `composite/` (built from one or more base/composite
-components — `AmbientBackground`, `CandleReminder`, `ConfirmModal`, `CustomReminderSheet`, `DayCard`,
-`FormActions`, `MonthGrid`, `MonthHeader`, `MonthStatus`, `NotificationsPrompt`, `ProfileFields`,
-`RemindersSheet`, `RequireAuthNotice`, `ShabbatSection`, `SwipeTabs`, `SystemStatus`, `UpdateChip`,
-`UpdateSheet`, and the Account
-tab's `ThemeCard`, `NotificationsCard`, `AccountCard`, `ProfileCard`, `LogoutCard`, `DeleteAccountCard`). See `.claude/agents/frontend.md` for the classification rule when adding one.
+## Feature folders
 
-Same Redux Toolkit + services-layer + Expo Router conventions otherwise: all I/O lives in
-`src/services/`, split by transport — `services/http/` (fetch-based calls), `services/ws/` (the
-Socket.IO client), and `services/device/` (on-device I/O: `expo-location`, the browser's push APIs) — called only from
-thunks in `src/store/slices/`, never inline in a component.
+```
+app/                      routes only: each renders a feature's screen (+ the layouts, TABS)
+src/features/<name>/      components/ screens/ store/ services/ utils/ hooks/ + index.js (public API)
+  shabbat/                Home: clock, dates, Shabbat times, the candle-lighting reminder
+  calendar/               the Calendar tab: month grid, day card
+  reminders/              the user's own reminders
+  app-update/             the APK's update sheet and chip
+  account/                auth, profile, admin — dormant
+src/lib/jewish-calendar/  the calendar maths — pure, no React
+src/shared/               components/ (base/, composite/), theme/, config/, http/, utils/,
+                          device/ (location, notifications), realtime/ (the one /ws)
+src/store/index.js        the root store: each feature's reducer (from its index.js) + persistence
+```
+
+A feature imports from `shared/` and `lib/`, and another feature only through its `index.js`;
+`shared/` and `lib/` never import a feature (so the root store isn't in `shared/`). A new feature =
+a folder, a route, a `TABS` entry, its reducer in `src/store/index.js`.
+
+`src/shared/components/` splits into `base/` (building blocks that use no other component —
+grouped into subfolders by purpose:
+`background/` — `Meteors`, `Stars`; `buttons/` — `FloatingButton`, `GradientButton`, `PillButton`; `feedback/` —
+`Alert`, `VersionInfo`; `form/` — `InputField`, `SelectField`, `Stepper`, `Switch`; `layout/` —
+`BottomSheet`, `CustomTabBar`, `GlowCard`, `Row`, `SwipePager`, `TabPager`) and `composite/` (built from one or more
+base/composite components — `AmbientBackground`, `ConfirmModal`, `FormActions`, `SwipeTabs`, `ThemeCard`).
+A component only one feature uses sits in that feature's `components/` (not UI-only, e.g.
+account's `AuthLinks` navigates). See `.claude/agents/frontend.md` for the classification rule when
+adding one.
+
+Same Redux Toolkit + services-layer + Expo Router conventions otherwise: all I/O lives in a
+feature's `services/` or `src/shared/` — `device/` (on-device I/O: `expo-location`, push),
+`http/` (`httpClient`), `realtime/` (the Socket.IO client) — called only from thunks, never inline
+in a component.
 
 ## Version
 
-`src/config/version.js` exposes the frontend's version and build time, which `Dockerfile` (and
+`src/shared/config/version.js` exposes the frontend's version and build time, which `Dockerfile` (and
 `apk.js build`) reads from `version/versions.json` into `EXPO_PUBLIC_*` vars (so `expo start` shows
 "dev"); the Account tab's `VersionInfo` shows them. See `docs/specs/services.md#versions`.
 
@@ -56,7 +75,7 @@ android`, then Gradle) — see the root README. `app.json` holds the Android ide
 (`com.lidor.personalcopilot`, which must never change, plus the permissions —
 `REQUEST_INSTALL_PACKAGES` is for the in-app update); `app.config.js` adds the version and
 Android's `versionCode`, both from `FRONTEND_VERSION`, which the build script sets (unset for the
-web build and `expo start`). `src/utils/versionCode.js` is the one `versionCode()` — CommonJS,
+web build and `expo start`). `src/shared/utils/versionCode.js` is the one `versionCode()` — CommonJS,
 since `app.config.js` and `devops/android/apk.js` load it in plain Node; the app uses it too, on
 the baked `EXPO_PUBLIC_FRONTEND_VERSION`, to compare itself with the registry's `latest.json`.
 The build also bakes `EXPO_PUBLIC_APK_REGISTRY_URL` (`URLS.apkRegistry`), where that check looks;
@@ -94,7 +113,7 @@ access").
 
 `public/sw.js` is the service worker; `expo export` copies `public/` to the export root, so it's
 served at `/sw.js` with scope `/`. It needs a secure context like GPS does — on the phone that's
-the `tailscale serve` HTTPS URL. The Android app uses FCM instead: `src/services/device/
+the `tailscale serve` HTTPS URL. The Android app uses FCM instead: `src/shared/device/
 fcmService.android.js` registers the phone (its key in `expo-secure-store`, its FCM token) and
 `fcmReceiver.android.js` — loaded by `index.js`, the entry, before the app — decrypts and shows
 each message, even with the app swiped away. Metro picks the files ending in .android.js on Android; the
@@ -105,7 +124,7 @@ plain `.js` ones are the web build's empty stand-ins. The APK needs `google-serv
 ## Phone numbers (`libphonenumber-js`)
 
 The optional phone field (register, Account → Profile) is a country dropdown plus local digits;
-`src/utils/phone.js` validates them with `libphonenumber-js` and converts to/from the E.164 form
+`src/features/account/utils/phone.js` validates them with `libphonenumber-js` and converts to/from the E.164 form
 the Users Service stores. Supported countries are `PHONE_COUNTRIES` — adding one is just a new
 entry, the library already knows every numbering plan.
 
@@ -156,5 +175,5 @@ notes, publishedAt}` for the newest release — never a `-test.N` build; absent 
 the installed app's update check reads it)
 and `index.html`, a static download page: every version newest first, light/dark via
 `prefers-color-scheme`, the icon inlined from `assets/icon/icon.svg`, times in the phone's local
-time. Versions sort by `src/utils/versionCode.js`'s `versionCode()`. A published version's file
+time. Versions sort by `src/shared/utils/versionCode.js`'s `versionCode()`. A published version's file
 never changes — publishing a different one under it fails.
