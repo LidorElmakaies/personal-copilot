@@ -769,6 +769,16 @@ and a day card with that day's times.
     reminder's, or its own); when the heads-up fires (the evening before, or that morning, and at
     what time); whether the Shabbat candle-lighting reminder also covers a Yom Tov that falls on
     Shabbat (no double notification).
+    *Decided 2026-10-21:* **one switch per holiday** (not per kind); Pesach's and Sukkot's
+    **first and last days are separate holidays**, each with its own switch. Each holiday's
+    reminder has **its own offset**, set when turning it on, in the same sheet as the Shabbat
+    reminder (off by default, the user turns it on and picks how long before). A Yom Tov on
+    Shabbat **sends both** notifications (Shabbat's and the holiday's) — not worth extra rules.
+    So the three kinds above become **one reminder per holiday: its start − the offset**. "Start"
+    is candle lighting for a Yom Tov (and Yom Kippur), Chanukah's candle lighting for Chanukah,
+    sunset the evening before for Purim, Rosh Chodesh and the like. A fast that begins at dawn
+    counts back from **sunset the evening before** (no 04:00 wake-up); Yom Kippur and Tisha B'Av
+    count from their real start. **No separate fast-end notification.**
   - [ ] **3.4b Rules in `@app/jewish-calendar`.** For a holiday and a location: its candle
     lightings (eve), a fast's start and end, the heads-up's instant;
     a stable key per holiday across years (from hebcal's untranslated name). Tests: Rosh Hashana's two days, Sukkot/Pesach first and last days, Yom Kippur, a minor fast,
