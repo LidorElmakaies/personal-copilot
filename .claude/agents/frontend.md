@@ -336,4 +336,5 @@ cd frontend
 npm install
 npx expo start          # Expo Go / dev client
 npx expo start --web
+npm test                # Jest (jest-expo + React Native Testing Library), *.spec.{ts,js} under src/
 ```

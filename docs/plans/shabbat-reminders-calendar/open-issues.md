@@ -61,8 +61,11 @@ The plan's own open questions (holiday eves, location denied) stay in [`plan.md`
   progress key). Needs testcontainers or a throwaway Postgres.
 - [ ] **`.claude/agents/testing.md` claims** Auth's repositories are tested with
   `@testcontainers/postgresql` — that package isn't installed and no such tests exist.
-- [ ] **Pre-existing type error:** `tsc` reports two errors in
+- [x] **Pre-existing type error:** `tsc` reports two errors in
   `libs/jewish-calendar/src/shabbat-calendar.spec.ts` (lines ~108, 112); Jest still passes.
+  *Already fixed* (found in R2.3, 2026-10-21): commit 37f0bfd typed the fake's `jest.fn` with
+  `shabbatFor`'s full parameters, so `mock.calls[0][2]` is no longer out of range; `tsc` is clean
+  over both copies.
 
 ## Docs
 

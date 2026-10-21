@@ -14,7 +14,9 @@ Imported from the package root; Metro picks its ESM build. Loading it installs a
 `timeZone` + `formatToParts` work, and the results match the server's to the minute.
 
 The files are TypeScript in a JS app: Expo's Babel strips the types; there's no `tsconfig`, so
-nothing type-checks them.
+nothing type-checks them. The specs run with the app's `npm test` (`frontend/jest.config.js`), which
+compiles these ESM-only packages and maps the root import to `@hebcal/core/dist/esm/index` (the root
+exports only an `import` condition, which Jest's resolver doesn't use).
 
 ## Candle-lighting minutes are explicit (20 or a city's custom)
 

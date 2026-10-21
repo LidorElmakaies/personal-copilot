@@ -43,7 +43,7 @@ Decided (2026-10-21):
 Proposed on 2026-10-21 (1–3 now decided, 4–6 still open):
 
 1. **Calendar maths on the phone.** Move `@app/jewish-calendar` (≈790 lines of pure TypeScript
-   over `@hebcal/core`, 79 tests) to a shared `packages/jewish-calendar` that the app imports (and
+   over `@hebcal/core`, 95 tests) to a shared `packages/jewish-calendar` that the app imports (and
    dormant Gateway can still import). The app then needs no server at all. This reverses the old
    "all calendar calculation is on the server" decision — that was about keeping the rules in one
    codebase, and they still are. *Alternative:* keep Gateway serving `/calendar/*` (the PC must be
@@ -192,13 +192,13 @@ Proposed on 2026-10-21 (1–3 now decided, 4–6 still open):
   keeps its copy until Reminders is deleted (R5); then `libs/jewish-calendar` and Gateway's
   `/calendar/*` routes go too. The R1.1 spike (`frontend/app/spike.js`, `frontend/src/spike/`) is
   removed here.
-  *Done 2026-10-21:* `frontend/src/calendar/` — every source file and spec (79 tests, run from
+  *Done 2026-10-21:* `frontend/src/calendar/` — every source file and spec (95 tests, run from
   R2.3), the README adapted to the phone. `@nestjs/common`'s 422 exception → `InvalidLocationError`
   (exported from `shabbat-calendar.ts`, same messages); `@hebcal/core` imported plainly. Not wired
   in yet (R2.4). Checked in Node against the running Gateway: Shabbat now and the months 2026-09,
   2026-12, 2027-10 for Tel Aviv identical, a polar point throws `InvalidLocationError`; the
   Android bundle builds; docs-check passes.
-- [ ] **R2.2 Feature folders** (asked 2026-10-21: more features are coming, e.g. finance). The
+- [x] **R2.2 Feature folders** (asked 2026-10-21: more features are coming, e.g. finance). The
   frontend moves from "by kind of file" (`components/`, `store/slices/`, `services/`, `utils/`) to
   one folder per feature. Moves and import fixes only — no behaviour change.
   ```
@@ -230,12 +230,21 @@ Proposed on 2026-10-21 (1–3 now decided, 4–6 still open):
   account. Import-rule and cycle checks clean; the bundle builds; docs-check passes;
   `devops/android/apk.js` (+ test) follow `versionCode.js` to `shared/utils/`.
   On the phone (APK 0.6.0-test.8): Home, the bell's and the +'s login prompts, swiping between
-  tabs all as before. Still to see: a month loading on the Calendar tab — "Couldn't load this
-  month" because Tailscale wasn't running on the phone after R1.2's reboot (Gateway itself
-  answers; Home showed its saved Shabbat times).
-- [ ] **R2.3 Jest in `frontend/`.** `jest-expo` + React Native Testing Library, `npm test` as the
-  one command (the same ESM transform for `@hebcal/*` the backend uses); the lib's 79 tests run
+  tabs all as before. The Calendar tab first showed "Couldn't load this month": Tailscale wasn't
+  running on the phone after R1.2's reboot (Gateway itself answered).
+  *Done 2026-10-21:* with Tailscale back on, October 2026 (Hebrew dates, Tishrei–Cheshvan 5787, the
+  reminder dots, the day card) and, swiped to, November 2026 both load. Until R2.4 the months still
+  come from Gateway — R2.2 changed no behaviour.
+- [x] **R2.3 Jest in `frontend/`.** `jest-expo` + React Native Testing Library, `npm test` as the
+  one command (the same ESM transform for `@hebcal/*` the backend uses); the lib's 95 tests run
   there, the Israel-time cases kept as they are.
+  *Done 2026-10-21:* `npm test` in `frontend/` (Jest 29, `jest-expo` 57.0.2 — the newest that fits
+  RN 0.86.0; `~57.0.5` once RN is 0.86.3 — and RNTL 14). `frontend/jest.config.js` adds `@hebcal`,
+  `quick-lru` and `temporal-*` to jest-expo's transform list and maps `@hebcal/core` to its ESM
+  entry; jest-expo's own environment (Node-based) runs the `process.env.TZ` specs. 9 suites, 95
+  tests pass (the earlier "79" was a miscount; the backend copy runs the same 95), Israel-time cases
+  unchanged. The `tsc` errors were already fixed by 37f0bfd's typed fake; tsc is clean, and the
+  open issue is ticked. Docs-check passes.
 - [ ] **R2.4 The app computes locally.** `services/http/calendarService.js` → a local module with
   the same shapes (`/calendar/shabbat` and `/calendar/month`); `calendarSlice` and its month cache
   unchanged. *Check:* Home and the Calendar tab work in airplane mode.

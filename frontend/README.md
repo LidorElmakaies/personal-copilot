@@ -13,6 +13,7 @@ npm install
 cp .env.example .env    # sets EXPO_PUBLIC_GATEWAY_ORIGIN — required, no fallback
 npx expo start          # Expo Go / dev client
 npx expo start --web
+npm test                # Jest: the *.spec.{ts,js} under src/ (jest-expo, React Native Testing Library)
 ```
 
 On your phone over Tailscale (Expo Go): see `docs/frontend/environment.md` — run Expo on `:8082`

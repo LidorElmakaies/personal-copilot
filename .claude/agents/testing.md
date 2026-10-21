@@ -78,9 +78,13 @@ a shared testing lib under `backend/libs/` is worth creating only once a second 
 
 ## Frontend
 
-No unit-test runner is set up for the frontend yet (browser tests below cover the UI). If one gets
-added, the services layer (each feature's `services/*.js`, `src/shared/http/`, `src/shared/realtime/socketService.js`) is the highest-value target
-(mostly pure functions, minimal React/Redux involved): assert `authService` builds the right
+`cd frontend && npm test` — Jest with `jest-expo` and React Native Testing Library
+(`frontend/jest.config.js`): every `*.spec.{ts,js}` under `src/`, colocated (`app/` and `e2e/` stay
+out). Today that's the calendar lib's specs (`src/lib/jewish-calendar/`, the same as the backend
+copy's); like the backend config it compiles the ESM-only `@hebcal/*` packages, and jest-expo's
+environment is Node's, so a spec may set `process.env.TZ`. Next highest-value target: the services
+layer (each feature's `services/*.js`, `src/shared/http/`, `src/shared/realtime/socketService.js`)
+— mostly pure functions, minimal React/Redux involved: assert `authService` builds the right
 request shape and translates a non-2xx response into the message `apiError.js` documents.
 
 ### Browser-driven UI verification (Playwright, in a container)

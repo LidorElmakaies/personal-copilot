@@ -202,6 +202,7 @@ Frontend (run from `frontend/`):
 npm install
 npx expo start          # Expo Go / dev client
 npx expo start --web
+npm test                # jest.config.js (jest-expo) — the *.spec.{ts,js} under src/
 ```
 
 Docs drift check (from the repo root, plain Node — a task isn't done while it fails):
