@@ -21,7 +21,7 @@ tunnel from a Caddy instance on the public internet. HTTP + WebSocket.
 - `GET /reminders`, `PUT /reminders/shabbat-candles`, `DELETE /reminders/shabbat-candles`, and
   `GET`/`POST /reminders/custom`, `GET /reminders/custom/preview`, `PATCH`/`DELETE
   /reminders/custom/:id`, `POST /reminders/custom/:id/skip` (`JwtAuthGuard`) → Reminders Service's routes of the same name.
-  Body relayed untouched. **No longer called by the app**, which keeps both kinds of reminder on
+  Body relayed untouched. **Not called by the app**, which keeps both kinds of reminder on
   the phone (see [frontend](#frontend)).
 - Every forwarded route above (`/auth/*`, `/users/me*`, `/reminders*`, `/notifications/*`) is one
   row of `PROXY_ROUTES` (`src/proxy/proxy.routes.ts`): method, path (the same on Gateway and the
@@ -41,9 +41,8 @@ tunnel from a Caddy instance on the public internet. HTTP + WebSocket.
   the Shabbat in progress, otherwise the next one, for that location, computed in-process with
   [`@app/jewish-calendar`](#libsjewish-calendar). With `/calendar/month`, the only Gateway routes
   with logic of their own — the maths is the shared lib, so there's nothing for another service to
-  add. Unguarded, so Home works signed out. **No longer called by the app** (R2.4 of the
-  android-only plan): it computes the same answer on the phone (`calendarService`); the route
-  goes with `libs/jewish-calendar` in R5.
+  add. Unguarded. **Not called by the app**: it computes the same answer on the phone
+  (`calendarService`).
   ```json
   { "candleLighting": "2026-10-02T15:04:00.000Z", "havdalah": "2026-10-03T16:00:00.000Z",
     "parasha": null, "holidays": [{ "en": "Shmini Atzeret", "he": "שמיני עצרת" }], "isNow": false }
@@ -53,7 +52,7 @@ tunnel from a Caddy instance on the public internet. HTTP + WebSocket.
   [`libs/jewish-calendar`](#libsjewish-calendar)). `422` where there's no sunset to count from
   (e.g. polar summer).
 - `GET /calendar/month?year&month&lat&lon` — served by Gateway itself the same way, unguarded (and
-  likewise no longer called by the app):
+  likewise not called by the app):
   every day of that civil month — its Hebrew date, holidays/fasts (`kind`: `yomTov` | `fast` |
   `holiday`), Saturday's parasha, and its enter/leave times (`candleLighting` | `havdalah` |
   `fastBegins` | `fastEnds`, on the day each happens; Yom Kippur's are `fastBegins` at its eve's
@@ -204,8 +203,8 @@ issues a new pair, so a stolen-and-replayed refresh token only ever works once.
 HTTP + BullMQ worker, internal-only, schema `reminders` in the shared database plus the shared
 Redis (`REDIS_URL`) and Kafka (`KAFKA_BROKERS`). Owns two kinds of reminder: the candle-lighting
 reminder and the user's own (custom) reminders, and turns each into a notification at its time.
-User from Gateway's `X-User-Id` (`@ForwardedUserId()`, 401 without it). **No longer called by
-the app** (it keeps reminders on the phone); the reminders already saved here keep firing until
+User from Gateway's `X-User-Id` (`@ForwardedUserId()`, 401 without it). **Not called by the
+app** (it keeps reminders on the phone); the reminders already saved here keep firing until
 they're removed.
 
 - `GET /reminders` → the caller's reminders, enabled or not:
@@ -310,8 +309,9 @@ jobs to them. Publishers decide *what* and *when*; this service decides *how* (o
   exactly 32 bytes), made on the phone. Upsert on `token`: the same phone moves to whoever is
   signed in now, with the key it sends now.
 - `DELETE /notifications/fcm-devices` — `{ token }` → `204`, removed only if it belongs to the
-  caller; idempotent. The app calls it when notifications are turned off or the user signs out, so
-  the phone stops at once.
+  caller; idempotent.
+- The current app calls none of these routes (its reminders fire on the phone, see
+  [Frontend](#frontend)); subscriptions and devices already stored keep receiving.
 - The subscription and device routes take the user from Gateway's `X-User-Id` (see Gateway above),
   `401` without it.
 - `GET /health` — see [Versions](#versions).
@@ -400,15 +400,15 @@ screen over the row with the swipe off.
     "using your last known location" note).
   - **Candle-lighting reminder** — `CandleReminder`, passed as `ShabbatSection`'s `footer` (shown
     only while there are times): a bell pill reading "Remind me before candle lighting", or, while
-    on, "Reminder · 1h 30m before" (amber). Signed out, it shows `ConfirmModal` ("Log in to set a
-    reminder?", Yes → `/login`). Signed in, it opens a `BottomSheet` whose private form starts on
+    on, "Reminder · 1h 30m before" (amber); no login needed. It opens a `BottomSheet` whose private form starts on
     the saved offset (90 min until one is saved): hours 0–23 and minutes in steps of 5
     (`Stepper`), presets 30m / 1h / 1h 30m / 2h / 3h, and "Every Friday · fires at HH:MM this
     week" — Home's candle lighting minus the offset ("first one next week" if that's already
     past); "We'll schedule it once we know your location" for the saved offset while the phone has
-    no `location.coords`. If this device isn't subscribed to push, a nudge says the reminder won't
-    arrive here, with a Turn on link (`enableNotifications`) unless notifications are blocked or
-    unsupported. Save (`saveCandleReminder`) and Turn off (`turnOffCandleReminder`, shown only
+    no `location.coords`. Unless notifications are allowed (`permission` `granted`), a nudge says
+    the reminder won't arrive here, with Turn on (`enableNotifications`) while Android can still
+    ask, Open settings (`openNotificationSettings`) once it's `denied`, nothing when unsupported
+    (the web build). Save (`saveCandleReminder`) and Turn off (`turnOffCandleReminder`, shown only
     while on) are local and close the sheet. Closing the sheet drops an unsaved offset. Each change
     reschedules its notifications (see Reminder notifications below).
 - `(auth)/register` — email and password, plus optional first name, last name and phone
@@ -444,7 +444,7 @@ screen over the row with the swipe off.
   weekday), Today / Yom Tov / Fast chips, Saturday's parasha, and its times (candle lighting in
   `pending`; a fast starting with candle lighting is one row, "Candle lighting · fast begins"),
   or "No candle lighting or fast times"; dimmed while a swipe is between months.
-  **Your reminders** (signed in): kept on the phone — `customRemindersSlice`'s `items`, each a
+  **Your reminders** (no login needed): kept on the phone — `customRemindersSlice`'s `items`, each a
   definition `{ id, title, hour, minute, repeat, calendar, start, skipped, changed }` — `changed`
   maps a day (`YYYY-MM-DD`) to its own `{ title, hour, minute }` (`{}` on create; create and update
   can't set it). On every month change
@@ -461,8 +461,7 @@ screen over the row with the swipe off.
   scrolling inside the sheet (only its grab bar drags it). Each row shows the title, how it repeats
   ("Monthly · the 8th (Hebrew)") and its time; a once-reminder whose time (the row's) has passed
   in Israel time (`isDone`, `Asia/Jerusalem`) is dimmed "Done · …". The tab's `now` ticks once a minute, so
-  a reminder dims while the tab is open and "today" moves on after midnight. A floating + (`FloatingButton`, base/buttons) adds a reminder on the selected day —
-  signed out, it asks "Log in to add reminders?" (`ConfirmModal`) and goes to login. Tapping a row
+  a reminder dims while the tab is open and "today" moves on after midnight. A floating + (`FloatingButton`, base/buttons) adds a reminder on the selected day. Tapping a row
   (card or sheet) opens the same `CustomReminderSheet` (composite, a `BottomSheet`) as "Edit
   reminder" with Delete, filled with that day's values on a changed day. The sheet: a title (`titleProblem`, 60
   max; curly quotes straightened as typed, `straightenQuotes`), the start date with ‹ › and its Hebrew date, hour and 5-minute steppers, Once / Daily /
@@ -482,7 +481,7 @@ screen over the row with the swipe off.
   and a failed one rejects with the message the sheet shows (`error`). An id that's gone does
   nothing. Saving selects the reminder's start day when
   it's in the month shown. `customRemindersSlice` persists only `items` and isn't reset on sign-out
-  or account deletion; signing out closes the sheet. Each change reschedules the
+  or account deletion. Each change reschedules the
   notifications (see Reminder notifications below).
 - `(tabs)/account` — a heading and six cards (`src/features/account/components/`, `ThemeCard` in
   `src/shared/components/composite/`): `ThemeCard` (light/
@@ -518,60 +517,48 @@ screen over the row with the swipe off.
   the device moved more than `LOCATION_SYNC_MIN_KM` (5, haversine in `src/shared/utils/geo.js`). The server's copy is the reference — there's no local "last sent" record to go
   stale across accounts or devices. One sync runs at a time; a reply that lands after sign-out
   (or a different sign-in) is dropped; a failure is simply retried on the next fix.
-- **Notifications** — one `notificationsSlice` state (`permission`, `subscribed`, `platform`) over
-  two transports: the web build registers the browser (Web Push, `src/shared/device/pushService.js`;
-  `'unsupported'` outside a secure context), the Android app registers the phone (FCM,
-  `src/shared/device/fcmService.android.js`; `fcmService.js` is the web build's empty stand-in).
-  Each thunk picks its path; the screens only change wording (`platform`). Web: `frontend/public/sw.js` is exported to the site root, so its scope is `/`: on
-  `push` it shows the payload's `title`/`body` with `tag` = `notificationId` (a retry duplicate
-  replaces rather than doubles); a tap focuses an open app tab, else opens the payload's `url`; on
-  `pushsubscriptionchange` it re-subscribes with the same key (no token there — the app re-sends
-  it on its next signed-in start). `app/_layout.js`'s `PushSubscriptionManager` dispatches
-  `initNotifications` at start (registers the worker, reads permission and subscription) and, once
-  that's done and while signed in, `syncPushSubscription`. That syncs when the browser allows
-  notifications and they weren't turned off here (`optedOut`): if the browser has no subscription
-  (the browser drops it when the site is blocked, and allowing it again doesn't restore it) it
-  subscribes without a prompt; then it `POST`s the subscription to `/notifications/subscriptions` —
-  covers a rotated subscription and a browser last used by another user (the server upserts on
-  endpoint). `watchNotificationPermission` (via `navigator.permissions`) re-runs init + sync when
-  the site's permission changes while the app is open, so re-allowing needs no reload.
-  - `NotificationsPrompt` (over Home): a one-time "Turn on notifications?" `ConfirmModal`, shown
-    while signed in when this browser isn't subscribed, the prompt hasn't been answered here, and
-    permission is `default` — or `granted` but `optedOut` (otherwise the sync subscribes by
-    itself). Either answer sets `promptDismissed`; "Not now" also sets `optedOut`.
-  - `NotificationsCard` (Account): this browser's switch — on, off, blocked (a warning `Alert`
-    pointing to the browser's site settings) or not supported. Re-runs `initNotifications` on
-    mount, to pick up a permission changed in the browser meanwhile.
-  - `enableNotifications` must be dispatched straight from the tap — `requestPermission` is its
-    first await, since browsers only prompt during a user gesture; then VAPID key → `subscribe` →
-    `POST`. `disableNotifications` (this browser only) sends a best-effort `DELETE {endpoint}` and
-    then unsubscribes the browser; if the `DELETE` failed, the push service's 410 makes the server
-    drop the row on the next send.
-  - **Android (FCM).** "Subscribed" = the phone has its device key: 32 random bytes (`expo-crypto`)
-    in `expo-secure-store`, made on Turn on. Enable asks Android's permission (Android 13+; `denied`
-    only once Android won't ask again), then `PUT /notifications/fcm-devices { token, key }` with the
-    FCM token (`getDevicePushTokenAsync`, needs `google-services.json` in the build). The sync
-    re-sends it on every signed-in start, and `watchNotificationPermission` re-runs init + sync when
-    the app returns to the foreground (permission is changed in Android's settings) and re-sends on
-    a new FCM token. Disable sends `DELETE { token }`, deletes the key and unregisters the token, so
-    a late message can't be read and the next send is answered "unregistered". Blocked → the card
-    and the reminder sheet offer **Open settings** (`openNotificationSettings`, Android's app page).
+- **Notifications** — `notificationsSlice` is this phone's permission to show the reminders it
+  schedules itself (see Reminder notifications below): Android's notification permission, with no
+  account involved and nothing registered with a server. State `{ permission, ready, busy,
+  promptDismissed }` — `permission` is `'unsupported'` (the web build, or the channel failed),
+  `'default'`, `'granted'` or `'denied'` (only once Android won't ask again: Android 13+ asks twice
+  at most; below 13 notifications are allowed unless turned off in settings); `ready` once
+  `initNotifications` has run; `busy` while Android's prompt is open. Only `promptDismissed`
+  persists — the permission is read from Android on every start. The I/O is
+  `localNotificationsService` (`ensureChannel`, `getPermission`, `requestPermission`,
+  `openSettings`).
+  - `initNotifications` creates the "Reminders" channel and reads the permission.
+    `ReminderScheduleManager` (`app/_layout.js`) dispatches it at start, and its
+    `watchNotificationPermission` re-runs it on every return to the foreground
+    (`appStateService.watchForeground`) — the permission is changed in Android's settings, outside
+    the app. `NotificationsCard` also re-runs it on mount.
+  - `enableNotifications` shows Android's "Allow notifications?" and stores the answer;
+    `openNotificationSettings` opens the app's page in Android's settings. Turning notifications
+    off is Android's setting, not the app's.
+  - `NotificationsPrompt` (`features/reminders`, rendered once in `app/_layout.js`, so it opens
+    over any tab, signed in or not): a one-time "Turn on notifications?" `ConfirmModal` ("Get your
+    reminders on this phone, even when the app is closed."), shown only when needed — a reminder
+    exists (the candle-lighting one is on, or the user has one of their own), `ready`, `permission`
+    is `default`, and the prompt hasn't been answered on this device (`promptDismissed`). Turn on → `enableNotifications`; either answer sets `promptDismissed`
+    (`dismissNotificationsPrompt`). Afterwards the candle reminder's nudge and the Account card
+    still offer it.
+  - `NotificationsCard` (Account): a switch showing the permission (on = `granted`). Switched on
+    while `default`, it asks Android; any other change opens Android's settings. `denied` adds a
+    warning `Alert` with Open settings; the switch is disabled while unsupported or busy.
+  - Log Out and account deletion leave notifications alone: the reminders and their notifications
+    belong to the phone, not the account.
+  - **Server push (FCM, Android).** The app registers nothing with the Notification Service. A
+    phone that holds an FCM device key (`fcmDeviceKey` in `expo-secure-store`,
+    `src/shared/device/fcmService.android.js`) still receives what the server sends it.
     Receiving: `frontend/index.js` (the entry) loads `src/shared/device/fcmReceiver.android.js`
     before the app, since a message can start the JS headless with the app swiped away. Its
     `expo-task-manager` task finds `{ v: '1', enc }`, decrypts it with the key (AES-256-GCM,
     `@noble/ciphers`), skips it past `expiresAt`, and shows it in the "Reminders" channel with
     `identifier` = `notificationId` (a retry duplicate replaces the first) and `data.url`; a tap
-    opens that page (`ReminderScheduleManager`, as for local reminders). No key (turned off) →
-    nothing shown.
-  - `authSlice`'s `logOut` (`LogoutCard`) and a successful `deleteAccount` run
-    `disableNotifications({ loggingOut: true })` before clearing the session (it also re-arms the
-    prompt, so the next person here is asked); a session the server ends (a refused refresh →
-    `clearAuth`) keeps the subscription, so reminders still arrive while signed out.
-  - `notificationsSlice` (`{ permission, subscribed, ready, busy, error, promptDismissed,
-    optedOut }`) persists only `promptDismissed` and `optedOut` (set by turning the switch off,
-    "Not now" or log-out; cleared by a successful enable); the rest is read from the browser on
-    every start. It doesn't import `authSlice` (that one imports it), so it reads the token from
-    `getState()`.
+    opens that page (`ReminderScheduleManager`, as for local reminders). No key → nothing shown.
+  - **Web.** The web build has no service worker and no push: it neither subscribes to Web Push
+    nor schedules notifications. The Notification Service still delivers to browser subscriptions
+    it stores (`WebPushChannel`, see [Notifications](#notifications)).
 - **Staying signed in** — the 15-min access token is renewed with the 30-day refresh token
   (`authSlice.refreshSession` → `authService.refresh`, `POST /auth/refresh`; each use rotates the
   pair), so an app opened at least once in 30 days stays signed in. One renewal at a time:
@@ -586,7 +573,7 @@ screen over the row with the swipe off.
   `setUnauthorizedHandler` (`src/store/index.js`) — the current token → `refreshSession`; an
   older one → the current token if it's still the same user's — and retries that call once with
   the token it resolves with, never more. Signed-in effects that load the user's data
-  (`LocationSyncManager`, `PushSubscriptionManager`, `syncLocation`'s same-user
+  (`LocationSyncManager`, `syncLocation`'s same-user
   check) key on `selectUserId`, not the token, so a renewal doesn't re-run them.
 - **Session ended** — only a refresh the server refuses (`400`/`401`: revoked by Log Out, account
   deletion or a password change elsewhere, or 30 days unused) signs out:
@@ -628,6 +615,16 @@ screen over the row with the swipe off.
     (`appStateService.watchForeground`) and when the location really moves (`placeOf` in
     `src/shared/utils/geo.js`: coordinates rounded to 2 decimals, ~1 km — GPS wobble doesn't count). A tap on any
     notification with `data.url` (local or FCM; also the one that opened the app) navigates there.
+  - Daily background run, so the 30-day window keeps moving with the app unopened:
+    `ReminderScheduleManager` registers the task `reminder-notifications`
+    (`registerBackgroundReconcile`, ~every 24 h; a failure only warns), and Android's WorkManager
+    runs it through expo-background-task (`src/shared/device/backgroundTaskService.android.js`;
+    the web build's `.js` stand-in does nothing) — when it allows, only while online, never at an
+    exact time, with the app closed or swiped away. The task (`defineBackgroundReconcile`) waits
+    for redux-persist to rehydrate, then dispatches the same `reconcileReminderNotifications`. It's
+    defined in `src/store/backgroundTasks.js`, imported by the entry (`frontend/index.js`) before
+    the app, since Android starts the JS headless just for the task. A late or skipped run costs
+    nothing: the exact alarms already scheduled cover 30 days.
   - expo-notifications re-arms pending alarms after a reboot or an APK update; one due while the
     phone was off is dropped, never shown late. `app.json`'s `USE_EXACT_ALARM` keeps them exact.
     Reminders still saved on the server fire there too, so the same one can arrive twice until
@@ -677,13 +674,12 @@ the calendar maths in `src/lib/jewish-calendar/` — layout and import rules in 
 "Feature folders".
 
 I/O lives in each feature's `services/` and in `src/shared/`. HTTP (fetch-based calls — `authService`,
-`usersService` for `/users/me*`, `notificationsService` for `/notifications/*`, `adminService` for `/admin/status`,
+`usersService` for `/users/me*`, `adminService` for `/admin/status`,
 `realtimeService` for the device token, `appUpdateService` for the APK registry's `latest.json`;
 signed-in calls go through `httpClient`'s `authorizedFetch` (`shared/http/`)), `shared/realtime/`
 (`socketService`, a single shared Socket.IO connection), and on-device I/O (`shared/device/`: `locationService` —
-`expo-location` permission + position; `pushService` — the
-browser's service worker, `Notification` permission and `PushManager`; `fcmService` /
-`fcmReceiver` — the Android app's FCM registration and incoming messages; `localNotificationsService` — the phone's own scheduled reminder notifications and the "Reminders" channel; `appStateService` — foreground changes; app-update's `apkInstallerService` —
+`expo-location` permission + position; `fcmService` /
+`fcmReceiver` — incoming FCM messages on Android; `localNotificationsService` — the phone's own scheduled reminder notifications, the "Reminders" channel and the notification permission; `appStateService` — foreground changes; `backgroundTaskService` — periodic background tasks (WorkManager); app-update's `apkInstallerService` —
 the update APK's download into the app cache, Android's installer, and cleanup). calendar's
 `calendarService` does no I/O but keeps the same boundary: Shabbat times and months computed on
 the phone from `src/lib/jewish-calendar/`, returned as plain JSON (times as ISO strings, the shape
@@ -764,9 +760,9 @@ All of the project's Jewish-calendar maths, in one place.
 `ICalendarCalculator`, and `hebrew-dates.ts`); `ShabbatCalendar` (`IShabbatCalendar`),
 `MonthCalendar` (`IMonthCalendar`) and `ReminderOccurrences` (`IReminderOccurrences`) are the
 entry points, pure and synchronous. Used in-process by Gateway (`GET /calendar/shabbat`,
-`GET /calendar/month` — no longer called by the app) and the Reminders scheduler. The app computes
+`GET /calendar/month` — not called by the app) and the Reminders scheduler. The app computes
 Home's times and the Calendar tab's months from its own copy, `frontend/src/lib/jewish-calendar/`
-(the same source, until this one goes in R5) — so Home, the calendar and reminders always agree, and a rule changes in one place (`calendar-options.ts` picks the candle-lighting
+(the same source) — so Home, the calendar and reminders always agree, and a rule changes in one place (`calendar-options.ts` picks the candle-lighting
 minutes for all of them).
 
 - `current(location, now)` — the Shabbat in progress at `now`, otherwise the next one: candle

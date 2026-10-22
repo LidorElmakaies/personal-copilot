@@ -21,17 +21,21 @@ second one.
 and Shabbat times for the device's location via `locationSlice` + `calendarSlice` — computed on the phone by `calendarService` from `src/lib/jewish-calendar/`, no network;
 under them the candle-lighting reminder bell + offset sheet, `CandleReminder` + `remindersSlice` —
 kept on the phone) + a Calendar tab (month grid, `MonthGrid` + `calendarSlice.fetchMonth` —
-computed the same way; signed in, the user's own reminders on it — add/edit/delete in
+computed the same way; the user's own reminders on it, no login needed — add/edit/delete in
 `CustomReminderSheet` via `customRemindersSlice`, definitions kept on the phone, their days in the
 loaded months worked out by `selectDayReminders` (`reminders/utils/occurrences.js`) — see
 `docs/specs/services.md#frontend`) + both kinds of reminder fired as local Android notifications
 (`ReminderScheduleManager` → `reconcileReminderNotifications`, planned by
-`reminders/utils/schedulePlan.js`, scheduled via `shared/device/localNotificationsService.android.js`) + an auth-gated
+`reminders/utils/schedulePlan.js`, scheduled via `shared/device/localNotificationsService.android.js`; re-run ~daily in the
+background by the `reminder-notifications` task, `shared/device/backgroundTaskService.android.js`,
+defined in `src/store/backgroundTasks.js`) + an auth-gated
 Account tab (theme, notifications, email/password, profile, logout, delete account — one card
 component each — then `VersionInfo`) + a background location sync to the Users Service while signed in
-(`LocationSyncManager` → `profileSlice.syncLocation`) + notifications opt-in — Web Push on the web
-build (`public/sw.js`), FCM on the Android app (`fcmService.android.js`, `fcmReceiver.android.js`),
-both via `PushSubscriptionManager` + `notificationsSlice` + the installable web app
+(`LocationSyncManager` → `profileSlice.syncLocation`) + Android's notification permission
+(`notificationsSlice` over `localNotificationsService`, kept current by `ReminderScheduleManager`;
+`NotificationsPrompt`, `NotificationsCard`; no account involved) + incoming FCM pushes for a phone
+registered with the Notification Service (`fcmReceiver.android.js`; the app registers none) + the
+installable web app
 (`public/manifest.webmanifest`, `public/index.html`) + the Android APK's in-app
 update (`AppUpdateManager` → `appUpdateSlice`, `UpdateSheet`/`UpdateChip`) + an admins-only
 Admin tab (`SystemStatus` over `GET /admin/status`, `adminSlice`) — see
@@ -110,8 +114,9 @@ feature's `components/` (listed under `composite/` below with its feature):
 - **`composite/`** — built by composing one or more `base` (or other `composite`) components, flat
   (no subfolders). Shared: `AmbientBackground`, `SwipeTabs`, `ConfirmModal`, `FormActions`,
   `ThemeCard`. The rest sit in their feature's `components/` — shabbat: `ShabbatSection`,
-  `CandleReminder`, `NotificationsPrompt`; calendar: `MonthHeader`/`MonthGrid`/`MonthStatus`,
-  `DayCard`; reminders: `ReminderRow`, `RemindersSheet`, `CustomReminderSheet`; app-update:
+  `CandleReminder`; calendar: `MonthHeader`/`MonthGrid`/`MonthStatus`,
+  `DayCard`; reminders: `ReminderRow`, `RemindersSheet`, `CustomReminderSheet`,
+  `NotificationsPrompt`; app-update:
   `UpdateSheet`, `UpdateChip`; account: `ProfileFields`, `RequireAuthNotice`, `SystemStatus` and
   the Account tab's cards but `ThemeCard`. Each: `AmbientBackground` (from `Meteors`, `Stars`), `SwipeTabs` (from
   `TabPager` — the `(tabs)` navigator: Expo Router's `withLayoutContext` + `TabRouter`, the screens
@@ -119,13 +124,14 @@ feature's `components/` (listed under `composite/` below with its feature):
   `GlowCard` (solid), `GradientButton`; optional `icon`/`title` above the message),
   `FormActions` (from `GradientButton` — the Save/Cancel pair under `AccountCard`'s and
   `ProfileCard`'s edit forms),
-  `NotificationsPrompt` (from `ConfirmModal` — Home's one-time "Turn on notifications?"),
+  `NotificationsPrompt` (from `ConfirmModal` — the one-time "Turn on notifications?", rendered at
+  the root over any tab once a reminder exists and Android can still ask),
   `ProfileFields` (from `InputField`, `SelectField` — optional
   name/phone fields, shared by register and `ProfileCard`), `RequireAuthNotice` (from
   `AmbientBackground` + `GlowCard`, `GradientButton`), `ShabbatSection` (from `GradientButton` —
   Home's Shabbat times; presentational, Home owns the Redux wiring and passes `now`, plus a
   `footer` shown only while there are times), `CandleReminder` (from `PillButton`, `BottomSheet`,
-  `Stepper`, `GradientButton`, `Alert`, `ConfirmModal` — Home's reminder bell, passed as
+  `Stepper`, `GradientButton`, `Alert` — Home's reminder bell, passed as
   `ShabbatSection`'s `footer`; owns its Redux wiring, the sheet's form is private), `UpdateSheet`
   (from `BottomSheet`, `GradientButton`, `Alert` — the APK's update sheet, mounted app-wide by
   `AppUpdateManager`), `UpdateChip` (Home's "↑ <version>" chip, reopens it), `MonthHeader`
@@ -165,8 +171,9 @@ src/features/<name>/      components/ screens/ store/ services/ utils/ hooks/ + 
   shabbat/ calendar/ reminders/ app-update/ account/ (dormant: auth, profile, admin)
 src/lib/jewish-calendar/  the calendar maths — pure, no React
 src/shared/               components/ (base/, composite/), theme/, config/, http/, utils/,
-                          device/ (location, notifications), realtime/ (the one /ws)
+                          device/ (location, notifications, background tasks), realtime/ (the one /ws)
 src/store/index.js        the root store: each feature's reducer (from its index.js) + persistence
+src/store/backgroundTasks.js  background tasks, defined with the rehydrated store (loaded by index.js)
 ```
 
 - A feature imports from `shared/` and `lib/`, and another feature only through its `index.js`
@@ -179,8 +186,8 @@ src/store/index.js        the root store: each feature's reducer (from its index
 
 ## Services layer — where all I/O lives
 
-Every network call (HTTP or WebSocket) and every device API (location, the browser's
-service worker/`Notification`/`PushManager`, scheduled local notifications, `AppState`, the file
+Every network call (HTTP or WebSocket) and every device API (location, scheduled local
+notifications and their permission, `AppState`, the file
 system and Android intents) lives in a plain module
 in its feature's `services/`, or under `src/shared/` (`device/`, `http/`, `realtime/`) when several
 features use it — never inline inside a thunk
@@ -202,26 +209,22 @@ when a component genuinely needs something no thunk/selector combination can giv
   screen/component.
 - Don't hand-write to AsyncStorage — redux-persist handles persisted slices (`auth` — tokens only, `theme`,
   `location` — `coords` only, `calendar` — `shabbat` only, `notifications` — `promptDismissed`
-  and `optedOut` only, `appUpdate` — `dismissedVersionCode` only, `ws` — `deviceToken` only,
+  only, `appUpdate` — `dismissedVersionCode` only, `ws` — `deviceToken` only,
   `reminders` — `candles` only, `customReminders` — `items` only; neither reminder slice is reset
   on `clearAuth`/`deleteAccount`). `profile` and `admin` aren't persisted, and are reset on
   `clearAuth`/`deleteAccount` so one user's data never reaches the next.
-- `enableNotifications` must be dispatched synchronously from the tap handler —
-  `Notification.requestPermission()` only prompts inside a user gesture, so it's the thunk's first
-  await; don't put another await (or a confirm step) in front of it.
 - One Socket.IO connection, open signed in or not, always with the install's device token
   (`wsSlice`, persisted; anonymous without a login token), managed only by
   `RealtimeConnectionManager` → `wsSlice`. A feature listens with `socketService.on(event,
   handler)` from a thunk and calls the returned unsubscribe in its effect cleanup (see
   `appUpdateSlice.listenForUpdates`) — `socketService` doesn't hand out the socket itself: it's
   replaced on sign-in/out and on return from the background, and only `on()` handlers carry over.
-- `notificationsSlice` must not import `authSlice` (`authSlice`'s `logOut`/`deleteAccount` import
-  it — a cycle); it reads the token via `getState()`.
 - Provider order in `app/_layout.js` is load-bearing (`Provider` → `PersistGate` →
   `ThemedStatusBar`/`AuthGate`/`RealtimeConnectionManager`/
-  `LocationSyncManager`/`PushSubscriptionManager` → `Stack` → `ReminderScheduleManager` →
+  `LocationSyncManager` → `Stack` → `ReminderScheduleManager` → `NotificationsPrompt` →
   `AppUpdateManager`. `ReminderScheduleManager` must be inside `PersistGate` (it schedules from the
-  saved reminders) and after `Stack` (a tapped notification navigates); `AppUpdateManager` is last
+  saved reminders) and after `Stack` (a tapped notification navigates); `NotificationsPrompt`
+  follows them so it opens over any tab; `AppUpdateManager` is last
   so its `UpdateSheet` renders over any screen) — adding a provider means
   deciding where it sits deliberately, not appending it wherever's convenient.
 - **The frontend only ever talks to Gateway, never the Users Service or any other backend service

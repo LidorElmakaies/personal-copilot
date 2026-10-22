@@ -73,7 +73,7 @@ backend/                  NestJS monorepo — apps/{gateway,users,reminders,noti
                           + libs/{auth-kernel,build-info,jewish-calendar,kafka-client,
                           kafka-contracts,otel,queue-client,queue-contracts,users-schema}
 frontend/                 Expo/React Native app (web export + Android APK);
-                          public/ holds the Web Push service worker and the web manifest;
+                          public/ holds index.html, the web manifest and icons;
                           e2e/ holds the containerized Playwright tests
 devops/                   docker-compose.yml (app stack: services + shared postgres/redis/kafka)
                           + android/ (the APK builder image + apk.js: build/publish)
@@ -106,7 +106,7 @@ Kafka events in [`docs/specs/event-schemas.md`](docs/specs/event-schemas.md), di
     forwarded as `X-User-Id`) or `'none'`, `throttle`. Unlisted → `404`. Users: `/auth/*`,
     `/users/me*`; Reminders: `/reminders*`; Notifications: `/notifications/*`.
   - `src/calendar/` — `GET /calendar/shabbat` and `GET /calendar/month` (open), answered
-    in-process from `@app/jewish-calendar`. No longer called by the app (it computes them itself).
+    in-process from `@app/jewish-calendar`. Not called by the app (it computes them itself).
   - `src/realtime/` — `POST /realtime/device` (a device token per app install) and Socket.IO at
     `/ws` (device token required, plus the access token once signed in; one connection per
     device). A feature module pushes with `IRealtimeConnectionService` (`pushToUser`/`broadcast`).
@@ -124,22 +124,28 @@ Kafka events in [`docs/specs/event-schemas.md`](docs/specs/event-schemas.md), di
   days). Reads the user's location from `users.profiles` (read-only). Each reminder keeps one
   delayed `reminder-due` job at its next firing (`ReminderScheduler`, `CustomReminderScheduler`),
   which publishes `notification-requested` and queues the next; a sweep at startup and every
-  15 min re-queues any missing job and removes those of deleted reminders. No longer called by
-  the app (it keeps reminders on the phone); reminders already saved here keep firing.
+  15 min re-queues any missing job and removes those of deleted reminders. Not called by the app
+  (it keeps reminders on the phone); reminders already saved here keep firing.
 - **notifications** (`backend/apps/notifications`) — internal-only, schema `notifications`. Stores
   browsers' Web Push subscriptions and the Android app's FCM devices, and delivers
   `notification-requested` jobs to them end-to-end encrypted (`WebPushChannel`, `FcmChannel`),
-  retrying only the devices not yet reached, never after `expiresAt`. Won't boot without `VAPID_*`;
+  retrying only the devices not yet reached, never after `expiresAt`; the app registers neither
+  kind, so it serves those already stored. Won't boot without `VAPID_*`;
   FCM is off without the optional `FCM_*`.
 - **frontend** (`frontend/`) — Expo Router app, web export and Android APK; login optional. Swipeable
   tabs: Home (clock, Hebrew date, Shabbat times for the GPS location — computed on the phone, like
-  the months — the candle-lighting reminder bell), Calendar (Jewish-calendar month; signed in, the user's own reminders, added and edited in a
-  bottom sheet); both kinds of reminder are kept on the phone (persisted) and
+  the months — the candle-lighting reminder bell), Calendar (Jewish-calendar month; the user's own reminders, added and edited in a
+  bottom sheet); both kinds of reminder need no login, are kept on the phone (persisted) and
   fired as local notifications (`ReminderScheduleManager` → `reconcileReminderNotifications`, a
-  30-day window, at most 100 scheduled; nothing on the web build). Account (signed in only: theme, notifications, email/password, profile, log out,
+  30-day window, at most 100 scheduled; also a daily background task, `reminder-notifications`, so
+  the window keeps moving with the app unopened; nothing on the web build). Account (signed in only: theme, notifications, email/password, profile, log out,
   delete account, version) and Admin (admins only: service status). App-wide (`app/_layout.js`):
   one Socket.IO connection per install, location sync after a > 5 km move, quiet token renewal,
-  notifications (Web Push via `public/sw.js`, FCM in the APK) and the APK's in-app update. See
+  Android's notification permission (`notificationsSlice`; `NotificationsPrompt`, a one-time "Turn
+  on notifications?" over any tab once a reminder exists and Android can still ask; Log Out leaves
+  notifications alone — they're the phone's), incoming FCM
+  pushes for a phone registered with the Notification Service (`fcmReceiver`, loaded by `index.js`; the app registers
+  none) and the APK's in-app update. See
   `docs/specs/services.md#frontend`, `frontend/README.md` and `.claude/agents/frontend.md`.
 - **Queues and events** — BullMQ on Redis for jobs (`notification-requested`, `reminder-due`;
   `@app/queue-contracts`, and every `notification-requested` publisher enqueues with

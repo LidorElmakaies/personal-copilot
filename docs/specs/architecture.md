@@ -48,8 +48,8 @@ flowchart LR
     FrontendLocal -->|"serves /apk/ (read-only)"| ApkRegistry
     Kafka -->|"frontend.releases → app-update over /ws"| Gateway
     Gateway -->|"HTTP (+ X-User-Id on /users/me*)"| Users
-    Gateway -->|"HTTP + X-User-Id\n(no longer called by the app)"| Reminders
-    Gateway -->|"HTTP + X-User-Id"| Notifications
+    Gateway -->|"HTTP + X-User-Id\n(not called by the app)"| Reminders
+    Gateway -->|"HTTP + X-User-Id\n(not called by the app)"| Notifications
     Users --> Postgres
     Users -->|"outbox: users.user-state"| Kafka
     Reminders -->|"own schema + reads users.profiles"| Postgres
@@ -76,12 +76,12 @@ a public port either way. `users`, `reminders`, and `notifications` are
 internal-only; `users` publishes every profile change to Kafka (`users.user-state`, through
 its outbox; Reminders consumes it); `reminders` stores the candle-lighting reminder and the
 user's own reminders and fires each as a delayed BullMQ job (`reminder-due`), publishing
-`notification-requested` — no longer called by the app, which keeps its reminders on the phone;
+`notification-requested` — not called by the app, which keeps its reminders on the phone;
 those already saved there keep firing. All calendar maths is the in-process `@app/jewish-calendar` library,
 used by Reminders and by Gateway, which serves `GET /calendar/shabbat` and `GET /calendar/month`
-itself — no longer called by the app, which computes both on the phone from its own copy
-(`frontend/src/lib/jewish-calendar/`); `notifications` stores browsers' Web Push subscriptions and the
-Android app's FCM devices, and processes `notification-requested` jobs from Redis, sending each to
+itself — not called by the app, which computes both on the phone from its own copy
+(`frontend/src/lib/jewish-calendar/`); `notifications` stores browsers' Web Push subscriptions and
+Android FCM devices (the app registers none; those stored keep receiving), and processes `notification-requested` jobs from Redis, sending each to
 every device the user has — through the browser's push service or FCM, end-to-end encrypted — and
 retrying the job for devices that weren't reached (see `notification-flow.md`). Gateway's WS
 (`/ws`) holds one connection per device (each app install has a device token from
@@ -248,10 +248,10 @@ sequenceDiagram
     end
 ```
 
-## Flow: setting the candle-lighting reminder (signed in)
+## Flow: setting the candle-lighting reminder
 
 Kept on the phone (`remindersSlice`, `candles` persisted) and fired as a local notification;
-no network. Planner and triggers: `services.md#frontend`'s "Reminder notifications".
+no network, no login. Planner and triggers: `services.md#frontend`'s "Reminder notifications".
 
 ```mermaid
 sequenceDiagram
@@ -272,9 +272,9 @@ sequenceDiagram
     Store->>Store: reconcileReminderNotifications (see "reminder notifications" below)
 ```
 
-## Flow: your own reminders on the Calendar tab (signed in)
+## Flow: your own reminders on the Calendar tab
 
-Kept on the phone (`customRemindersSlice`, `items` persisted); no network. The sheet's choices:
+Kept on the phone (`customRemindersSlice`, `items` persisted); no network, no login. The sheet's choices:
 `services.md#frontend`. Fired as local notifications, as in the candle-lighting flow.
 
 ```mermaid
@@ -314,7 +314,13 @@ sequenceDiagram
     participant LN as localNotificationsService (expo-notifications)
     participant Android
 
+    Mgr->>Android: registerBackgroundReconcile (task reminder-notifications, ~daily)
+    Mgr->>LN: initNotifications: ensureChannel + getPermission (start, foreground)
+    opt permission default — NotificationsPrompt (once a reminder exists) or the reminder sheet's Turn on
+        User->>Android: allow notifications (requestPermission)
+    end
     Mgr->>Rec: on start, foreground, a move of ~1 km (placeOf), or after a change
+    Android->>Rec: ~every 24 h while online, app closed or swiped away (WorkManager)
     Rec->>LN: ensureChannel ("Reminders")
     Rec->>Plan: planFor(state, now): 30 days + each one's next, at most 100
     Plan-->>Rec: [{ id, at, title, body, url }]

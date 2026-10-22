@@ -80,9 +80,11 @@ a shared testing lib under `backend/libs/` is worth creating only once a second 
 
 `cd frontend && npm test` — Jest with `jest-expo` and React Native Testing Library
 (`frontend/jest.config.js`): every `*.spec.{ts,js}` under `src/`, colocated (`app/` and `e2e/` stay
-out). Today that's the calendar lib's specs (`src/lib/jewish-calendar/`, the same as the backend
-copy's); like the backend config it compiles the ESM-only `@hebcal/*` packages, and jest-expo's
-environment is Node's, so a spec may set `process.env.TZ`. Next highest-value target: the services
+out): the calendar lib's specs (`src/lib/jewish-calendar/`, the same as the backend copy's), the
+reminder slices, planners and scheduling, `notificationsSlice`, the background task, persistence,
+and component specs (`CandleReminder`, `NotificationsPrompt`, `ReminderRow`, each under a Redux
+`<Provider>`). Like the backend config it compiles the ESM-only `@hebcal/*` packages (plus `immer`
+and `react-redux`), and jest-expo's environment is Node's, so a spec may set `process.env.TZ`. Next highest-value target: the services
 layer (each feature's `services/*.js`, `src/shared/http/`, `src/shared/realtime/socketService.js`)
 — mostly pure functions, minimal React/Redux involved: assert `authService` builds the right
 request shape and translates a non-2xx response into the message `apiError.js` documents.
@@ -131,11 +133,6 @@ Conventions and known traps:
   fixed start that keeps running (`tests/reminders.spec.js`). Even then the slide-in lags behind
   real time, so wait for the sheet to stop moving (poll its handle's `boundingBox()`) before
   dragging it; touch drags go through CDP `Input.dispatchTouchEvent`.
-- Web Push: headless Chromium has no push service, so app-side flows stub `PushManager`/
-  `Notification` (`tests/notifications.spec.js`); the service worker itself is tested by delivering
-  a push over CDP (`ServiceWorker.deliverPushMessage`, `tests/service-worker.spec.js`). That needs
-  `channel: 'chromium'` — the default headless shell reports notification permission as denied even
-  when granted — and a channel can only be set per file, so keep such tests in their own file.
 
 ## Commands
 

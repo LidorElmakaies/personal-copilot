@@ -10,7 +10,6 @@ import {
 import { useDispatch, useSelector } from 'react-redux';
 import AmbientBackground from '../../../shared/components/composite/AmbientBackground';
 import CandleReminder from '../components/CandleReminder';
-import NotificationsPrompt from '../components/NotificationsPrompt';
 import ShabbatSection from '../components/ShabbatSection';
 import { UpdateChip } from '../../app-update';
 import GlowCard from '../../../shared/components/base/layout/GlowCard';
@@ -114,7 +113,6 @@ export default function HomeScreen() {
           />
         </GlowCard>
       </ScrollView>
-      <NotificationsPrompt />
     </AmbientBackground>
   );
 }

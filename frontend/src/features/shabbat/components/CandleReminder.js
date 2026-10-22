@@ -1,13 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import GradientButton from '../../../shared/components/base/buttons/GradientButton';
 import PillButton from '../../../shared/components/base/buttons/PillButton';
 import Stepper from '../../../shared/components/base/form/Stepper';
 import BottomSheet from '../../../shared/components/base/layout/BottomSheet';
-import ConfirmModal from '../../../shared/components/composite/ConfirmModal';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
 import {
   enableNotifications,
@@ -31,29 +29,12 @@ const bellIcon = (color) => (
   <Ionicons name="notifications-outline" size={16} color={color} />
 );
 
-// Composite component (PillButton/BottomSheet/Stepper/GradientButton/ConfirmModal) — the
+// Composite component (PillButton/BottomSheet/Stepper/GradientButton) — the
 // candle-lighting reminder on Home's Shabbat section (mockups R1–R3). Owns its Redux wiring; the
 // sheet's form is private, so closing the sheet drops an unsaved offset.
 export default function CandleReminder({ candleLighting, now }) {
-  const dispatch = useDispatch();
-  const router = useRouter();
-  const accessToken = useSelector((state) => state.auth.accessToken);
   const candles = useSelector((state) => state.reminders.candles);
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [askLogin, setAskLogin] = useState(false);
-
-  // Signing out closes the sheet (its form needs a session).
-  useEffect(() => {
-    if (!accessToken) setSheetOpen(false);
-  }, [accessToken]);
-
-  const open = () => {
-    if (!accessToken) {
-      setAskLogin(true);
-      return;
-    }
-    setSheetOpen(true);
-  };
 
   const on = candles.enabled;
 
@@ -67,7 +48,7 @@ export default function CandleReminder({ candleLighting, now }) {
         }
         icon={bellIcon}
         tone={on ? 'pending' : 'accent'}
-        onPress={open}
+        onPress={() => setSheetOpen(true)}
         style={styles.bell}
       />
       <BottomSheet visible={sheetOpen} onClose={() => setSheetOpen(false)}>
@@ -80,15 +61,6 @@ export default function CandleReminder({ candleLighting, now }) {
           />
         ) : null}
       </BottomSheet>
-      <ConfirmModal
-        visible={askLogin}
-        message="Log in to set a reminder?"
-        onConfirm={() => {
-          setAskLogin(false);
-          router.push('/login');
-        }}
-        onCancel={() => setAskLogin(false)}
-      />
     </>
   );
 }
@@ -209,49 +181,33 @@ function Time({ value }) {
   );
 }
 
-// Shown when this browser or phone won't get the reminder; saving still keeps it (mockup N4 for the
-// Android wording).
+// Shown when this phone won't show the reminder; saving still keeps it (mockup N4).
 const NUDGES = {
-  web: {
-    denied:
-      "Notifications are blocked for this site in the browser, so the reminder won't reach you here.",
-    unsupported:
-      "This browser can't receive notifications, so the reminder won't reach you here.",
-    off: "Notifications are off on this browser, so the reminder won't reach you here.",
+  default: {
+    text: "Notifications are off on this phone, so the reminder won't reach you here.",
+    action: { label: 'Turn on', run: enableNotifications },
   },
-  android: {
-    denied:
-      "Notifications are blocked in Android settings, so the reminder won't reach you here.",
-    unsupported:
-      "This phone can't receive notifications, so the reminder won't reach you here.",
-    off: "Notifications are off on this phone, so the reminder won't reach you here.",
+  denied: {
+    text: "Notifications are blocked in Android settings, so the reminder won't reach you here.",
+    action: { label: 'Open settings', run: openNotificationSettings },
+  },
+  unsupported: {
+    text: "This device can't show notifications, so the reminder won't reach you here.",
   },
 };
 
 function NotificationsNudge() {
   const dispatch = useDispatch();
   const { colors } = useAppTheme();
-  const { platform, permission, subscribed, busy } = useSelector(
+  const { permission, ready, busy } = useSelector(
     (state) => state.notifications,
   );
-  if (subscribed) return null;
-
-  const kind =
-    permission === 'denied' || permission === 'unsupported'
-      ? permission
-      : 'off';
-  const action =
-    kind === 'off'
-      ? { label: 'Turn on', run: enableNotifications }
-      : kind === 'denied' && platform === 'android'
-        ? { label: 'Open settings', run: openNotificationSettings }
-        : null;
+  if (!ready || permission === 'granted') return null; // unknown until read
+  const { text, action } = NUDGES[permission];
 
   return (
     <View style={[styles.nudge, { backgroundColor: colors.pendingBg }]}>
-      <Text style={[styles.nudgeText, { color: colors.pending }]}>
-        {NUDGES[platform][kind]}
-      </Text>
+      <Text style={[styles.nudgeText, { color: colors.pending }]}>{text}</Text>
       {action ? (
         <Pressable
           onPress={() => dispatch(action.run())}

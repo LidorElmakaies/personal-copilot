@@ -1,4 +1,9 @@
-import { reconcileReminderNotifications } from './scheduleNotifications';
+import {
+  defineBackgroundReconcile,
+  reconcileReminderNotifications,
+  registerBackgroundReconcile,
+} from './scheduleNotifications';
+import * as backgroundTasks from '../../../shared/device/backgroundTaskService';
 import * as localNotifications from '../../../shared/device/localNotificationsService';
 import { planFor } from '../utils/schedulePlan';
 
@@ -10,6 +15,10 @@ jest.mock('../../../shared/device/localNotificationsService', () => ({
   schedule: jest.fn(async () => {}),
   cancel: jest.fn(async () => {}),
   listScheduled: jest.fn(async () => []),
+}));
+jest.mock('../../../shared/device/backgroundTaskService', () => ({
+  define: jest.fn(),
+  register: jest.fn(async () => {}),
 }));
 jest.mock('../utils/schedulePlan', () => ({ planFor: jest.fn(() => []) }));
 
@@ -61,6 +70,35 @@ describe('reconcileReminderNotifications', () => {
     localNotifications.listScheduled.mockRejectedValueOnce(new Error('boom'));
     const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
     await expect(run()).resolves.toBeUndefined();
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
+  });
+});
+
+describe('the daily background run', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('reconciles once the saved state is back', async () => {
+    const order = [];
+    const store = {
+      dispatch: (thunk) => {
+        order.push('reconcile');
+        return thunk(jest.fn(), () => ({}));
+      },
+    };
+    defineBackgroundReconcile(store, async () => order.push('ready'));
+    const [name, task] = backgroundTasks.define.mock.calls[0];
+    await task();
+    expect(order).toEqual(['ready', 'reconcile']);
+    expect(localNotifications.ensureChannel).toHaveBeenCalled();
+    registerBackgroundReconcile()();
+    expect(backgroundTasks.register).toHaveBeenCalledWith(name, 24 * 60);
+  });
+
+  it("doesn't reject when registering fails", async () => {
+    backgroundTasks.register.mockRejectedValueOnce(new Error('restricted'));
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    await expect(registerBackgroundReconcile()()).resolves.toBeUndefined();
     expect(warn).toHaveBeenCalled();
     warn.mockRestore();
   });

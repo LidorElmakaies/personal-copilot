@@ -3,6 +3,9 @@
 export const ID_PREFIX = 'rem:';
 export const isSupported = () => false;
 export const ensureChannel = async () => {};
+export const getPermission = async () => 'unsupported';
+export const requestPermission = async () => 'unsupported';
+export const openSettings = async () => {};
 export const schedule = async () => {};
 export const cancel = async () => {};
 export const listScheduled = async () => [];

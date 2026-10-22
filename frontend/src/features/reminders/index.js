@@ -2,8 +2,12 @@
 export { default as CustomReminderSheet } from './components/CustomReminderSheet';
 export { ReminderRow } from './components/ReminderRow';
 export { default as RemindersSheet } from './components/RemindersSheet';
+export { default as NotificationsPrompt } from './components/NotificationsPrompt';
 export { default as ReminderScheduleManager } from './components/ReminderScheduleManager';
-export { reconcileReminderNotifications } from './store/scheduleNotifications';
+export {
+  defineBackgroundReconcile,
+  reconcileReminderNotifications,
+} from './store/scheduleNotifications';
 export {
   default as customRemindersReducer,
   selectDayReminders,

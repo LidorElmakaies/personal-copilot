@@ -3,11 +3,11 @@
 A personal NestJS + Expo app, self-hosted on a home PC and used from a phone over Tailscale.
 Today it shows Shabbat times (candle lighting, Havdalah, countdown) for the phone's location on the
 Home screen and a Jewish-calendar month (both dates, holidays and fasts) on the Calendar tab, with
-optional login; signed in, you can set a weekly candle-lighting reminder and add your own
+optional login. With no login needed, you can set a weekly candle-lighting reminder and add your own
 reminders on the calendar (once, daily, monthly or yearly, by the Gregorian or Hebrew date), both
 kept on the phone and fired by the Android app as local notifications (exact alarms, no server).
-Reminders saved on the server earlier still arrive as push notifications (Web Push in the browser,
-FCM in the Android app) until they're removed — so one set in both places arrives twice.
+Reminders saved on the server still arrive as push notifications (FCM) on an Android phone
+registered with it until they're removed — so one set in both places arrives twice.
 
 See [CLAUDE.md](CLAUDE.md) for architecture, setup, and how this repo is organized —
 [docs/specs/](docs/specs/) for the service/event contracts. To start the stack, follow CLAUDE.md's
@@ -40,13 +40,8 @@ Set the printed Gateway URL as `GATEWAY_PUBLIC_URL` in `devops/.env`, rebuild th
 (`cd devops && docker compose up -d --build frontend`), and open `https://<pc>.ts.net` on your
 phone. `tailscale serve` settings survive reboots; `tailscale serve reset` removes them.
 
-**Reminders on the phone** arrive as Web Push notifications, even with the screen locked and the
-browser in the background: sign in, then tap "Turn on" (or the Account tab's Notifications switch)
-and allow. If nothing arrives on the phone while the PC gets it, the message reached Google's push
-service and the phone held it back. In Android's settings, allow the browser's notifications and
-set its battery use to Unrestricted. Swiping the browser out of recent apps can force-stop it on
-some phones, and a stopped app gets nothing until it's opened again. Chrome is the most reliable
-browser for this; Brave works once those settings allow it.
+**Reminders** are notifications from the Android app (below), which schedules them itself; the
+web app shows none (it has no service worker and subscribes to no push).
 
 ## Android app (APK)
 
@@ -67,8 +62,8 @@ Docker volumes and takes a while; later ones are faster. `ANDROID_ABIS=arm64-v8a
 The first run also creates the release signing key in `devops/data/android/` (git-ignored).
 **Back up `release.keystore` and `keystore.properties` from there.** Every later APK must be signed
 with the same key to update the installed app; with a new key you'd have to uninstall it (and sign
-in again) first. The APK gets reminders through Firebase (FCM) once notifications are turned on
-in it. For push, put Firebase's `google-services.json` (Firebase → your Android app
+in again) first. The APK shows its reminders once Android's notification permission is allowed (it
+asks once, on Home). For server push (FCM) to a phone registered with it, put Firebase's `google-services.json` (Firebase → your Android app
 `com.lidor.personalcopilot`) in `devops/data/android/` too — the build uses it when it's there.
 
 `publish` puts the built APK (the `frontend` version, or `--version X`) on the download

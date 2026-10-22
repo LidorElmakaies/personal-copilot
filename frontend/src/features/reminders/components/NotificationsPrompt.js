@@ -4,31 +4,30 @@ import { useDispatch, useSelector } from 'react-redux';
 import ConfirmModal from '../../../shared/components/composite/ConfirmModal';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
 import {
-  declineNotificationsPrompt,
   dismissNotificationsPrompt,
   enableNotifications,
 } from '../../../shared/device/notificationsSlice';
 
 // Composite component (ConfirmModal) — the one-time "Turn on notifications?" sheet (mockup N1).
-// Shown while signed in when this browser isn't subscribed and hasn't answered it before, and the
-// browser hasn't decided yet — or allows notifications but they were turned off here. Either
-// answer is remembered ("Not now" also keeps them off here); NotificationsCard is the way back.
+// Shown when it's needed: once there's a reminder to show (the candle-lighting one is on, or one of
+// the user's own exists), while Android can still ask and it hasn't been answered here before.
+// Either answer is remembered; a reminder sheet's nudge and Android's settings are the way back.
+// Rendered once, at the root, so a save on any tab brings it up.
 export default function NotificationsPrompt() {
   const dispatch = useDispatch();
   const { colors } = useAppTheme();
-  const accessToken = useSelector((state) => state.auth.accessToken);
-  const { ready, permission, subscribed, promptDismissed, optedOut } =
-    useSelector((state) => state.notifications);
+  const { ready, permission, promptDismissed } = useSelector(
+    (state) => state.notifications,
+  );
+  const hasReminder = useSelector(
+    (state) =>
+      state.reminders.candles.enabled ||
+      state.customReminders.items.length > 0,
+  );
 
   const visible =
-    !!accessToken &&
-    ready &&
-    // Allowed and not turned off here: the app subscribes on its own, nothing to ask.
-    (permission === 'default' || (permission === 'granted' && optedOut)) &&
-    !subscribed &&
-    !promptDismissed;
+    hasReminder && ready && permission === 'default' && !promptDismissed;
 
-  // enableNotifications first, so the browser's own prompt still counts as part of this tap.
   const turnOn = () => {
     dispatch(enableNotifications());
     dispatch(dismissNotificationsPrompt());
@@ -47,11 +46,11 @@ export default function NotificationsPrompt() {
         </View>
       }
       title="Turn on notifications?"
-      message="Get your candle-lighting reminder on this phone, even when the app is closed."
+      message="Get your reminders on this phone, even when the app is closed."
       confirmLabel="Turn on"
       cancelLabel="Not now"
       onConfirm={turnOn}
-      onCancel={() => dispatch(declineNotificationsPrompt())}
+      onCancel={() => dispatch(dismissNotificationsPrompt())}
     />
   );
 }

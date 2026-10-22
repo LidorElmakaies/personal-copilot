@@ -1,4 +1,3 @@
-import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
@@ -6,10 +5,8 @@ import FloatingButton from '../../../shared/components/base/buttons/FloatingButt
 import GlowCard from '../../../shared/components/base/layout/GlowCard';
 import SwipePager from '../../../shared/components/base/layout/SwipePager';
 import AmbientBackground from '../../../shared/components/composite/AmbientBackground';
-import ConfirmModal from '../../../shared/components/composite/ConfirmModal';
 import { locate } from '../../../shared/device/locationSlice';
 import { israelIsoDate, monthAt, monthIndex } from '../../../shared/utils/date';
-import { selectUserId } from '../../account';
 import {
   CustomReminderSheet,
   RemindersSheet,
@@ -30,17 +27,14 @@ import {
 } from '../utils/calendar';
 
 // Times and holidays are for the device's location — the same one Home uses. The user's own
-// reminders (signed in) are shown over the loaded months; the + adds one to the selected day.
+// reminders are shown over the loaded months; the + adds one to the selected day.
 export default function CalendarScreen() {
   const dispatch = useDispatch();
-  const router = useRouter();
   const location = useSelector((state) => state.location);
   const months = useSelector((state) => state.calendar.months);
-  const userId = useSelector(selectUserId);
   const dayReminders = useSelector(selectDayReminders);
   const [sheetDate, setSheetDate] = useState(null); // the day whose reminders are all shown
   const [editing, setEditing] = useState(null); // { reminder, date } — the add/edit sheet
-  const [askLogin, setAskLogin] = useState(false);
   // On every new minute: a once-reminder whose time passes dims, and after midnight "today" moves on.
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
@@ -89,16 +83,10 @@ export default function CalendarScreen() {
 
   // The user's reminders over the same months (they don't need a location).
   useEffect(() => {
-    if (userId) dispatch(setRemindersRange(remindersRange(shown, PRELOAD)));
-  }, [shown, userId, dispatch]);
+    dispatch(setRemindersRange(remindersRange(shown, PRELOAD)));
+  }, [shown, dispatch]);
 
-  // Signing out closes the add/edit sheet (it needs a session).
-  useEffect(() => {
-    if (!userId) setEditing(null);
-  }, [userId]);
-
-  const add = () =>
-    userId ? setEditing({ reminder: null, date: selected }) : setAskLogin(true);
+  const add = () => setEditing({ reminder: null, date: selected });
   const edit = (date) => (row) => {
     setSheetDate(null);
     setEditing({ reminder: row.reminder, date });
@@ -199,15 +187,6 @@ export default function CalendarScreen() {
         target={editing}
         onClose={() => setEditing(null)}
         onSaved={showSaved}
-      />
-      <ConfirmModal
-        visible={askLogin}
-        message="Log in to add reminders?"
-        onConfirm={() => {
-          setAskLogin(false);
-          router.push('/login');
-        }}
-        onCancel={() => setAskLogin(false)}
       />
     </AmbientBackground>
   );

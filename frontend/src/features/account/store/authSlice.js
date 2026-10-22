@@ -1,7 +1,6 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import * as authService from '../services/authService';
 import { getUserFromToken, msUntilExpiry } from '../../../shared/utils/jwt';
-import { disableNotifications } from '../../../shared/device/notificationsSlice';
 
 // The 15-min access token is renewed with the 30-day rotating refresh token (refreshSession) —
 // see docs/specs/services.md#frontend.
@@ -39,26 +38,22 @@ export const updateAccount = createAsyncThunk(
 );
 
 // Doesn't touch status/error — the caller shows its own result; success signs the user out.
-// The server's subscription rows go with the account; this browser's subscription is dropped too.
 export const deleteAccount = createAsyncThunk(
   'auth/deleteAccount',
-  async (payload, { dispatch, rejectWithValue }) => {
+  async (payload, { rejectWithValue }) => {
     try {
       await authService.deleteAccount(payload);
     } catch (err) {
       return rejectWithValue(err.message);
     }
-    await dispatch(disableNotifications({ loggingOut: true }));
   },
 );
 
-// An explicit log-out turns this browser's notifications off first (needs the token); a session
-// the server ends (refreshSession → clearAuth) keeps them, so reminders still arrive signed out.
-// Then the server revokes the refresh token — best effort: offline, this device still signs out.
+// The server revokes the refresh token — best effort: offline, this device still signs out.
+// Reminders and notifications are the phone's, not the account's: they stay.
 export const logOut = createAsyncThunk(
   'auth/logOut',
   async (_, { dispatch, getState }) => {
-    await dispatch(disableNotifications({ loggingOut: true }));
     await renewal; // revoke the refresh token it rotates to, not the old one
     const { refreshToken } = getState().auth;
     if (refreshToken) {

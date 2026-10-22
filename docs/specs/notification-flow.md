@@ -1,17 +1,19 @@
 # Notification flow
 
-How a person ends up with a reminder — candle lighting or one of their own — on their phone: first they sign up and turn on
-notifications (once), then every reminder travels a BullMQ queue → Notification Service → the
-browser's push service → the phone. The Android app gets the same notifications through FCM —
-see [Android app](#android-app-fcm) below. For the exact rules of each service see
+How a reminder saved on the Reminders Service — candle lighting or one of a user's own — reaches
+a registered device: a BullMQ queue → Notification Service → the browser's push service (or FCM
+for an Android device, see [Android app](#android-app-fcm) below) → the phone. The app itself
+keeps its reminders on the phone and fires them as local notifications, and registers no device
+here (see [services.md](services.md#frontend)'s "Reminder notifications" and "Notifications");
+this path serves the reminders and devices already stored on the server. For the exact rules of each service see
 [services.md](services.md); for the job shapes see [event-schemas.md](event-schemas.md).
 
 ```mermaid
 flowchart TD
-    subgraph A["1. One-time setup: the person signs up"]
+    subgraph A["1. A client registers a device (the API; the app doesn't call it)"]
         R1["Phone: register / login"] -->|POST /auth/register| GW1["Gateway"]
         GW1 --> AUTH["Users Service<br/>creates user, returns JWT<br/>(sub = userId)"]
-        AUTH --> R2["Phone: 'Turn on notifications?' over Home<br/>or Account → Notifications;<br/>browser asks permission"]
+        AUTH --> R2["Client: browser grants<br/>notification permission"]
         R2 -->|GET /notifications/vapid-public-key| KEY["Notifications: server's public key"]
         KEY --> R3["Browser subscribes with its push service<br/>(Google FCM for Chrome/Brave)<br/>→ endpoint + p256dh + auth keys"]
         R3 -->|"POST /notifications/subscriptions<br/>+ Bearer JWT"| GW2["Gateway: JwtAuthGuard<br/>adds X-User-Id"]
@@ -31,27 +33,23 @@ flowchart TD
         FCM -->|404/410 gone| DEL["delete that subscription"]
         FCM -->|"429 / 5xx / no response"| RETRY["retry the whole job later;<br/>done devices are skipped"]
         RETRY --> Q1
-        FCM --> PH["Phone: browser decrypts,<br/>service worker (sw.js) shows it;<br/>tap focuses or opens the app"]
+        FCM --> PH["Phone: browser decrypts,<br/>hands it to the subscribing<br/>site's service worker"]
     end
 ```
 
-## 1. One-time setup
+## 1. Registering a device
+
+The API a client uses; the current app doesn't call it.
 
 1. The person registers or logs in through Gateway; the Users Service returns a JWT whose `sub` is their
    user id.
-2. Signed in, the app offers "Turn on notifications?" once over Home (or the Notifications card on
-   Account, any time). On "Turn on" the browser asks for permission; once granted, the app asks for
-   the server's VAPID public key (open route) and has the browser subscribe with its push service.
-   The browser returns an `endpoint` URL plus two keys (`p256dh`, `auth`) that only it can decrypt
-   with.
-3. The app posts that subscription with its JWT. Gateway verifies the token and forwards only the
+2. With notification permission granted, the client asks for the server's VAPID public key (open
+   route) and has the browser subscribe with its push service. The browser returns an `endpoint`
+   URL plus two keys (`p256dh`, `auth`) that only it can decrypt with.
+3. The client posts that subscription with its JWT. Gateway verifies the token and forwards only the
    user id, as `X-User-Id`; Notification Service stores the endpoint and keys against that user
-   (only known push-service hosts are accepted).
-4. Afterwards, whenever the app starts signed in or someone signs in, it re-posts the browser's
-   current subscription (upsert on endpoint), so a rotated subscription or one last used by another
-   account ends up under the right user. Turning the card off, logging out or deleting the account
-   deletes this browser's subscription and unsubscribes it; a session the server ends (its refresh
-   refused) keeps it, so reminders keep arriving.
+   (only known push-service hosts are accepted). Posting the same endpoint again moves it to the
+   current user (upsert); `DELETE /notifications/subscriptions` removes it.
 
 ## 2. Every reminder
 
@@ -76,15 +74,16 @@ flowchart TD
    notification twice (the push went out but the answer was lost); it never silently misses one to
    a transient error. Nothing about the notification is stored beyond its BullMQ job.
 6. The push service forwards the ciphertext to the phone; the browser decrypts it and hands it to
-   the app's service worker (`frontend/public/sw.js`), which shows it with `tag` = `notificationId`
-   (a retry duplicate replaces the first rather than showing twice). A tap focuses an open app tab,
-   else opens the payload's `url`.
+   the service worker of the site that subscribed. The app's web build ships no service worker; the
+   payload carries `notificationId` (for a `tag`, so a retry duplicate replaces the first) and a
+   `url` to open on tap.
 
 ## Android app (FCM)
 
-The Android app registers itself instead of a browser subscription: it makes a 256-bit key on the
-phone and sends it with its FCM registration token to `PUT /notifications/fcm-devices` (Gateway adds
-`X-User-Id` as above; `DELETE` with `{ token }` on turning off or signing out). For every
+An Android device is registered instead of a browser subscription: a 256-bit key made on the
+phone, sent with its FCM registration token to `PUT /notifications/fcm-devices` (Gateway adds
+`X-User-Id` as above; `DELETE` with `{ token }` removes it). The app makes no new registrations; a
+phone that holds a key from one still receives. For every
 notification, `FcmChannel` runs next to `WebPushChannel` with the same rules — the user's current
 devices minus those done (`fcm:<deviceId>`), TTL = time left, retry on 429/5xx/no response — and
 sends each device a data-only FCM message holding only the content encrypted with that device's

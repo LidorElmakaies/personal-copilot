@@ -2,8 +2,8 @@
 
 Expo/React Native app — optional login/register (the app doesn't gate itself on a session), a Home
 tab (clock, dates, Shabbat times for the device's location, and a candle-lighting reminder bell),
-a Calendar tab (the Jewish-calendar month; signed in, the user's own reminders on it, added and
-edited in a bottom sheet — both kinds of reminder kept on the phone), an auth-gated Account tab (theme, notifications, email/password, profile, logout, delete account),
+a Calendar tab (the Jewish-calendar month; the user's own reminders on it, added and
+edited in a bottom sheet — both kinds of reminder kept on the phone, no login needed), an auth-gated Account tab (theme, notifications, email/password, profile, logout, delete account),
 and an Admin tab of service status that only admins see. See the root
 [CLAUDE.md](../CLAUDE.md) for architecture, [.claude/agents/frontend.md](../.claude/agents/frontend.md)
 for the conventions to follow when changing anything here.
@@ -40,8 +40,9 @@ src/features/<name>/      components/ screens/ store/ services/ utils/ hooks/ + 
   account/                auth, profile, admin — dormant
 src/lib/jewish-calendar/  the calendar maths — pure, no React
 src/shared/               components/ (base/, composite/), theme/, config/, http/, utils/,
-                          device/ (location, notifications), realtime/ (the one /ws)
+                          device/ (location, notifications, background tasks), realtime/ (the one /ws)
 src/store/index.js        the root store: each feature's reducer (from its index.js) + persistence
+src/store/backgroundTasks.js  background tasks, defined with the rehydrated store (loaded by index.js)
 ```
 
 A feature imports from `shared/` and `lib/`, and another feature only through its `index.js`;
@@ -59,7 +60,7 @@ account's `AuthLinks` navigates). See `.claude/agents/frontend.md` for the class
 adding one.
 
 Same Redux Toolkit + services-layer + Expo Router conventions otherwise: all I/O lives in a
-feature's `services/` or `src/shared/` — `device/` (on-device I/O: `expo-location`, push),
+feature's `services/` or `src/shared/` — `device/` (on-device I/O: `expo-location`, notifications),
 `http/` (`httpClient`), `realtime/` (the Socket.IO client) — called only from thunks, never inline
 in a component. Shabbat times and the Calendar tab's months need no network: calendar's
 `calendarService` computes them from `src/lib/jewish-calendar/` (as JSON, the shape Gateway's
@@ -112,18 +113,23 @@ only foreground location is used. On web, the browser's geolocation API requires
 `localhost`) — that's why phone access goes through `tailscale serve` (root README, "Phone
 access").
 
-## Notifications (Web Push on the web, FCM on Android)
+## Notifications (Android)
 
-`public/sw.js` is the service worker; `expo export` copies `public/` to the export root, so it's
-served at `/sw.js` with scope `/`. It needs a secure context like GPS does — on the phone that's
-the `tailscale serve` HTTPS URL. The Android app uses FCM instead: `src/shared/device/
-fcmService.android.js` registers the phone (its key in `expo-secure-store`, its FCM token) and
-`fcmReceiver.android.js` — loaded by `index.js`, the entry, before the app — decrypts and shows
-each message, even with the app swiped away. The phone's own reminders are exact local alarms
+The phone's own reminders are exact local alarms
 (`localNotificationsService.android.js`, which also owns the "Reminders" channel; expo-notifications
-re-arms them after a reboot or an update, and `app.json`'s `USE_EXACT_ALARM` keeps them exact). Metro picks the files ending in .android.js on Android; the
-plain `.js` ones are the web build's empty stand-ins. The APK needs `google-services.json` in
-`devops/data/android/` (README's "Android app (APK)"). Flow and state rules:
+re-arms them after a reboot or an update, and `app.json`'s `USE_EXACT_ALARM` keeps them exact).
+Showing them needs only Android's notification permission, no login: `notificationsSlice` reads it
+(through the same service), and the Account card and a one-time prompt (`NotificationsPrompt`,
+over any tab once a reminder exists) ask for it. A daily
+background task (`backgroundTaskService.android.js`, expo-background-task / WorkManager)
+re-runs their scheduling with the app closed. Background tasks are defined in
+`src/store/backgroundTasks.js`, which `index.js` also loads before the app (Android starts the JS
+headless for a task). A phone registered with the Notification Service still gets its FCM pushes:
+`fcmReceiver.android.js` — also loaded by `index.js` — decrypts and shows each message with the
+key `fcmService.android.js` keeps in `expo-secure-store`, even with the app swiped away; the app
+registers no phone itself. The web build has no service worker and no push. Metro picks the
+files ending in .android.js on Android; the plain `.js` ones are the web build's empty
+stand-ins. The APK needs `google-services.json` in `devops/data/android/` (README's "Android app (APK)"). Flow and state rules:
 `docs/specs/services.md#frontend` and `docs/specs/notification-flow.md`.
 
 ## Phone numbers (`libphonenumber-js`)

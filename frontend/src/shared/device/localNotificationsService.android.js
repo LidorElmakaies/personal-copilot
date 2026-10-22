@@ -1,8 +1,9 @@
 import * as Notifications from 'expo-notifications';
+import { Linking } from 'react-native';
 
 // Notifications the phone schedules itself (exact alarms, expo-notifications), no Redux knowledge
-// — called only from thunks (the reminders' reconcile) and by fcmService for the channel. The web
-// build gets localNotificationsService.js, which does nothing.
+// — called only from thunks (the reminders' reconcile, notificationsSlice) and by fcmService for
+// the channel of an incoming message. The web build gets localNotificationsService.js, which does nothing.
 //
 // Ours are told apart from anything else scheduled by their id's prefix (ID_PREFIX — schedulePlan
 // builds the ids with it); their time is kept in data (`at`).
@@ -19,6 +20,24 @@ export async function ensureChannel() {
     name: 'Reminders',
     importance: Notifications.AndroidImportance.HIGH,
   });
+}
+
+// 'default' | 'granted' | 'denied' — 'denied' only once Android won't ask again (Android 13+
+// asks twice at most; below 13 notifications are allowed unless turned off in settings).
+const toPermission = ({ status, canAskAgain }) =>
+  status === 'granted' ? 'granted' : canAskAgain ? 'default' : 'denied';
+
+export async function getPermission() {
+  return toPermission(await Notifications.getPermissionsAsync());
+}
+
+export async function requestPermission() {
+  return toPermission(await Notifications.requestPermissionsAsync());
+}
+
+// The app's page in Android's settings, where blocked notifications are allowed again.
+export function openSettings() {
+  return Linking.openSettings();
 }
 
 // One exact alarm at `at` (ms). The same id replaces an earlier one.

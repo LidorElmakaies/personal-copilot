@@ -63,7 +63,7 @@ const customRemindersPersistConfig = {
 const notificationsPersistConfig = {
   key: 'notifications',
   storage: AsyncStorage,
-  whitelist: ['promptDismissed', 'optedOut'], // the rest is read from the browser on every start
+  whitelist: ['promptDismissed'], // the permission is read from Android on every start
 };
 
 const appUpdatePersistConfig = {

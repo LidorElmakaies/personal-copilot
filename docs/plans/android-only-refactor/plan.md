@@ -365,12 +365,75 @@ Proposed on 2026-10-21 (1–3 now decided, 4–6 still open):
     `useRequireAuth`, `clearAuth`, `deleteAccount`.
   - Tests: validation cases and specs re-testing the lib/redux-persist removed, the fix's test
     added; `npm test`: 17 suites, 172 tests pass. Docs follow; docs-check passes.
-- [ ] **R3.3 Background top-up.** If the app isn't opened for weeks the window runs out:
+- [x] **R3.3 Background top-up.** If the app isn't opened for weeks the window runs out:
   a periodic background task (`expo-background-task` / WorkManager) re-runs the reconcile —
   or accept the gap. Decide after R1.2.
-- [ ] **R3.4 UI without login.** `CandleReminder`, the Calendar's +, `CustomReminderSheet`: no
+  *Decided and built 2026-10-22 (not yet seen on the phone):* a daily background task, keeping the
+  30-day window (asked: a 24 h look-ahead woken every day was the other idea — rejected, since
+  WorkManager's runs can be hours late or skipped under Doze / Samsung's battery limits, and only the
+  exact alarms fire on time; with 30 days ahead a late or missed run costs nothing).
+  - `expo-background-task` ~57.0.21 (its config plugin is iOS-only, not added). WorkManager runs
+    it about every 24 h, only while the phone is online.
+  - `shared/device/backgroundTaskService.android.js` (+ a web no-op `.js`): `define(name, run)`
+    (`TaskManager.defineTask`, Success/Failed), `register(name, minutes)`.
+  - `scheduleNotifications.js`: `defineBackgroundReconcile(store, ready)` (task
+    `reminder-notifications`: waits for `ready`, then dispatches the same
+    `reconcileReminderNotifications`), `registerBackgroundReconcile` (daily; a failure only warns).
+    `ReminderScheduleManager` registers on mount. `src/store/backgroundTasks.js` defines it with
+    the store once redux-persist has rehydrated; the entry (`index.js`) imports it, so a headless
+    run (app swiped away) finds it.
+  - Tests: two in `scheduleNotifications.spec.js`, plus `store/backgroundTasks.spec.js` (the
+    rehydration wait) and `backgroundTaskService.android.spec.js`; `npm test`: 19 suites, 181 tests
+    pass. The Android and web bundles (`expo export`) build.
+  - Note: the interval is fixed by the first registration (registering again does nothing) — a
+    later change to it needs an unregister first.
+  - *Seen on the phone 2026-10-22* (0.6.0-test.10 APK, S23 Ultra, adb from the builder image):
+    the WorkManager job is registered for +24 h (network required). A daily test reminder at 17:50
+    scheduled Oct 23–Nov 20; app killed; at 18:51 a background-only run (no activity: process
+    started by WorkManager's diagnostics broadcast, then `cmd jobscheduler run -f`) **added Nov 21
+    17:50** — the window moved, from the saved state alone. The 18:45 reminder also arrived with the
+    app closed. Notes: Israel's DST end (Oct 25) makes "+30 days" end an hour earlier on the
+    clock; a force-stop doesn't test this (expo-notifications restores its alarms natively on the
+    next process start); a forced job right after a process start can be cancelled while WorkManager
+    reschedules — force it again. Test account, reminders and bell removed afterwards.
+- [x] **R3.4 UI without login.** `CandleReminder`, the Calendar's +, `CustomReminderSheet`: no
   `accessToken` gating, no "Log in to …" prompts. `notificationsSlice` shrinks to the permission,
   the `reminders` channel, "Not now" and Open settings; the N1 prompt shows to everyone.
+  *Done 2026-10-22:*
+  - `CandleReminder` and `CalendarScreen`: no login check, no "Log in to …?" `ConfirmModal`; the
+    Calendar's reminders range is set signed out too (before, reminders weren't shown signed out).
+  - `notificationsSlice`: `{ permission, ready, busy, promptDismissed }` (only `promptDismissed`
+    persists; an old `optedOut` is dropped on the next write) — `initNotifications` (channel +
+    permission), `watchNotificationPermission` (foreground re-read, `appStateService`),
+    `enableNotifications`, `openNotificationSettings`, `dismissNotificationsPrompt`. No FCM/Web
+    Push registration, no Gateway calls. `getPermission`/`requestPermission`/`openSettings` moved
+    from `fcmService` into `localNotificationsService`.
+  - `NotificationsPrompt`: `ready && permission === 'default' && !promptDismissed`.
+    `CandleReminder`'s nudge per permission (none until read). `NotificationsCard` (dormant
+    Account): the permission; its switch asks Android or opens settings.
+  - `PushSubscriptionManager` deleted (part of R4.2); `ReminderScheduleManager` runs
+    `initNotifications` + `watchNotificationPermission`. `logOut`/`deleteAccount` don't touch
+    notifications.
+  - Cleaned up at review (asked): deleted `pushService.js`, `notificationsService.js`, the web
+    `fcmService.js`, `public/sw.js`, `fcmService.android.js`'s registration half (only `decrypt`
+    and `show` remain, for `fcmReceiver`), the `expo-crypto` package, and the Playwright specs of
+    the removed code (`notifications`, `service-worker`, `notification-permission`).
+  - Tests: `notificationsSlice.spec.js`, `NotificationsPrompt.spec.js`, `CandleReminder.spec.js`,
+    `NotificationsCard.spec.js`, `store/notificationsPersistence.spec.js`; `jest.config.js` adds
+    `react-redux` to the ESM transform list; `npm test`: 24 suites, 215 tests pass.
+  - *Seen on the phone* (0.6.0-test.10, signed out): the bell opened its sheet with no login and
+    saving scheduled the 5 Friday alarms; the + added a once-reminder for 19:15 (4 min out), it
+    showed on the Calendar, and its notification arrived at 19:15:00 with the app closed. Cleaned
+    up afterwards.
+  - Asked at review: the prompt shows when it's needed — moved to `features/reminders`, rendered
+    once at the root, and only once a reminder exists (candles on or one of the user's own). Seen on
+    the phone (0.6.0-test.11, permission reset to not-asked with `pm revoke` +
+    `clear-permission-flags`): no prompt with no reminders; the bell's sheet showed "Notifications
+    are off … Turn on"; Save → the prompt; Turn on → Android's dialog → allowed, the nudge gone,
+    the 5 alarms scheduled. Bell turned off afterwards; the permission ends allowed, as before.
+  - Not fixed (decided at review — the server side goes in R5): a phone that had server reminders
+    over FCM keeps its FCM device after Log Out, so the previous account's server reminders can
+    still reach it until then.
 - [ ] **R3.5 Tests.** The two server scheduler specs' scenarios ported to the local scheduler
   (next firing, after firing, skipped day, edit, delete, Israel time, location move), plus slice and
   component tests. *Check on the phone:* all six custom kinds and the candle-lighting reminder fire

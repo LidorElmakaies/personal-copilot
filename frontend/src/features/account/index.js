@@ -6,7 +6,6 @@ export { default as LoginScreen } from './screens/LoginScreen';
 export { default as RegisterScreen } from './screens/RegisterScreen';
 export { default as AuthGate } from './components/AuthGate';
 export { default as LocationSyncManager } from './components/LocationSyncManager';
-export { default as PushSubscriptionManager } from './components/PushSubscriptionManager';
 export { useHasRole } from './hooks/useHasRole';
 export {
   default as authReducer,

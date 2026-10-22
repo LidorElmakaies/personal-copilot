@@ -1,12 +1,14 @@
 import * as appStateService from '../../../shared/device/appStateService';
+import * as backgroundTaskService from '../../../shared/device/backgroundTaskService';
 import * as localNotifications from '../../../shared/device/localNotificationsService';
 import { planFor } from '../utils/schedulePlan';
 
 // The phone's own reminder notifications (exact alarms): makes what's scheduled match
 // schedulePlan's plan for the current state — cancels ours no longer wanted or changed, schedules
 // the missing. Run after every reminder change, on start (alarms due while the phone was off are
-// dropped, not re-created), on return to the foreground and when the location changes
-// (ReminderScheduleManager). Nothing on the web build.
+// dropped, not re-created), on return to the foreground, when the location changes
+// (ReminderScheduleManager) and about daily in the background, so the 30-day window keeps moving
+// with the app unopened. Nothing on the web build.
 
 const same = (a, b) =>
   a.at === b.at && a.title === b.title && a.body === b.body && a.url === b.url;
@@ -63,6 +65,26 @@ export const reconcileReminderNotifications = () => (_dispatch, getState) => {
   })();
   return running;
 };
+
+// The daily background run (the app closed or swiped away). Defined by the entry file, with the
+// store once its saved state is back (`ready`); registered from the app.
+const BACKGROUND_TASK = 'reminder-notifications';
+const DAY_MINUTES = 24 * 60;
+
+export const defineBackgroundReconcile = (store, ready) =>
+  backgroundTaskService.define(BACKGROUND_TASK, async () => {
+    await ready();
+    await store.dispatch(reconcileReminderNotifications());
+  });
+
+export const registerBackgroundReconcile = () => () =>
+  backgroundTaskService
+    .register(BACKGROUND_TASK, DAY_MINUTES)
+    .catch((err) =>
+      console.warn(
+        `Couldn't register the background reminder run: ${err?.message ?? err}`,
+      ),
+    );
 
 // Reconciles again whenever the app comes back to the foreground. A plain thunk: returns the stop
 // function to the caller (an effect cleanup).
