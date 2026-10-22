@@ -22,6 +22,7 @@ const DOCS_MAP = [
   { match: /^devops\/(?:([^/]+)\/)?/, docs: ([, dir]) => ['docs/specs/architecture.md — System topology, Compose & build layout', 'docs/devops/environment.md', ...(dir ? [`docs/${dir}/environment.md?`] : []), '.claude/agents/devops.md'] },
   { match: /^frontend\/((src|app)\/|index\.js$)/, docs: () => ['docs/specs/services.md — ## frontend', 'frontend/README.md', '.claude/agents/frontend.md', "CLAUDE.md — What's implemented: frontend"] },
   { match: /^frontend\/(public\/|Caddyfile$)/, docs: () => ['docs/specs/services.md — ## frontend', 'docs/specs/architecture.md — System topology', 'frontend/README.md'] },
+  { match: /^frontend\/\.env\.example$/, docs: () => ['docs/frontend/environment.md', 'frontend/README.md'] },
   { match: /^frontend\/e2e\//, docs: () => ['frontend/e2e/README.md', '.claude/agents/testing.md'] },
   { match: /\.spec\.ts$/, docs: () => ['.claude/agents/testing.md'] },
   { match: /^(scripts|version)\//, docs: () => ['CLAUDE.md — Versions, Commands', 'README.md'] },

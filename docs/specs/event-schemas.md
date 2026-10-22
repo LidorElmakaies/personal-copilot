@@ -168,9 +168,9 @@ interface UserStateMessage {
 The newest published release of the app, keyed by platform (`android`). `apk.js publish` sends it
 once `latest.json`'s newest release changes (never for `-test.N` builds), through the running
 `kafka` container (`kafka-console-producer.sh`; the broker isn't published to the host). Best
-effort: with the stack down nothing is sent, and apps find the release on their next start.
-Compacted, so Kafka keeps just the latest per platform. Gateway only uses it as a trigger — it
-broadcasts `app-update` with no version, and the app reads `latest.json` itself.
+effort: with the stack down nothing is sent. Compacted, so Kafka keeps just the latest per
+platform. Gateway only uses it as a trigger — it broadcasts `app-update` with no version. The app
+doesn't listen for that: it reads `latest.json` itself on start and back in the foreground.
 
 ```ts
 // libs/kafka-contracts/src/messages/frontend-release.ts

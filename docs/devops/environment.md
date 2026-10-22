@@ -21,9 +21,10 @@ behind this.
   [docs/frontend/environment.md](../frontend/environment.md)), plus `JWT_SECRET`
   passed explicitly into Gateway's `environment:` — it must match `backend/.env`'s copy, which the
   Users Service signs with. `node devops/android/apk.js build` also reads it (an env var
-  of the same name wins): `GATEWAY_PUBLIC_URL`, which must be HTTPS, and the optional
-  `APK_REGISTRY_URL` — where the APK checks for updates, default
-  `https://<GATEWAY_PUBLIC_URL's host>/apk/`. Not shared with `devops/observability`'s compose project (a
+  of the same name wins): `APK_REGISTRY_URL` — where the APK checks for updates, default
+  `https://<GATEWAY_PUBLIC_URL's host>/apk/`; the build refuses when neither is set — and
+  `GATEWAY_PUBLIC_URL`, optional (only the dormant login/account screens call Gateway), HTTPS when
+  set. Not shared with `devops/observability`'s compose project (a
   separate directory/compose project that doesn't need any of this).
 
 Startup order matters: `devops/observability` first (the app stack's `docker-compose.yml`

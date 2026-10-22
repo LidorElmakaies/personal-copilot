@@ -46,7 +46,7 @@ flowchart LR
     CaddyCloud -->|"every Gateway route (@gateway) via SSH reverse tunnel"| Gateway
 
     FrontendLocal -->|"serves /apk/ (read-only)"| ApkRegistry
-    Kafka -->|"frontend.releases → app-update over /ws"| Gateway
+    Kafka -->|"frontend.releases → app-update over /ws\n(no client listens)"| Gateway
     Gateway -->|"HTTP (+ X-User-Id on /users/me*)"| Users
     Gateway -->|"HTTP + X-User-Id\n(not called by the app)"| Reminders
     Gateway -->|"HTTP + X-User-Id\n(not called by the app)"| Notifications
@@ -67,8 +67,9 @@ Only `gateway` and `frontend` are reachable from outside the Docker network. Ove
 `frontend` is a container on the same Docker host as `gateway`, and `tailscale serve`
 (`devops/tailscale/serve.js`) puts both behind HTTPS with the machine's `*.ts.net` certificate —
 required because phone browsers only allow GPS on HTTPS pages. The frontend build calls Gateway at
-that HTTPS `:8443` address directly (`GATEWAY_PUBLIC_URL`), not through the local Caddy. The Android
-APK uses the same HTTPS address (Android blocks plain HTTP), and Gateway's `:8000` is bound to
+that HTTPS `:8443` address directly (`GATEWAY_PUBLIC_URL`), not through the local Caddy; the Android
+APK bakes in the same HTTPS address when set (Android blocks plain HTTP). Only the dormant
+login/account screens call it — Home, Calendar, reminders and updates need no Gateway. Gateway's `:8000` is bound to
 `127.0.0.1`, so nothing reaches it without going through `tailscale serve`. In the cloud path, `frontend`
 (Caddy) instead runs standalone on the VPS and reaches `gateway` only via an SSH reverse tunnel
 from the home machine (see "SSH reverse-tunnel hardening" below) — `gateway` itself is never given
@@ -87,8 +88,9 @@ retrying the job for devices that weren't reached (see `notification-flow.md`). 
 (`/ws`) holds one connection per device (each app install has a device token from
 `POST /realtime/device`; signed in or anonymous) and can push to every device of a user
 (`IRealtimeConnectionService.pushToUser`) or broadcast to all; it broadcasts `app-update` when
-`apk.js publish` announces a new release on Kafka (`frontend.releases`); the release itself is in
-the APK registry (`devops/data/apk`), served by the frontend's Caddy at `/apk/`.
+`apk.js publish` announces a new release on Kafka (`frontend.releases`). The app opens no `/ws`
+connection (`RealtimeConnectionManager` is dormant) and finds releases itself in the APK registry
+(`devops/data/apk`), served by the frontend's Caddy at `/apk/`.
 
 Gateway rate-limits globally (`@nestjs/throttler`, `THROTTLE_TTL_MS`/`THROTTLE_LIMIT`) plus a
 tighter per-route limit on `/auth/register`, `/auth/login`, `/auth/refresh`, `/auth/account` (both
@@ -148,8 +150,9 @@ sequenceDiagram
 
 ## Flow: access token rejected (signed in)
 
-Any signed-in call; see `services.md#frontend`'s "Staying signed in" and "Session ended". The same
-renewal also runs a minute before expiry, on start and on return to the foreground.
+Any signed-in call (only the dormant login/account screens make them); see `services.md#frontend`'s
+"Staying signed in" and "Session ended". A call whose token has already expired renews before
+sending, the same way.
 
 ```mermaid
 sequenceDiagram
@@ -166,9 +169,9 @@ sequenceDiagram
             Frontend->>Gateway: GET /users/me again (new token) — once only
         else refused (400/401: revoked, 30 days unused)
             Frontend->>Frontend: clearAuth({ notice }) — signed out
-            Frontend->>User: go to /login once, "Your session ended — please log in again."
+            Note over Frontend: login screen shows "Your session ended — please log in again."
         else no answer (offline, 5xx)
-            Frontend->>Frontend: keep the session, the call fails; retried in 30 s
+            Frontend->>Frontend: keep the session, the call fails
         end
     else older token, same user (already renewed)
         Frontend->>Gateway: GET /users/me again (current token) — once only
@@ -219,7 +222,9 @@ sequenceDiagram
     Note over App: months kept per place (~1 km), pruned to those near the month shown
 ```
 
-## Flow: location sync (signed in)
+## Flow: location sync (signed in; dormant)
+
+`LocationSyncManager` isn't mounted by `app/_layout.js`, so this runs only if it's mounted again.
 
 ```mermaid
 sequenceDiagram
@@ -335,26 +340,18 @@ sequenceDiagram
 
 ## Flow: Android app update
 
-Android APK only, no login. The registry is static files the frontend's Caddy serves at `/apk/`,
-written by `apk.js publish`, which then announces a new newest release on Kafka
-(`frontend.releases`); Gateway relays it over `/ws` (`services.md#gateway`), so an open app checks
-right away.
+Android APK only, no login, no Gateway. The registry is static files the frontend's Caddy serves
+at `/apk/`, written by `apk.js publish`.
 
 ```mermaid
 sequenceDiagram
     actor User
     participant App as Android app (AppUpdateManager, UpdateSheet)
     participant Reg as frontend Caddy /apk/
-    participant Gateway as Gateway /ws
     participant Android as Android installer
 
     App->>App: on start: delete cached APKs at or below the installed versionCode
-    App->>Gateway: connect with its device token (closed while in the background)
-    opt apk.js publish while the app is open
-        Note over Gateway: frontend.releases event (Kafka, from apk.js publish)
-        Gateway-->>App: app-update {} (broadcast)
-    end
-    App->>Reg: GET latest.json (on start, on return to foreground, on app-update)
+    App->>Reg: GET latest.json (on start, on return to foreground)
     Reg-->>App: { version, versionCode, url, notes }
     alt versionCode > installed
         App->>App: UpdateSheet opens (once per version), UpdateChip on Home
@@ -406,9 +403,10 @@ itself inside it (`devops/android` mounted read-only at `/tools`) over a read-on
 `frontend/` mount, with Docker volumes caching the SDK (`pc-android-sdk`), Gradle
 (`pc-android-gradle`) and npm, and the release key plus the built APKs in `devops/data/android/`.
 It sets the same `EXPO_PUBLIC_*` values the web image does, from `devops/.env` and
-`version/versions.json`, plus `EXPO_PUBLIC_APK_REGISTRY_URL` — where the app checks for updates:
-`APK_REGISTRY_URL` (env or `devops/.env`), else `https://<GATEWAY_PUBLIC_URL's host>/apk/`, the
-frontend's address as `devops/tailscale/serve.js` publishes it. arm64 by default (`ANDROID_ABIS=arm64-v8a,x86_64` → an `-emulator` APK).
+`version/versions.json` (`GATEWAY_PUBLIC_URL` optional, HTTPS when set), plus
+`EXPO_PUBLIC_APK_REGISTRY_URL` — where the app checks for updates: `APK_REGISTRY_URL` (env or
+`devops/.env`), else `https://<GATEWAY_PUBLIC_URL's host>/apk/`, the frontend's address as
+`devops/tailscale/serve.js` publishes it; it refuses to build when neither is set. arm64 by default (`ANDROID_ABIS=arm64-v8a,x86_64` → an `-emulator` APK).
 `node devops/android/apk.js publish` copies a built APK into `devops/data/apk/` — directly, or via
 a `node:22-alpine` container when that folder is root-owned — which `frontend`'s Caddy serves at
 `/apk/` (local mode only — see `frontend/README.md`).

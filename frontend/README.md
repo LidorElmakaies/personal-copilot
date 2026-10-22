@@ -3,14 +3,16 @@
 Expo/React Native app — optional login/register (the app doesn't gate itself on a session), a Home
 tab (clock, dates, Shabbat times for the device's location, and a candle-lighting reminder bell),
 a Calendar tab (the Jewish-calendar month; the user's own reminders on it, added and
-edited in a bottom sheet — both kinds of reminder kept on the phone, no login needed), an auth-gated Account tab (theme, notifications, email/password, profile, logout, delete account),
-and an Admin tab of service status that only admins see. See the root
+edited in a bottom sheet — both kinds of reminder kept on the phone, no login needed). The bar
+holds only those two: an auth-gated Account tab (theme, notifications, email/password, profile,
+logout, delete account) and an admins-only Admin tab of service status are hidden (`hidden: true`
+in `TABS`), reachable only by a direct link, so the theme stays the saved mode (system by default). See the root
 [CLAUDE.md](../CLAUDE.md) for architecture, [.claude/agents/frontend.md](../.claude/agents/frontend.md)
 for the conventions to follow when changing anything here.
 
 ```bash
 npm install
-cp .env.example .env    # sets EXPO_PUBLIC_GATEWAY_ORIGIN — required, no fallback
+cp .env.example .env    # EXPO_PUBLIC_GATEWAY_ORIGIN — optional, only the dormant login/account screens use it
 npx expo start          # Expo Go / dev client
 npx expo start --web
 npm test                # Jest: the *.spec.{ts,js} under src/ (jest-expo, React Native Testing Library)
@@ -40,7 +42,7 @@ src/features/<name>/      components/ screens/ store/ services/ utils/ hooks/ + 
   account/                auth, profile, admin — dormant
 src/lib/jewish-calendar/  the calendar maths — pure, no React
 src/shared/               components/ (base/, composite/), theme/, config/, http/, utils/,
-                          device/ (location, notifications, background tasks), realtime/ (the one /ws)
+                          device/ (location, notifications, background tasks), realtime/ (the /ws client, dormant)
 src/store/index.js        the root store: each feature's reducer (from its index.js) + persistence
 src/store/backgroundTasks.js  background tasks, defined with the rehydrated store (loaded by index.js)
 ```
@@ -70,7 +72,7 @@ in a component. Shabbat times and the Calendar tab's months need no network: cal
 
 `src/shared/config/version.js` exposes the frontend's version and build time, which `Dockerfile` (and
 `apk.js build`) reads from `version/versions.json` into `EXPO_PUBLIC_*` vars (so `expo start` shows
-"dev"); the Account tab's `VersionInfo` shows them. See `docs/specs/services.md#versions`.
+"dev"); the (hidden) Account tab's `VersionInfo` shows them. See `docs/specs/services.md#versions`.
 
 ## Android app
 
@@ -82,8 +84,8 @@ Android's `versionCode`, both from `FRONTEND_VERSION`, which the build script se
 web build and `expo start`). `src/shared/utils/versionCode.js` is the one `versionCode()` — CommonJS,
 since `app.config.js` and `devops/android/apk.js` load it in plain Node; the app uses it too, on
 the baked `EXPO_PUBLIC_FRONTEND_VERSION`, to compare itself with the registry's `latest.json`.
-The build also bakes `EXPO_PUBLIC_APK_REGISTRY_URL` (`URLS.apkRegistry`), where that check looks;
-the web build never checks. Update APKs download to the app's cache (`updates/<versionCode>.apk`,
+The build also bakes `EXPO_PUBLIC_APK_REGISTRY_URL` (`URLS.apkRegistry`), where that check looks
+(on start and back in the foreground); the web build never checks. Update APKs download to the app's cache (`updates/<versionCode>.apk`,
 via a `.part` file) and are deleted once installed — see `docs/specs/services.md#frontend`. `plugins/withReleaseSigning.js` switches
 the generated `android/app/build.gradle` from debug to release signing, with the key taken from env
 vars only the build sets. `react-native-worklets` is a direct dependency so Reanimated 4's native

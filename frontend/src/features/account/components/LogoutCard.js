@@ -13,8 +13,6 @@ export default function LogoutCard() {
   const { colors } = useAppTheme();
   const [confirming, setConfirming] = useState(false);
 
-  // logOut turns this browser's notifications off, then clears authSlice — AuthGate and
-  // RealtimeConnectionManager (shared/realtime/) react to accessToken going null on their own.
   const logout = () => dispatch(logOut());
 
   return (

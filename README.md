@@ -54,8 +54,10 @@ node devops/android/apk.js publish "Release note" "Another note"   # → https:/
 node --test devops/android/apk.test.js          # the publisher's tests, on the host
 ```
 
-It talks to `GATEWAY_PUBLIC_URL` from `devops/.env`, which must be the HTTPS tailnet URL (see
-above), so the phone needs Tailscale on. The first build downloads the Android SDK and Gradle into
+The app itself calls no backend. The build reads `devops/.env` for where it checks for updates
+(`APK_REGISTRY_URL`, or else derived from `GATEWAY_PUBLIC_URL`; see Updates below) and refuses when
+neither is set; `GATEWAY_PUBLIC_URL` is optional, used only by the dormant login/account screens,
+and must be the HTTPS tailnet URL (see above) when set. The first build downloads the Android SDK and Gradle into
 Docker volumes and takes a while; later ones are faster. `ANDROID_ABIS=arm64-v8a,x86_64` builds
 `personal-copilot-<version>-emulator.apk` for an x86_64 emulator instead.
 
@@ -76,9 +78,8 @@ installs from Chrome, and Google Play Protect may block the app as from an unkno
 More details → Install anyway (the page says so too). `publish` writes `devops/data/apk/` directly, or through a `node:22-alpine`
 container when that folder isn't writable (root-owned on Linux, since Docker created it).
 
-**Updates.** Once installed, the app checks the registry's `latest.json` at start, whenever it
-comes back to the foreground, and right after a publish while it's open (`apk.js publish`
-announces the release on Kafka, and Gateway tells every open app over its WebSocket). When a newer version is published, a
+**Updates.** Once installed, the app checks the registry's `latest.json` at start and whenever it
+comes back to the foreground (the phone needs Tailscale on to reach it). When a newer version is published, a
 sheet with its release notes opens by itself (once per version; after Later, an "↑ <version>" chip on Home reopens it). Update
 downloads the APK inside the app and opens Android's installer — the first time, Android asks to
 allow installs from Personal Copilot. Only releases count: `-test.N` builds never reach
@@ -122,8 +123,9 @@ run it again only to start over with a new key (then push and upload both files)
 ## Versions
 
 Every component's version is in `version/versions.json`; `node scripts/version.js` shows and bumps them
-(rules in CLAUDE.md's "Versions"). The Account tab shows the frontend's version; backend services
-report theirs on their internal `/health`, and the Admin tab (admins only) lists them all.
+(rules in CLAUDE.md's "Versions"). The Account tab (hidden from the bar, opened by a direct link) shows the
+frontend's version; backend services report theirs on their internal `/health`, and the Admin tab
+(admins only, also hidden) lists them all.
 
 ## Docs drift check
 

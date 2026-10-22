@@ -5,15 +5,13 @@ import { VERSION } from '../../../shared/config/version';
 import { versionCode } from '../../../shared/utils/versionCode';
 import * as appUpdateService from '../services/appUpdateService';
 import * as apkInstaller from '../services/apkInstallerService';
-import * as socketService from '../../../shared/realtime/socketService';
 
 const INSTALLED_CODE = VERSION.frontend ? versionCode(VERSION.frontend) : null;
 const isApk = () =>
   Platform.OS === 'android' && !!URLS.apkRegistry && INSTALLED_CODE !== null;
 
-// The APK only (the web build is always the newest): reads the registry's latest.json — on start,
-// on return to the foreground and on Gateway's `app-update` (AppUpdateManager). Failures are
-// ignored.
+// The APK only (the web build is always the newest): reads the registry's latest.json — on start
+// and on return to the foreground (AppUpdateManager). Failures are ignored.
 export const checkForUpdate = createAsyncThunk(
   'appUpdate/check',
   () => appUpdateService.getLatestRelease(),
@@ -21,13 +19,6 @@ export const checkForUpdate = createAsyncThunk(
     condition: (_, { getState }) => isApk() && !getState().appUpdate.checking,
   },
 );
-
-// Gateway broadcasts `app-update` over /ws when a release is published: check right away instead
-// of at the next start. A plain thunk: returns the stop function to the caller (an effect cleanup).
-export const listenForUpdates = () => (dispatch) =>
-  isApk()
-    ? socketService.on('app-update', () => dispatch(checkForUpdate()))
-    : () => {};
 
 // On start: the APK this version was installed from, or an older one, isn't needed any more.
 export const deleteOldUpdates = () => () => {

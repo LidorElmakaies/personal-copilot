@@ -28,12 +28,13 @@ Two independent Compose projects, joined by a shared `observability` Docker netw
   on the host; `tailscale serve reset` removes it.
 - `devops/android/` — not a compose project: `Dockerfile` (the APK builder image), `apk.js`,
   `apk.test.js`. `node devops/android/apk.js build` builds in the image into
-  `devops/data/android/apk/`, baking in `GATEWAY_PUBLIC_URL` and the update registry
-  (`APK_REGISTRY_URL`, default `https://<Gateway's host>/apk/`; both env or `devops/.env`);
+  `devops/data/android/apk/`, baking in the update registry (`APK_REGISTRY_URL`, default
+  `https://<GATEWAY_PUBLIC_URL's host>/apk/`; one of the two required) and `GATEWAY_PUBLIC_URL`
+  (optional, HTTPS when set; both env or `devops/.env`);
   `node devops/android/apk.js publish` publishes one into
   `devops/data/apk/` (the registry `frontend` mounts read-only and serves at `/apk/`; a new newest
   release is then announced on Kafka's `frontend.releases` through the running `kafka` container,
-  and Gateway tells open apps over `/ws`), directly or
+  and Gateway broadcasts it over `/ws`, which the app doesn't listen to), directly or
   via a Node container when that folder is root-owned — see `frontend/README.md`'s `/apk/`
   paragraph. Tests: `node --test devops/android/apk.test.js`.
 - `devops/playwright/` — on-demand browser-test runner (not in the root `include:`), see

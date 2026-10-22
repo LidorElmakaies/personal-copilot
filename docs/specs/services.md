@@ -74,7 +74,7 @@ tunnel from a Caddy instance on the public internet. HTTP + WebSocket.
   [{ "service": "gateway", "status": "up", "version": "0.1.0", "builtAt": "…", "startedAt": "…", "latencyMs": null },
    { "service": "reminders", "status": "down", "version": null, "builtAt": null, "startedAt": null, "latencyMs": null }]
   ```
-- `src/realtime/` — the app's live connection.
+- `src/realtime/` — a live connection per app install (the app has it dormant and doesn't connect).
   - `POST /realtime/device` (open; `authStrictThrottlePolicy`) → `201 { device_token }`: a new
     device id, signed by `@app/auth-kernel`'s `DeviceTokenService` (`{ sub, typ: 'device' }`, no
     expiry). Each app install fetches one once and keeps it. A device token is never accepted as a
@@ -104,7 +104,8 @@ tunnel from a Caddy instance on the public internet. HTTP + WebSocket.
   | `app-update` | `broadcast` | `{}` | a new Android release is published (below) |
 - `src/app-update/` — no routes. `FrontendReleaseConsumer` (Kafka `frontend.releases`, group
   `gateway`) → `AppUpdateNotifierService` broadcasts `app-update`. No version in the payload —
-  Gateway's public surface never exposes versions; the app re-reads `latest.json` itself. See
+  Gateway's public surface never exposes versions. The app doesn't listen for it: it reads
+  `latest.json` on start and in the foreground (see [frontend](#frontend)'s App update). See
   `event-schemas.md#frontendreleases`.
 - Rate limiting (`@nestjs/throttler`): a global limit (`THROTTLE_TTL_MS`/`THROTTLE_LIMIT`, default
   60 s/100) on every route, plus a strict one (`AUTH_THROTTLE_TTL_MS`/`AUTH_THROTTLE_LIMIT`,
@@ -372,6 +373,13 @@ Expo Router app. Login is optional app-wide, not a gate on the whole app: `(tabs
 reachable while signed out, and `(auth)/login`/`(auth)/register` each add a "Continue without
 logging in" link (routes to `/`) for whoever lands there without wanting to authenticate.
 
+The root layout (`app/_layout.js`), inside the Redux `Provider` and `PersistGate`, renders
+`ThemedStatusBar`, the router's `Stack`, then the app-wide managers `ReminderScheduleManager`,
+`NotificationsPrompt` and `AppUpdateManager` (each described below). The account feature's
+`AuthGate` and `LocationSyncManager` and `shared/realtime/`'s `RealtimeConnectionManager` are
+dormant — kept, not mounted — so the app renews no session on its own, syncs no location and opens
+no `/ws` connection.
+
 The tabs are a swipeable row (`SwipeTabs` over `TabPager`, `(tabs)/_layout.js`): drag sideways
 anywhere on a screen to the next or previous tab in the bar's order — the screen follows the finger,
 past a quarter of the width or a flick slides on in 250 ms, otherwise it springs back, and past the
@@ -379,8 +387,10 @@ first or last tab it only stretches a little. A tap on the bar runs the same sli
 than one tab starts from the tab next to the target). A drag starting within 20 dp of either side is
 left to Android's back gesture; on the Calendar, a drag on the month grid moves months instead
 (`SwipePager` blocks the tab pan). A tab mounts when it's shown or next to the one shown, then stays
-mounted. Admin is in the order only for admins; on a direct `/admin` link a non-admin sees that
-screen over the row with the swipe off.
+mounted. The bar and the swipe order are Home and Calendar: Account and Admin are `hidden: true` in
+`TABS`, left out for everyone, and their routes open only from a direct link (`/account`,
+`/admin`), drawn over the row with the swipe off. The theme has no switch in the bar's tabs: it
+stays the saved `themeSlice.mode` (system by default).
 
 - `(tabs)/index` (Home — the landing tab, no session required: live clock, today's Gregorian date,
   and today's Hebrew/Jewish date via `@hebcal/hdate`, chosen over `Intl`'s `'he-u-ca-hebrew'`
@@ -483,7 +493,7 @@ screen over the row with the swipe off.
   it's in the month shown. `customRemindersSlice` persists only `items` and isn't reset on sign-out
   or account deletion. Each change reschedules the
   notifications (see Reminder notifications below).
-- `(tabs)/account` — a heading and six cards (`src/features/account/components/`, `ThemeCard` in
+- `(tabs)/account` — hidden (direct link only, see above). A heading and six cards (`src/features/account/components/`, `ThemeCard` in
   `src/shared/components/composite/`): `ThemeCard` (light/
   dark toggle), `NotificationsCard` (see Notifications below), `AccountCard` (email; edit email/password via `POST /auth/account` — the
   `updateAccount` thunk, see `apps/users` above), `ProfileCard` (name and phone; fetches
@@ -494,7 +504,8 @@ screen over the row with the swipe off.
   holds its row and its edit/confirm form as a private component in the same file, so Cancel drops
   whatever was typed. The cards render only while signed in, so signing out unmounts them — every
   form starts closed for the next session. Account is the one tab opted into
-  `requiresAuth: true` (`(tabs)/_layout.js`'s `TABS`). A press on a `requiresAuth` tab in
+  `requiresAuth: true` (`(tabs)/_layout.js`'s `TABS`); hidden, it's never pressed or swiped to,
+  but the guard stays for any `requiresAuth` tab in the bar. A press on a `requiresAuth` tab in
   `CustomTabBar`, or a swipe onto it (it springs back), while signed out shows `ConfirmModal`
   ("Log in to view Account?") instead of navigating; a direct hit on the route (deep link, web refresh, reopening the app on this tab)
   bypasses that entirely, so `AccountScreen` also calls `useRequireAuth()` on mount and renders
@@ -503,13 +514,14 @@ screen over the row with the swipe off.
   (`base/feedback/`): "Personal Copilot <frontend version>" and "built <date>" from
   `src/shared/config/version.js` — "dev", and no date, when not built by the Dockerfile or `apk.js build`
   (see [Versions](#versions)).
-- `(tabs)/admin` — admins only: `requiresRole: 'admin'` in `TABS` leaves the tab out of the bar and
-  the swipe order for everyone else, and the screen checks again (`useRequireAuth`, `useHasRole('admin')`) for a direct
+- `(tabs)/admin` — hidden (direct link only, see above); admins only: `requiresRole: 'admin'` in
+  `TABS` would leave it out of the bar and the swipe order for everyone else, and the screen checks again (`useRequireAuth`, `useHasRole('admin')`) for a direct
   link, showing `RequireAuthNotice` otherwise; the server checks the role too (`AdminGuard`).
   `SystemStatus` lists `GET /admin/status` (`adminSlice.fetchSystemStatus`, not persisted, reset on
   sign-out): each service up/down with its version, build time and uptime. Refreshed on every
   visit, by its button and by pull; then `VersionInfo`.
-- **Location sync** — `app/_layout.js`'s `LocationSyncManager` dispatches `profileSlice`'s
+- **Location sync** (dormant: `app/_layout.js` doesn't mount `LocationSyncManager`, which the
+  `account` feature still exports) — when mounted, `LocationSyncManager` dispatches `profileSlice`'s
   `syncLocation` whenever the user is signed in and `locationSlice.status` is `'ready'` (a fresh
   GPS fix this session — the persisted last-known `coords` alone never trigger it).
   `syncLocation` compares the fix with the location the server already has (`GET /users/me`'s
@@ -563,12 +575,11 @@ screen over the row with the swipe off.
   (`authSlice.refreshSession` → `authService.refresh`, `POST /auth/refresh`; each use rotates the
   pair), so an app opened at least once in 30 days stays signed in. One renewal at a time:
   concurrent callers share the one in flight (a rotated refresh token can't be used twice), and at
-  most one starts per 30 s (`RENEW_RETRY_MS` — the route is rate-limited). It runs from `AuthGate`
-  a minute before expiry (`RENEW_BEFORE_EXPIRY_MS`; at once if already expired, e.g. on start)
-  and on `AppState` `active` when due (`renewSessionIfDue` — phone timers don't run in the
-  background); one the server didn't answer is retried 30 s later. `authorizedFetch` (every
-  signed-in HTTP call) also renews before sending when its token has already expired — the calls
-  screens make at start would otherwise go out ahead of `AuthGate`'s renewal. And on a `401`:
+  most one starts per 30 s (`RENEW_RETRY_MS` — the route is rate-limited). `authorizedFetch`
+  (every signed-in HTTP call) renews before sending when its token has already expired. The
+  dormant `AuthGate` (exported by `account`, not mounted by `app/_layout.js`) would also renew a
+  minute before expiry (`RENEW_BEFORE_EXPIRY_MS`) and on `AppState` `active` when due
+  (`renewSessionIfDue`), retrying one the server didn't answer 30 s later. And on a `401`:
   it passes the rejected token to the handler set with
   `setUnauthorizedHandler` (`src/store/index.js`) — the current token → `refreshSession`; an
   older one → the current token if it's still the same user's — and retries that call once with
@@ -578,8 +589,8 @@ screen over the row with the swipe off.
 - **Session ended** — only a refresh the server refuses (`400`/`401`: revoked by Log Out, account
   deletion or a password change elsewhere, or 30 days unused) signs out:
   `clearAuth({ notice: SESSION_ENDED_NOTICE })`. Offline, a `5xx` or `429` keeps the session.
-  `AuthGate` pushes to `/login` once when a notice appears — not on later navigation, so leaving
-  login sticks — and the login screen shows it as a warning `Alert`. The notice (not persisted) is
+  The login screen shows it as a warning `Alert` (the dormant `AuthGate` would push to `/login`
+  once when a notice appears). The notice (not persisted) is
   cleared by Register, "Continue without logging in", unmounting login, and a successful
   login/register. Log Out signs out with no notice (it waits for a renewal in flight, then revokes
   the current refresh token). Other errors (e.g. `500`) keep the session. Two browser tabs share
@@ -639,8 +650,8 @@ screen over the row with the swipe off.
 - **App update** (Android APK only — `appUpdateSlice` does nothing on the web, or when
   `URLS.apkRegistry`/`EXPO_PUBLIC_FRONTEND_VERSION` isn't baked in). `app/_layout.js`'s
   `AppUpdateManager` dispatches `deleteOldUpdates` and `checkForUpdate` at start, and
-  `checkForUpdate` again whenever `AppState` returns to `active` and on Gateway's `app-update`
-  over `/ws` (`listenForUpdates`, via `socketService.on`). The check fetches the registry's
+  `checkForUpdate` again whenever `AppState` returns to `active`. Gateway's `app-update`
+  broadcast has no listener in the app. The check fetches the registry's
   `latest.json` (`appUpdateService`, `cache: 'no-store'`; a relative `url` resolved against the
   registry folder) and compares its `versionCode` with the installed one —
   `src/shared/utils/versionCode.js` applied to the baked frontend version; a failed check is ignored. No
@@ -661,9 +672,10 @@ screen over the row with the swipe off.
   - `deleteOldUpdates` (start) deletes every `.part` and every APK at or below the installed
     `versionCode`. Update files never go to Downloads.
 
-Talks only to Gateway for every API call (`EXPO_PUBLIC_GATEWAY_ORIGIN`, baked in at build time,
-required — `src/shared/config/urls.js` throws at load if it's unset) — never the Users Service or any
-other backend service directly. The one other origin it reads is the APK registry
+Only the dormant login/register and account screens make API calls, and only to Gateway
+(`URLS.gateway`, `EXPO_PUBLIC_GATEWAY_ORIGIN`, baked in at build time) — never the Users Service or
+any other backend service directly. The variable is optional: without it `URLS.gateway` is `null`
+and those calls fail; nothing else in the app needs it. The one other origin it reads is the APK registry
 (`URLS.apkRegistry`, `EXPO_PUBLIC_APK_REGISTRY_URL`): static, read-only files (`latest.json` and
 the APK) served by the frontend's own Caddy at `/apk/` — not a backend service and no API, see
 `frontend/README.md`'s `/apk/` paragraph.
@@ -692,21 +704,22 @@ the update APK's download into the app cache, Android's installer, and cleanup).
 the phone from `src/lib/jewish-calendar/`, returned as plain JSON (times as ISO strings, the shape
 Gateway's `/calendar/*` answered) so Redux state stays serializable.
 
-The Socket.IO connection is open signed in or not, always with this install's device token:
+The Socket.IO connection is dormant: `app/_layout.js` doesn't mount `RealtimeConnectionManager`,
+so no connection is opened and nothing subscribes. As written, it opens signed in or not, always
+with this install's device token:
 `wsSlice` fetches it once (`realtimeService.requestDeviceToken`, `POST /realtime/device`) and
 persists it; if Gateway refuses it (`device_token_invalid`, e.g. after a `JWT_SECRET` change), it
 fetches a new one and reconnects. Without a login token the connection is anonymous and gets
-Gateway's broadcasts only. `app/_layout.js`'s `RealtimeConnectionManager` dispatches `wsSlice`'s
+Gateway's broadcasts only. `RealtimeConnectionManager` dispatches `wsSlice`'s
 `connectWebSocket` whenever `authSlice.accessToken` changes and the app isn't in the background:
 signing in or out changes identity, so it reconnects; a new token for the same session (refresh,
 `updateAccount`) keeps the connection and only replaces the token its next reconnect sends — or
 reopens it at once if Gateway refused it (`token_invalid`, e.g. the expired token it replaces). It
 calls `disconnectWebSocket` when `AppState` goes to `background` and `connectWebSocket` again on
 `active`. Features subscribe with `socketService.on(event, handler)` (returns the unsubscribe),
-which re-attaches the handler to every new connection — never a second connection.
-`appUpdateSlice.listenForUpdates` (`app-update`) is the one listener today. A device has one
-connection, so in the browser only one tab holds it: another tab connecting closes it, and it opens
-a new one when it's shown again.
+which re-attaches the handler to every new connection — never a second connection. A device has
+one connection, so in the browser only one tab holds it: another tab connecting closes it, and it
+opens a new one when it's shown again.
 
 `authSlice` stores the `refreshToken` that register/login return; it renews the session (see
 "Staying signed in" above) and is revoked by `logOut`.
@@ -738,7 +751,7 @@ Notifications answer `GET /health` (compose healthcheck; internal-only) with:
 
 ([`@app/build-info`](#libsbuild-info).) The frontend image bakes in its version and build time
 (`EXPO_PUBLIC_FRONTEND_VERSION`/`EXPO_PUBLIC_BUILT_AT`), shown by the
-Account tab's `VersionInfo` (and at the bottom of the Admin tab, which lists every backend
+(hidden) Account tab's `VersionInfo` (and at the bottom of the hidden Admin tab, which lists every backend
 service's version from `GET /admin/status`).
 
 ## libs/auth-kernel

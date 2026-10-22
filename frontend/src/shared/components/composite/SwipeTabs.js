@@ -9,8 +9,8 @@ import { StyleSheet, View } from 'react-native';
 import TabPager from '../base/layout/TabPager';
 
 // Expo Router's Tabs, but the screens sit side by side in a TabPager: swipe between them, and a tab
-// tapped slides there too. `order` is the swipe order (tab names; a tab left out — Admin for
-// non-admins — is never swiped to, and a direct link to it shows it over the pager with the swipe
+// tapped slides there too. `order` is the swipe order (tab names; a tab left out — a hidden
+// one — is never swiped to, and a direct link to it shows it over the pager with the swipe
 // off). `canEnter(name)` false: a swipe onto it springs back and calls `onBlocked(name)`.
 // `tabBar({ navigation, activeName })` draws the bar; `activeName` is the tab mostly in view.
 // A screen mounts when it's shown or next to the one shown (so a drag finds it drawn) and then

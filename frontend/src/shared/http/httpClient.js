@@ -9,8 +9,7 @@ export function setUnauthorizedHandler(handler) {
 }
 
 // No Redux knowledge — callers (thunks) pass the token in explicitly. An already-expired token is
-// renewed before sending (calls made at start, before AuthGate's renewal lands); a 401 is retried
-// once, with the renewed token.
+// renewed before sending; a 401 is retried once, with the renewed token.
 export async function authorizedFetch(url, token, options = {}) {
   if (isTokenExpired(token)) token = (await onUnauthorized(token)) ?? token;
   let response = await send(url, token, options);

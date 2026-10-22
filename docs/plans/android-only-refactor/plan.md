@@ -434,19 +434,68 @@ Proposed on 2026-10-21 (1–3 now decided, 4–6 still open):
   - Not fixed (decided at review — the server side goes in R5): a phone that had server reminders
     over FCM keeps its FCM device after Log Out, so the previous account's server reminders can
     still reach it until then.
-- [ ] **R3.5 Tests.** The two server scheduler specs' scenarios ported to the local scheduler
+- [x] **R3.5 Tests.** The two server scheduler specs' scenarios ported to the local scheduler
   (next firing, after firing, skipped day, edit, delete, Israel time, location move), plus slice and
   component tests. *Check on the phone:* all six custom kinds and the candle-lighting reminder fire
   with the app closed and the screen off (as 3.6f did).
+  *Done 2026-10-22:*
+  - `reminders/store/scheduleNotifications.scenarios.spec.js`: the server specs' scenarios over
+    the real store, planner and reconcile and an in-memory expo-notifications phone (alarms go off
+    as the clock passes them; due while "off" → dropped) — next firing, after firing, the four
+    repeats in both calendars, edits incl. "Only this day"/`changed`, skips, delete, the phone off,
+    a lost alarm, failing schedule/cancel, an edit mid-reconcile, Israel's clock changes (25 Oct,
+    26 Mar: a repeated 01:30 fires once at the second, a skipped 02:30 at 03:30), the phone's zone,
+    a move, no location, a point abroad. New specs: `ReminderScheduleManager`,
+    `CustomReminderSheet`, `RemindersSheet`, `customReminders` utils,
+    `localNotificationsService.android`, `hebrewDayOf`; the testing agent added a planner
+    selection check (vs. each reminder planned alone, 40 random mixes).
+  - Planner timed on Hermes (S23 Ultra, a throwaway route, removed): 300 daily reminders
+    **~2,090 ms**, 300 mixed ~610 ms — too slow. Now each reminder's firings are generators taken
+    only as far as kept (same output, checked over 300 random inputs against the old code) and
+    `hebrewDayOf` is cached per day: **~168 ms / ~132 ms** on Hermes (Node: 15 / 19 ms).
+  - Bug found by the testing agent, fixed: the candle reminder could fire twice in a week after a
+    move (Jerusalem → Herzliya) or a new offset — ids are per candle-lighting time, and a fired
+    alarm leaves no trace. The reconcile now keeps each date's planned firing time
+    (`reminders.candleFirings`, persisted, `candleFiringsPlanned`); a date whose time has passed
+    is left out until it's over. Three scenarios; they fail without the fix.
+  - `npm test`: 31 suites, 322 tests pass. Docs: services.md, testing.md, the lib's README.
+  - *Seen on the phone* (0.6.0-test.11 built from the R3.5 code before the candle fix, signed out):
+    six custom reminders, one per kind (monthly G/H from 22 Sep = 11 Tishrei, yearly G from
+    22 Oct 2025, yearly H from 11 Cheshvan 5786 = 2 Nov 2025, so tonight was a real repeat), and
+    the bell at 21 h 25 min before Friday's 17:38. All alarms exact (`window=0`); the daily one
+    stays 20:30 across 25 Oct. App process killed, screen off: candle 20:13:00, once and daily
+    (moved by an edit — "Every time") 20:15:00; monthly G/H and yearly G/H 20:30:00 (phone state
+    at 20:30 not controlled — it had woken by 20:16). Texts as planned. Everything removed
+    afterwards, bell off, 0 alarms left.
+  - Not checked on the phone: the reboot re-arm left open in R1.2 (a reboot needs the user's OK).
+  - Seen on the way: with 6 reminders on a day, the Calendar's day card cuts off the rows below
+    the second (the page doesn't scroll) — for R8 or a fix of its own.
 
 ## Stage R4: hide what's dormant in the app
 
-- [ ] **R4.1 Tabs.** `hidden: true` on Account and Admin in `app/(tabs)/_layout.js`, filtered into
+- [x] **R4.1 Tabs.** `hidden: true` on Account and Admin in `app/(tabs)/_layout.js`, filtered into
   `visibleTabs` (so swipes can't reach them); route files kept. Theme switch moved (decision 4).
-- [ ] **R4.2 Root layout.** `AuthGate` (token renewal), `RealtimeConnectionManager`,
+  *Done 2026-10-22:* both tabs `hidden: true`, left out of `visibleTabs`; route files and the
+  login/admin guard kept (a direct link still opens them). Decision 4 (asked): **decided later** —
+  until then the theme keeps whatever mode was saved (system by default), with no switch in the
+  app. *Seen on the phone* (0.6.0-test.11 with R3.5 + R4.1): the bar shows Home and Calendar
+  only; a swipe past Calendar stays on Calendar. No spec (Jest doesn't cover `app/`).
+- [x] **R4.2 Root layout.** `AuthGate` (token renewal), `RealtimeConnectionManager`,
   `PushSubscriptionManager`'s server half out of `app/_layout.js`; `src/config/urls.js` no longer
   throws without `EXPO_PUBLIC_GATEWAY_ORIGIN`; `apk.js build` no longer requires an HTTPS Gateway
   URL.
+  *Done 2026-10-22:* `app/_layout.js` mounts only `ThemedStatusBar`, `Stack`,
+  `ReminderScheduleManager`, `NotificationsPrompt`, `AppUpdateManager` — `AuthGate`,
+  `RealtimeConnectionManager` and `LocationSyncManager` (location sent to Gateway while signed in)
+  out, their files kept (`PushSubscriptionManager` was already deleted in R3.4). With /ws gone,
+  `AppUpdateManager` checks on start and on the foreground only (`listenForUpdates` deleted;
+  Gateway's `app-update` broadcast and `frontend.releases` go in R5). `shared/config/urls.js`:
+  `URLS.gateway` is null without `EXPO_PUBLIC_GATEWAY_ORIGIN`. `apk.js build`: `GATEWAY_PUBLIC_URL`
+  optional (still `https://` when set); refuses only with no update address (`APK_REGISTRY_URL`,
+  or one from Gateway's host). `npm test` 322, `apk.test.js` 15 pass. *Seen on the phone*
+  (0.6.0-test.11, built with `GATEWAY_PUBLIC_URL` set): starts and works, no JS errors in logcat.
+  Not tried: a build with no `GATEWAY_PUBLIC_URL` (`devops/.env` has one; the env var can't
+  unset it).
 
 ## Stage R5: delete what goes
 

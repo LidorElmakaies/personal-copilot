@@ -1,13 +1,11 @@
 import { Stack } from 'expo-router';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
-import { AuthGate, LocationSyncManager } from '../src/features/account';
 import { AppUpdateManager } from '../src/features/app-update';
 import {
   NotificationsPrompt,
   ReminderScheduleManager,
 } from '../src/features/reminders';
-import RealtimeConnectionManager from '../src/shared/realtime/RealtimeConnectionManager';
 import ThemedStatusBar from '../src/shared/theme/ThemedStatusBar';
 import { persistor, store } from '../src/store';
 
@@ -20,9 +18,6 @@ export default function RootLayout() {
     <Provider store={store}>
       <PersistGate persistor={persistor}>
         <ThemedStatusBar />
-        <AuthGate />
-        <RealtimeConnectionManager />
-        <LocationSyncManager />
         <Stack screenOptions={{ headerShown: false }} />
         <ReminderScheduleManager />
         <NotificationsPrompt />

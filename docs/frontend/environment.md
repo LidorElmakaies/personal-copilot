@@ -1,7 +1,8 @@
 # Frontend environment
 
-- **`EXPO_PUBLIC_GATEWAY_ORIGIN`** (`frontend/.env.example` → `frontend/.env`) — local
-  (non-Docker) dev only. Expo inlines `EXPO_PUBLIC_*` vars into the client bundle automatically;
+- **`EXPO_PUBLIC_GATEWAY_ORIGIN`** (`frontend/.env.example` → `frontend/.env`) — optional: only
+  the dormant login/account screens call Gateway (`URLS.gateway` is `null` without it, and their
+  calls fail); Home, Calendar, reminders and updates don't need it. Local (non-Docker) dev only. Expo inlines `EXPO_PUBLIC_*` vars into the client bundle automatically;
   `npx expo start` reads this file. A shell env var overrides it, which is how Expo Go on the phone
   reaches Gateway over Tailscale without editing the file:
   `EXPO_PUBLIC_GATEWAY_ORIGIN=http://<pc-tailnet-ip>:8000 REACT_NATIVE_PACKAGER_HOSTNAME=<pc-tailnet-ip> npx expo start --port 8082`
@@ -13,7 +14,8 @@
   static web export has no server to read a runtime var from). For the phone browser, set it to
   the HTTPS Gateway URL `devops/tailscale/serve.js` prints (`https://<pc>.<tailnet>.ts.net:8443`) —
   plain HTTP would make the browser block GPS. `http://localhost:8000` works for use on the PC
-  only.
+  only. The APK build (`apk.js build`) reads it too: optional there, HTTPS when set, and the default
+  host of the update registry (`APK_REGISTRY_URL` — see `docs/devops/environment.md`).
 
 ## Cloud deployment (Hetzner + Caddy, not yet live)
 

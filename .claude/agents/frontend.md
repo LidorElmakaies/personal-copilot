@@ -28,17 +28,17 @@ loaded months worked out by `selectDayReminders` (`reminders/utils/occurrences.j
 (`ReminderScheduleManager` → `reconcileReminderNotifications`, planned by
 `reminders/utils/schedulePlan.js`, scheduled via `shared/device/localNotificationsService.android.js`; re-run ~daily in the
 background by the `reminder-notifications` task, `shared/device/backgroundTaskService.android.js`,
-defined in `src/store/backgroundTasks.js`) + an auth-gated
-Account tab (theme, notifications, email/password, profile, logout, delete account — one card
-component each — then `VersionInfo`) + a background location sync to the Users Service while signed in
-(`LocationSyncManager` → `profileSlice.syncLocation`) + Android's notification permission
+defined in `src/store/backgroundTasks.js`) + an auth-gated,
+hidden Account tab (theme, notifications, email/password, profile, logout, delete account — one card
+component each — then `VersionInfo`) + Android's notification permission
 (`notificationsSlice` over `localNotificationsService`, kept current by `ReminderScheduleManager`;
 `NotificationsPrompt`, `NotificationsCard`; no account involved) + incoming FCM pushes for a phone
 registered with the Notification Service (`fcmReceiver.android.js`; the app registers none) + the
 installable web app
 (`public/manifest.webmanifest`, `public/index.html`) + the Android APK's in-app
-update (`AppUpdateManager` → `appUpdateSlice`, `UpdateSheet`/`UpdateChip`) + an admins-only
-Admin tab (`SystemStatus` over `GET /admin/status`, `adminSlice`) — see
+update (`AppUpdateManager` → `appUpdateSlice`, checked on start and back in the foreground;
+`UpdateSheet`/`UpdateChip`) + an admins-only,
+hidden Admin tab (`SystemStatus` over `GET /admin/status`, `adminSlice`) — see
 `docs/specs/services.md#frontend`. There is no scraper/jobs surface here — don't port that part of
 `ask-my-crawl`'s frontend, only its theme/component/services conventions.
 
@@ -47,7 +47,10 @@ A tab opts into requiring a session via `TABS`' `requiresAuth: true` entry in `(
 swipe springs back), while signed out shows `ConfirmModal` instead of navigating. That only covers a
 tap or a swipe; a direct hit on the route (deep link, web refresh,
 reopening the app on that tab) bypasses it, so a `requiresAuth` screen also needs its own mount-time
-check. Both halves are generic, not Account-specific: `useRequireAuth()`
+check. A tab with `hidden: true` is left out of the bar and the swipe order for everyone (its
+route opens only from a direct link) — Account and Admin are, so the bar is Home and Calendar and
+the theme (`ThemeCard`, on Account) has no switch reachable from it: `themeSlice.mode` stays as
+saved, system by default. Both halves are generic, not Account-specific: `useRequireAuth()`
 (`src/features/account/hooks/useRequireAuth.js`) is the mount-time check, `RequireAuthNotice`
 (`src/features/account/components/RequireAuthNotice.js`) is the logged-out fallback to render when it's false — see
 `AccountScreen` (`src/features/account/screens/`) for the pattern the next `requiresAuth` tab should follow. A tab for one role
@@ -59,7 +62,7 @@ A signed-in HTTP call goes through `httpClient`'s `authorizedFetch`: an already-
 renewed before sending, and a `401` renews the session (`authSlice.refreshSession` — single-flight,
 the refresh token rotates) and retries the call once.
 Only a refresh the server refuses signs out with `authSlice.notice` set (`SESSION_ENDED_NOTICE`);
-`AuthGate` takes the user to login once and the login screen shows it. The hook is
+the login screen shows it. The hook is
 `setUnauthorizedHandler`, registered in `src/store/index.js` so the service stays Redux-free. Don't
 hand-roll a bearer `fetch` that skips it. `selectUser(state)` → `{ id, email, role }` from the
 token, for anything role-dependent; an effect that loads the user's data keys on
@@ -171,7 +174,7 @@ src/features/<name>/      components/ screens/ store/ services/ utils/ hooks/ + 
   shabbat/ calendar/ reminders/ app-update/ account/ (dormant: auth, profile, admin)
 src/lib/jewish-calendar/  the calendar maths — pure, no React
 src/shared/               components/ (base/, composite/), theme/, config/, http/, utils/,
-                          device/ (location, notifications, background tasks), realtime/ (the one /ws)
+                          device/ (location, notifications, background tasks), realtime/ (the /ws client, dormant)
 src/store/index.js        the root store: each feature's reducer (from its index.js) + persistence
 src/store/backgroundTasks.js  background tasks, defined with the rehydrated store (loaded by index.js)
 ```
@@ -200,7 +203,8 @@ when a component genuinely needs something no thunk/selector combination can giv
 ## Non-negotiables
 
 - Build-time values come from `src/shared/config/`: `urls.js` (`URLS.gateway` from
-  `EXPO_PUBLIC_GATEWAY_ORIGIN`, throws if unset — every API call and `/ws`; `apkRegistry` from
+  `EXPO_PUBLIC_GATEWAY_ORIGIN`, `null` if unset — every API call and `/ws`, used only by the
+  dormant login/account screens; `apkRegistry` from
   `EXPO_PUBLIC_APK_REGISTRY_URL`, set only by `apk.js build`, `null` elsewhere) and `version.js`
   (`VERSION { frontend, builtAt }` — set by `frontend/Dockerfile` or `apk.js build` from
   `version/versions.json`, `null` under `expo start`, shown as "dev"). Read them from there, not
@@ -213,15 +217,16 @@ when a component genuinely needs something no thunk/selector combination can giv
   `reminders` — `candles` only, `customReminders` — `items` only; neither reminder slice is reset
   on `clearAuth`/`deleteAccount`). `profile` and `admin` aren't persisted, and are reset on
   `clearAuth`/`deleteAccount` so one user's data never reaches the next.
-- One Socket.IO connection, open signed in or not, always with the install's device token
-  (`wsSlice`, persisted; anonymous without a login token), managed only by
-  `RealtimeConnectionManager` → `wsSlice`. A feature listens with `socketService.on(event,
-  handler)` from a thunk and calls the returned unsubscribe in its effect cleanup (see
-  `appUpdateSlice.listenForUpdates`) — `socketService` doesn't hand out the socket itself: it's
-  replaced on sign-in/out and on return from the background, and only `on()` handlers carry over.
+- Dormant, kept but not mounted in `app/_layout.js`: `AuthGate` (scheduled token renewal, the
+  session-ended redirect to login) and `LocationSyncManager` (both exported by `account`) and
+  `shared/realtime/`'s `RealtimeConnectionManager` (the `/ws` connection). If the Socket.IO
+  connection is mounted again: one per install, with its device token (`wsSlice`, persisted),
+  managed only by `RealtimeConnectionManager` → `wsSlice`; a feature listens with
+  `socketService.on(event, handler)` from a thunk and calls the returned unsubscribe in its effect
+  cleanup — `socketService` doesn't hand out the socket itself: it's replaced on sign-in/out and on
+  return from the background, and only `on()` handlers carry over.
 - Provider order in `app/_layout.js` is load-bearing (`Provider` → `PersistGate` →
-  `ThemedStatusBar`/`AuthGate`/`RealtimeConnectionManager`/
-  `LocationSyncManager` → `Stack` → `ReminderScheduleManager` → `NotificationsPrompt` →
+  `ThemedStatusBar` → `Stack` → `ReminderScheduleManager` → `NotificationsPrompt` →
   `AppUpdateManager`. `ReminderScheduleManager` must be inside `PersistGate` (it schedules from the
   saved reminders) and after `Stack` (a tapped notification navigates); `NotificationsPrompt`
   follows them so it opens over any tab; `AppUpdateManager` is last

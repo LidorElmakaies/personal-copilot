@@ -110,7 +110,9 @@ Kafka events in [`docs/specs/event-schemas.md`](docs/specs/event-schemas.md), di
   - `src/realtime/` — `POST /realtime/device` (a device token per app install) and Socket.IO at
     `/ws` (device token required, plus the access token once signed in; one connection per
     device). A feature module pushes with `IRealtimeConnectionService` (`pushToUser`/`broadcast`).
-  - `src/app-update/` — consumes Kafka's `frontend.releases`, broadcasts `app-update`.
+    The app doesn't connect.
+  - `src/app-update/` — consumes Kafka's `frontend.releases`, broadcasts `app-update` (no client
+    listens).
   - `src/admin/` — `GET /admin/status` (`AdminGuard`): every service's version and up/down.
 - **users** (`backend/apps/users`) — internal-only, schema `users`. Register/login/refresh/logout
   return only tokens: a 15-min access token carrying `{ sub, role, email }` (no `/me`) and a 30-day
@@ -138,14 +140,18 @@ Kafka events in [`docs/specs/event-schemas.md`](docs/specs/event-schemas.md), di
   bottom sheet); both kinds of reminder need no login, are kept on the phone (persisted) and
   fired as local notifications (`ReminderScheduleManager` → `reconcileReminderNotifications`, a
   30-day window, at most 100 scheduled; also a daily background task, `reminder-notifications`, so
-  the window keeps moving with the app unopened; nothing on the web build). Account (signed in only: theme, notifications, email/password, profile, log out,
-  delete account, version) and Admin (admins only: service status). App-wide (`app/_layout.js`):
-  one Socket.IO connection per install, location sync after a > 5 km move, quiet token renewal,
+  the window keeps moving with the app unopened; nothing on the web build). Account (theme,
+  notifications, email/password, profile, log out, delete account, version) and Admin (service
+  status) are `hidden: true` in `TABS`: out of the bar and the swipe, a direct link still opens
+  them. No tab in the bar switches the theme; it stays the saved mode (system by default). App-wide (`app/_layout.js`):
   Android's notification permission (`notificationsSlice`; `NotificationsPrompt`, a one-time "Turn
   on notifications?" over any tab once a reminder exists and Android can still ask; Log Out leaves
   notifications alone — they're the phone's), incoming FCM
   pushes for a phone registered with the Notification Service (`fcmReceiver`, loaded by `index.js`; the app registers
-  none) and the APK's in-app update. See
+  none) and the APK's in-app update (checked on start and back in the foreground). The app calls
+  no backend: `EXPO_PUBLIC_GATEWAY_ORIGIN` is optional, used only by the dormant login/account
+  screens; the dormant `AuthGate`, `LocationSyncManager` and `RealtimeConnectionManager` (token
+  renewal, location sync, the `/ws` connection) are not mounted. See
   `docs/specs/services.md#frontend`, `frontend/README.md` and `.claude/agents/frontend.md`.
 - **Queues and events** — BullMQ on Redis for jobs (`notification-requested`, `reminder-due`;
   `@app/queue-contracts`, and every `notification-requested` publisher enqueues with

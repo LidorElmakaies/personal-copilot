@@ -46,15 +46,21 @@ function setting(name) {
 
 function build() {
   const version = frontendVersion();
+  // Optional: only the dormant login and account screens call Gateway.
   const gateway = setting('GATEWAY_PUBLIC_URL');
-  if (!gateway.startsWith('https://'))
+  if (gateway && !gateway.startsWith('https://'))
     throw new Refusal(
       `GATEWAY_PUBLIC_URL must be the HTTPS Gateway URL (devops/.env), got '${gateway}'.\n` +
         "Android blocks plain HTTP. See README's 'Phone access (Tailscale HTTPS)'.",
     );
-  // Where the app looks for updates (latest.json). Default: the frontend's address, i.e. Gateway's
-  // host on the default port — how devops/tailscale/serve.js publishes the two.
-  const registry = setting('APK_REGISTRY_URL') || `https://${new URL(gateway).hostname}/apk/`;
+  // Where the app looks for updates (latest.json). Default: Gateway's host on the default port —
+  // how devops/tailscale/serve.js publishes the two.
+  const registry =
+    setting('APK_REGISTRY_URL') || (gateway && `https://${new URL(gateway).hostname}/apk/`);
+  if (!registry)
+    throw new Refusal(
+      'Set APK_REGISTRY_URL (or GATEWAY_PUBLIC_URL) in devops/.env: the app checks it for updates.',
+    );
   const abis = process.env.ANDROID_ABIS || 'arm64-v8a';
   const data = path.join(ROOT, 'devops/data/android');
 
@@ -69,7 +75,9 @@ function build() {
     console.log('APK can update the installed app.');
   }
 
-  console.log(`Building Personal Copilot ${version} for ${gateway}, updates from ${registry} ...`);
+  console.log(
+    `Building Personal Copilot ${version}${gateway ? ` for ${gateway}` : ''}, updates from ${registry} ...`,
+  );
   inImage(
     '-v', `${path.join(ROOT, 'frontend')}:/src:ro`,
     '-v', 'pc-android-sdk:/opt/android-sdk',
