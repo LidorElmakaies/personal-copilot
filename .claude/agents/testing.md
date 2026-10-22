@@ -82,8 +82,13 @@ a shared testing lib under `backend/libs/` is worth creating only once a second 
 (`frontend/jest.config.js`): every `*.spec.{ts,js}` under `src/`, colocated (`app/` and `e2e/` stay
 out): the calendar lib's specs (`src/lib/jewish-calendar/`, the same as the backend copy's), the
 reminder slices, planners and scheduling, `notificationsSlice`, the background task, persistence,
-and component specs (`CandleReminder`, `NotificationsPrompt`, `ReminderRow`, each under a Redux
-`<Provider>`). Like the backend config it compiles the ESM-only `@hebcal/*` packages (plus `immer`
+`localNotificationsService.android.js` over a mocked expo-notifications, and component specs
+(`CandleReminder`, `NotificationsPrompt`, `ReminderRow`, `RemindersSheet`, `CustomReminderSheet`,
+`ReminderScheduleManager`, each under a Redux `<Provider>`).
+`reminders/store/scheduleNotifications.scenarios.spec.js` runs the scheduler end to end — the real
+store, planner and reconcile over an in-memory phone standing in for `localNotificationsService`'s
+alarms, with a faked clock — so each scenario (create, edit, skip, delete, a move, the phone off,
+failures, clock changes) asserts which alarms the phone ends up holding. Like the backend config it compiles the ESM-only `@hebcal/*` packages (plus `immer`
 and `react-redux`), and jest-expo's environment is Node's, so a spec may set `process.env.TZ`. Next highest-value target: the services
 layer (each feature's `services/*.js`, `src/shared/http/`, `src/shared/realtime/socketService.js`)
 — mostly pure functions, minimal React/Redux involved: assert `authService` builds the right

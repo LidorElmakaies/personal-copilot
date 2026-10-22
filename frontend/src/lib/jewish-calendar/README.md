@@ -1,10 +1,8 @@
 # `src/lib/jewish-calendar/` — implementation notes
 
 All of the app's Jewish-calendar maths, computed on the phone: pure and synchronous, no I/O. One
-place for every rule (Shabbat times, month calendars, custom reminders' repeat rules). Moved here
-from the backend's `libs/jewish-calendar` (task R2.1 of
-[`docs/plans/android-only-refactor/plan.md`](../../../../docs/plans/android-only-refactor/plan.md));
-the backend keeps its own copy until Reminders is deleted (R5).
+place for every rule (Shabbat times, month calendars, custom reminders' repeat rules). The
+backend's `libs/jewish-calendar` is a separate copy of the same code.
 The app reads it only through calendar's `calendarService` (Home's Shabbat times, the Calendar
 tab's months), which JSON-round-trips the results so Redux gets ISO strings, never `Date`s.
 This file is the "why" behind decisions here that aren't obvious from the code.
@@ -12,7 +10,7 @@ This file is the "why" behind decisions here that aren't obvious from the code.
 ## `@hebcal/core` v6
 
 Imported from the package root; Metro picks its ESM build. Loading it installs a global
-`Temporal` polyfill (`temporal-polyfill`). Checked on Hermes (R1.1): BigInt and `Intl` with
+`Temporal` polyfill (`temporal-polyfill`). Checked on Hermes: BigInt and `Intl` with
 `timeZone` + `formatToParts` work, and the results match the server's to the minute.
 
 The files are TypeScript in a JS app: Expo's Babel strips the types; there's no `tsconfig`, so
@@ -76,6 +74,12 @@ Each rule is pinned by a test over real hebcal dates (`reminder-occurrences.spec
 - The time is wall-clock in the zone passed in (`instantAt`; always `ISRAEL_TIME_ZONE`): a time the
   clocks skip (Israel 02:00 → 03:00 in March) lands that much later, one they repeat (01:00–02:00
   in October) is the second — it fires once either way.
+
+## `hebrewDayOf` is cached
+
+The reminder planner walks every custom reminder day by day, and every reminder walks the same
+days, so `hebrew-dates.ts` caches `hebrewDayOf` per civil day (a `Map`, emptied once it passes 4000
+entries — a few years of days). A hit returns the cached object itself: callers must only read it.
 
 ## Israel only, wherever the point is
 

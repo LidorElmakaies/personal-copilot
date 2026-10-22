@@ -1,4 +1,4 @@
-// What of the notifications slice survives a restart (task R3.4): only `promptDismissed`. An install
+// What of the notifications slice survives a restart: only `promptDismissed`. An install
 // from before R3.4 also stored `optedOut` (and could have answered the old after-login prompt); a
 // restart must keep the answer and stop writing `optedOut`. The root store (src/store/index.js)
 // with its real persist config, over an in-memory AsyncStorage.
@@ -14,6 +14,9 @@ const mockStub =
   (state = {}) =>
     state;
 jest.mock('../features/reminders', () => ({
+  candleFiringsPlanned: jest.requireActual(
+    '../features/reminders/store/candleFirings',
+  ).candleFiringsPlanned,
   customRemindersReducer: mockStub(),
 }));
 jest.mock('../features/shabbat', () => ({ remindersReducer: mockStub() }));

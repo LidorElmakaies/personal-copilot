@@ -4,6 +4,7 @@ export { ReminderRow } from './components/ReminderRow';
 export { default as RemindersSheet } from './components/RemindersSheet';
 export { default as NotificationsPrompt } from './components/NotificationsPrompt';
 export { default as ReminderScheduleManager } from './components/ReminderScheduleManager';
+export { candleFiringsPlanned } from './store/candleFirings';
 export {
   defineBackgroundReconcile,
   reconcileReminderNotifications,

@@ -51,7 +51,7 @@ const calendarPersistConfig = {
 const remindersPersistConfig = {
   key: 'reminders',
   storage: AsyncStorage,
-  whitelist: ['candles'], // the candle-lighting reminder lives on the phone
+  whitelist: ['candles', 'candleFirings'], // the candle-lighting reminder lives on the phone
 };
 
 const customRemindersPersistConfig = {

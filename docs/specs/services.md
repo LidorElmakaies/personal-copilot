@@ -588,8 +588,9 @@ screen over the row with the swipe off.
 - `profileSlice` (`{ profile, status, error, locationSyncing }`) isn't persisted; it's fetched when
   `ProfileCard` mounts or a sync needs it, and reset on `clearAuth` and a successful
   `deleteAccount` so one user's profile is never shown to the next.
-- `remindersSlice` (`{ candles }` — `{ enabled, offsetMinutes }`,
-  starting `{ enabled: false, offsetMinutes: 90 }`, never `null`) persists only `candles` and isn't
+- `remindersSlice` (`{ candles, candleFirings }` — `candles` is `{ enabled, offsetMinutes }`,
+  starting `{ enabled: false, offsetMinutes: 90 }`, never `null`; `candleFirings` see "Reminder
+  notifications" below) persists both and isn't
   reset on sign-out or account deletion. Turning off keeps the offset, so the sheet reopens on it.
 - **Reminder notifications** (Android APK only — `localNotificationsService.js`, the web build's
   stand-in, does nothing). Both kinds of reminder fire as exact local alarms the phone schedules
@@ -598,9 +599,15 @@ screen over the row with the swipe off.
   `fcmService.init`). `reminders/utils/schedulePlan.js` is the pure planner: each reminder's
   firings from now to 30 days ahead (`WINDOW_DAYS`) plus its very next one even when further, at
   most 100 in all (`MAX_TOTAL` — every reminder's next firing first, then the earliest of the rest).
+  Each reminder's firings come from a generator, worked out only as far as they're kept (a merge
+  of the reminders' streams), so a few hundred reminders plan in well under a second on the phone.
   - Candle lighting: each successive `ShabbatCalendar.nextCandleLighting` for `location.coords`,
     fired at candle lighting − offset (whole minutes) — "Shabbat candle lighting" / "Candle lighting
     is at 17:34 (in 1 h 30 min).", opening `/`. No location, or one with no sunset (polar) → none.
+    Once a week: after each reconcile, the shabbat slice keeps the planned firing time per candle
+    lighting date (`reminders.candleFirings`, persisted, set with `candleFiringsPlanned`); a date
+    whose time has passed — gone off, or dropped with the phone off — is left out of the plan
+    until it's over, so a move or a new offset after it can't fire that week again.
   - Custom: its days walked from Israel's midnight today, each at that day's `changed` time and
     title if any, else the series' — its title / "Your reminder for 08:00.", opening `/calendar`.
   - Ids are deterministic: `rem:candles:<candle lighting ms>`, `rem:c:<reminder id>:<YYYY-MM-DD>`;

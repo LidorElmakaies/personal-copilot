@@ -7,7 +7,8 @@ import * as backgroundTasks from '../../../shared/device/backgroundTaskService';
 import * as localNotifications from '../../../shared/device/localNotificationsService';
 import { planFor } from '../utils/schedulePlan';
 
-// The reconcile's diffing (task R3.2) — the full suite comes with R3.5.
+// The reconcile's diffing, over a mocked plan; the scheduler scenarios are in
+// scheduleNotifications.scenarios.spec.js.
 
 jest.mock('../../../shared/device/localNotificationsService', () => ({
   isSupported: () => true,
@@ -29,7 +30,8 @@ const n = (id, at, title = 'T') => ({
   body: 'B',
   url: '/calendar',
 });
-const run = () => reconcileReminderNotifications()(jest.fn(), () => ({}));
+const STATE = { reminders: { candleFirings: {} } };
+const run = () => reconcileReminderNotifications()(jest.fn(), () => STATE);
 
 describe('reconcileReminderNotifications', () => {
   beforeEach(() => jest.clearAllMocks());
@@ -83,7 +85,7 @@ describe('the daily background run', () => {
     const store = {
       dispatch: (thunk) => {
         order.push('reconcile');
-        return thunk(jest.fn(), () => ({}));
+        return thunk(jest.fn(), () => STATE);
       },
     };
     defineBackgroundReconcile(store, async () => order.push('ready'));

@@ -1,11 +1,12 @@
 import * as appStateService from '../../../shared/device/appStateService';
 import * as backgroundTaskService from '../../../shared/device/backgroundTaskService';
 import * as localNotifications from '../../../shared/device/localNotificationsService';
-import { planFor } from '../utils/schedulePlan';
+import { candleFiringsAfter, planFor } from '../utils/schedulePlan';
+import { candleFiringsPlanned } from './candleFirings';
 
 // The phone's own reminder notifications (exact alarms): makes what's scheduled match
 // schedulePlan's plan for the current state — cancels ours no longer wanted or changed, schedules
-// the missing. Run after every reminder change, on start (alarms due while the phone was off are
+// the missing — and remembers each week's candle firing (candleFirings.js). Run after every reminder change, on start (alarms due while the phone was off are
 // dropped, not re-created), on return to the foreground, when the location changes
 // (ReminderScheduleManager) and about daily in the background, so the 30-day window keeps moving
 // with the app unopened. Nothing on the web build.
@@ -13,9 +14,10 @@ import { planFor } from '../utils/schedulePlan';
 const same = (a, b) =>
   a.at === b.at && a.title === b.title && a.body === b.body && a.url === b.url;
 
-async function reconcileOnce(getState) {
+async function reconcileOnce(dispatch, getState) {
   await localNotifications.ensureChannel();
-  const desired = planFor(getState(), new Date());
+  const now = new Date();
+  const desired = planFor(getState(), now);
   const scheduled = await localNotifications.listScheduled();
   const wanted = new Map(desired.map((n) => [n.id, n]));
   const have = new Map();
@@ -31,6 +33,10 @@ async function reconcileOnce(getState) {
     if (have.has(n.id)) continue;
     await localNotifications.schedule(n).catch(warn('schedule', n.id));
   }
+  const planned = getState().reminders.candleFirings;
+  const next = candleFiringsAfter(planned, desired, now);
+  if (JSON.stringify(next) !== JSON.stringify(planned))
+    dispatch(candleFiringsPlanned(next));
 }
 
 const warn = (what, id) => (err) =>
@@ -41,7 +47,7 @@ const warn = (what, id) => (err) =>
 let running = null;
 let again = false;
 
-export const reconcileReminderNotifications = () => (_dispatch, getState) => {
+export const reconcileReminderNotifications = () => (dispatch, getState) => {
   if (!localNotifications.isSupported()) return Promise.resolve();
   if (running) {
     again = true;
@@ -52,7 +58,7 @@ export const reconcileReminderNotifications = () => (_dispatch, getState) => {
       do {
         again = false;
         try {
-          await reconcileOnce(getState);
+          await reconcileOnce(dispatch, getState);
         } catch (err) {
           console.warn(
             `Couldn't schedule reminder notifications: ${err?.message ?? err}`,

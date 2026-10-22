@@ -1,4 +1,4 @@
-// What of the reminders survives a restart (task R3.1): the root store (src/store/index.js) and
+// What of the reminders survives a restart: the root store (src/store/index.js) and
 // its real persist configs over an in-memory AsyncStorage — the candle reminder and the reminder
 // definitions persist; the Calendar tab's range and the error don't.
 
@@ -15,6 +15,9 @@ const mockStub =
   (state = {}) =>
     state;
 jest.mock('../features/reminders', () => ({
+  candleFiringsPlanned: jest.requireActual(
+    '../features/reminders/store/candleFirings',
+  ).candleFiringsPlanned,
   customRemindersReducer: jest.requireActual(
     '../features/reminders/store/customRemindersSlice',
   ).default,
@@ -97,7 +100,7 @@ describe('reminders persistence', () => {
     jest.useRealTimers();
   });
 
-  it('writes only candles and the definitions; a restart brings them back, with no range or error', async () => {
+  it('writes the candle reminder, its planned firings and the definitions; a restart brings them back, with no range or error', async () => {
     const first = await bootStore();
     const {
       saveCandleReminder,
@@ -107,6 +110,11 @@ describe('reminders persistence', () => {
       setRemindersRange,
     } = require('../features/reminders/store/customRemindersSlice');
     await first.store.dispatch(saveCandleReminder(45));
+    const {
+      candleFiringsPlanned,
+    } = require('../features/reminders/store/candleFirings');
+    const planned = { '2026-10-23': Date.parse('2026-10-23T13:23:00Z') };
+    first.store.dispatch(candleFiringsPlanned(planned));
     await first.store.dispatch(
       createCustomReminder({
         title: 'Call Mom',
@@ -126,9 +134,11 @@ describe('reminders persistence', () => {
       'Give it a title',
     );
 
-    // written: the candle reminder and the definitions — not the range or the error
+    // written: the candle reminder, its planned firings and the definitions — not the range or
+    // the error
     expect(await stored('persist:reminders')).toStrictEqual({
       candles: { enabled: true, offsetMinutes: 45 },
+      candleFirings: planned,
     });
     expect(await stored('persist:customReminders')).toStrictEqual({ items });
     first.persistor.pause();
@@ -136,6 +146,7 @@ describe('reminders persistence', () => {
     const { store } = await bootStore();
     expect(store.getState().reminders).toStrictEqual({
       candles: { enabled: true, offsetMinutes: 45 },
+      candleFirings: planned,
       _persist: expect.anything(),
     });
     expect(store.getState().customReminders).toStrictEqual({

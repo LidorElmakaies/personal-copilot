@@ -1,5 +1,8 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { reconcileReminderNotifications } from '../../reminders';
+import {
+  candleFiringsPlanned,
+  reconcileReminderNotifications,
+} from '../../reminders';
 
 // The candle-lighting reminder, kept on the phone (`candles` persisted — src/store/index.js). A
 // change saves with one plain action, then starts the notifications' reconcile without waiting.
@@ -18,6 +21,7 @@ export const turnOffCandleReminder = () => (dispatch) => {
 
 const initialState = {
   candles: { enabled: false, offsetMinutes: 90 },
+  candleFirings: {}, // { 'YYYY-MM-DD': atMs }, the reconcile's (candleFiringsPlanned)
 };
 
 const remindersSlice = createSlice({
@@ -30,6 +34,11 @@ const remindersSlice = createSlice({
     candlesTurnedOff(state) {
       state.candles.enabled = false;
     },
+  },
+  extraReducers: (builder) => {
+    builder.addCase(candleFiringsPlanned, (state, action) => {
+      state.candleFirings = action.payload;
+    });
   },
 });
 

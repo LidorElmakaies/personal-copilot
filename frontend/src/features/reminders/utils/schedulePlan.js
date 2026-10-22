@@ -7,7 +7,7 @@ import {
   ShabbatCalendar,
 } from '../../../lib/jewish-calendar';
 import { ID_PREFIX } from '../../../shared/device/localNotificationsService';
-import { israelClock } from '../../../shared/utils/date';
+import { israelClock, israelIsoDate } from '../../../shared/utils/date';
 import { ruleOf } from './occurrences';
 
 // Which notifications the phone should have scheduled at `now` — pure and deterministic (the same
@@ -39,56 +39,62 @@ export function formatMinutes(total) {
   return m === 0 ? `${h} h` : `${h} h ${m} min`;
 }
 
-const candleId = (candleLightingMs) =>
-  `${ID_PREFIX}candles:${candleLightingMs}`;
+const CANDLE_PREFIX = `${ID_PREFIX}candles:`;
+const candleId = (candleLightingMs) => `${CANDLE_PREFIX}${candleLightingMs}`;
+const candleDate = (candleLightingMs) =>
+  israelIsoDate(new Date(candleLightingMs));
 const customId = (reminderId, date) => `${ID_PREFIX}c:${reminderId}:${date}`;
 
 const floorMinute = (ms) => ms - (((ms % MINUTE_MS) + MINUTE_MS) % MINUTE_MS);
 
-// The candle-lighting reminder's firings: each Friday's candle lighting − offset, to the minute.
-// No location, or one with no sunset (a polar day): none.
-function candleFirings({ enabled, offsetMinutes }, coords, now, windowEnd) {
-  if (!enabled || !coords) return [];
-  const out = [];
-  try {
-    const location = { latitude: coords.latitude, longitude: coords.longitude };
-    let after = new Date(now);
-    for (let i = 0; i < MAX_CANDLE_FIRINGS; i++) {
-      const candle = shabbat.nextCandleLighting(location, after);
-      const candleMs = candle.getTime();
-      const at = floorMinute(candleMs - offsetMinutes * MINUTE_MS);
-      after = candle;
-      if (at <= now) continue;
-      const firing = {
-        id: candleId(candleMs),
-        at,
-        title: 'Shabbat candle lighting',
-        body: `Candle lighting is at ${timeOf(candleMs)} (in ${formatMinutes(offsetMinutes)}).`,
-        url: '/',
-      };
-      if (at > windowEnd) {
-        if (!out.length) out.push(firing);
-        break;
-      }
-      out.push(firing);
+// The candle-lighting reminder's firings, in order: each Friday's candle lighting − offset, to the
+// minute, leaving out the dates in `done`. No location, or one with no sunset (a polar day): none.
+function* candleFirings(
+  { enabled, offsetMinutes },
+  coords,
+  done,
+  now,
+  windowEnd,
+) {
+  if (!enabled || !coords) return;
+  const location = { latitude: coords.latitude, longitude: coords.longitude };
+  let after = new Date(now);
+  let first = true;
+  for (let i = 0; i < MAX_CANDLE_FIRINGS; i++) {
+    let candle;
+    try {
+      candle = shabbat.nextCandleLighting(location, after);
+    } catch {
+      return; // InvalidLocationError: no candle lighting to remind of
     }
-  } catch {
-    return out; // InvalidLocationError: no candle lighting to remind of
+    const candleMs = candle.getTime();
+    const at = floorMinute(candleMs - offsetMinutes * MINUTE_MS);
+    after = candle;
+    if (at <= now || done.has(candleDate(candleMs))) continue;
+    if (at > windowEnd && !first) return;
+    first = false;
+    yield {
+      id: candleId(candleMs),
+      at,
+      title: 'Shabbat candle lighting',
+      body: `Candle lighting is at ${timeOf(candleMs)} (in ${formatMinutes(offsetMinutes)}).`,
+      url: '/',
+    };
+    if (at > windowEnd) return;
   }
-  return out;
 }
 
-// A user's own reminder's firings, each day at its own time (`changed[date]`, else the series').
-// Days are walked from Israel's midnight today, so a changed day later today than the series'
-// time isn't missed.
-function customFirings(reminder, now, windowEnd) {
+// A user's own reminder's firings, in order, each day at its own time (`changed[date]`, else the
+// series'). Days are walked from Israel's midnight today, so a changed day later today than the
+// series' time isn't missed.
+function* customFirings(reminder, now, windowEnd) {
   const rule = ruleOf(reminder);
-  const out = [];
   const today = civilDateIn(ISRAEL_TIME_ZONE, new Date(now));
   let after = new Date(instantAt(ISRAEL_TIME_ZONE, today, 0, 0).getTime() - 1);
+  let first = true;
   for (let i = 0; i < MAX_DAYS_PER_REMINDER; i++) {
     const seriesAt = occurrences.nextAfter(rule, after, ISRAEL_TIME_ZONE);
-    if (!seriesAt) break;
+    if (!seriesAt) return;
     after = seriesAt;
     const day = civilDateIn(ISRAEL_TIME_ZONE, seriesAt);
     const date = isoDate(day);
@@ -97,40 +103,77 @@ function customFirings(reminder, now, windowEnd) {
       ? instantAt(ISRAEL_TIME_ZONE, day, own.hour, own.minute).getTime()
       : seriesAt.getTime();
     if (at <= now) continue;
-    const firing = {
+    if (at > windowEnd && !first) return;
+    first = false;
+    yield {
       id: customId(reminder.id, date),
       at,
       title: own?.title ?? reminder.title,
       body: `Your reminder for ${timeOf(at)}.`,
       url: '/calendar',
     };
-    if (at > windowEnd) {
-      if (!out.length) out.push(firing);
-      break;
-    }
-    out.push(firing);
+    if (at > windowEnd) return;
   }
-  return out;
 }
 
 const byTime = (a, b) =>
   a.at - b.at || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
 
-// [{ id, at (ms), title, body, url }], sorted by `at`.
-export function plan({ candles, coords, items, now }) {
+// [{ id, at (ms), title, body, url }], sorted by `at`. Each reminder's firings are worked out only
+// as far as they're kept: every reminder's first, then the earliest of the rest, one at a time.
+export function plan({ candles, coords, items, now, candlesDone = [] }) {
   const nowMs = typeof now === 'number' ? now : now.getTime();
   const windowEnd = nowMs + WINDOW_DAYS * DAY_MS;
-  const perReminder = [
-    candleFirings(candles, coords, nowMs, windowEnd),
+  const streams = [
+    candleFirings(candles, coords, new Set(candlesDone), nowMs, windowEnd),
     ...items.map((reminder) => customFirings(reminder, nowMs, windowEnd)),
   ];
-  const firsts = perReminder.filter((f) => f.length > 0).map((f) => f[0]);
-  const rest = perReminder.flatMap((f) => f.slice(1));
+  const firsts = [];
+  const live = [];
+  for (const stream of streams) {
+    const { value, done } = stream.next();
+    if (done) continue;
+    firsts.push(value);
+    live.push(stream);
+  }
   firsts.sort(byTime);
-  rest.sort(byTime);
   const kept = firsts.slice(0, MAX_TOTAL);
-  kept.push(...rest.slice(0, MAX_TOTAL - kept.length));
+  if (kept.length < MAX_TOTAL) {
+    const heads = [];
+    for (const stream of live) {
+      const { value, done } = stream.next();
+      if (!done) heads.push({ firing: value, stream });
+    }
+    while (kept.length < MAX_TOTAL && heads.length) {
+      let min = 0;
+      for (let i = 1; i < heads.length; i++)
+        if (byTime(heads[i].firing, heads[min].firing) < 0) min = i;
+      const head = heads[min];
+      kept.push(head.firing);
+      const { value, done } = head.stream.next();
+      if (done) heads.splice(min, 1);
+      else head.firing = value;
+    }
+  }
   return kept.sort(byTime);
+}
+
+// The dates (candle lighting's, in Israel) whose candle reminder was due by `now` — gone off, or
+// dropped with the phone off. That week gets no second one after a move or a new offset.
+export const doneCandleDates = (planned, now) =>
+  Object.keys(planned).filter((date) => planned[date] <= now.getTime());
+
+// What to remember for the next reconcile: the done dates until their day has passed, and each
+// candle firing just planned.
+export function candleFiringsAfter(planned, desired, now) {
+  const today = israelIsoDate(now);
+  const out = {};
+  for (const [date, at] of Object.entries(planned))
+    if (at <= now.getTime() && date >= today) out[date] = at;
+  for (const n of desired)
+    if (n.id.startsWith(CANDLE_PREFIX))
+      out[candleDate(Number(n.id.slice(CANDLE_PREFIX.length)))] = n.at;
+  return out;
 }
 
 // The plan for the store's state.
@@ -140,4 +183,5 @@ export const planFor = (state, now) =>
     coords: state.location.coords,
     items: state.customReminders.items,
     now,
+    candlesDone: doneCandleDates(state.reminders.candleFirings, now),
   });

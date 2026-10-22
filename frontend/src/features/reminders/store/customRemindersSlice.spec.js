@@ -17,7 +17,7 @@ jest.mock('../utils/occurrences', () => {
   return { ...actual, datesFor: jest.fn(actual.datesFor) };
 });
 
-// The user's own reminders on the phone (task R3.1), in thunks over a small real store: the title
+// The user's own reminders on the phone in thunks over a small real store: the title
 // rule and the reminders cap, changed and skipped days, and what the Calendar tab is given.
 
 const makeStore = () =>

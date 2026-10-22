@@ -10,6 +10,9 @@ import CandleReminder from './CandleReminder';
 // saving keeps the reminder on the phone, and the sheet's nudge follows Android's permission.
 
 jest.mock('../../reminders', () => ({
+  candleFiringsPlanned: jest.requireActual(
+    '../../reminders/store/candleFirings',
+  ).candleFiringsPlanned,
   reconcileReminderNotifications: () => () => Promise.resolve(),
 }));
 // GradientButton animates with Reanimated and BottomSheet with Reanimated + gesture-handler

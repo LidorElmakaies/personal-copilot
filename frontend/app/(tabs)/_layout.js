@@ -9,8 +9,9 @@ import SwipeTabs from '../../src/shared/components/composite/SwipeTabs';
 // One entry per tab (bar + Tabs.Screen below); icon set per DESIGN.md's "Navigation" section.
 // `requiresAuth: true` opts a tab into the guard below (a tap or a swipe onto it while signed out
 // asks to log in instead) — see .claude/agents/frontend.md. `requiresRole: 'admin'` leaves the
-// tab out of the bar and the swipe order for everyone else (the screen checks again). The array's
-// order is the bar's and the swipe's.
+// tab out of the bar and the swipe order for everyone else (the screen checks again). `hidden: true`
+// leaves it out for everyone (the route stays, reachable only by a direct link). The array's order
+// is the bar's and the swipe's.
 const TABS = [
   { name: 'index', label: 'Home', icon: 'time-outline', iconActive: 'time' },
   {
@@ -25,6 +26,7 @@ const TABS = [
     icon: 'person-circle-outline',
     iconActive: 'person-circle',
     requiresAuth: true,
+    hidden: true,
   },
   {
     name: 'admin',
@@ -32,6 +34,7 @@ const TABS = [
     icon: 'shield-checkmark-outline',
     iconActive: 'shield-checkmark',
     requiresRole: 'admin',
+    hidden: true,
   },
 ];
 
@@ -40,7 +43,7 @@ export default function TabsLayout() {
   const isAuthenticated = useSelector((s) => !!s.auth.accessToken);
   const isAdmin = useHasRole('admin');
   const visibleTabs = TABS.filter(
-    (tab) => tab.requiresRole !== 'admin' || isAdmin,
+    (tab) => !tab.hidden && (tab.requiresRole !== 'admin' || isAdmin),
   );
   const canEnter = (name) =>
     isAuthenticated || !TABS.find((t) => t.name === name)?.requiresAuth;
