@@ -145,7 +145,7 @@ sequenceDiagram
     App->>App: MonthGrid
     App->>Lib: getMonth for the month either side (preload)
     User->>App: swipe, or ‹ ›
-    App->>Lib: getMonth for any month within two of it not loaded yet
+    App->>Lib: getMonth for any month either side of it not loaded yet
     Note over App: months kept per place (~1 km), pruned to those near the month shown
 ```
 

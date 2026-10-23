@@ -608,11 +608,33 @@ Proposed on 2026-10-21 (1–3 now decided, 4–6 still open):
 
 ## Stage R7: docs
 
-- [ ] **R7.1** `CLAUDE.md` (what this is, layout, what's implemented, first run, commands,
+- [x] **R7.1** `CLAUDE.md` (what this is, layout, what's implemented, first run, commands,
   versions, key constraints, architecture), `docs/specs/*`, environment docs, READMEs.
-- [ ] **R7.2** `.claude/agents/*.md` (devops and backend shrink; frontend and testing switch from
+  *Done 2026-10-23:* most of it had happened task by task; an audit (every backticked name grepped
+  in code, each doc read against it) and the docs agent's second pass fixed what was left:
+  README (`backend/.env` only for the backend profile); CLAUDE.md (design pages: the Shabbat plan's
+  `mockups.html`, `docs/specs/` for the architecture — its `architecture.html` is the deleted
+  server design; `secrets.js init`; First run's `cp` from the repo root); the jewish-calendar README
+  (`reminders/utils/` reads the lib too); architecture.md (the Calendar tab preloads one month either
+  side); services.md (the 502 code is `users_service_unreachable`); gateway/users env docs
+  (`backend/.env` is read in Docker too); comments in `devops/docker.env` and Gateway's
+  `trust-proxy.ts` (no SSH tunnel). docs-check: all 6 pass; scripts 30, frontend 328 pass.
+  *Left for later:* `trust-proxy.spec.ts`'s test title still says "the SSH tunnel".
+- [x] **R7.2** `.claude/agents/*.md` (devops and backend shrink; frontend and testing switch from
   browser checks to device/Jest), `.claude/memory/` (`project_personal-copilot.md`,
   `feedback_gateway_only_service_access.md`).
+  *Done 2026-10-23:* the browser → device/Jest switch and the memory files had happened task by
+  task; a full read of each file against the code (then the docs agent's second pass) fixed the
+  rest. backend.md: a route to a service is a `PROXY_ROUTES` row (a module only for what Gateway
+  answers itself), no message-consumer/scheduler entry points, container Jest only on a PC without
+  Node (it runs on the host). devops.md: no queue-only services, `additional_contexts` on backend
+  builds only. testing.md: next spec targets are app-update's services (none have specs), the
+  container note. frontend.md: description, `AmbientBackground` the one `colors.js` importer, the
+  real cross-feature imports, `selectDayReminders` in `customRemindersSlice`, the tab bar's blur.
+  docs.md: every README it owns. `feedback_gateway_only_service_access.md`: the hidden screens
+  still call Gateway. Tests: backend 134 (+12 opt-in), frontend 328, scripts 30; docs-check passes.
+  Kept (conventions for a future service): backend.md's read-only cross-schema entities, devops.md's
+  `depends_on users`.
 - [ ] **R7.3** `scripts/docs-check.js`: drop `checkCaddy`, `checkQueues`, `checkTopics` (and their
   fixtures in `docs-check.test.js`), `DOCS_MAP` rows for `frontend/public|Caddyfile` and `e2e/`, a
   row for the new on-phone code; delete orphaned `docs/reminders|notifications/environment.md` by

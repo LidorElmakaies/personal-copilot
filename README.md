@@ -10,7 +10,7 @@ backend for optional login (Gateway + Users Service) stays in the repo, dormant.
 
 See [CLAUDE.md](CLAUDE.md) for architecture, setup, and how this repo is organized —
 [docs/specs/](docs/specs/) for the service contracts. To start the stack, follow CLAUDE.md's
-"First run": it needs both `devops/.env` and `backend/.env`.
+"First run": it needs `devops/.env`, and `backend/.env` too for the dormant backend.
 
 ## Phone access (Tailscale HTTPS)
 

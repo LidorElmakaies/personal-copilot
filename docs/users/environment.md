@@ -1,7 +1,7 @@
 # Users Service environment
 
-Read from `backend/.env` locally (`npx nest start users`), or from `devops/docker.env` +
-`devops/users/docker-compose.yml` in Docker. See `backend/.env.example` for the full variable list
+Read from `backend/.env` locally (`npx nest start users`); in Docker, from `backend/.env` then
+`devops/docker.env` + `devops/users/docker-compose.yml`. See `backend/.env.example` for the full variable list
 with defaults.
 
 Shared by every backend app (OpenTelemetry): [docs/backend/environment.md](../backend/environment.md).

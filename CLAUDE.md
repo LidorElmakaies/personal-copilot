@@ -12,7 +12,8 @@ screens and not started by default.
 The feature work is staged in
 [`docs/plans/shabbat-reminders-calendar/plan.md`](docs/plans/shabbat-reminders-calendar/plan.md)
 and [`docs/plans/android-only-refactor/plan.md`](docs/plans/android-only-refactor/plan.md); read
-them and their design pages (`architecture.html`, `mockups.html`) before working on a feature.
+them, and the Shabbat plan's `mockups.html` for the UI, before working on a feature. The current
+architecture is `docs/specs/`; that plan's `architecture.html` shows a server design that no longer exists.
 Progress lives in the plans' checkboxes; "What's implemented" below is what exists now. Work a
 plan one task at a time and stop for review after each.
 
@@ -139,7 +140,7 @@ Each service's contract is in [`docs/specs/services.md`](docs/specs/services.md)
 
 ## First run
 
-1. `cd devops && cp .env.example .env`. Only for the backend profile, also `cp backend/.env.example
+1. `cp devops/.env.example devops/.env`. Only for the backend profile, also `cp backend/.env.example
    backend/.env` (every backend container reads it) and set a real random `JWT_SECRET` (the same in
    both) and `PASSWORD_PEPPER` (`backend/.env`).
 2. Phone access: run `node devops/tailscale/serve.js` once (see README's "Phone access (Tailscale
@@ -182,7 +183,7 @@ node --test devops/maestro/smoke.test.js      # its tests, on the host
 
 Secrets between PCs (never git — one encrypted file kept in Google Drive by hand; see README's "Secrets between PCs"):
 ```bash
-node scripts/secrets.js pull | push | status  # secrets/secrets.enc + secrets/secrets-key.json (gitignored, kept in Google Drive)
+node scripts/secrets.js pull | push | status | init  # secrets/secrets.enc + secrets/secrets-key.json (gitignored, kept in Google Drive)
 ```
 
 App icons (from the repo root, after editing `frontend/assets/icon/icon.svg`; runs in Docker):

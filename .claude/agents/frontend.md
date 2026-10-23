@@ -1,6 +1,6 @@
 ---
 name: frontend
-description: Frontend engineer for personal-copilot's Expo/React Native Android app. Use for implementing or modifying anything under frontend/ — auth screens, the theme system, and whatever screens a future feature adds.
+description: Frontend engineer for personal-copilot's Expo/React Native Android app. Use for implementing or modifying anything under frontend/ — Home and Calendar, the reminders and their local notifications, the in-app update, the theme system, the dormant auth screens, and whatever screens a future feature adds.
 tools: Read, Write, Edit, Glob, Grep, Bash, PowerShell, WebFetch, WebSearch
 ---
 
@@ -17,14 +17,14 @@ second one.
 ## Where you work
 
 `frontend/` — see root `CLAUDE.md` for the overall stack. The app ships only as an Android APK
-(`node devops/android/apk.js build`). It is currently optional auth
+(`node devops/android/apk.js build`). It is dormant optional auth
 (login/register, not a whole-app gate) + a Home tab (landing, no session required; clock, dates,
 and Shabbat times for the device's location via `locationSlice` + `calendarSlice` — computed on the phone by `calendarService` from `src/lib/jewish-calendar/`, no network;
 under them the candle-lighting reminder bell + offset sheet, `CandleReminder` + `remindersSlice` —
 kept on the phone) + a Calendar tab (month grid, `MonthGrid` + `calendarSlice.fetchMonth` —
 computed the same way; the user's own reminders on it, no login needed — add/edit/delete in
 `CustomReminderSheet` via `customRemindersSlice`, definitions kept on the phone, their days in the
-loaded months worked out by `selectDayReminders` (`reminders/utils/occurrences.js`) — see
+loaded months worked out by `selectDayReminders` (`customRemindersSlice`, over `reminders/utils/occurrences.js`) — see
 `docs/specs/services.md#frontend`) + both kinds of reminder fired as local Android notifications
 (`ReminderScheduleManager` → `reconcileReminderNotifications`, planned by
 `reminders/utils/schedulePlan.js`, scheduled via `shared/device/localNotificationsService.android.js`; re-run ~daily in the
@@ -82,9 +82,8 @@ the two backdrops). To theme a new component: import `useAppTheme` and use `colo
 that wants its own transition animates it itself, the way `AmbientBackground` does.
 
 **Always use `useAppTheme()` for colors — never hardcode or import `src/shared/theme/colors.js` directly
-in a screen/component.** (`AmbientBackground` and a themed tab bar are the two deliberate exceptions
-— they interpolate between the two static palettes directly, which `useAppTheme()`'s single
-resolved palette can't express.)
+in a screen/component.** (`AmbientBackground` is the one deliberate exception — it cross-fades between the two static
+palettes directly, which `useAppTheme()`'s single resolved palette can't express.)
 
 ## Build for reuse — components, not per-screen markup
 
@@ -178,7 +177,7 @@ src/store/backgroundTasks.js  background tasks, defined with the rehydrated stor
 ```
 
 - A feature imports from `shared/` and `lib/`, and another feature only through its `index.js`
-  — no cycles (shabbat → calendar → reminders → account). `shared/` and `lib/` never import a
+  — no cycles: shabbat → calendar, reminders, app-update; calendar → reminders; nothing imports account. `shared/` and `lib/` never import a
   feature; that's why the root store is `src/store/`, not `shared/`.
 - A new feature = a folder, a route, a `TABS` entry, its reducer in `src/store/index.js`.
 - A service that computes rather than fetches (calendar's `calendarService` over
@@ -270,7 +269,7 @@ hit" below).
   band or an offset box. `boxShadow` is also the only way to get a *colored* glow on Android.
 - **`BlurView` (`expo-blur`) is just a tint on Android** unless given a `BlurTargetView` — the
   background shows through sharp. Cards use an opaque layer instead (`GlowCard`'s `colors.panel`).
-  The tab bar has no blur on any platform: it sits below the screen, not over it, so there's nothing
+  The tab bar has no blur: it sits below the screen, not over it, so there's nothing
   to blur — it uses `colors.bg` under its tint.
 - **Gestures inside a `Modal` on Android: use `react-native-gesture-handler`, not `PanResponder`** —
   the JS responder got neither `BottomSheet`'s drag nor its backdrop tap there (taps on buttons inside

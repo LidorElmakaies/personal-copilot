@@ -30,9 +30,10 @@ someone who has only ever seen the current code. Two consequences:
 - **`docs/specs/*.md`** — `services.md`, `architecture.md` (topology + flow
   diagrams). Source of truth for how the system is wired *right now*.
 - **Root `CLAUDE.md`** — kept dense but accurate; this is what a Claude session reads first.
-- **`README.md`** at the repo root, `backend/`, and `frontend/` — shorter, entry-point-level, must
-  not contradict `CLAUDE.md`; update these in the same pass, they drift otherwise.
-- **`backend/apps/<service>/README.md`** (where one exists — not yet every service) — the "why"
+- **`README.md`** at the repo root, `backend/`, `frontend/` and `devops/observability/` — shorter,
+  entry-point-level, must not contradict `CLAUDE.md`; update these in the same pass, they drift
+  otherwise.
+- **`backend/apps/<service>/README.md`** and **`frontend/src/lib/jewish-calendar/README.md`** — the "why"
   behind that service's own non-obvious decisions: gotchas, deployment coupling, things a comment
   is too small for and `docs/specs/services.md`'s cross-service contract view isn't the place for.
   Keep the split strict: `services.md` says *what* a service does, this file says *why* a specific

@@ -23,7 +23,7 @@ The only backend service reachable from outside the Docker network, through `tai
   `throttle: 'strict'` where it applies. `ProxyController` turns each row into its own Nest route,
   so anything unlisted is a `404` — never a wildcard. `ProxyService` sends it through that service's
   `ServiceHttpClient` (base URL from `USERS_SERVICE_URL`); an unreachable service answers
-  `502 { error: { code: '<service>_unreachable', message } }`. Adding a route is one row there,
+  `502 { error: { code: 'users_service_unreachable', message } }`. Adding a route is one row there,
   plus the same row in `test/proxy.api.spec.ts`'s `CONTRACT`.
 - **User identity for internal services:** a guarded route forwards only the token's user id, in
   an `X-User-Id` header Gateway sets itself (`USER_ID_HEADER` in `@app/auth-kernel`). Client

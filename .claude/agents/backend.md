@@ -29,8 +29,9 @@ backend/
                         # CONTRACT row in test/proxy.api.spec.ts).
                         # src/admin/: GET /admin/status (AdminGuard) — Gateway's own version
                         # plus Users' /health.
-                        # Thin pass-through everywhere — never business logic. A new feature's
-                        # HTTP surface gets its own self-contained module here, same shape.
+                        # Thin pass-through everywhere — never business logic. A route to a
+                        # service is a PROXY_ROUTES row; a module only for what Gateway answers
+                        # itself (like admin/).
     users/               # HTTP, internal-only (never published to the host — only Gateway calls
                         # it). Schema `users`. Profiles (/users/me*, user id from X-User-Id;
                         # name/phone rules in models/profile.ts). register/login/refresh/logout/
@@ -63,8 +64,7 @@ registered in four places: `nest-cli.json`, `tsconfig.json` paths, `jest.config.
 
 ## Layering (non-negotiable, per service)
 
-`api/` (controllers, and any other *entry point* into the app — a message consumer or a clock-driven
-scheduler goes here too) ->
+`api/` (controllers, and any other *entry point* into the app) ->
 `application/` (use-case services + the interfaces they depend on, in `application/interfaces/`)
 -> `infrastructure/` (concrete adapters: the TypeORM repositories, the password hasher, any external
 HTTP client — each implementing an interface from `application/interfaces/` or its own
@@ -142,8 +142,7 @@ npx nest start gateway --watch     # or: users
 npm test                           # jest.config.js
 npm run lint
 ```
-No Node on the host: run Jest in a container, with its own `node_modules` volume (the host's
-`backend/node_modules` is incomplete):
+On a PC without Node, run Jest in a container, with its own `node_modules` volume:
 ```bash
 docker run --rm -v "<repo>/backend:/app" -v pc-backend-node-modules:/app/node_modules   -v pc-npm-cache:/root/.npm -w /app node:22 sh -c "npm ci && npx jest"
 ```

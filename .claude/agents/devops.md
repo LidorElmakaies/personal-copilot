@@ -71,8 +71,7 @@ telemetry stack has never been started. `apk` alone doesn't need it.
   JWT-gated admin-only proxy — a deliberate simplification since this stack sits behind Tailscale
   for a single user. Revisit (add real auth) before this project ever has more than one user or
   leaves the Tailnet.
-- **Every image's `build:` gets `additional_contexts: version: ../../version`** — each backend
-  service, and any new image. Its
+- **Every backend service's `build:` gets `additional_contexts: version: ../../version`**. Its
   Dockerfile reads the repo's `version/versions.json` from that context (a backend image keeps only
   its own entry, so another service's bump doesn't rebuild it). Standalone `docker build` needs
   `--build-context version=../version`. See `docs/specs/architecture.md#compose--build-layout`.
@@ -110,8 +109,8 @@ these hard-won rules from that project instead of re-learning them:
   (`prometheus`/`loki`/`tempo`) in every panel's `datasource` field.
 - **One dashboard file per service** (`service-<name>.json`), not one
   templated dashboard with a service dropdown — each shows up as its own named tile, and every
-  query is scoped by a literal `job="<name>"`. Drop the panels that don't apply (queue-only
-  services get no HTTP row; only services with a database — today `users` — get a DB row). `apk`
+  query is scoped by a literal `job="<name>"`. Drop the panels that don't apply (only services with a database —
+  today `users` — get a DB row). `apk`
   and the app send no telemetry — no dashboard for them.
 - **A multi-select variable's "All" option defaults to `.*`, and Loki 3.x rejects that outright**
   (`parse error: queries require at least one regexp or equality matcher that does not have an

@@ -71,9 +71,9 @@ failures, clock changes) asserts which alarms the phone ends up holding. It comp
 `frontend/src/lib/jewish-calendar/README.md` if a new ESM-only dependency breaks loading), and
 Jest's default platform resolves each device service's plain `.js` (a no-op), so a spec of an
 Android service (`*.android.js`) imports it by name. jest-expo's environment is Node's, so a spec may set `process.env.TZ`. Next highest-value target: the services
-layer (each feature's `services/*.js`, `src/shared/http/`)
-— mostly pure functions, minimal React/Redux involved: assert `authService` builds the right
-request shape and translates a non-2xx response into the message `apiError.js` documents.
+with no spec yet — app-update's `appUpdateService` (`latest.json`, a relative `url` resolved
+against the registry) and `apkInstallerService` (the `.part` → `.apk` download, cleanup), then the
+dormant `authService`/`httpClient` (request shape, a non-2xx turned into `apiError.js`'s message).
 
 ### On the phone
 
@@ -106,7 +106,7 @@ cd backend
 npm test            # unit tests, all apps/libs
 npm run test:cov
 
-# no Node on the host: the same in a container, with its own node_modules volume
+# on a PC without Node: the same in a container, with its own node_modules volume
 docker run --rm -v "<repo>/backend:/app" -v pc-backend-node-modules:/app/node_modules   -v pc-npm-cache:/root/.npm -w /app node:22 sh -c "npm ci && npx jest"
 
 cd frontend

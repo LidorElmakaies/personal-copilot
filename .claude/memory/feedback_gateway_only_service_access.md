@@ -18,7 +18,7 @@ serving the APK registry's static files). It's not a backend service and this ru
 it. The rule's mirror image on the app's *code*: the app only ever calls `gateway`, never `users`
 (or any future backend service) directly. The one exception is read-only static files: the update
 check fetches `latest.json` and the APK from `apk` (`/apk/`) — no API call ever bypasses Gateway.
-(The app currently calls no backend at all; this applies when the dormant login comes back.)
+(Only the app's hidden, dormant login/account screens call Gateway.)
 
 **Does not restrict internal service-to-service calls** — Gateway's plain-HTTP call to `users` is
 the normal, already-resolved architecture (see `docs/specs/services.md`), not something this rule

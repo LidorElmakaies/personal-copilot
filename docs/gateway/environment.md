@@ -1,7 +1,7 @@
 # Gateway environment
 
-Read from `backend/.env` locally (`npx nest start gateway`), or from `devops/docker.env` +
-`devops/gateway/docker-compose.yml`'s `environment:` in Docker. See `backend/.env.example` for the
+Read from `backend/.env` locally (`npx nest start gateway`); in Docker, from `backend/.env` then
+`devops/docker.env` + `devops/gateway/docker-compose.yml`'s `environment:`. See `backend/.env.example` for the
 full variable list with defaults.
 
 Shared by every backend app (OpenTelemetry): [docs/backend/environment.md](../backend/environment.md).

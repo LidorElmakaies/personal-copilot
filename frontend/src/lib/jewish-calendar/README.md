@@ -2,8 +2,9 @@
 
 All of the app's Jewish-calendar maths, computed on the phone: pure and synchronous, no I/O. One
 place for every rule (Shabbat times, month calendars, custom reminders' repeat rules); its contract
-is `docs/specs/services.md#calendar-maths`. The app reads it only through calendar's `calendarService` (Home's Shabbat times, the Calendar
-tab's months), which JSON-round-trips the results so Redux gets ISO strings, never `Date`s.
+is `docs/specs/services.md#calendar-maths`. The app reads it through calendar's `calendarService` (Home's Shabbat times, the Calendar tab's
+months), which JSON-round-trips the results so Redux gets ISO strings, never `Date`s, and through
+`reminders/utils/` (custom reminders' days, the notification planner).
 This file is the "why" behind decisions here that aren't obvious from the code.
 
 ## `@hebcal/core` v6
