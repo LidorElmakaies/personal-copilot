@@ -1,0 +1,53 @@
+# Adds a one-time reminder TITLE today at TIME ("HH:MM") from the Calendar tab's +; smoke.js
+# works out the taps below from TIME.
+appId: com.lidor.personalcopilot
+---
+# A tab tap is sometimes missed while the app settles: again until the Calendar shows.
+- retry:
+    maxRetries: 2
+    commands:
+      - tapOn:
+          text: "Calendar"
+          waitToSettleTimeoutMs: 1500
+          retryTapIfNoChange: false
+      - extendedWaitUntil:
+          visible: "Add reminder"
+          timeout: 5000
+- tapOn:
+    text: "Add reminder"
+    waitToSettleTimeoutMs: 1500
+    retryTapIfNoChange: false
+# From the form's 19:00: HOUR_TAPS of HOUR_BUTTON, MINUTE_TAPS of "More min" (5 minutes each). A
+# step changes only a number: a short settle.
+- repeat:
+    times: ${HOUR_TAPS}
+    commands:
+      - tapOn:
+          text: ${HOUR_BUTTON}
+          waitToSettleTimeoutMs: 300
+          retryTapIfNoChange: false
+- repeat:
+    times: ${MINUTE_TAPS}
+    commands:
+      - tapOn:
+          text: "More min"
+          waitToSettleTimeoutMs: 300
+          retryTapIfNoChange: false
+# The form's summary ("Once, on Fri 23 Oct 2026, 11:45") shows the time set.
+- assertVisible: "Once, on .*, ${TIME}"
+# The title last, closed with Enter: Back (hideKeyboard) would close the sheet.
+- tapOn:
+    text: "e.g. Call Grandma"
+    waitToSettleTimeoutMs: 1500
+    retryTapIfNoChange: false
+- inputText: ${TITLE}
+- pressKey: Enter
+- takeScreenshot: reminder-form
+- tapOn:
+    text: "(?i)save"
+    waitToSettleTimeoutMs: 1500
+    retryTapIfNoChange: false
+- extendedWaitUntil:
+    visible: "${TITLE}, ${TIME}"
+    timeout: 10000
+- takeScreenshot: reminder-added

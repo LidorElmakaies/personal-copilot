@@ -1,0 +1,32 @@
+# Deletes the reminder add-reminder.yaml added (TITLE, today) from the Calendar tab.
+appId: com.lidor.personalcopilot
+---
+- launchApp:
+    permissions: {}
+# A tab tap is sometimes missed while the app settles: again until the Calendar shows.
+- retry:
+    maxRetries: 2
+    commands:
+      - tapOn:
+          text: "Calendar"
+          waitToSettleTimeoutMs: 1500
+          retryTapIfNoChange: false
+      - extendedWaitUntil:
+          visible: "Add reminder"
+          timeout: 5000
+- tapOn:
+    text: "${TITLE}, .*"
+    waitToSettleTimeoutMs: 1500
+    retryTapIfNoChange: false
+- tapOn:
+    text: "(?i)delete"
+    waitToSettleTimeoutMs: 1500
+    retryTapIfNoChange: false
+# The confirmation's own Delete.
+- tapOn:
+    text: "(?i)delete"
+    waitToSettleTimeoutMs: 1500
+    retryTapIfNoChange: false
+- extendedWaitUntil:
+    notVisible: "${TITLE}, .*"
+    timeout: 10000

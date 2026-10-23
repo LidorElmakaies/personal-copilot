@@ -1,0 +1,19 @@
+# Opens the notification shade, finds the reminder's notification (TITLE) and taps it, which opens
+# the app and dismisses it.
+appId: com.lidor.personalcopilot
+---
+- swipe:
+    start: "50%, 1%"
+    end: "50%, 70%"
+    waitToSettleTimeoutMs: 1500
+- extendedWaitUntil:
+    visible: ${TITLE}
+    timeout: 10000
+- takeScreenshot: notification
+- tapOn:
+    text: ${TITLE}
+    waitToSettleTimeoutMs: 1500
+    retryTapIfNoChange: false
+- extendedWaitUntil:
+    visible: "Calendar"
+    timeout: 10000

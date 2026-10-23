@@ -17,6 +17,12 @@ npx expo start          # Expo Go / dev client
 npm test                # Jest: the *.spec.{ts,js} under src/ (jest-expo, React Native Testing Library)
 ```
 
+`maestro/` holds the phone smoke-test flows (Maestro YAML), run against the installed APK by
+`node devops/maestro/smoke.js` from the repo root — an opt-in release check, never part of
+`npm test`; see `.claude/agents/testing.md`'s "On the phone". They find elements by text and
+accessibility label, so renaming "Add reminder", "Candle lighting", a stepper's "More min" or the
+reminder form's summary line means updating them.
+
 On your phone over Tailscale (Expo Go): see `docs/frontend/environment.md` — run Expo on `:8082`
 with `EXPO_PUBLIC_GATEWAY_ORIGIN` pointing at the PC's tailnet IP. The release build is the APK
 (Android app, below).

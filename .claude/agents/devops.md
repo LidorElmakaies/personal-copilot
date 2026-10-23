@@ -31,6 +31,13 @@ Two independent Compose projects, joined by a shared `observability` Docker netw
   `node devops/android/apk.js publish` publishes one into `devops/data/apk/` (the registry `apk`
   serves), directly or via a Node container when that folder is root-owned — see
   `frontend/README.md`'s "APK registry". Tests: `node --test devops/android/apk.test.js`.
+- `devops/maestro/` — not a compose project: `Dockerfile` (JRE 17, adb, the Maestro CLI, pinned by
+  checksum), `smoke.js`, `smoke.test.js`. `node devops/maestro/smoke.js [--quick] [--device
+  <ip:port>]` runs `frontend/maestro/`'s flows against the installed APK from one container (USB
+  passthrough via `--privileged` + `/dev/bus/usb` on Linux; `--device` for wireless debugging),
+  mounting adb's key from the home folder (the one the phone already trusts); output in
+  `devops/data/maestro/<time>/`.
+  Opt-in, never part of `npm test` — see `.claude/agents/testing.md`'s "On the phone".
 - `devops/icons/render.js` — not a compose project: renders the app's PNG icons in its own pinned
   Playwright image.
 - `devops/observability/` — `otel-collector`, `loki`, `prometheus`, `tempo`, `grafana`.

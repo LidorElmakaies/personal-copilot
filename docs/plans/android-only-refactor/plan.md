@@ -554,8 +554,33 @@ Proposed on 2026-10-21 (1–3 now decided, 4–6 still open):
   - Fixed (found by the testing agent, older than this work): two refreshes with one token at once
     both got a new pair. `revoke` is now `UPDATE … WHERE revoked_at IS NULL` and reports whether it
     revoked; the loser gets `401`. Tests: the race (fails without the fix), the real-Postgres revoke.
-- [ ] **R5.3 Opt-in phone smoke tests.** Maestro flows over adb (launch, Shabbat times shown, add a
+- [x] **R5.3 Opt-in phone smoke tests.** Maestro flows over adb (launch, Shabbat times shown, add a
   reminder, the notification appears) — optional release check, never changing phone settings.
+  *Done 2026-10-23:*
+  - Decided (asked): Maestro in Docker; the notification checked in the shade, at the next 5-minute
+    mark (the form's minutes step by 5), the run timing its start so the wait is short.
+  - `devops/maestro/` — `Dockerfile` (JRE 17, platform-tools r37.0.1, Maestro CLI 2.11.0, both
+    checksummed) and `smoke.js` (`[--quick] [--device <ip:port>]`; USB passthrough on Linux,
+    wireless debugging for Windows) + `smoke.test.js`. Flows: `frontend/maestro/{home,add-reminder,
+    notification,delete-reminder}.yaml`. Read-only preflight (installed, notifications/location/
+    exact alarms granted — else it stops), `launchApp` with `permissions: {}` (Maestro's default
+    grants all; its `unset` revokes), the reminder deleted even on a failure, Maestro's helper apps
+    uninstalled, a permission diff before/after; a killed run's container is removed next time.
+  - Found by it: the Calendar tab was invisible to accessibility (TalkBack too) — `TabPager`'s
+    one-screen strip slid fully off-screen; it's now as wide as its pages. Taps need
+    `waitToSettleTimeoutMs` (the starry background never settles: ~25 s a tap otherwise);
+    `hideKeyboard` closes a bottom sheet (Back).
+  - On the phone (S23 Ultra, 0.6.0-test.12, installed with `adb install -r`): `--quick` passed
+    (alarm pending at the slot, gone after the delete, 2 min 20 s), the full run passed
+    ("Smoke test 1150" posted 0 s after 11:50, tapped from the shade, deleted; 6 min). Afterwards:
+    no reminder, notification, helper app or pending alarm left; permissions unchanged.
+  - An interrupted run (stopped from the terminal) left its container going: its reminder fired
+    at 11:20; cleaned up by hand (the notification tapped and dismissed, helper apps uninstalled).
+  - Docs: CLAUDE.md (Commands, Repo layout), testing.md "On the phone", frontend/README.md,
+    README.md, architecture.md, devops/frontend agent files, a `DOCS_MAP` row for
+    `frontend/maestro/`. Tests: `smoke.test.js` 13 (incl. the hour the clocks go back — refused,
+    the form's time would be ambiguous — and exact package names), a new `TabPager.spec.js` (fails
+    without the fix); scripts + apk + smoke 57, frontend 328; docs-check passes.
 
 ## Stage R6: devops
 

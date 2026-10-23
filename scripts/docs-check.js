@@ -23,6 +23,7 @@ const DOCS_MAP = [
   { match: /^devops\/(?:([^/]+)\/)?/, docs: ([, dir]) => ['docs/specs/architecture.md — System topology, Compose & build layout', 'docs/devops/environment.md', ...(dir ? [`docs/${dir}/environment.md?`] : []), '.claude/agents/devops.md'] },
   { match: /^frontend\/((src|app)\/|index\.js$)/, docs: () => ['docs/specs/services.md — ## frontend', 'frontend/README.md', '.claude/agents/frontend.md', "CLAUDE.md — What's implemented: frontend"] },
   { match: /^frontend\/(app\.json|app\.config\.js|package(-lock)?\.json|jest\.config\.js|plugins\/|assets\/)/, docs: () => ['frontend/README.md', '.claude/agents/frontend.md', 'CLAUDE.md — Repo layout, Commands'] },
+  { match: /^frontend\/maestro\//, docs: () => ['.claude/agents/testing.md — On the phone', 'frontend/README.md', 'CLAUDE.md — Commands'] },
   { match: /^frontend\/\.env\.example$/, docs: () => ['docs/frontend/environment.md', 'frontend/README.md'] },
   { match: /\.spec\.(ts|js)$/, docs: () => ['.claude/agents/testing.md'] },
   { match: /^(scripts|version)\//, docs: () => ['CLAUDE.md — Versions, Commands', 'README.md'] },

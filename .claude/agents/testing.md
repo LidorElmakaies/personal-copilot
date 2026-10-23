@@ -62,7 +62,8 @@ out): the calendar lib's specs (`src/lib/jewish-calendar/`), the
 reminder slices, planners and scheduling, `notificationsSlice`, the background task, persistence,
 `localNotificationsService.android.js` over a mocked expo-notifications, and component specs
 (`CandleReminder`, `NotificationsPrompt`, `ReminderRow`, `RemindersSheet`, `CustomReminderSheet`,
-`ReminderScheduleManager`, each under a Redux `<Provider>`).
+`ReminderScheduleManager`, each under a Redux `<Provider>`; `TabPager`'s page geometry, Reanimated
+and gesture-handler mocked in the spec).
 `reminders/store/scheduleNotifications.scenarios.spec.js` runs the scheduler end to end — the real
 store, planner and reconcile over an in-memory phone standing in for `localNotificationsService`'s
 alarms, with a faked clock — so each scenario (create, edit, skip, delete, a move, the phone off,
@@ -84,6 +85,20 @@ reporting a UI change done. Never change the phone's settings to make a check pa
 found there that Jest can express goes into `scheduleNotifications.scenarios.spec.js` or the
 matching spec.
 
+`node devops/maestro/smoke.js` is the release smoke test over adb: the Maestro flows in
+`frontend/maestro/` (Home shows the Shabbat times; Calendar's + adds "Smoke test HHMM" at the next
+5-minute mark; its notification shows in the shade and opens the app; the reminder is deleted).
+Maestro and adb run in Docker (`devops/maestro/Dockerfile`), USB passthrough on Linux, `--device
+<ip:port>` for wireless debugging. `--quick` checks the exact alarm (`dumpsys alarm`) instead of
+waiting for it. It leaves the phone as it was: it stops if notifications, location or exact alarms
+aren't granted, launches with `permissions: {}` (Maestro's default grants every permission), never
+clears data, deletes its reminder even when a flow fails, uninstalls Maestro's two helper apps
+(unless they were already there), and fails if a permission changed. Keep the phone unlocked while it runs.
+Writing a flow: tap with `waitToSettleTimeoutMs` (the starry background never settles: a plain tap
+waits ~25 s) and `retryTapIfNoChange: false`; never `hideKeyboard` (Back closes a bottom sheet);
+match what the accessibility tree holds (`maestro hierarchy`), e.g. the reminder form's summary line
+rather than a stepper's middle label. Its pure parts are tested by `devops/maestro/smoke.test.js`.
+
 ## Commands
 
 ```bash
@@ -96,4 +111,8 @@ docker run --rm -v "<repo>/backend:/app" -v pc-backend-node-modules:/app/node_mo
 
 cd frontend
 npm test            # Jest (jest-expo), every *.spec.{ts,js} under src/
+
+# from the repo root: the phone smoke test (opt-in) and its own tests
+node devops/maestro/smoke.js [--quick] [--device <ip:port>]
+node --test devops/maestro/smoke.test.js
 ```

@@ -305,6 +305,13 @@ publishes it; it refuses to build when neither is set. arm64 by default
 copies a built APK into `devops/data/apk/` — directly, or via a `node:22-alpine` container when that
 folder is root-owned — which `apk` serves at `/apk/`.
 
+**Phone smoke tests**: outside compose too. `node devops/maestro/smoke.js` builds
+`devops/maestro/Dockerfile` (JRE 17, adb, the Maestro CLI) and keeps one container running for the
+whole run — its adb server holds the phone, over USB (`/dev/bus/usb`, privileged) or
+`--device <ip:port>` (wireless debugging). It mounts adb's key from the home folder (the one the phone
+already trusts), `frontend/maestro/` read-only as the flows and `devops/data/maestro/` for the
+screenshots, and drives the already-installed APK; it installs nothing but Maestro's helper apps.
+
 **Version build context**: every backend image's `build:` adds
 `additional_contexts: version: ../../version` — just the repo's `version/` folder, not the whole
 repo as context. Each backend Dockerfile extracts only its own entry in a separate `own-version`

@@ -71,11 +71,13 @@ runs is a patch for that service. Where each version is baked in and shown:
 backend/                  NestJS monorepo — apps/{gateway,users}
                           + libs/{auth-kernel,build-info,otel}
 frontend/                 Expo/React Native app, built as an Android APK;
-                          src/lib/jewish-calendar/ holds the calendar maths
+                          src/lib/jewish-calendar/ holds the calendar maths;
+                          maestro/ the phone smoke-test flows
 devops/                   docker-compose.yml (app stack: apk, plus the dormant gateway/users/
                           postgres behind the `backend` profile)
                           + apk/ (Caddy serving the APK registry at /apk/)
                           + android/ (the APK builder image + apk.js: build/publish)
+                          + maestro/ (Maestro + adb image, smoke.js: phone smoke tests)
                           + tailscale/serve.js (HTTPS on the tailnet)
                           + icons/render.js (the app's PNG icons, in a pinned Playwright image)
                           + observability/ (Grafana/Loki/Prometheus/Tempo/OTel, joined to
@@ -167,6 +169,15 @@ Android app (from the repo root, Linux or Windows; `build` runs in Docker — se
 node devops/android/apk.js build              # → devops/data/android/apk/personal-copilot-<frontend version>.apk
 node devops/android/apk.js publish "note" ... # → devops/data/apk/, served at https://<pc>.ts.net/apk/
 node --test devops/android/apk.test.js        # publisher tests, on the host
+```
+
+Phone smoke tests (opt-in release check, never part of `npm test`; the installed APK on a USB phone,
+Maestro in Docker — see `.claude/agents/testing.md`'s "On the phone"):
+```bash
+node devops/maestro/smoke.js                  # Home's Shabbat times, a reminder added, its notification (≤ ~9 min)
+node devops/maestro/smoke.js --quick          # the same, checking the alarm is set without waiting (~2.5 min)
+node devops/maestro/smoke.js --device <ip:port> # over wireless debugging (Windows: Docker has no USB)
+node --test devops/maestro/smoke.test.js      # its tests, on the host
 ```
 
 Secrets between PCs (never git — one encrypted file kept in Google Drive by hand; see README's "Secrets between PCs"):

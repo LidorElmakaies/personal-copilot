@@ -186,7 +186,11 @@ export default function TabPager({
                 end={{ x: 1, y: 1 }}
                 style={StyleSheet.absoluteFill}
               />
-              <Animated.View style={[styles.fill, strip]}>
+              {/* As wide as all its pages: a strip slid off-screen hides the page in view from
+                  accessibility (TalkBack, UI tests). */}
+              <Animated.View
+                style={[styles.fill, width ? { width: count * width } : null, strip]}
+              >
                 {Array.from({ length: count }, (_, i) =>
                   // Before the width is known, only the page shown, in place.
                   !width && i !== index ? null : (

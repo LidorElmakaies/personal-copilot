@@ -85,6 +85,12 @@ allow installs from Personal Copilot. Only releases count: `-test.N` builds neve
 `devops/.env`), else `https://<GATEWAY_PUBLIC_URL's host>/apk/` — the registry's HTTPS address as
 `devops/tailscale/serve.js` publishes it.
 
+**Smoke test on the phone** (opt-in, before a release): with the APK installed, the phone unlocked
+and on USB with USB debugging allowed, `node devops/maestro/smoke.js` checks Home's Shabbat times,
+adds a reminder and waits for its notification, then deletes it (`--quick` checks the alarm is set
+instead of waiting; `--device <ip:port>` uses wireless debugging, the only way on Windows). Maestro
+and adb run in Docker; screenshots land in `devops/data/maestro/`.
+
 ## Secrets between PCs
 
 The secrets — `backend/.env`, `devops/.env`, and in `devops/data/android/` the signing key
