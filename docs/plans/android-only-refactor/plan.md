@@ -28,7 +28,7 @@ Same rules as the Shabbat & calendar plan:
 - **The auth work stays in the repo, dormant:** Gateway, the Users Service, `auth-kernel`, the
   login/register screens and the Account tab (hidden, not deleted). Not started by default, not
   called by the app.
-- Later, its own stage: **the app feels more "floating"** (see R8).
+- ~~Later, its own stage: **the app feels more "floating"** (see R8).~~ Dropped 2026-10-23 (R8).
 
 ## Decisions
 
@@ -59,8 +59,8 @@ Proposed on 2026-10-21 (1–3 now decided, 4–6 still open):
 4. **Theme switch** gets a new home now the Account tab is hidden — e.g. a small icon on Home.
 5. **Existing reminders on the server** (the user's candle-lighting offset and custom reminders):
    recreated by hand on the phone, or a one-time export. Default: by hand (few reminders).
-6. **"More floating"** — what it means (smoother motion, floating/glassy look, or both) is open;
-   it's stage R8, mockup first.
+6. ~~**"More floating"** — what it means (smoother motion, floating/glassy look, or both) is open;
+   it's stage R8, mockup first.~~ Dropped 2026-10-23: the user is happy with the look as it is.
 
 ## Inventory (from the backend, frontend, devops, testing and docs agents, 2026-10-21)
 
@@ -469,7 +469,8 @@ Proposed on 2026-10-21 (1–3 now decided, 4–6 still open):
     afterwards, bell off, 0 alarms left.
   - Not checked on the phone: the reboot re-arm left open in R1.2 (a reboot needs the user's OK).
   - Seen on the way: with 6 reminders on a day, the Calendar's day card cuts off the rows below
-    the second (the page doesn't scroll) — for R8 or a fix of its own.
+    the second (the page doesn't scroll) — for R8 or a fix of its own. *Since handled: the day
+    card lists the first 3 and "+N more · Show all" opens `RemindersSheet`, which scrolls.*
 
 ## Stage R4: hide what's dormant in the app
 
@@ -600,11 +601,20 @@ Proposed on 2026-10-21 (1–3 now decided, 4–6 still open):
   `tailscale serve`), `/` and `/apk` → `/apk/`, `latest.json`/page no-cache, the APK MIME type
   (checked on a temp port). `serve.js` text updated; its two mappings are unchanged, so the live
   config needs no reset. *Left:* `docker compose up -d` on this PC and the phone finding an update.
+  *2026-10-23:* `apk` up on this PC; over the tailnet `/` and `/apk` → `/apk/`, page and
+  `latest.json` 200 (`no-cache`), the APK with its MIME type; live `tailscale serve` already
+  matches. *Left:* the phone finding an update — the registry's newest release (0.5.0) is older
+  than the installed 0.6.0-test.12, so it needs a newer release published.
 - [ ] **R6.3 Secrets.** `secrets.js` `FILES` and both `.env.example`s without VAPID/FCM/Redis/Kafka;
   re-push the encrypted bundle (Windows and Ubuntu PCs).
   *In code 2026-10-23:* `FILES` without `google-services.json`; a push now drops bundle files no
   longer in `FILES`; `backend/.env.example` without VAPID/FCM/Redis/Kafka (devops' had none).
   *Left:* `node scripts/secrets.js push`, then pull on the other PC.
+  *2026-10-23:* this PC's real `backend/.env` cut to `.env.example`'s variables (VAPID, FCM, Redis,
+  the Calendar/Notifications URLs and the two old database URLs out; `AUTH_SERVICE_URL` →
+  `USERS_SERVICE_URL`), `devops/.env` without its unused `PASSWORD_PEPPER`; the old files kept as
+  `.bak`, the old bundle as `secrets/secrets.enc.bak`; pushed (status: all same).
+  *Left:* upload `secrets.enc` to Google Drive, then pull on the Windows PC.
 
 ## Stage R7: docs
 
@@ -650,14 +660,16 @@ Proposed on 2026-10-21 (1–3 now decided, 4–6 still open):
   2.26a and 4.1 dropped, 3.4 moved here, 3.5 → R7, "Holiday eves" answered; `architecture.html`
   has a "Superseded" banner. Here, 3.4b names `frontend/src/lib/jewish-calendar/`.
 
-## Stage R8: more "floating" (after R1–R7)
+## Stage R8: more "floating" (after R1–R7) — dropped
 
-- [ ] **R8.1 Mockup first** (meaning to be agreed — decision 6). Candidates the frontend agent
+*Dropped 2026-10-23 (asked): the user is happy with the app's look; nothing here will be built.*
+
+- ~~**R8.1 Mockup first** (meaning to be agreed — decision 6). Candidates the frontend agent
   found: spring / flick-velocity settling in `SwipePager` and `TabPager` (linear `withTiming`
   today), a floating pill tab bar instead of the static one, press animations on `GradientButton`
   and `PillButton` (none today), real blur on Android cards (`GlowCard` is opaque there).
-  The current look is already a known stepping-stone (CLAUDE.md).
-- [ ] **R8.2 Build** the chosen variant.
+  The current look is already a known stepping-stone (CLAUDE.md).~~
+- ~~**R8.2 Build** the chosen variant.~~
 
 ## What's left from the Shabbat & calendar plan
 
