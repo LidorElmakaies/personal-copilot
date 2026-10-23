@@ -6,6 +6,14 @@ export interface ProfileDetails {
   phone: string | null;
 }
 
+/** E.164: `+`, country code, up to 15 digits in all. */
+export const PHONE_E164 = /^\+[1-9]\d{6,14}$/;
+
+export const NAME_MAX_LENGTH = 100;
+
+/** English or Hebrew letters only, single spaces between words — the frontend filters to the same. */
+export const NAME_PATTERN = /^[A-Za-zא-ת]+(?: [A-Za-zא-ת]+)*$/;
+
 /** Where the phone last opened the app (sent only after a real move). */
 export interface UserLocation {
   lat: number;
@@ -17,8 +25,6 @@ export interface UserLocation {
 export interface Profile extends ProfileDetails {
   userId: string;
   location: UserLocation | null;
-  /** +1 on every change; published with the state so consumers can drop older ones. 0 = never set. */
-  version: number;
 }
 
 /** A partial update: only the fields present change; null clears a detail. */

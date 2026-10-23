@@ -1,7 +1,6 @@
 // Renders frontend/assets/icon/icon.svg to every PNG the app needs; re-run after editing the SVG.
 // Plain Node, Linux and Windows alike: node devops/icons/render.js
-// It runs itself (`inside`) in the same pinned Playwright image as the e2e tests, so nothing but
-// Docker is needed on the host.
+// It runs itself (`inside`) in a pinned Playwright image, so nothing but Docker is needed on the host.
 'use strict';
 const fs = require('fs');
 const path = require('path');
@@ -10,8 +9,8 @@ const { spawnSync } = require('child_process');
 const ROOT = path.resolve(__dirname, '../..');
 
 const SRC = '/frontend/assets/icon/icon.svg';
-// viewBox crops of the 108 canvas: FULL keeps Android's adaptive margins (and the maskable web
-// icon's safe zone); TIGHT trims them for icons shown as-is (favicon, Apple, splash).
+// viewBox crops of the 108 canvas: FULL keeps Android's adaptive margins; TIGHT trims them for
+// icons shown as-is (legacy icon, splash).
 const FULL = '0 0 108 108';
 const TIGHT = '14 14 80 80';
 
@@ -22,13 +21,11 @@ const OUTPUTS = [
   // Legacy/iOS icon and the splash image (foreground only, on the splash background color).
   { file: 'assets/images/icon.png', size: 1024, viewBox: TIGHT },
   { file: 'assets/images/splash-icon.png', size: 1024, viewBox: TIGHT, hide: 'background' },
-  // Web: favicon (app.json web.favicon) and the set the web manifest links.
-  { file: 'assets/images/favicon.png', size: 48, viewBox: TIGHT },
-  { file: 'public/icons/icon-192.png', size: 192, viewBox: TIGHT },
-  { file: 'public/icons/icon-512.png', size: 512, viewBox: TIGHT },
-  { file: 'public/icons/icon-maskable-512.png', size: 512, viewBox: FULL },
-  { file: 'public/icons/apple-touch-icon.png', size: 180, viewBox: TIGHT },
 ];
+
+// The image and the playwright package must be the same version.
+const PLAYWRIGHT = '1.63.0';
+const IMAGE = `mcr.microsoft.com/playwright:v${PLAYWRIGHT}-noble`;
 
 async function render() {
   const { chromium } = require('playwright'); // the container's, via NODE_PATH
@@ -48,12 +45,6 @@ async function render() {
   await browser.close();
 }
 
-// The Playwright image devops/playwright/docker-compose.yml pins.
-function playwrightImage() {
-  const compose = fs.readFileSync(path.join(ROOT, 'devops/playwright/docker-compose.yml'), 'utf8');
-  return /^\s*image:\s*(\S+)/m.exec(compose)[1];
-}
-
 function inDocker() {
   const r = spawnSync(
     'docker',
@@ -64,10 +55,9 @@ function inDocker() {
       '-e', 'HOME=/tmp',
       '-v', `${path.join(ROOT, 'frontend')}:/frontend`,
       '-v', `${__dirname}:/icons:ro`,
-      '-w', '/frontend/e2e',
-      playwrightImage(),
+      IMAGE,
       'sh', '-c',
-      'npm ci --no-audit --no-fund --loglevel=error && NODE_PATH=/frontend/e2e/node_modules node /icons/render.js inside',
+      `mkdir -p /tmp/pw && cd /tmp/pw && npm i --no-save --no-audit --no-fund --loglevel=error playwright@${PLAYWRIGHT} && NODE_PATH=/tmp/pw/node_modules node /icons/render.js inside`,
     ],
     { stdio: 'inherit' },
   );

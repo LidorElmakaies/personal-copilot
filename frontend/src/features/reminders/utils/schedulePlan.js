@@ -12,7 +12,7 @@ import { ruleOf } from './occurrences';
 
 // Which notifications the phone should have scheduled at `now` — pure and deterministic (the same
 // input gives the same list). The reconcile (store/scheduleNotifications.js) makes the scheduled
-// ones match it. Texts as the Reminders Service sent them. Israel time, whatever the phone's.
+// ones match it. Israel time, whatever the phone's.
 //
 // Each reminder's firings from now to WINDOW_DAYS ahead, and its very next one even when that's
 // further (a yearly one); at most MAX_TOTAL in all — every reminder's next one first, then the

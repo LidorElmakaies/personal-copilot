@@ -40,6 +40,7 @@ describe('JwtAuthGuard', () => {
     ['no token', undefined],
     ['a bad signature', sign('user', 'other-secret')],
     ['an unknown role', sign('superuser')],
+    ['no role', jwt.sign({ sub: 'u-1', email: 'a@b.c' }, SECRET)],
   ])('rejects %s with 401', async (_, token) => {
     await expect(guard.canActivate(context(token).ctx)).rejects.toBeInstanceOf(
       UnauthorizedException,

@@ -147,7 +147,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 28,
     gap: 14,
-    userSelect: 'none', // web: a mouse drag moves the sheet instead of selecting its text
   },
   // Taller than the bar it shows, so it's easy to grab.
   grabZone: {

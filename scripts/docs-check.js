@@ -18,13 +18,13 @@ const ROOT = path.join(__dirname, '..');
 const DOCS_MAP = [
   { match: /^backend\/apps\/([^/]+)\//, docs: ([, app]) => [`docs/specs/services.md — ## ${app}`, `docs/${app}/environment.md`, `backend/apps/${app}/README.md?`, `CLAUDE.md — What's implemented: ${app}`, '.claude/agents/backend.md'] },
   { match: /^backend\/libs\/([^/]+)\//, docs: ([, lib]) => [`docs/specs/services.md — ## libs/${lib}`, `backend/libs/${lib}/README.md?`, 'docs/backend/environment.md', 'CLAUDE.md — Architecture', '.claude/agents/backend.md'] },
+  { match: /^backend\/(package(-lock)?\.json|nest-cli\.json|tsconfig\.json|jest\.config\.js)$/, docs: () => ['.claude/agents/backend.md', 'CLAUDE.md — Repo layout, Architecture, Commands', 'backend/README.md'] },
   { match: /^backend\/\.env\.example$/, docs: () => ['docs/<app>/environment.md — each app reading a changed variable', 'CLAUDE.md — First run'] },
   { match: /^devops\/(?:([^/]+)\/)?/, docs: ([, dir]) => ['docs/specs/architecture.md — System topology, Compose & build layout', 'docs/devops/environment.md', ...(dir ? [`docs/${dir}/environment.md?`] : []), '.claude/agents/devops.md'] },
   { match: /^frontend\/((src|app)\/|index\.js$)/, docs: () => ['docs/specs/services.md — ## frontend', 'frontend/README.md', '.claude/agents/frontend.md', "CLAUDE.md — What's implemented: frontend"] },
-  { match: /^frontend\/(public\/|Caddyfile$)/, docs: () => ['docs/specs/services.md — ## frontend', 'docs/specs/architecture.md — System topology', 'frontend/README.md'] },
+  { match: /^frontend\/(app\.json|app\.config\.js|package(-lock)?\.json|jest\.config\.js|plugins\/|assets\/)/, docs: () => ['frontend/README.md', '.claude/agents/frontend.md', 'CLAUDE.md — Repo layout, Commands'] },
   { match: /^frontend\/\.env\.example$/, docs: () => ['docs/frontend/environment.md', 'frontend/README.md'] },
-  { match: /^frontend\/e2e\//, docs: () => ['frontend/e2e/README.md', '.claude/agents/testing.md'] },
-  { match: /\.spec\.ts$/, docs: () => ['.claude/agents/testing.md'] },
+  { match: /\.spec\.(ts|js)$/, docs: () => ['.claude/agents/testing.md'] },
   { match: /^(scripts|version)\//, docs: () => ['CLAUDE.md — Versions, Commands', 'README.md'] },
 ];
 
@@ -39,23 +39,17 @@ const PATH_ALLOWLIST = [
   'backend/.env',
   'devops/.env',
   'frontend/.env',
-  'devops/frontend/.env.cloud',
-  'google-services.json', // Firebase's app config, kept in devops/data/android/ (gitignored)
   'secrets/', // scripts/secrets.js's secrets.enc + key (gitignored, kept in Google Drive)
   'secrets-key.json',
   'backend/node_modules/',
-  'kafka-console-producer.sh', // ships in the Kafka image
   'android/', // Expo prebuild's generated native project, named from frontend/
-  'screenshots', // Playwright output, named from frontend/e2e/
-  'test-results',
-  'playwright-report',
   'process.env', // Node's, named in prose
   '../version', // build-info's lookup, relative to the working directory
 ];
 
 // `## <name>` sections in services.md / topology nodes that aren't backend/apps.
-const NON_APP_SECTIONS = ['frontend'];
-const NON_APP_NODES = ['frontend', 'tailscale'];
+const NON_APP_SECTIONS = ['frontend', 'apk'];
+const NON_APP_NODES = ['frontend', 'apk', 'tailscale'];
 
 const PLAN_REF = [/\b(?:plan\s+)?tasks?\s+\d+\.\d+[a-z]?\b/i, /\bplan\s+tasks?\b/i];
 
@@ -328,106 +322,7 @@ function checkDevopsEnv(ctx) {
   return out;
 }
 
-// ── c, d. Kafka topics and BullMQ queues ────────────────────────────────────
-
-/** String values of `export const NAME = { KEY: 'value', … }` in a TS file: value → line. */
-function constValues(text, name) {
-  const start = text.indexOf(`${name} = {`);
-  if (start < 0) return new Map();
-  const body = text.slice(start, text.indexOf('}', start));
-  return new Map([...body.matchAll(/:\s*'([^']+)'/g)].map((m) => [m[1], lineAt(text, start + m.index)]));
-}
-
-/** event-schemas.md's `## \`name\`` headings and table rows, split at its `# Kafka events` part. */
-function eventSchemas(ctx) {
-  const file = 'docs/specs/event-schemas.md';
-  const text = ctx.read(file) ?? '';
-  const split = text.search(/^# Kafka events/m);
-  const kafkaAt = split < 0 ? text.length : split;
-  const queues = new Map();
-  const topics = new Map();
-  const queueRows = new Map();
-  const topicRows = new Map();
-  for (const m of text.matchAll(/^## `([^`]+)`/gm)) (m.index < kafkaAt ? queues : topics).set(m[1], lineAt(text, m.index));
-  for (const m of text.matchAll(/^\|\s*`([^`]+)`\s*\|/gm)) (m.index < kafkaAt ? queueRows : topicRows).set(m[1], lineAt(text, m.index));
-  return { file, queues, topics, queueRows, topicRows };
-}
-
-/** Each named set must hold exactly the names of `reference`. */
-function sameSet(reference, others) {
-  const out = [];
-  for (const { file, names, what } of others) {
-    for (const [n] of reference.names) {
-      if (!names.has(n)) out.push(problem(file, 1, `${what} lacks \`${n}\` (${reference.file}:${reference.names.get(n)})`));
-    }
-    for (const [n, line] of names) {
-      if (!reference.names.has(n)) out.push(problem(file, line, `${what} has \`${n}\`, which isn't in ${reference.file}`));
-    }
-  }
-  return out;
-}
-
-function checkTopics(ctx) {
-  const file = 'backend/libs/kafka-contracts/src/topics.ts';
-  const compose = 'devops/kafka/docker-compose.yml';
-  const composeText = ctx.read(compose) ?? '';
-  const created = new Map([...composeText.matchAll(/^\s*create\s+([\w.-]+)/gm)].map((m) => [m[1], lineAt(composeText, m.index)]));
-  const schemas = eventSchemas(ctx);
-  return sameSet({ file, names: constValues(ctx.read(file) ?? '', 'KAFKA_TOPICS') }, [
-    { file: compose, names: created, what: "kafka-init's create list" },
-    { file: schemas.file, names: schemas.topics, what: 'the Kafka topic sections' },
-    { file: schemas.file, names: schemas.topicRows, what: 'the Kafka topic table' },
-  ]);
-}
-
-function checkQueues(ctx) {
-  const file = 'backend/libs/queue-contracts/src/queues.ts';
-  const schemas = eventSchemas(ctx);
-  return sameSet({ file, names: constValues(ctx.read(file) ?? '', 'QUEUES') }, [
-    { file: schemas.file, names: schemas.queues, what: 'the queue sections' },
-    { file: schemas.file, names: schemas.queueRows, what: 'the queue table' },
-  ]);
-}
-
-// ── e. Caddy's @gateway covers every Gateway route ──────────────────────────
-
-/** Every path Gateway serves: path → where it's declared. */
-function gatewayPaths(ctx) {
-  const paths = new Map();
-  const routesFile = 'backend/apps/gateway/src/proxy/proxy.routes.ts';
-  const routes = ctx.read(routesFile) ?? '';
-  for (const m of routes.matchAll(/path:\s*'([^']+)'/g)) paths.set(m[1], `${routesFile}:${lineAt(routes, m.index)}`);
-  for (const f of ctx.files.filter((f) => /^backend\/apps\/gateway\/src\/.*\.ts$/.test(f) && !f.endsWith('.spec.ts'))) {
-    const text = ctx.read(f);
-    const ws = /@WebSocketGateway\(\{[^}]*path:\s*'([^']+)'/.exec(text);
-    if (ws) paths.set(ws[1], `${f}:${lineAt(text, ws.index)}`);
-    // Each @Controller('x') / @Controller({ path: 'x' }) / @Controller() up to the next one.
-    const ctrls = [...text.matchAll(/@Controller\(\s*(?:'([^']*)'|\{[^}]*?path:\s*'([^']*)'[^}]*\})?/g)];
-    ctrls.forEach((c, i) => {
-      const end = i + 1 < ctrls.length ? ctrls[i + 1].index : text.length;
-      for (const m of text.slice(c.index, end).matchAll(/@(?:Get|Post|Put|Patch|Delete|All)\(\s*(?:'([^']*)')?/g)) {
-        const p = `/${[c[1] ?? c[2], m[1]].filter(Boolean).join('/')}`.replace(/\/+/g, '/');
-        paths.set(p, `${f}:${lineAt(text, c.index + m.index)}`);
-      }
-    });
-  }
-  return paths;
-}
-
-function checkCaddy(ctx) {
-  const file = 'frontend/Caddyfile';
-  const text = ctx.read(file) ?? '';
-  const m = /^\s*@gateway\s+path\s+(.+)$/m.exec(text);
-  if (!m) return [problem(file, 1, 'no `@gateway path …` matcher')];
-  // Caddy's path matcher: exact, with `*` matching anything (slashes included).
-  const globs = m[1].trim().split(/\s+/).map((g) => new RegExp(`^${g.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*')}$`));
-  const line = lineAt(text, m.index + m[0].search(/\S/));
-  return [...gatewayPaths(ctx)]
-    .filter(([p]) => !globs.some((g) => g.test(p)))
-    .map(([p, where]) => problem(file, line, `@gateway doesn't match ${p} (${where})`));
-}
-
-// ── f. every backend app has a services.md section and a topology node ──────
+// ── c. every backend app has a services.md section and a topology node ──────
 
 function checkServices(ctx) {
   const out = [];
@@ -463,7 +358,7 @@ function checkServices(ctx) {
   return out;
 }
 
-// ── g. versions.json ↔ CLAUDE.md's Versions section ─────────────────────────
+// ── d. versions.json ↔ CLAUDE.md's Versions section ─────────────────────────
 
 function checkVersions(ctx) {
   const versions = Object.keys(JSON.parse(ctx.read('version/versions.json') ?? '{}'));
@@ -479,7 +374,7 @@ function checkVersions(ctx) {
   ];
 }
 
-// ── h. no plan references outside docs/plans/ ──────────────────────────
+// ── e. no plan references outside docs/plans/ ──────────────────────────
 
 function checkPlanRefs(ctx) {
   const out = [];
@@ -499,9 +394,6 @@ const CHECKS = {
   'doc paths exist': checkPaths,
   'env vars documented': checkEnv,
   'devops/.env agrees': checkDevopsEnv,
-  'Kafka topics agree': checkTopics,
-  'queues agree': checkQueues,
-  'Caddy covers Gateway': checkCaddy,
   'services documented': checkServices,
   'version components agree': checkVersions,
   'no plan references': checkPlanRefs,

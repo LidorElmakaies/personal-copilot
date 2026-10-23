@@ -1,0 +1,16 @@
+# The APK registry at /apk/: installed apps read latest.json here and download from it.
+:80 {
+	encode gzip
+
+	redir / /apk/
+	redir /apk /apk/
+	handle_path /apk/* {
+		root * /apk
+		header *.apk Content-Type application/vnd.android.package-archive
+		# Always re-check the page and latest.json, so a new version shows at once.
+		header /index.html Cache-Control no-cache
+		header /latest.json Cache-Control no-cache
+		header / Cache-Control no-cache
+		file_server
+	}
+}

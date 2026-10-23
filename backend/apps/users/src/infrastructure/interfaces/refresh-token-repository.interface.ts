@@ -8,5 +8,6 @@ export interface IRefreshTokenRepository {
     expiresAt: Date,
   ): Promise<RefreshToken>;
   findByTokenHash(tokenHash: string): Promise<RefreshToken | null>;
-  revoke(id: string): Promise<void>;
+  /** True only for the call that revoked it: of two at once, one gets false. */
+  revoke(id: string): Promise<boolean>;
 }

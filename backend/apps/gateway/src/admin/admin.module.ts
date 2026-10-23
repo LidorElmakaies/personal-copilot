@@ -8,11 +8,7 @@ import { HttpHealthProbe } from './infrastructure/http-health-probe';
 import { ADMIN_STATUS_SERVICE, HEALTH_PROBES } from '../tokens';
 
 // The services GET /admin/status asks, from the same *_SERVICE_URL config the proxies use.
-const PROBED_SERVICES = [
-  ['users', 'USERS_SERVICE_URL'],
-  ['reminders', 'REMINDERS_SERVICE_URL'],
-  ['notifications', 'NOTIFICATIONS_SERVICE_URL'],
-] as const;
+const PROBED_SERVICES = [['users', 'USERS_SERVICE_URL']] as const;
 
 @Module({
   imports: [HttpModule, AuthKernelModule],

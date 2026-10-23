@@ -10,8 +10,8 @@ const INSTALLED_CODE = VERSION.frontend ? versionCode(VERSION.frontend) : null;
 const isApk = () =>
   Platform.OS === 'android' && !!URLS.apkRegistry && INSTALLED_CODE !== null;
 
-// The APK only (the web build is always the newest): reads the registry's latest.json — on start
-// and on return to the foreground (AppUpdateManager). Failures are ignored.
+// Reads the registry's latest.json — on start and on return to the foreground (AppUpdateManager).
+// Failures are ignored.
 export const checkForUpdate = createAsyncThunk(
   'appUpdate/check',
   () => appUpdateService.getLatestRelease(),

@@ -1,10 +1,9 @@
 import { memo, useEffect, useMemo, useRef } from 'react';
-import { Animated, Easing, Platform, StyleSheet, View } from 'react-native';
+import { Animated, Easing, StyleSheet } from 'react-native';
 import { useReducedMotion } from 'react-native-reanimated';
 
 const STAR_COUNT = 80 + Math.floor(Math.random() * 41);
 const EASE = Easing.inOut(Easing.quad);
-const EASE_CSS = 'cubic-bezier(0.455, 0.03, 0.515, 0.955)'; // the same curve, for the web
 
 function randomStars(palette) {
   return Array.from({ length: STAR_COUNT }, () => ({
@@ -33,7 +32,7 @@ function backAndForth(value, duration) {
   });
 }
 
-function NativeStar({ star, peakOpacity, baseOpacity, reducedMotion, paused }) {
+function Star({ star, peakOpacity, baseOpacity, reducedMotion, paused }) {
   const twinkle = useRef(new Animated.Value(reducedMotion ? 0.5 : 0)).current;
   const drift = useRef(new Animated.Value(0)).current;
   const started = useRef(false);
@@ -94,64 +93,10 @@ function NativeStar({ star, peakOpacity, baseOpacity, reducedMotion, paused }) {
   );
 }
 
-// The web has no native driver: a CSS animation (StyleSheet-only on react-native-web, hence one
-// small sheet per star, made once) runs off the main thread instead.
-function CssStar({ star, peakOpacity, baseOpacity, reducedMotion, paused }) {
-  const animation = useMemo(
-    () =>
-      StyleSheet.create({
-        star: {
-          animationKeyframes: [
-            {
-              '0%': { opacity: baseOpacity },
-              '50%': { opacity: peakOpacity },
-              '100%': { opacity: baseOpacity },
-            },
-            {
-              '0%': { transform: 'translate(0px, 0px)' },
-              '50%': {
-                transform: `translate(${star.driftX}px, ${star.driftY}px)`,
-              },
-              '100%': { transform: 'translate(0px, 0px)' },
-            },
-          ],
-          animationDuration: `${star.duration * 2}ms, ${star.duration * 3.2}ms`,
-          animationDelay: `${star.delay}ms`,
-          animationTimingFunction: EASE_CSS,
-          animationIterationCount: 'infinite',
-        },
-      }).star,
-    [star, peakOpacity, baseOpacity],
-  );
-
-  return (
-    <View
-      style={[
-        styles.star,
-        {
-          left: star.left,
-          top: star.top,
-          width: star.size,
-          height: star.size,
-          backgroundColor: star.color,
-          opacity: reducedMotion
-            ? (peakOpacity + baseOpacity) / 2
-            : baseOpacity,
-        },
-        !reducedMotion && animation,
-        paused && { animationPlayState: 'paused' },
-      ]}
-      pointerEvents="none"
-    />
-  );
-}
-
-const Star = Platform.OS === 'web' ? CssStar : NativeStar;
-
 // Decorative, see AmbientBackground.js. Positions/timings/colors rolled once at mount (useMemo),
 // not on every re-render; per-star color rationale is in colors.js's particleColors comment.
 // Not Reanimated: on a 120 Hz phone its per-frame worklets for ~100 stars × 2 endless loops were
-// ~90% of the app's CPU. RN Animated on the native driver instead, a CSS animation on the web.
+// ~90% of the app's CPU. RN Animated on the native driver instead.
 // `paused` stops every star where it is (a hidden screen). Memoized: a parent's re-render (Home's
 // clock, every second) doesn't reach ~100 stars.
 function Stars({ isDark, palette, paused = false }) {

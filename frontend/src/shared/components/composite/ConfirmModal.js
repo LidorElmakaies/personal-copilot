@@ -25,7 +25,7 @@ export default function ConfirmModal({
       onRequestClose={onCancel}
     >
       <View style={styles.backdrop}>
-        <GlowCard solid style={styles.card}>
+        <GlowCard style={styles.card}>
           {icon ? <View style={styles.icon}>{icon}</View> : null}
           {title ? (
             <Text style={[styles.title, { color: colors.text }]}>{title}</Text>

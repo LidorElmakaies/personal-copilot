@@ -23,20 +23,6 @@ const CONTRACT: readonly ProxyRoute[] = [
   { method: 'GET', path: '/users/me', service: 'users', auth: 'user' },
   { method: 'PATCH', path: '/users/me', service: 'users', auth: 'user' },
   { method: 'PUT', path: '/users/me/location', service: 'users', auth: 'user' },
-  { method: 'GET', path: '/reminders', service: 'reminders', auth: 'user' },
-  { method: 'PUT', path: '/reminders/shabbat-candles', service: 'reminders', auth: 'user' },
-  { method: 'DELETE', path: '/reminders/shabbat-candles', service: 'reminders', auth: 'user' },
-  { method: 'GET', path: '/reminders/custom', service: 'reminders', auth: 'user' },
-  { method: 'GET', path: '/reminders/custom/preview', service: 'reminders', auth: 'user' },
-  { method: 'POST', path: '/reminders/custom', service: 'reminders', auth: 'user' },
-  { method: 'PATCH', path: '/reminders/custom/:id', service: 'reminders', auth: 'user' },
-  { method: 'DELETE', path: '/reminders/custom/:id', service: 'reminders', auth: 'user' },
-  { method: 'POST', path: '/reminders/custom/:id/skip', service: 'reminders', auth: 'user' },
-  { method: 'GET', path: '/notifications/vapid-public-key', service: 'notifications', auth: 'none' },
-  { method: 'POST', path: '/notifications/subscriptions', service: 'notifications', auth: 'user' },
-  { method: 'DELETE', path: '/notifications/subscriptions', service: 'notifications', auth: 'user' },
-  { method: 'PUT', path: '/notifications/fcm-devices', service: 'notifications', auth: 'user' },
-  { method: 'DELETE', path: '/notifications/fcm-devices', service: 'notifications', auth: 'user' },
 ];
 const rows = (routes: readonly ProxyRoute[]) =>
   routes.map((route) => [`${route.method} ${route.path}`, route] as const);
@@ -44,9 +30,6 @@ const userRoutes = CONTRACT.filter((r) => r.auth === 'user');
 const openRoutes = CONTRACT.filter((r) => r.auth === 'none');
 const strictRoutes = CONTRACT.filter((r) => r.throttle === 'strict');
 const globalRoutes = CONTRACT.filter((r) => r.throttle !== 'strict');
-
-// A route as a client calls it: each :param with a real-looking value.
-const concrete = (path: string) => path.replace(/:\w+/g, 'rem-42');
 
 // fetch refuses a body on GET.
 const bodyFor = (route: Pick<ProxyRoute, 'method'>) =>
@@ -58,7 +41,7 @@ function send(
   headers: Record<string, string> = {},
   body: unknown = bodyFor(route),
 ) {
-  return fetch(`${base}${concrete(route.path)}`, {
+  return fetch(`${base}${route.path}`, {
     method: route.method,
     headers: { 'content-type': 'application/json', ...headers },
     body: body === undefined ? undefined : JSON.stringify(body),
@@ -142,11 +125,11 @@ describe('proxy (gateway): every route', () => {
     ['GET', '/auth/login'],
     ['POST', '/users/me'],
     ['GET', '/users/someone-else'],
-    ['PATCH', '/reminders/shabbat-candles'],
-    ['GET', '/notifications/subscriptions'],
     ['GET', '/internal/anything'],
-    ['GET', '/reminders/custom/rem-42'],
-    ['PUT', '/reminders/custom/rem-42'],
+    ['GET', '/reminders'],
+    ['PUT', '/reminders/shabbat-candles'],
+    ['GET', '/notifications/vapid-public-key'],
+    ['POST', '/realtime/device'],
   ] as const)(
     'an unlisted route (%s %s) → 404, nothing forwarded',
     async (method, path) => {
@@ -168,7 +151,7 @@ describe('proxy (gateway): every route', () => {
       400,
       {
         statusCode: 400,
-        message: ['offsetMinutes must not be greater than 1440'],
+        message: ['phone must be in international format, e.g. +972501234567'],
         error: 'Bad Request',
       },
     ],
@@ -177,16 +160,16 @@ describe('proxy (gateway): every route', () => {
       502,
       {
         error: {
-          code: 'reminders_service_unreachable',
+          code: 'users_service_unreachable',
           message: 'connect ECONNREFUSED',
         },
       },
     ],
   ])('relays %s unchanged', async (_name, status, body) => {
-    clients.reminders.forward.mockResolvedValue({ status, body });
+    clients.users.forward.mockResolvedValue({ status, body });
     const res = await send(
       base,
-      { method: 'PUT', path: '/reminders/shabbat-candles' },
+      { method: 'PATCH', path: '/users/me' },
       { authorization: `Bearer ${token}` },
     );
     expect(res.status).toBe(status);
@@ -231,7 +214,7 @@ describe('proxy (gateway) → internal services, over the wire', () => {
     headers: IncomingHttpHeaders;
     body: string;
   };
-  const services = ['users', 'reminders', 'notifications'] as const;
+  const services = ['users'] as const;
   const upstreams: Server[] = [];
   let received: Received[];
   let app: INestApplication;
@@ -287,7 +270,7 @@ describe('proxy (gateway) → internal services, over the wire', () => {
       const [req] = received;
       expect(req.service).toBe(route.service);
       expect(req.method).toBe(route.method);
-      expect(req.url).toBe(concrete(route.path));
+      expect(req.url).toBe(route.path);
       expect(req.headers['x-user-id']).toBe(
         route.auth === 'user' ? 'user-1' : undefined,
       );
@@ -304,42 +287,14 @@ describe('proxy (gateway) → internal services, over the wire', () => {
   const auth = { authorization: `Bearer ${token}` };
 
   it('passes a GET\x27s query string on as sent', async () => {
-    const route = {
-      method: 'GET',
-      path: '/reminders/custom?from=2026-10-01&to=2026-12-31',
-    } as const;
+    const route = { method: 'GET', path: '/users/me?fields=phone' } as const;
     expect((await send(base, route, auth)).status).toBe(204);
-    expect(received[0].url).toBe(
-      '/reminders/custom?from=2026-10-01&to=2026-12-31',
-    );
+    expect(received[0].url).toBe('/users/me?fields=phone');
   });
 
   it('drops the query string of anything but a GET', async () => {
-    const route = {
-      method: 'DELETE',
-      path: '/reminders/shabbat-candles?x=1',
-    } as const;
+    const route = { method: 'PATCH', path: '/users/me?x=1' } as const;
     expect((await send(base, route, auth)).status).toBe(204);
-    expect(received[0].url).toBe('/reminders/shabbat-candles');
-  });
-
-  it.each([
-    ['a slash', 'a%2F..%2Fb', '/reminders/custom/a%2F..%2Fb'],
-    ['dots', '..', null],
-    ['a question mark', 'x%3Fy', '/reminders/custom/x%3Fy'],
-  ])('an id with %s stays one path segment', async (_name, id, arrives) => {
-    const route = {
-      method: 'DELETE',
-      path: `/reminders/custom/${id}`,
-    } as const;
-    const res = await send(base, route, auth);
-    if (arrives === null) {
-      // The client itself resolves '..' away: /reminders/custom/.. is /reminders, unlisted for DELETE.
-      expect(res.status).toBe(404);
-      expect(received).toEqual([]);
-    } else {
-      expect(res.status).toBe(204);
-      expect(received[0].url).toBe(arrives);
-    }
+    expect(received[0].url).toBe('/users/me');
   });
 });

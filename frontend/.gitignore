@@ -1,7 +1,6 @@
 node_modules/
 .expo/
 dist/
-web-build/
 expo-env.d.ts
 .metro-health-check*
 npm-debug.*
@@ -9,6 +8,5 @@ npm-debug.*
 *.pem
 .env
 .env*.local
-google-services.json
 /ios
 /android

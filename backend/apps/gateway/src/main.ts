@@ -11,7 +11,6 @@ startOtel('gateway');
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
-import { IoAdapter } from '@nestjs/platform-socket.io';
 import { GatewayModule } from './gateway.module';
 import { TRUST_PROXY } from './trust-proxy';
 
@@ -26,15 +25,12 @@ async function bootstrap() {
   app.enableCors({ origin: true });
   // Who may forward the client's IP: trust-proxy.ts, docs/specs/architecture.md#system-topology.
   app.set('trust proxy', TRUST_PROXY);
-  app.useWebSocketAdapter(new IoAdapter(app));
 
   installGracefulShutdown(app);
 
   const port = process.env.PORT ?? 8000;
   await app.listen(port);
 
-  console.log(
-    `Gateway listening on http://localhost:${port} (Socket.IO path: /ws)`,
-  );
+  console.log(`Gateway listening on http://localhost:${port}`);
 }
 void bootstrap();

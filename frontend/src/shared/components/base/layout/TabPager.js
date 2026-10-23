@@ -6,7 +6,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Gesture,
@@ -59,19 +59,6 @@ export default function TabPager({
   const nearest = useSharedValue(index);
   const lastSV = useSharedValue(count - 1);
   const target = useRef(index); // where the pager is, or is heading
-  const clipRef = useRef(null);
-
-  // Web: the browser sometimes scrolls the clipping box sideways itself (to show something
-  // focused), which left the screen stuck part-way between two tabs. Only the strip moves it.
-  useEffect(() => {
-    const el = clipRef.current;
-    if (Platform.OS !== 'web' || !el?.addEventListener) return undefined;
-    const reset = () => {
-      if (el.scrollLeft) el.scrollLeft = 0;
-    };
-    el.addEventListener('scroll', reset);
-    return () => el.removeEventListener('scroll', reset);
-  }, []);
 
   // The parent's callbacks change every render; the gesture below must not (see SwipePager).
   const callbacks = useRef({});
@@ -179,8 +166,7 @@ export default function TabPager({
   return (
     <GestureHandlerRootView style={styles.fill}>
       <TabPagerGesture.Provider value={pan}>
-        {/* pan-y: the browser keeps scrolling the page up and down (web only). */}
-        <GestureDetector gesture={pan} touchAction="pan-y">
+        <GestureDetector gesture={pan}>
           <Animated.View
             collapsable={false}
             style={styles.fill}
@@ -192,10 +178,7 @@ export default function TabPager({
               }
             }}
           >
-            <View
-              ref={clipRef}
-              style={[styles.clip, { backgroundColor: colors.bg }]}
-            >
+            <View style={[styles.clip, { backgroundColor: colors.bg }]}>
               {/* What a stretch past the first or last page shows: the screens' own backdrop. */}
               <LinearGradient
                 colors={colors.spaceGradient}

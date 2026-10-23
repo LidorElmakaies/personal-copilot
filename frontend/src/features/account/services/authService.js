@@ -68,7 +68,7 @@ export async function updateAccount({
   return response.json(); // { access_token, refresh_token }
 }
 
-// Immediate and permanent; the user's reminders and push subscriptions go with it.
+// Immediate and permanent.
 export async function deleteAccount({ email, currentPassword }) {
   const response = await fetch(`${URLS.gateway}/auth/account`, {
     method: 'DELETE',

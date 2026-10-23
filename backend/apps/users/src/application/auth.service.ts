@@ -94,8 +94,11 @@ export class AuthService implements IAuthService {
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
 
-    // Rotate-on-use — see docs/specs/services.md#users.
-    await this.refreshTokens.revoke(stored.id);
+    // Rotate-on-use — see docs/specs/services.md#users. A concurrent refresh with the same token
+    // that revoked it first wins; this one is a replay.
+    if (!(await this.refreshTokens.revoke(stored.id))) {
+      throw new UnauthorizedException('Invalid or expired refresh token');
+    }
     return this.issueTokens(user.id, user.email, user.role);
   }
 

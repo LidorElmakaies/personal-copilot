@@ -20,6 +20,6 @@ export interface IServiceClient {
   forward(request: ProxyRequest): Promise<ProxyResponse>;
 }
 
-export type InternalService = 'users' | 'reminders' | 'notifications';
+export type InternalService = 'users';
 
 export type ServiceClients = Record<InternalService, IServiceClient>;

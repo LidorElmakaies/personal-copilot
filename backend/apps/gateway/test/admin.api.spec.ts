@@ -40,18 +40,7 @@ describe('GET /admin/status (gateway)', () => {
         }),
       );
     });
-    const reminders = await healthServer((res) => {
-      res.writeHead(500);
-      res.end();
-    });
-    // Answers after the probe's timeout.
-    const notifications = await healthServer((res) => {
-      setTimeout(() => {
-        res.writeHead(200, { 'content-type': 'application/json' });
-        res.end('{"status":"ok"}');
-      }, 500);
-    });
-    servers.push(users.server, reminders.server, notifications.server);
+    servers.push(users.server);
 
     const moduleRef = await Test.createTestingModule({
       imports: [
@@ -61,8 +50,6 @@ describe('GET /admin/status (gateway)', () => {
           load: [
             () => ({
               USERS_SERVICE_URL: users.url,
-              REMINDERS_SERVICE_URL: reminders.url,
-              NOTIFICATIONS_SERVICE_URL: notifications.url,
               ADMIN_STATUS_TIMEOUT_MS: 150,
               JWT_SECRET: TEST_JWT_SECRET,
             }),
@@ -89,18 +76,13 @@ describe('GET /admin/status (gateway)', () => {
   const get = (headers: Record<string, string> = {}) =>
     fetch(`${base}/admin/status`, { headers });
 
-  it('reports Gateway itself plus each service, down instead of failing', async () => {
+  it('reports Gateway itself plus the Users Service', async () => {
     const res = await get({ authorization: `Bearer ${token('admin')}` });
 
     expect(res.status).toBe(200);
     expect(res.headers.get('cache-control')).toBe('no-store');
     const body = (await res.json()) as Record<string, unknown>[];
-    expect(body.map((s) => s.service)).toEqual([
-      'gateway',
-      'users',
-      'reminders',
-      'notifications',
-    ]);
+    expect(body.map((s) => s.service)).toEqual(['gateway', 'users']);
     expect(body[0]).toMatchObject({ status: 'up', latencyMs: null });
     expect(body[1]).toMatchObject({
       service: 'users',
@@ -110,18 +92,33 @@ describe('GET /admin/status (gateway)', () => {
       startedAt: '2026-10-06T08:00:00.000Z',
     });
     expect(typeof body[1].latencyMs).toBe('number');
-    const down = {
-      status: 'down',
-      version: null,
-      builtAt: null,
-      startedAt: null,
-      latencyMs: null,
-    };
-    expect(body[2]).toEqual({ service: 'reminders', ...down });
-    expect(body[3]).toEqual({ service: 'notifications', ...down });
   });
 
-  it('reports an unreachable service as down', async () => {
+  it.each([
+    ['unreachable', null],
+    [
+      'answering 500',
+      (res: import('http').ServerResponse) => {
+        res.writeHead(500);
+        res.end();
+      },
+    ],
+    [
+      "answering after the probe's timeout",
+      (res: import('http').ServerResponse) => {
+        setTimeout(() => {
+          res.writeHead(200, { 'content-type': 'application/json' });
+          res.end('{"status":"ok"}');
+        }, 500);
+      },
+    ],
+  ])('reports the Users Service %s as down', async (_name, handler) => {
+    let url = 'http://127.0.0.1:1';
+    if (handler) {
+      const users = await healthServer(handler);
+      servers.push(users.server);
+      url = users.url;
+    }
     const moduleRef = await Test.createTestingModule({
       imports: [
         ConfigModule.forRoot({
@@ -129,9 +126,8 @@ describe('GET /admin/status (gateway)', () => {
           ignoreEnvFile: true,
           load: [
             () => ({
-              USERS_SERVICE_URL: 'http://127.0.0.1:1',
-              REMINDERS_SERVICE_URL: 'http://127.0.0.1:1',
-              NOTIFICATIONS_SERVICE_URL: 'http://127.0.0.1:1',
+              USERS_SERVICE_URL: url,
+              ADMIN_STATUS_TIMEOUT_MS: 150,
               JWT_SECRET: TEST_JWT_SECRET,
             }),
           ],
@@ -145,8 +141,18 @@ describe('GET /admin/status (gateway)', () => {
       const res = await fetch(`${await other.getUrl()}/admin/status`, {
         headers: { authorization: `Bearer ${token('admin')}` },
       });
-      const body = (await res.json()) as { status: string }[];
-      expect(body.map((s) => s.status)).toEqual(['up', 'down', 'down', 'down']);
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual([
+        expect.objectContaining({ service: 'gateway', status: 'up' }),
+        {
+          service: 'users',
+          status: 'down',
+          version: null,
+          builtAt: null,
+          startedAt: null,
+          latencyMs: null,
+        },
+      ]);
     } finally {
       await other.close();
     }

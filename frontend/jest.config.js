@@ -17,7 +17,7 @@ const [nodeModules, ...otherIgnores] = expoPreset.transformIgnorePatterns;
 
 module.exports = {
   preset: 'jest-expo',
-  roots: ['<rootDir>/src'], // not app/ (routes) or e2e/ (Playwright)
+  roots: ['<rootDir>/src'], // not app/ (routes)
   testRegex: '\\.spec\\.[jt]s$',
   transformIgnorePatterns: [
     nodeModules.replace('(?!(', `(?!(${esmOnly.join('|')}|`),

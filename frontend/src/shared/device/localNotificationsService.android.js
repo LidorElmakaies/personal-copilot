@@ -2,8 +2,8 @@ import * as Notifications from 'expo-notifications';
 import { Linking } from 'react-native';
 
 // Notifications the phone schedules itself (exact alarms, expo-notifications), no Redux knowledge
-// — called only from thunks (the reminders' reconcile, notificationsSlice) and by fcmService for
-// the channel of an incoming message. The web build gets localNotificationsService.js, which does nothing.
+// — called only from thunks (the reminders' reconcile, notificationsSlice). Other platforms (Jest's
+// default) get localNotificationsService.js, which does nothing.
 //
 // Ours are told apart from anything else scheduled by their id's prefix (ID_PREFIX — schedulePlan
 // builds the ids with it); their time is kept in data (`at`).

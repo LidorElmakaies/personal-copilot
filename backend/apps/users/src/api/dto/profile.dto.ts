@@ -12,8 +12,8 @@ import {
   NAME_MAX_LENGTH,
   NAME_PATTERN,
   PHONE_E164,
-} from '@app/kafka-contracts';
-import type { Profile } from '../../models/profile';
+  type Profile,
+} from '../../models/profile';
 
 const NAME_RULE = {
   message:
@@ -56,7 +56,7 @@ export class LocationDto {
   lon!: number;
 }
 
-/** The client-facing shape: no user id (the caller's own) or version (internal). */
+/** The client-facing shape: no user id (the caller's own). */
 export const toProfileResponse = (p: Profile) => ({
   firstName: p.firstName,
   lastName: p.lastName,

@@ -152,7 +152,7 @@ export function remindersRange(index, around) {
   };
 }
 
-// The Reminders Service's TITLE_PATTERN: English or Hebrew letters, digits and basic punctuation,
+// A title: English or Hebrew letters, digits and basic punctuation,
 // single spaces between words; up to 60.
 export const TITLE_MAX_LENGTH = 60;
 const TITLE_PATTERN =

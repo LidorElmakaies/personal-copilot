@@ -6,8 +6,8 @@ metadata:
   type: feedback
 ---
 
-Flagged directly at a small example (`libs/kafka-contracts/src/messages/whatsapp-inbound.message.ts`
-had a 3-line JSDoc block for a 6-field interface): "you are putting too many comments in code."
+Flagged directly at a small example (a since-deleted Kafka message interface had a 3-line JSDoc
+block for 6 fields): "you are putting too many comments in code."
 
 **Root cause**: this project's comments were written mirroring [[askmycrawl-project]]'s own style,
 which is unusually dense by design (that project narrates an AI agent's build decisions inline, as

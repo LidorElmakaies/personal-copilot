@@ -17,9 +17,8 @@ import customRemindersReducer, {
 } from './customRemindersSlice';
 import { reconcileReminderNotifications } from './scheduleNotifications';
 
-// The Reminders Service's scheduler scenarios (reminder-scheduler and custom-reminder-scheduler
-// specs), on the phone: the real store, planner (schedulePlan) and reconcile over an in-memory
-// phone standing in for expo-notifications' exact alarms. An alarm goes off when the clock reaches
+// The reminders' scheduling scenarios, on the phone: the real store, planner (schedulePlan) and
+// reconcile over an in-memory phone standing in for expo-notifications' exact alarms. An alarm goes off when the clock reaches
 // it and is gone from the scheduled list after; one due while the phone was off is dropped, as
 // expo-notifications does on boot. The app re-runs the reconcile on start, on the foreground and
 // on a move (ReminderScheduleManager) — here, `reconcile()`.

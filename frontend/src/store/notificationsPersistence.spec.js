@@ -30,7 +30,6 @@ jest.mock('../features/account', () => ({
 jest.mock('../features/app-update', () => ({ appUpdateReducer: mockStub() }));
 jest.mock('../features/calendar', () => ({ calendarReducer: mockStub() }));
 jest.mock('../shared/device/locationSlice', () => mockStub());
-jest.mock('../shared/realtime/wsSlice', () => mockStub());
 jest.mock('../shared/theme/themeSlice', () => mockStub());
 jest.mock('../shared/http/httpClient', () => ({
   setUnauthorizedHandler: jest.fn(),

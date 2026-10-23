@@ -26,7 +26,7 @@ export class EmailTakenError extends Error {
 
 /** Implemented by TypeOrmUserRepository, consumed by AuthService and AdminSeedService. */
 export interface IUserRepository {
-  /** Creates the user and their profile, and publishes the profile's state — atomically. Throws EmailTakenError. */
+  /** Creates the user and their profile in one transaction. Throws EmailTakenError. */
   create(input: CreateUserInput, details: ProfileDetails): Promise<User>;
   findById(id: string): Promise<User | null>;
   findByEmail(email: string): Promise<User | null>;
@@ -35,6 +35,6 @@ export interface IUserRepository {
    * password revokes every refresh token the user has. Throws EmailTakenError.
    */
   updateCredentials(userId: string, change: CredentialsChange): Promise<void>;
-  /** Deletes the user (cascading to other services' rows about them) and publishes a tombstone — atomically. */
+  /** Deletes the user, their profile and refresh tokens in one transaction. */
   delete(userId: string): Promise<void>;
 }

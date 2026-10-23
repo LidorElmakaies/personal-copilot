@@ -1,6 +1,6 @@
 ---
 name: frontend
-description: Frontend engineer for personal-copilot's Expo/React Native app. Use for implementing or modifying anything under frontend/ — auth screens, the theme system, and whatever screens a future feature adds.
+description: Frontend engineer for personal-copilot's Expo/React Native Android app. Use for implementing or modifying anything under frontend/ — auth screens, the theme system, and whatever screens a future feature adds.
 tools: Read, Write, Edit, Glob, Grep, Bash, PowerShell, WebFetch, WebSearch
 ---
 
@@ -16,7 +16,8 @@ second one.
 
 ## Where you work
 
-`frontend/` — see root `CLAUDE.md` for the overall stack. This app is currently optional auth
+`frontend/` — see root `CLAUDE.md` for the overall stack. The app ships only as an Android APK
+(`node devops/android/apk.js build`). It is currently optional auth
 (login/register, not a whole-app gate) + a Home tab (landing, no session required; clock, dates,
 and Shabbat times for the device's location via `locationSlice` + `calendarSlice` — computed on the phone by `calendarService` from `src/lib/jewish-calendar/`, no network;
 under them the candle-lighting reminder bell + offset sheet, `CandleReminder` + `remindersSlice` —
@@ -32,10 +33,8 @@ defined in `src/store/backgroundTasks.js`) + an auth-gated,
 hidden Account tab (theme, notifications, email/password, profile, logout, delete account — one card
 component each — then `VersionInfo`) + Android's notification permission
 (`notificationsSlice` over `localNotificationsService`, kept current by `ReminderScheduleManager`;
-`NotificationsPrompt`, `NotificationsCard`; no account involved) + incoming FCM pushes for a phone
-registered with the Notification Service (`fcmReceiver.android.js`; the app registers none) + the
-installable web app
-(`public/manifest.webmanifest`, `public/index.html`) + the Android APK's in-app
+`NotificationsPrompt`, `NotificationsCard`; no account involved; the foreground handler
+`shared/device/notificationDisplay.js`, loaded by `index.js`) + the in-app
 update (`AppUpdateManager` → `appUpdateSlice`, checked on start and back in the foreground;
 `UpdateSheet`/`UpdateChip`) + an admins-only,
 hidden Admin tab (`SystemStatus` over `GET /admin/status`, `adminSlice`) — see
@@ -45,7 +44,7 @@ hidden Admin tab (`SystemStatus` over `GET /admin/status`, `adminSlice`) — see
 A tab opts into requiring a session via `TABS`' `requiresAuth: true` entry in `(tabs)/_layout.js`
 — a press on it in `CustomTabBar`, or a swipe onto it (`SwipeTabs`' `canEnter`/`onBlocked`: the
 swipe springs back), while signed out shows `ConfirmModal` instead of navigating. That only covers a
-tap or a swipe; a direct hit on the route (deep link, web refresh,
+tap or a swipe; a direct hit on the route (deep link,
 reopening the app on that tab) bypasses it, so a `requiresAuth` screen also needs its own mount-time
 check. A tab with `hidden: true` is left out of the bar and the swipe order for everyone (its
 route opens only from a direct link) — Account and Admin are, so the bar is Home and Calendar and
@@ -104,9 +103,8 @@ feature's `components/` (listed under `composite/` below with its feature):
   register's link to the other screen, plus "Continue without logging in"); `FloatingButton`'s `icon` (Ionicons name, default `add`) — the
   caller positions it via `style` (`position: 'absolute'` and its corner);
   `Alert`'s `variant` (`error` default, `warning`, `success`); `Switch`'s `disabled` and
-  `accessibilityLabel` (rendered with role `switch`); `GlowCard`'s `solid` (opaque panel under the
-  glass, for a card drawn over other content such as a modal; Android always gets the panel
-  instead of the blur); `PillButton`'s `tone` (`accent`
+  `accessibilityLabel` (rendered with role `switch`); `GlowCard` always draws an opaque panel
+  (`colors.panel`) under its tint; `PillButton`'s `tone` (`accent`
   default, `muted`, `pending` — amber, something is set, `selected` — the chosen option in a group)
   and `icon` (a render function given the text color); `Stepper`'s `min`/`max`/`step`/`unit` (− value
   +, clamped; an off-grid value moves to the next grid point); `BottomSheet`'s `visible`/`onClose`
@@ -124,7 +122,7 @@ feature's `components/` (listed under `composite/` below with its feature):
   the Account tab's cards but `ThemeCard`. Each: `AmbientBackground` (from `Meteors`, `Stars`), `SwipeTabs` (from
   `TabPager` — the `(tabs)` navigator: Expo Router's `withLayoutContext` + `TabRouter`, the screens
   side by side; `order`, `canEnter`, `onBlocked`, `tabBar({ navigation, activeName })`), `ConfirmModal` (from
-  `GlowCard` (solid), `GradientButton`; optional `icon`/`title` above the message),
+  `GlowCard`, `GradientButton`; optional `icon`/`title` above the message),
   `FormActions` (from `GradientButton` — the Save/Cancel pair under `AccountCard`'s and
   `ProfileCard`'s edit forms),
   `NotificationsPrompt` (from `ConfirmModal` — the one-time "Turn on notifications?", rendered at
@@ -174,7 +172,7 @@ src/features/<name>/      components/ screens/ store/ services/ utils/ hooks/ + 
   shabbat/ calendar/ reminders/ app-update/ account/ (dormant: auth, profile, admin)
 src/lib/jewish-calendar/  the calendar maths — pure, no React
 src/shared/               components/ (base/, composite/), theme/, config/, http/, utils/,
-                          device/ (location, notifications, background tasks), realtime/ (the /ws client, dormant)
+                          device/ (location, notifications, background tasks)
 src/store/index.js        the root store: each feature's reducer (from its index.js) + persistence
 src/store/backgroundTasks.js  background tasks, defined with the rehydrated store (loaded by index.js)
 ```
@@ -189,10 +187,10 @@ src/store/backgroundTasks.js  background tasks, defined with the rehydrated stor
 
 ## Services layer — where all I/O lives
 
-Every network call (HTTP or WebSocket) and every device API (location, scheduled local
+Every network call and every device API (location, scheduled local
 notifications and their permission, `AppState`, the file
 system and Android intents) lives in a plain module
-in its feature's `services/`, or under `src/shared/` (`device/`, `http/`, `realtime/`) when several
+in its feature's `services/`, or under `src/shared/` (`device/`, `http/`) when several
 features use it — never inline inside a thunk
 and never inside a component. Services
 know nothing about Redux (no `dispatch`, no reading state); thunks call the service and translate
@@ -203,28 +201,22 @@ when a component genuinely needs something no thunk/selector combination can giv
 ## Non-negotiables
 
 - Build-time values come from `src/shared/config/`: `urls.js` (`URLS.gateway` from
-  `EXPO_PUBLIC_GATEWAY_ORIGIN`, `null` if unset — every API call and `/ws`, used only by the
+  `EXPO_PUBLIC_GATEWAY_ORIGIN`, `null` if unset — every API call, used only by the
   dormant login/account screens; `apkRegistry` from
   `EXPO_PUBLIC_APK_REGISTRY_URL`, set only by `apk.js build`, `null` elsewhere) and `version.js`
-  (`VERSION { frontend, builtAt }` — set by `frontend/Dockerfile` or `apk.js build` from
+  (`VERSION { frontend, builtAt }` — set by `apk.js build` from
   `version/versions.json`, `null` under `expo start`, shown as "dev"). Read them from there, not
   `process.env` elsewhere.
 - Always use `useAppTheme()` for colors — never hardcode or import `colors.js` directly in a
   screen/component.
 - Don't hand-write to AsyncStorage — redux-persist handles persisted slices (`auth` — tokens only, `theme`,
   `location` — `coords` only, `calendar` — `shabbat` only, `notifications` — `promptDismissed`
-  only, `appUpdate` — `dismissedVersionCode` only, `ws` — `deviceToken` only,
-  `reminders` — `candles` only, `customReminders` — `items` only; neither reminder slice is reset
+  only, `appUpdate` — `dismissedVersionCode` only,
+  `reminders` — `candles` and `candleFirings`, `customReminders` — `items` only; neither reminder slice is reset
   on `clearAuth`/`deleteAccount`). `profile` and `admin` aren't persisted, and are reset on
   `clearAuth`/`deleteAccount` so one user's data never reaches the next.
 - Dormant, kept but not mounted in `app/_layout.js`: `AuthGate` (scheduled token renewal, the
-  session-ended redirect to login) and `LocationSyncManager` (both exported by `account`) and
-  `shared/realtime/`'s `RealtimeConnectionManager` (the `/ws` connection). If the Socket.IO
-  connection is mounted again: one per install, with its device token (`wsSlice`, persisted),
-  managed only by `RealtimeConnectionManager` → `wsSlice`; a feature listens with
-  `socketService.on(event, handler)` from a thunk and calls the returned unsubscribe in its effect
-  cleanup — `socketService` doesn't hand out the socket itself: it's replaced on sign-in/out and on
-  return from the background, and only `on()` handlers carry over.
+  session-ended redirect to login; exported by `account`).
 - Provider order in `app/_layout.js` is load-bearing (`Provider` → `PersistGate` →
   `ThemedStatusBar` → `Stack` → `ReminderScheduleManager` → `NotificationsPrompt` →
   `AppUpdateManager`. `ReminderScheduleManager` must be inside `PersistGate` (it schedules from the
@@ -235,51 +227,32 @@ when a component genuinely needs something no thunk/selector combination can giv
 - **The frontend only ever talks to Gateway, never the Users Service or any other backend service
   directly** — see `.claude/memory/feedback_gateway_only_service_access.md`. The single exception
   is read-only static files: the APK's update check reads the registry's `latest.json` and APK
-  from the frontend's own Caddy (`/apk/`, `appUpdateService`). Every API call still goes to
+  from `apk`'s Caddy (`/apk/`, `appUpdateService`). Every API call still goes to
   Gateway.
 - **This project is a known stepping-stone style** — the user has said the whole look (space/glow/
   gradient) will eventually be replaced by a different, more animated ("3D") style. Don't treat
   today's palette/components as permanent brand decisions worth defending; do keep them internally
   consistent until that rework happens.
 
-## Seeing your changes — browser-driven verification
+## Seeing your changes — on the phone
 
-Don't declare a visual/animation change done from reading the code or a single screenshot — this
-project has repeatedly had bugs that only showed up once actually measured or interacted with
-(see "Bug patterns already hit" below).
+Don't declare a visual/animation change done from reading the code — this project has repeatedly
+had bugs that only showed up once actually measured or interacted with (see "Bug patterns already
+hit" below).
 
 - **New UI ideas start as an HTML mockup** under the feature's plan folder
   (`docs/plans/<feature>/mockups.html` — e.g. the chosen H1/C1 designs for Shabbat/calendar) and
   get the user's sign-off before real component code. Update that file when a design changes.
-- **The real app** runs from the Docker stack: `cd devops && docker compose up -d --build frontend`
-  after a code change, then `http://localhost:8081` (Gateway at the baked `GATEWAY_PUBLIC_URL`).
-  The Expo web dev server alone doesn't prove what ships.
-- **Browser tests and screenshots** run in the pinned Playwright container —
-  `docker compose -f devops/playwright/docker-compose.yml run --rm e2e` from the repo root; specs in
-  `frontend/e2e/tests/`, one per screen/flow. See `.claude/agents/testing.md` for conventions
-  (fixed GPS via `geolocation`/`permissions`, pinned clock via `page.clock`, mocked API via
-  `page.route`, waiting out RN-web JS animations before a screenshot). Look at every screenshot you
+- **Logic** is covered by Jest (`npm test`, the `*.spec.{ts,js}` under `src/`) — slices, thunks,
+  planners and the calendar maths, see `.claude/agents/testing.md`.
+- **The real app** is the APK: `node devops/android/apk.js build` (a `-test.N` version while
+  iterating), installed on the phone, or Expo Go / a dev client over Tailscale
+  (`docs/frontend/environment.md`) for a quick look. Behavior that only the device has —
+  notifications, exact alarms, background tasks, permissions, GPS, the update flow — is checked
+  there.
+- **Measure on the phone**: `adb logcat` for JS errors, `adb shell top` and `dumpsys gfxinfo` for
+  CPU and frame time, `adb exec-out screencap -p` for a screenshot. Look at every screenshot you
   take before reporting a UI change done.
-- **On the phone**: Expo Go over Tailscale (`docs/frontend/environment.md`) for native behavior
-  (permissions, GPS), or `https://<pc>.ts.net` in the phone browser for the web build.
-
-Driving tips:
-- Register a throwaway account through the UI (`fill`/`click`) rather than scripting the API —
-  React-controlled inputs ignore `eval`-setting `.value` directly (`onChange` never fires).
-- Don't trust `getByText(x, { exact: true })` to resolve to the element you expect — RN-web's
-  `text-transform: uppercase` etc. means visible text and the DOM's actual text content differ,
-  and a label can match several nested ancestors at once (button *and* its containing row). A
-  non-exact `getByText` also matches substrings ("Candle lighting" matches "until candle
-  lighting"). An `accessibilityLabel` (rendered as `aria-label`) + `getByLabel` is the most stable
-  hook for composite values like a countdown.
-- For anything about alignment/centering/sizing, pull `getBoundingClientRect()`/
-  `getComputedStyle()` on the real DOM nodes and diff the numbers — a screenshot proves a shape
-  *looks* right at that moment, a coordinate delta proves an offset is or isn't real. A crop
-  region built from the wrong ancestor's box has produced apparent "bugs" that were actually the
-  verification script's own mistake, not the component's.
-- `document.elementFromPoint()` skips any element with `pointerEvents: 'none'` — useless for
-  inspecting a deliberately non-interactive decorative layer (a glow, a sweep highlight, a
-  particle); it reports whatever's underneath instead.
 
 ### Bug patterns already hit — recognize these fast if they recur
 
@@ -292,37 +265,28 @@ Driving tips:
   — reads as a broken/doubled border. Use a separate prop (this component's `contentStyle`) for
   anything that should resize the *visible* box, and keep the outer box's own style limited to
   layout props (`flex`/`margin`/`width`) that must reach the real flex child.
-- **`BlurView`/`backdrop-filter` needs its own explicit `borderRadius`**, not just an ancestor's
-  `overflow:'hidden'` — on web, blur can bleed past a rounded clip in a rectangular shape. Barely
-  visible at a small corner radius, very visible once a shape is fully rounded (a pill).
 - **Never `elevation` (or `shadow*`) on a translucent view — use RN `boxShadow`.** Android draws an
   elevation shadow under the whole view, and it shows through translucent layers as a thick tinted
   band or an offset box. `boxShadow` is also the only way to get a *colored* glow on Android.
 - **`BlurView` (`expo-blur`) is just a tint on Android** unless given a `BlurTargetView` — the
-  background shows through sharp. Android gets an opaque layer instead (`GlowCard`'s `colors.panel`).
+  background shows through sharp. Cards use an opaque layer instead (`GlowCard`'s `colors.panel`).
   The tab bar has no blur on any platform: it sits below the screen, not over it, so there's nothing
   to blur — it uses `colors.bg` under its tint.
 - **Gestures inside a `Modal` on Android: use `react-native-gesture-handler`, not `PanResponder`** —
   the JS responder got neither `BottomSheet`'s drag nor its backdrop tap there (taps on buttons inside
-  still worked, and the web build was fine, so only the phone shows it). A Modal is its own window:
+  still worked). A Modal is its own window:
   wrap its content in a `GestureHandlerRootView`, and give a view that only carries a gesture
   `collapsable={false}` so it isn't flattened away.
-- **Web: an `overflow:'hidden'` box can still be scrolled by the browser** (to show something
-  focused) — `TabPager`'s clipping box was left `scrollLeft` 107 px, the screen stuck between two
-  tabs. RN-web drops `overflow:'clip'`, so `TabPager` puts `scrollLeft` back on its `scroll` event.
 - **A gesture object must outlive re-renders** (`SwipePager`): `Gesture.Pan()` built in render
   replaced the one in progress whenever the drag re-rendered the screen, so a drag held still
   before letting go was lost — build it in `useMemo` and reach changing callbacks through a ref.
-  On web, also keep the element a touch started on mounted until it ends: the browser sends the rest
-  of the touch there, and a long drag that unmounted it never got its lift-off.
 - **Don't size a box from a measured child on first paint** if things around it are centered: the
   swipe area measured its month before taking its height, so for a moment the month was clipped and
   everything below jumped — keep the page in view in normal layout instead.
 - **Many always-running animations: not Reanimated.** ~100 stars × 2 endless `withRepeat` loops
   ran a worklet per animation per frame on the UI thread — ~90% of the app's CPU on a 120 Hz phone
   (110%+ of a core; 8% with them still). `Stars`/`Meteors` use RN `Animated` with
-  `useNativeDriver` on the phone (no per-frame JS) and CSS keyframes (`animationKeyframes`,
-  `StyleSheet.create` only) on the web, where `Animated` falls back to JS. A native loop repeats
+  `useNativeDriver` (no per-frame JS). A native loop repeats
   only its frames — a JS `delay` inside it runs once — so a loop with an idle wait is a
   `sequence`. Hidden tabs stay mounted: pause decorative loops when the screen isn't focused, and
   `memo` them so a parent's per-second re-render doesn't reach them. Measure on the phone
@@ -352,6 +316,5 @@ Driving tips:
 cd frontend
 npm install
 npx expo start          # Expo Go / dev client
-npx expo start --web
 npm test                # Jest (jest-expo + React Native Testing Library), *.spec.{ts,js} under src/
 ```

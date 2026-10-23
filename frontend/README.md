@@ -1,6 +1,6 @@
 # frontend
 
-Expo/React Native app — optional login/register (the app doesn't gate itself on a session), a Home
+Expo/React Native app, built as an Android APK — optional login/register (the app doesn't gate itself on a session), a Home
 tab (clock, dates, Shabbat times for the device's location, and a candle-lighting reminder bell),
 a Calendar tab (the Jewish-calendar month; the user's own reminders on it, added and
 edited in a bottom sheet — both kinds of reminder kept on the phone, no login needed). The bar
@@ -14,13 +14,12 @@ for the conventions to follow when changing anything here.
 npm install
 cp .env.example .env    # EXPO_PUBLIC_GATEWAY_ORIGIN — optional, only the dormant login/account screens use it
 npx expo start          # Expo Go / dev client
-npx expo start --web
 npm test                # Jest: the *.spec.{ts,js} under src/ (jest-expo, React Native Testing Library)
 ```
 
 On your phone over Tailscale (Expo Go): see `docs/frontend/environment.md` — run Expo on `:8082`
-with `EXPO_PUBLIC_GATEWAY_ORIGIN` pointing at the PC's tailnet IP. Browser tests live in
-[`e2e/`](e2e/README.md) (Playwright, runs in a container).
+with `EXPO_PUBLIC_GATEWAY_ORIGIN` pointing at the PC's tailnet IP. The release build is the APK
+(Android app, below).
 
 Matches the sibling project it's modeled on (`ask-my-crawl`) for theme/component conventions — the
 same theme pipeline (`themeSlice` → `useAppTheme()`; `AmbientBackground` cross-fades its two
@@ -42,7 +41,7 @@ src/features/<name>/      components/ screens/ store/ services/ utils/ hooks/ + 
   account/                auth, profile, admin — dormant
 src/lib/jewish-calendar/  the calendar maths — pure, no React
 src/shared/               components/ (base/, composite/), theme/, config/, http/, utils/,
-                          device/ (location, notifications, background tasks), realtime/ (the /ws client, dormant)
+                          device/ (location, notifications, background tasks)
 src/store/index.js        the root store: each feature's reducer (from its index.js) + persistence
 src/store/backgroundTasks.js  background tasks, defined with the rehydrated store (loaded by index.js)
 ```
@@ -63,15 +62,14 @@ adding one.
 
 Same Redux Toolkit + services-layer + Expo Router conventions otherwise: all I/O lives in a
 feature's `services/` or `src/shared/` — `device/` (on-device I/O: `expo-location`, notifications),
-`http/` (`httpClient`), `realtime/` (the Socket.IO client) — called only from thunks, never inline
-in a component. Shabbat times and the Calendar tab's months need no network: calendar's
-`calendarService` computes them from `src/lib/jewish-calendar/` (as JSON, the shape Gateway's
-`/calendar/*` answered), so Home and the Calendar tab work offline.
+`http/` (`httpClient`) — called only from thunks, never inline in a component. Shabbat times and
+the Calendar tab's months need no network: calendar's `calendarService` computes them from
+`src/lib/jewish-calendar/` (as JSON, times as ISO strings), so Home and the Calendar tab work
+offline.
 
 ## Version
 
-`src/shared/config/version.js` exposes the frontend's version and build time, which `Dockerfile` (and
-`apk.js build`) reads from `version/versions.json` into `EXPO_PUBLIC_*` vars (so `expo start` shows
+`src/shared/config/version.js` exposes the frontend's version and build time, which `apk.js build` reads from `version/versions.json` into `EXPO_PUBLIC_*` vars (so `expo start` shows
 "dev"); the (hidden) Account tab's `VersionInfo` shows them. See `docs/specs/services.md#versions`.
 
 ## Android app
@@ -80,12 +78,11 @@ in a component. Shabbat times and the Calendar tab's months need no network: cal
 android`, then Gradle) — see the root README. `app.json` holds the Android identity
 (`com.lidor.personalcopilot`, which must never change, plus the permissions —
 `REQUEST_INSTALL_PACKAGES` is for the in-app update); `app.config.js` adds the version and
-Android's `versionCode`, both from `FRONTEND_VERSION`, which the build script sets (unset for the
-web build and `expo start`). `src/shared/utils/versionCode.js` is the one `versionCode()` — CommonJS,
+Android's `versionCode`, both from `FRONTEND_VERSION`, which the build script sets (unset for `expo start`). `src/shared/utils/versionCode.js` is the one `versionCode()` — CommonJS,
 since `app.config.js` and `devops/android/apk.js` load it in plain Node; the app uses it too, on
 the baked `EXPO_PUBLIC_FRONTEND_VERSION`, to compare itself with the registry's `latest.json`.
 The build also bakes `EXPO_PUBLIC_APK_REGISTRY_URL` (`URLS.apkRegistry`), where that check looks
-(on start and back in the foreground); the web build never checks. Update APKs download to the app's cache (`updates/<versionCode>.apk`,
+(on start and back in the foreground); a dev server has none and never checks. Update APKs download to the app's cache (`updates/<versionCode>.apk`,
 via a `.part` file) and are deleted once installed — see `docs/specs/services.md#frontend`. `plugins/withReleaseSigning.js` switches
 the generated `android/app/build.gradle` from debug to release signing, with the key taken from env
 vars only the build sets. `react-native-worklets` is a direct dependency so Reanimated 4's native
@@ -95,25 +92,14 @@ part links. `android/` is generated and git-ignored.
 
 One source, `assets/icon/icon.svg`, on Android's 108×108 adaptive-icon canvas with two layers
 (`#background`, `#foreground`). `node devops/icons/render.js` renders every PNG from it in the
-pinned Playwright image: the Android adaptive layers, `icon.png`, the splash image
-(`expo-splash-screen` plugin in `app.json`), the favicon (`web.favicon`) and the web set in
-`public/icons/`. Edit the SVG, re-run the script, rebuild. Keep anything that matters inside the
+pinned Playwright image: the Android adaptive layers, `icon.png` and the splash image
+(`expo-splash-screen` plugin in `app.json`). Edit the SVG, re-run the script, rebuild. Keep anything that matters inside the
 66px safe circle: launchers show only the middle 72px, masked.
-
-## Installable web app
-
-`public/manifest.webmanifest` (name, standalone display, the `public/icons/` set) and
-`public/index.html` — Expo's single-page template, which `expo export` uses when it exists, plus
-the manifest link and the browser-bar colors — make the web build installable: Android Chrome
-offers Install, and the installed app opens full screen with its icon. Caddy serves the manifest
-as `application/manifest+json`.
 
 ## Location (`expo-location`)
 
-`app.json` registers the `expo-location` config plugin with the iOS "when in use" permission text;
-only foreground location is used. On web, the browser's geolocation API requires HTTPS (or
-`localhost`) — that's why phone access goes through `tailscale serve` (root README, "Phone
-access").
+`app.json` registers the `expo-location` config plugin and the `ACCESS_COARSE_LOCATION`/
+`ACCESS_FINE_LOCATION` permissions; only foreground location is used.
 
 ## Notifications (Android)
 
@@ -124,15 +110,12 @@ Showing them needs only Android's notification permission, no login: `notificati
 (through the same service), and the Account card and a one-time prompt (`NotificationsPrompt`,
 over any tab once a reminder exists) ask for it. A daily
 background task (`backgroundTaskService.android.js`, expo-background-task / WorkManager)
-re-runs their scheduling with the app closed. Background tasks are defined in
-`src/store/backgroundTasks.js`, which `index.js` also loads before the app (Android starts the JS
-headless for a task). A phone registered with the Notification Service still gets its FCM pushes:
-`fcmReceiver.android.js` — also loaded by `index.js` — decrypts and shows each message with the
-key `fcmService.android.js` keeps in `expo-secure-store`, even with the app swiped away; the app
-registers no phone itself. The web build has no service worker and no push. Metro picks the
-files ending in .android.js on Android; the plain `.js` ones are the web build's empty
-stand-ins. The APK needs `google-services.json` in `devops/data/android/` (README's "Android app (APK)"). Flow and state rules:
-`docs/specs/services.md#frontend` and `docs/specs/notification-flow.md`.
+re-runs their scheduling with the app closed. `index.js` loads, before the app (Android can start
+the JS headless, for a task or with the app swiped away), `src/shared/device/notificationDisplay.js`
+— the handler that shows a reminder due with the app open as a banner too — and
+`src/store/backgroundTasks.js`, where background tasks are defined. Metro picks the files ending in
+.android.js on Android; the plain `.js` ones do nothing and are what Jest's default platform
+resolves. Flow and state rules: `docs/specs/services.md#frontend`.
 
 ## Phone numbers (`libphonenumber-js`)
 
@@ -144,43 +127,17 @@ entry, the library already knows every numbering plan.
 ## Hebrew date (`@hebcal/hdate`)
 
 The Home tab's Hebrew/Jewish date uses `@hebcal/hdate` rather than `Intl`'s `'he-u-ca-hebrew'`
-calendar extension. The `Intl` approach works in a desktop browser, but Hermes (React Native's JS
+calendar extension. Hermes (React Native's JS
 engine) isn't guaranteed to ship non-Gregorian calendar tables in its bundled ICU data — the same
 code can silently fall back to the Gregorian calendar on-device with no error. `@hebcal/hdate` is
-pure JS with no ICU dependency, so it renders the same regardless of platform. Don't swap this back
-to `Intl` to drop the dependency without re-verifying on-device (not just web) first.
+pure JS with no ICU dependency, so it renders the same regardless of platform. Don't swap this
+to `Intl` to drop the dependency without re-verifying on a phone first.
 
-## Caddy deployment (`Caddyfile`)
+## APK registry (`devops/apk/`)
 
-One Caddyfile serves two deployment modes via env-var placeholders (`{$VAR:default}`, Caddy's
-native substitution) — see `docs/specs/architecture.md#system-topology` for the full topology and
-`devops/frontend/docker-compose.yml` vs. `docker-compose.cloud.yml` for how each mode sets them.
-
-- **Local/Tailscale** (default, no env overrides): `SITE_ADDRESS` is bare `:80` — a hostless
-  address disables Caddy's automatic HTTPS entirely, since there's no domain to request a cert for.
-  `GATEWAY_UPSTREAM` defaults to `gateway:8000` (Docker network DNS), but the `@gateway`
-  reverse proxy (every Gateway route) goes unused in this mode — the browser calls Gateway's
-  own Tailscale HTTPS URL directly, baked into the build at `GATEWAY_PUBLIC_URL`. HTTPS itself comes
-  from `tailscale serve` in front of this container, not from Caddy.
-- **Cloud/Hetzner**: `docker-compose.cloud.yml` overrides `SITE_ADDRESS` to a real domain, which
-  flips on Caddy's automatic Let's Encrypt HTTPS, and `GATEWAY_UPSTREAM` to the SSH tunnel's
-  loopback port. `GATEWAY_PUBLIC_URL` is built as the same domain, so the browser calls same-origin
-  and Caddy's proxy blocks do the real work of reaching Gateway back on the home machine.
-
-**No port 80, ever, in cloud mode** — this took two separate settings, not one:
-- `auto_https disable_redirects` (global option) stops Caddy's default behavior of opening a `:80`
-  listener purely to redirect HTTP to HTTPS.
-- `tls { issuer acme { disable_http_challenge } }` (site option) stops Caddy from using the
-  default HTTP-01 ACME challenge to issue/renew the certificate — that challenge needs port 80 too.
-  Disabling it makes Caddy fall back to TLS-ALPN-01, which validates entirely over 443.
-
-Both are inert in local mode: a bare `:80` site address never attempts TLS or ACME at all, with or
-without these settings.
-
-**`/apk/` — the APK registry.** Local mode only: `devops/frontend/docker-compose.yml` mounts
-`devops/data/apk` read-only at `/apk`, and Caddy serves it there (page and `latest.json` never
-cached, `.apk` with Android's installer content type). Nothing is mounted in cloud mode, so the
-same block just 404s.
+The `apk` container (`devops/apk/docker-compose.yml`, `caddy:2-alpine`) mounts `devops/data/apk`
+read-only and serves it at `/apk/` (page and `latest.json` never cached, `.apk` with Android's
+installer content type; `/` and `/apk` redirect there) — see `docs/specs/services.md#apk`.
 `node devops/android/apk.js publish` writes it (directly, or via a Node container when `devops/data/apk` is root-owned):
 every published APK, `releases.json` (each version's `version`, `versionCode`, `file`, `sha256`,
 `size`, `publishedAt`, `notes`), `latest.json` (`{version, versionCode, url: "/apk/<file>", sha256,

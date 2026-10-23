@@ -34,10 +34,10 @@ describe('ServiceHttpClient', () => {
   afterAll(() => new Promise<void>((resolve) => server.close(() => resolve())));
 
   it('forwards a GET to the same path', async () => {
-    const client = new ServiceHttpClient(http, baseUrl, 'reminders_service');
-    const res = await client.forward({ method: 'GET', path: '/reminders' });
+    const client = new ServiceHttpClient(http, baseUrl, 'users_service');
+    const res = await client.forward({ method: 'GET', path: '/users/me' });
     expect(res.status).toBe(200);
-    expect(res.body).toMatchObject({ method: 'GET', url: '/reminders' });
+    expect(res.body).toMatchObject({ method: 'GET', url: '/users/me' });
   });
 
   it('forwards a POST body', async () => {
@@ -54,20 +54,16 @@ describe('ServiceHttpClient', () => {
   });
 
   it('forwards a DELETE body and the headers Gateway sets', async () => {
-    const client = new ServiceHttpClient(
-      http,
-      baseUrl,
-      'notifications_service',
-    );
+    const client = new ServiceHttpClient(http, baseUrl, 'users_service');
     const res = await client.forward({
       method: 'DELETE',
-      path: '/notifications/subscriptions',
-      body: { endpoint: 'https://push.example/1' },
+      path: '/auth/account',
+      body: { currentPassword: 'secret' },
       headers: { 'x-user-id': 'u1' },
     });
     expect(res.body).toMatchObject({
       method: 'DELETE',
-      body: { endpoint: 'https://push.example/1' },
+      body: { currentPassword: 'secret' },
       userId: 'u1',
     });
   });

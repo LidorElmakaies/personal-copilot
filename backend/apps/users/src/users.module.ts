@@ -1,15 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { DataSource } from 'typeorm';
 import { AuthKernelModule } from '@app/auth-kernel';
-import {
-  KafkajsEventPublisher,
-  OutboxEventEntity,
-  OutboxRelay,
-  TypeOrmOutboxStore,
-  type IEventPublisher,
-} from '@app/kafka-client';
 import { AuthController } from './api/controllers/auth.controller';
 import { HealthController } from './api/controllers/health.controller';
 import { UsersController } from './api/controllers/users.controller';
@@ -23,10 +15,10 @@ import { UserEntity } from './entities/user.entity';
 import { TypeOrmProfileRepository } from './infrastructure/postgres/typeorm-profile.repository';
 import { TypeOrmRefreshTokenRepository } from './infrastructure/postgres/typeorm-refresh-token.repository';
 import { TypeOrmUserRepository } from './infrastructure/postgres/typeorm-user.repository';
+import { DropOutboxAndProfileVersion1792800000000 } from './infrastructure/postgres/migrations/1792800000000-drop-outbox-and-profile-version';
+import { DropRemindersAndNotificationsSchemas1792900000000 } from './infrastructure/postgres/migrations/1792900000000-drop-reminders-and-notifications-schemas';
 import {
   AUTH_SERVICE,
-  EVENT_PUBLISHER,
-  OUTBOX_RELAY,
   PASSWORD_HASHER,
   PROFILE_REPOSITORY,
   PROFILE_SERVICE,
@@ -34,12 +26,7 @@ import {
   USER_REPOSITORY,
 } from './tokens';
 
-const ENTITIES = [
-  UserEntity,
-  RefreshTokenEntity,
-  ProfileEntity,
-  OutboxEventEntity,
-];
+const ENTITIES = [UserEntity, RefreshTokenEntity, ProfileEntity];
 
 @Module({
   imports: [
@@ -55,6 +42,12 @@ const ENTITIES = [
         entities: ENTITIES,
         // See backend/apps/users/README.md's "synchronize: true below production" section.
         synchronize: config.get<string>('NODE_ENV') !== 'production',
+        // Applied once on boot, in order, recorded in users.migrations.
+        migrations: [
+          DropOutboxAndProfileVersion1792800000000,
+          DropRemindersAndNotificationsSchemas1792900000000,
+        ],
+        migrationsRun: true,
       }),
       inject: [ConfigService],
     }),
@@ -72,18 +65,6 @@ const ENTITIES = [
       useClass: TypeOrmRefreshTokenRepository,
     },
     { provide: PASSWORD_HASHER, useClass: SaltPepperSha256Hasher },
-    {
-      provide: EVENT_PUBLISHER,
-      useFactory: (config: ConfigService) =>
-        new KafkajsEventPublisher(config, 'users'),
-      inject: [ConfigService],
-    },
-    {
-      provide: OUTBOX_RELAY,
-      useFactory: (dataSource: DataSource, publisher: IEventPublisher) =>
-        new OutboxRelay(new TypeOrmOutboxStore(dataSource), publisher),
-      inject: [DataSource, EVENT_PUBLISHER],
-    },
   ],
 })
 export class UsersModule {}

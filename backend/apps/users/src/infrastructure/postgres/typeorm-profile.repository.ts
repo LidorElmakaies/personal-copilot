@@ -1,12 +1,9 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import type { OutboxRelay } from '@app/kafka-client';
-import { OUTBOX_RELAY } from '../../tokens';
 import type { Profile, ProfileChange } from '../../models/profile';
 import type { IProfileRepository } from '../interfaces/profile-repository.interface';
 import { ProfileEntity } from '../../entities/profile.entity';
-import { addUserStateEvent } from './user-events';
 
 export function toProfile(p: ProfileEntity): Profile {
   return {
@@ -18,7 +15,6 @@ export function toProfile(p: ProfileEntity): Profile {
       p.lat !== null && p.lon !== null && p.locationUpdatedAt !== null
         ? { lat: p.lat, lon: p.lon, updatedAt: p.locationUpdatedAt }
         : null,
-    version: p.version,
   };
 }
 
@@ -27,7 +23,6 @@ export class TypeOrmProfileRepository implements IProfileRepository {
   constructor(
     @InjectRepository(ProfileEntity)
     private readonly repo: Repository<ProfileEntity>,
-    @Inject(OUTBOX_RELAY) private readonly relay: OutboxRelay,
   ) {}
 
   async findByUserId(userId: string): Promise<Profile | null> {
@@ -35,8 +30,8 @@ export class TypeOrmProfileRepository implements IProfileRepository {
     return row ? toProfile(row) : null;
   }
 
-  async update(userId: string, change: ProfileChange): Promise<Profile | null> {
-    const saved = await this.repo.manager.transaction(async (m) => {
+  update(userId: string, change: ProfileChange): Promise<Profile | null> {
+    return this.repo.manager.transaction(async (m) => {
       // An account delete removes this row first, so it waits for this write, or this finds nothing.
       const profile = await m.findOne(ProfileEntity, {
         where: { userId },
@@ -52,14 +47,8 @@ export class TypeOrmProfileRepository implements IProfileRepository {
         profile.lon = change.location.lon;
         profile.locationUpdatedAt = change.location.updatedAt;
       }
-      profile.version += 1;
 
-      const result = toProfile(await m.save(profile));
-      await addUserStateEvent(m, result);
-      return result;
+      return toProfile(await m.save(profile));
     });
-
-    if (saved) this.relay.notify();
-    return saved;
   }
 }

@@ -1,29 +1,20 @@
 # Frontend environment
 
+Every `EXPO_PUBLIC_*` value is inlined into the bundle at build time — there's no runtime
+environment to read later. `node devops/android/apk.js build` sets them for the APK (see
+`docs/specs/architecture.md#compose--build-layout`); `npx expo start` reads `frontend/.env`.
+
 - **`EXPO_PUBLIC_GATEWAY_ORIGIN`** (`frontend/.env.example` → `frontend/.env`) — optional: only
   the dormant login/account screens call Gateway (`URLS.gateway` is `null` without it, and their
-  calls fail); Home, Calendar, reminders and updates don't need it. Local (non-Docker) dev only. Expo inlines `EXPO_PUBLIC_*` vars into the client bundle automatically;
-  `npx expo start` reads this file. A shell env var overrides it, which is how Expo Go on the phone
-  reaches Gateway over Tailscale without editing the file:
+  calls fail); Home, Calendar, reminders and updates don't need it. A shell env var overrides the
+  file, which is how Expo Go on the phone reaches Gateway over Tailscale without editing it:
   `EXPO_PUBLIC_GATEWAY_ORIGIN=http://<pc-tailnet-ip>:8000 REACT_NATIVE_PACKAGER_HOSTNAME=<pc-tailnet-ip> npx expo start --port 8082`
-  (`8081` is taken by the Docker frontend), then open `exp://<pc-tailnet-ip>:8082` in Expo Go. A
-  native app doesn't need HTTPS for GPS, so plain HTTP to `:8000` is fine here.
-- **`GATEWAY_PUBLIC_URL`** (`devops/.env.example` → `devops/.env`) — the Dockerized build's
-  equivalent, passed as a build `ARG` in `devops/frontend/docker-compose.yml` and baked into
-  `EXPO_PUBLIC_GATEWAY_ORIGIN` inside the image (must be a build arg, not a runtime env var — the
-  static web export has no server to read a runtime var from). For the phone browser, set it to
-  the HTTPS Gateway URL `devops/tailscale/serve.js` prints (`https://<pc>.<tailnet>.ts.net:8443`) —
-  plain HTTP would make the browser block GPS. `http://localhost:8000` works for use on the PC
-  only. The APK build (`apk.js build`) reads it too: optional there, HTTPS when set, and the default
-  host of the update registry (`APK_REGISTRY_URL` — see `docs/devops/environment.md`).
-
-## Cloud deployment (Hetzner + Caddy, not yet live)
-
-`devops/frontend/.env.cloud.example` → `devops/frontend/.env.cloud`, read by
-`docker-compose.cloud.yml` only:
-
-- **`DOMAIN`** — public domain Caddy provisions a Let's Encrypt cert for.
-- **`GATEWAY_TUNNEL_PORT`** — loopback port on the VPS that the SSH reverse tunnel forwards to
-  Gateway's `8000` on the home machine; Caddy proxies to `127.0.0.1:<this port>`.
-
-See `docs/specs/architecture.md`'s "System topology" and "SSH reverse-tunnel hardening" sections.
+  (`8081` is taken by `apk`), then open `exp://<pc-tailnet-ip>:8082` in Expo Go. Plain HTTP is
+  fine for a dev server. The APK gets it from `devops/.env`'s `GATEWAY_PUBLIC_URL` (HTTPS when
+  set — `docs/devops/environment.md`).
+- **`EXPO_PUBLIC_APK_REGISTRY_URL`** — where the update check looks (`URLS.apkRegistry`), from
+  `APK_REGISTRY_URL` or `GATEWAY_PUBLIC_URL`'s host (`docs/devops/environment.md`). Unset in a dev
+  server, which then never checks.
+- **`EXPO_PUBLIC_FRONTEND_VERSION`** / **`EXPO_PUBLIC_BUILT_AT`** — the `frontend` version from
+  `version/versions.json` and the build time, shown by `VersionInfo` and compared with the
+  registry's `latest.json`. Unset in a dev server ("dev").

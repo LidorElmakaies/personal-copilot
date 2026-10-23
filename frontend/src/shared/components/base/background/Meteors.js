@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { memo, useEffect, useMemo, useRef } from 'react';
-import { Animated, Easing, Platform, StyleSheet, View } from 'react-native';
+import { Animated, Easing, StyleSheet } from 'react-native';
 import { useReducedMotion } from 'react-native-reanimated';
 
 const SLOT_COUNT = 7;
@@ -17,7 +17,7 @@ function randomSlots(palette) {
   }));
 }
 
-function NativeMeteor({ slot, maxOpacity, paused }) {
+function Meteor({ slot, maxOpacity, paused }) {
   const progress = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -79,55 +79,6 @@ function NativeMeteor({ slot, maxOpacity, paused }) {
     </Animated.View>
   );
 }
-
-// The web's CSS version (see Stars.js): one keyframe set per slot — idle, then the streak.
-function CssMeteor({ slot, maxOpacity, paused }) {
-  const animation = useMemo(() => {
-    const total = slot.idleMs + slot.activeMs;
-    const at = (p) => `${((slot.idleMs + p * slot.activeMs) / total) * 100}%`;
-    const frame = (p, opacity) => ({
-      opacity,
-      transform: `rotate(${slot.angle}deg) translateX(${p * slot.travel}px)`,
-    });
-    return StyleSheet.create({
-      meteor: {
-        animationKeyframes: [
-          {
-            '0%': frame(0, 0),
-            [at(0)]: frame(0, 0),
-            [at(0.15)]: frame(0.15, maxOpacity),
-            [at(0.8)]: frame(0.8, maxOpacity),
-            '100%': frame(1, 0),
-          },
-        ],
-        animationDuration: `${total}ms`,
-        animationTimingFunction: 'linear',
-        animationIterationCount: 'infinite',
-      },
-    }).meteor;
-  }, [slot, maxOpacity]);
-
-  return (
-    <View
-      style={[
-        styles.wrap,
-        { top: slot.top, left: slot.left, opacity: 0 },
-        animation,
-        paused && { animationPlayState: 'paused' },
-      ]}
-      pointerEvents="none"
-    >
-      <LinearGradient
-        colors={['transparent', slot.color, 'transparent']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={styles.streak}
-      />
-    </View>
-  );
-}
-
-const Meteor = Platform.OS === 'web' ? CssMeteor : NativeMeteor;
 
 // Small fixed pool of shooting-star streaks, each looping idle→streak→idle forever on its own
 // loop, animated on the native driver (see Stars.js for why not Reanimated) — see

@@ -5,7 +5,7 @@ export interface AuthTokenPayload {
   role: UserRole;
 }
 
-/** Implemented by AuthTokenService, consumed by Gateway's HTTP guard and WS handshake. */
+/** Implemented by AuthTokenService, consumed by Gateway's HTTP guards. */
 export interface IAuthTokenService {
   /** Returns the decoded identity, or null if the token is missing/invalid/expired. */
   verify(token: string | null | undefined): Promise<AuthTokenPayload | null>;

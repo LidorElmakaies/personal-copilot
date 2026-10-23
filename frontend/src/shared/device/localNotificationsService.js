@@ -1,5 +1,5 @@
-// Phone-scheduled notifications are the Android app's only (localNotificationsService.android.js).
-// Everywhere else — the web build — there's nothing to schedule: every call does nothing.
+// Phone-scheduled notifications are Android's (localNotificationsService.android.js). Elsewhere —
+// Jest's default platform — there's nothing to schedule: every call does nothing.
 export const ID_PREFIX = 'rem:';
 export const isSupported = () => false;
 export const ensureChannel = async () => {};

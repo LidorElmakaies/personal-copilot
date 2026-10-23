@@ -27,7 +27,7 @@ someone who has only ever seen the current code. Two consequences:
 
 ## What you own
 
-- **`docs/specs/*.md`** — `services.md`, `event-schemas.md`, `architecture.md` (topology + flow
+- **`docs/specs/*.md`** — `services.md`, `architecture.md` (topology + flow
   diagrams). Source of truth for how the system is wired *right now*.
 - **Root `CLAUDE.md`** — kept dense but accurate; this is what a Claude session reads first.
 - **`README.md`** at the repo root, `backend/`, and `frontend/` — shorter, entry-point-level, must
@@ -38,7 +38,7 @@ someone who has only ever seen the current code. Two consequences:
   Keep the split strict: `services.md` says *what* a service does, this file says *why* a specific
   decision in it is shaped the way it is. Don't duplicate one into the other — cross-reference.
 - **`.claude/agents/{backend,devops,frontend,testing}.md`** — these must reflect the actual current
-  file layout, tokens, topics, env vars, and (for `frontend.md`) component/theme conventions. An
+  file layout, tokens, env vars, and (for `frontend.md`) component/theme conventions. An
   agent operating from a stale `backend.md` will confidently build against a service shape that no
   longer exists.
 - **Code comments** — see below. You may edit comments; you do not change logic. If trimming a
@@ -48,23 +48,16 @@ someone who has only ever seen the current code. Two consequences:
 ## Before rewriting anything: sweep for staleness
 
 Before updating a doc, grep the codebase for every proper noun the doc currently mentions — service
-names, topic names, endpoint paths, env vars, file paths. Anything that no longer exists in code is
+names, endpoint paths, env vars, file paths. Anything that no longer exists in code is
 a stale reference and must be removed, not left as a footnote. (This is exactly the kind of miss
 that happens doing a removal by hand across several files — don't trust that a manual edit pass
 caught every mention.) Specifically, each pass should also check:
 
-- **`libs/queue-contracts/src/queues.ts`'s `QUEUES`** and **`docs/specs/event-schemas.md`'s queue
-  table** list the exact same queues. A queue in one but not the other is a bug in the code or the
-  docs — figure out which and fix it, don't just document the mismatch.
 - Every service directory under `backend/apps/` has a corresponding section in
   `docs/specs/services.md` and a corresponding node in `docs/specs/architecture.md`'s topology
   diagram — and vice versa (no doc section for a service that no longer exists).
 - Every `.env.example` var mentioned in `CLAUDE.md`'s setup instructions still exists in the actual
   `.env.example` files.
-- **`libs/kafka-contracts/src/topics.ts`'s `KAFKA_TOPICS`**, `devops/kafka`'s `kafka-init` list and
-  `event-schemas.md`'s Kafka sections name the exact same topics.
-- Every top-level path Gateway serves (`PROXY_ROUTES` plus its own controllers) is in
-  `frontend/Caddyfile`'s `@gateway` matcher — a missing one 404s only in the cloud deployment.
 - Every variable a service reads (`config.get`/`getOrThrow`, `process.env`) is in its
   `docs/<service>/environment.md`, and nothing documented there is gone from the code.
 
@@ -74,14 +67,14 @@ one, plus that each path and link a doc names exists and that nothing outside
 
 ## Diagrams — Mermaid, in `docs/specs/architecture.md`
 
-- **One system-topology diagram** (`flowchart`): every service, BullMQ queue / Redis, the
-  Postgres instance, any external API a feature integrates with, the frontend, and the Tailscale
-  boundary. This is the single "how does it all fit together" page — keep it one diagram, not one
+- **One system-topology diagram** (`flowchart`): every service (`apk` and the backend
+  profile's), the Postgres instance, any external API a feature integrates with, the Android app,
+  and the Tailscale boundary. This is the single "how does it all fit together" page — keep it one diagram, not one
   per service.
 - **One sequence diagram per real end-to-end flow** (`sequenceDiagram`) — add
   one for each new flow as it ships. A flow gets a diagram once it's real and working, not while
   it's still being designed.
-- When a service, topic, or flow changes shape, update the diagram in the same pass as the prose —
+- When a service or flow changes shape, update the diagram in the same pass as the prose —
   a diagram that still shows a removed service is worse than no diagram, since it reads as current.
 
 ## Code comments — terse, direct, point to docs for depth
@@ -114,5 +107,7 @@ Run it at the end of every task: it lists the docs the uncommitted changes shoul
 `DOCS_MAP`), each with the files that pulled it in, then runs every drift check. Review each listed
 doc, update it to describe the new current state, and rerun until it passes — **a task isn't done
 while it fails**. A changed path it maps to no doc is listed too: if it should map, add the row to `DOCS_MAP` yourself
-— it's a data table at the top of the script, one line per row, the one part of it you may edit. Sanity-check any Mermaid block renders (balanced brackets, valid arrow syntax) before
+— it's a data table at the top of the script, one line per row. Change its checks only when the
+code they compare against changes shape (e.g. a check whose source file is deleted), and update
+`scripts/docs-check.test.js` with them. Sanity-check any Mermaid block renders (balanced brackets, valid arrow syntax) before
 considering the pass done.

@@ -15,19 +15,10 @@ const BASE = {
   'backend/.env.example': '# No PORT here\nLIB_VAR=1\nSVC_URL=http://x\n',
   'backend/apps/gateway/src/main.ts': "import { startThing } from '@app/lib1';\nconst port = process.env.PORT;\n",
   'backend/apps/gateway/src/proxy/proxy.module.ts': "import { ConfigService } from '@nestjs/config';\nconst NAMES = ['SVC_URL'];\n",
-  'backend/apps/gateway/src/proxy/proxy.routes.ts': "export const PROXY_ROUTES = [{ method: 'POST', path: '/auth/login' }];\n",
-  'backend/apps/gateway/src/calendar/calendar.controller.ts': "@Controller('calendar')\nexport class CalendarController {\n  @Get('shabbat') get() {}\n}\n",
-  'backend/apps/gateway/src/realtime/realtime.gateway.ts': "@WebSocketGateway({ path: '/ws', cors: true })\nexport class G {}\n",
   'backend/libs/lib1/src/index.ts': "export * from './thing';\nexport * from './other';\n",
   'backend/libs/lib1/src/thing.ts': 'export function startThing() {\n  return process.env.LIB_VAR;\n}\n',
   'backend/libs/lib1/src/other.ts': 'export function unused() {\n  return process.env.UNUSED_VAR;\n}\n',
   'docs/gateway/environment.md': '# Gateway\n\n- **`PORT`** — its port.\n- **`LIB_VAR`** / **`SVC_URL`** — two more.\n',
-  'backend/libs/kafka-contracts/src/topics.ts': "export const KAFKA_TOPICS = {\n  USER_STATE: 'users.user-state',\n} as const;\n",
-  'devops/kafka/docker-compose.yml': '    command: |\n      create() {\n      }\n      create users.user-state --config cleanup.policy=compact\n',
-  'backend/libs/queue-contracts/src/queues.ts': "export const QUEUES = {\n  REMINDER_DUE: 'reminder-due',\n} as const;\n",
-  'docs/specs/event-schemas.md':
-    '# Queues\n\n| Queue | Notes |\n|---|---|\n| `reminder-due` | x |\n\n## `reminder-due`\n\n# Kafka events\n\n| Topic | Notes |\n|---|---|\n| `users.user-state` | x |\n\n## `users.user-state`\n',
-  'frontend/Caddyfile': '{\n\t@gateway path /auth/* /calendar/* /ws*\n}\n',
   'devops/docker-compose.yml': 'include:\n  - path: gateway/docker-compose.yml\n',
   'devops/gateway/docker-compose.yml': 'services:\n  gateway:\n    extends:\n      file: ../common.yml\n    environment:\n      - JWT_SECRET=${JWT_SECRET}\n',
   'devops/common.yml': 'x:\n  image: ${IMAGE_TAG:-1}\n',
@@ -78,20 +69,6 @@ test('env: unread, undocumented and missing-from-.env.example vars fail; unused 
   assert.match(noDoc[0], /docs\/gateway\/environment\.md:1 missing/);
 });
 
-test('Kafka topics: code, kafka-init and event-schemas must hold the same set', () => {
-  const extra = run('Kafka topics agree', { 'devops/kafka/docker-compose.yml': `${BASE['devops/kafka/docker-compose.yml']}      create orphan.topic\n` });
-  assert.deepStrictEqual(extra, ["devops/kafka/docker-compose.yml:5 kafka-init's create list has `orphan.topic`, which isn't in backend/libs/kafka-contracts/src/topics.ts"]);
-  const misplaced = run('Kafka topics agree', {
-    'docs/specs/event-schemas.md': BASE['docs/specs/event-schemas.md'].replace('## `reminder-due`\n\n', '') + '\n## `reminder-due`\n',
-  });
-  assert.match(misplaced.join('\n'), /the Kafka topic sections has `reminder-due`/);
-});
-
-test('queues: QUEUES and event-schemas sections and table must hold the same set', () => {
-  const missing = run('queues agree', { 'docs/specs/event-schemas.md': BASE['docs/specs/event-schemas.md'].replace('| `reminder-due` | x |\n', '') });
-  assert.deepStrictEqual(missing, ['docs/specs/event-schemas.md:1 the queue table lacks `reminder-due` (backend/libs/queue-contracts/src/queues.ts:2)']);
-});
-
 test('env: a var a shared lib reads may be documented once on the shared page instead', () => {
   const appDoc = '- **`PORT`** — x\n- **`SVC_URL`** — y\n';
   assert.deepStrictEqual(run('env vars documented', { 'docs/gateway/environment.md': appDoc, 'docs/backend/environment.md': '- **`LIB_VAR`** — z\n' }), []);
@@ -114,12 +91,6 @@ test('devops/.env: what compose and devops scripts read must be in .env.example 
     "docs/devops/environment.md:1 IMAGE_TAG (read at devops/common.yml:2) isn't documented",
     "docs/devops/environment.md:1 APK_URL (read at devops/android/apk.js:1) isn't documented",
   ]);
-});
-
-test("Caddy: every Gateway path must match @gateway", () => {
-  const missing = run('Caddy covers Gateway', { 'frontend/Caddyfile': '\t@gateway path /auth/* /ws*\n' });
-  assert.deepStrictEqual(missing, ["frontend/Caddyfile:1 @gateway doesn't match /calendar/shabbat (backend/apps/gateway/src/calendar/calendar.controller.ts:3)"]);
-  assert.deepStrictEqual(run('Caddy covers Gateway', { 'frontend/Caddyfile': 'nothing\n' }), ['frontend/Caddyfile:1 no `@gateway path …` matcher']);
 });
 
 test('services: each backend app needs a services.md section and a topology node, and the reverse', () => {
@@ -152,7 +123,8 @@ test('--changed maps each changed path to its docs, listing optional READMEs onl
     'backend/libs/otel/src/start-otel.ts',
     'devops/ntfy/server.yml',
     'frontend/src/x.js',
-    'frontend/e2e/tests/home.spec.js',
+    'frontend/src/x.spec.js',
+    'frontend/app.json',
     'scripts/tool.js',
     'docs/specs/services.md',
     'package.json',
@@ -161,13 +133,13 @@ test('--changed maps each changed path to its docs, listing optional READMEs onl
   assert.deepStrictEqual(get('docs/specs/services.md — ## users'), ['backend/apps/users/src/a.service.spec.ts']);
   assert.deepStrictEqual(get('backend/apps/users/README.md'), ['backend/apps/users/src/a.service.spec.ts']);
   assert.ok(!docs.has('backend/apps/gateway/README.md'));
-  assert.deepStrictEqual(get('.claude/agents/testing.md'), ['backend/apps/users/src/a.service.spec.ts', 'frontend/e2e/tests/home.spec.js']);
+  assert.deepStrictEqual(get('.claude/agents/testing.md'), ['backend/apps/users/src/a.service.spec.ts', 'frontend/src/x.spec.js']);
   assert.deepStrictEqual(get('.claude/agents/backend.md'), ['backend/apps/users/src/a.service.spec.ts', 'backend/apps/gateway/src/main.ts', 'backend/libs/otel/src/start-otel.ts']);
   assert.deepStrictEqual(get('docs/specs/services.md — ## libs/otel'), ['backend/libs/otel/src/start-otel.ts']);
   assert.deepStrictEqual(get('.claude/agents/devops.md'), ['devops/ntfy/server.yml']);
   assert.ok(!docs.has('docs/ntfy/environment.md'));
-  assert.deepStrictEqual(get('frontend/README.md'), ['frontend/src/x.js']);
-  assert.deepStrictEqual(get('frontend/e2e/README.md'), ['frontend/e2e/tests/home.spec.js']);
+  assert.deepStrictEqual(get('frontend/README.md'), ['frontend/src/x.js', 'frontend/src/x.spec.js', 'frontend/app.json']);
+  assert.deepStrictEqual(get('.claude/agents/frontend.md'), ['frontend/src/x.js', 'frontend/src/x.spec.js', 'frontend/app.json']);
   assert.deepStrictEqual(get('CLAUDE.md — Versions, Commands'), ['scripts/tool.js']);
   assert.deepStrictEqual(unmapped, ['package.json']);
 });
@@ -179,25 +151,6 @@ test("versions: an extra component in CLAUDE.md, or no list at all, fails", () =
   assert.deepStrictEqual(extra, ["CLAUDE.md:3 Versions list has `ntfy`, which isn't in version/versions.json"]);
   const noList = run('version components agree', { 'CLAUDE.md': '## Versions\n\nOne per component.\n' });
   assert.deepStrictEqual(noList, ['CLAUDE.md:1 Versions section has no (`component`, …) list']);
-});
-
-test('queues: a queue missing from the sections, or an extra one documented, fails', () => {
-  const noSection = run('queues agree', { 'docs/specs/event-schemas.md': BASE['docs/specs/event-schemas.md'].replace('## `reminder-due`\n', '') });
-  assert.deepStrictEqual(noSection, ['docs/specs/event-schemas.md:1 the queue sections lacks `reminder-due` (backend/libs/queue-contracts/src/queues.ts:2)']);
-  const extra = run('queues agree', { 'docs/specs/event-schemas.md': BASE['docs/specs/event-schemas.md'].replace('## `reminder-due`\n', '## `reminder-due`\n\n## `old-queue`\n') });
-  assert.deepStrictEqual(extra, ["docs/specs/event-schemas.md:9 the queue sections has `old-queue`, which isn't in backend/libs/queue-contracts/src/queues.ts"]);
-});
-
-test('Kafka topics: a topic in code but not created by kafka-init or in the topic table fails', () => {
-  const topics = "export const KAFKA_TOPICS = {\n  USER_STATE: 'users.user-state',\n  RELEASES: 'frontend.releases',\n} as const;\n";
-  const missing = run('Kafka topics agree', {
-    'backend/libs/kafka-contracts/src/topics.ts': topics,
-    'docs/specs/event-schemas.md': `${BASE['docs/specs/event-schemas.md']}\n## \`frontend.releases\`\n`,
-  });
-  assert.deepStrictEqual(missing, [
-    "devops/kafka/docker-compose.yml:1 kafka-init's create list lacks `frontend.releases` (backend/libs/kafka-contracts/src/topics.ts:3)",
-    'docs/specs/event-schemas.md:1 the Kafka topic table lacks `frontend.releases` (backend/libs/kafka-contracts/src/topics.ts:3)',
-  ]);
 });
 
 test('env: a missing backend/.env.example fails', () => {
@@ -236,9 +189,4 @@ test('env: a bullet whose bold runs past " — " is reported, not a crash', () =
 
 test('doc paths: a link with a stray % is reported, not a crash', () => {
   assert.doesNotThrow(() => run('doc paths exist', { 'README.md': '[x](100%.md)\n' }));
-});
-
-test('Caddy: @Controller({ path }) routes are covered too', () => {
-  const out = run('Caddy covers Gateway', { 'backend/apps/gateway/src/admin/admin.controller.ts': "@Controller({ path: 'admin' })\nexport class A {\n  @Get('status') s() {}\n}\n" });
-  assert.strictEqual(out.length, 1);
 });

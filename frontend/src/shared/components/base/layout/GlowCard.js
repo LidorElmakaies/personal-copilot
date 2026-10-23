@@ -1,6 +1,5 @@
-import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Platform, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useAppTheme } from '../../../theme/useAppTheme';
 
 function withAlpha(hex, alpha) {
@@ -12,14 +11,11 @@ function withAlpha(hex, alpha) {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
-// Glass Card — see DESIGN.md's Components section. Blur kept light so it doesn't smear
-// AmbientBackground's stars/meteors into a wash instead of a soft glow. Outer/inner split is the
-// same shadow+clip pattern as GradientButton — see .claude/agents/frontend.md's "Bug patterns
-// already hit". `solid` puts an opaque panel under the glass, for a card drawn over other content
-// (a modal) that must not show through. Android always gets the panel — BlurView doesn't blur there.
-export default function GlowCard({ children, style, solid }) {
+// Glass Card — see DESIGN.md's Components section: an opaque panel under a tinted card, inside a
+// gradient rim. Outer/inner split is the same shadow+clip pattern as GradientButton — see
+// .claude/agents/frontend.md's "Bug patterns already hit".
+export default function GlowCard({ children, style }) {
   const { isDark, colors } = useAppTheme();
-  const isAndroid = Platform.OS === 'android';
 
   return (
     <View
@@ -41,20 +37,9 @@ export default function GlowCard({ children, style, solid }) {
         style={styles.borderGradient}
       >
         <View style={styles.card}>
-          {solid || isAndroid ? (
-            <View
-              style={[
-                StyleSheet.absoluteFill,
-                { backgroundColor: colors.panel },
-              ]}
-            />
-          ) : (
-            <BlurView
-              intensity={isDark ? 12 : 18}
-              tint={isDark ? 'dark' : 'light'}
-              style={StyleSheet.absoluteFill}
-            />
-          )}
+          <View
+            style={[StyleSheet.absoluteFill, { backgroundColor: colors.panel }]}
+          />
           <View
             style={[StyleSheet.absoluteFill, { backgroundColor: colors.card }]}
           />

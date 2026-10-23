@@ -9,7 +9,7 @@ import { candleFiringsPlanned } from './candleFirings';
 // the missing — and remembers each week's candle firing (candleFirings.js). Run after every reminder change, on start (alarms due while the phone was off are
 // dropped, not re-created), on return to the foreground, when the location changes
 // (ReminderScheduleManager) and about daily in the background, so the 30-day window keeps moving
-// with the app unopened. Nothing on the web build.
+// with the app unopened.
 
 const same = (a, b) =>
   a.at === b.at && a.title === b.title && a.body === b.body && a.url === b.url;

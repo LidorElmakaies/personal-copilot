@@ -7,15 +7,18 @@ metadata:
 ---
 
 **personal-copilot** — renamed from **shabbat-notifier** on 2026-09-07; GitHub:
-https://github.com/LidorElmakaies/personal-copilot. A NestJS + Expo app: Gateway, Users, Reminders
-and Notifications services, OTel observability, and an Expo frontend (web + an Android APK) with
-optional login. The first feature (Shabbat times, candle-lighting reminders, a Jewish calendar) is
-built in stages from `docs/plans/shabbat-reminders-calendar/plan.md`. **The root `CLAUDE.md` is the
+https://github.com/LidorElmakaies/personal-copilot. Since 2026-10-23 an **Android-only Expo app**:
+Shabbat times, the Jewish calendar and every reminder are computed and stored on the phone and fired
+as local notifications, no login needed (`docs/plans/android-only-refactor/plan.md`, which replaced
+`docs/plans/shabbat-reminders-calendar/plan.md`). The NestJS Gateway + Users Service (login,
+profiles) stay in the repo **dormant**, behind `docker compose --profile backend`; the Reminders and
+Notification services, Kafka, Redis and the web app were deleted. **The root `CLAUDE.md` is the
 source of truth for what exists** — this file only holds context that isn't in the code.
 
-**Hosting**: the user's personal PC, reached from their phone over Tailscale (`tailscale serve`
-puts frontend and Gateway behind HTTPS on the PC's `*.ts.net` name — phone browsers need HTTPS for
-GPS). Gateway is published on `127.0.0.1` only.
+**Hosting**: the user's personal PC, reached from their phone over Tailscale. What runs by default
+is only `devops/apk/` — a Caddy serving the APK registry at `https://<pc>.ts.net/apk/` (through
+`tailscale serve`), where installed apps check for updates; that address must never change or every
+installed phone loses its updates. Gateway (dormant) is published on `127.0.0.1` only.
 
 **Bootstrapped from [[askmycrawl-project]]'s conventions** (a sibling repo, not on this machine):
 the Nest-CLI monorepo shape, hexagonal API/Application/Infrastructure layering with Symbol DI
@@ -30,8 +33,10 @@ publish a port (see [[feedback_gateway_only_service_access]]), Grafana published
 - Derive client-visible data from something already held rather than add a round trip or a second
   source of truth — e.g. the access token carries `{ sub, role, email }`, so there's no `GET /me`
   and the frontend decodes the token.
-- When stripping a feature back, keep reusable plumbing its first consumer happened to need (Kafka,
-  the `/ws` realtime layer) and remove only what implements the feature itself.
+- When stripping a feature back, remove only what implements the feature itself — but once
+  plumbing has no consumer left (Kafka, Redis, the `/ws` layer, services, libraries, scripts,
+  leftover data), the user wants it gone in a full sweep across backend, devops, scripts and
+  frontend, not kept "in case". Dormant code is kept only when explicitly decided (the auth work).
 - The space/glow/gradient look is a stepping stone toward a more animated design, not a settled
   brand — expect a full restyle, and keep components easy to swap.
 - Prefers fixing root causes over patches, one clean mechanism over several, and less code over

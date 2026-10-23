@@ -1,9 +1,8 @@
-import { ValidationPipe, type INestApplication } from '@nestjs/common';
+import { Logger, ValidationPipe, type INestApplication } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 import jwt from 'jsonwebtoken';
 import { AuthKernelModule } from '@app/auth-kernel';
-import { isUserStateMessage, KAFKA_TOPICS } from '@app/kafka-contracts';
 import { AuthController } from '../src/api/controllers/auth.controller';
 import { UsersController } from '../src/api/controllers/users.controller';
 import { AuthService } from '../src/application/auth.service';
@@ -143,6 +142,49 @@ describe('accounts and profiles (users)', () => {
       expect((await refresh(second.refresh_token)).status).toBe(200);
     });
 
+    it('a used refresh token stays revoked when issuing the new pair fails', async () => {
+      await register();
+      const { refresh_token } = (await (
+        await login('a@example.com', 'password1')
+      ).json()) as Tokens;
+      jest
+        .spyOn(store.refreshTokenRepository, 'create')
+        .mockRejectedValueOnce(new Error('database down'));
+      jest.spyOn(Logger.prototype, 'error').mockImplementationOnce(() => {}); // Nest's 500 log
+
+      expect((await refresh(refresh_token)).status).toBe(500);
+      expect((await refresh(refresh_token)).status).toBe(401);
+    });
+
+    it('two refreshes with one token at once: one new pair, the other 401', async () => {
+      await register();
+      const { refresh_token } = (await (
+        await login('a@example.com', 'password1')
+      ).json()) as Tokens;
+      // Both read the token before either revokes it.
+      const repo = store.refreshTokenRepository;
+      const find = repo.findByTokenHash.bind(
+        repo,
+      ) as typeof repo.findByTokenHash;
+      let reads = 0;
+      let bothRead!: () => void;
+      const barrier = new Promise<void>((resolve) => (bothRead = resolve));
+      jest
+        .spyOn(store.refreshTokenRepository, 'findByTokenHash')
+        .mockImplementation(async (hash) => {
+          const found = await find(hash);
+          if (++reads === 2) bothRead();
+          await barrier;
+          return found;
+        });
+
+      const statuses = await Promise.all([
+        refresh(refresh_token).then((r) => r.status),
+        refresh(refresh_token).then((r) => r.status),
+      ]);
+      expect(statuses.sort()).toEqual([200, 401]);
+    });
+
     it('refresh answers 401 for a made-up token', async () => {
       expect((await refresh('not-a-token')).status).toBe(401);
     });
@@ -275,7 +317,7 @@ describe('accounts and profiles (users)', () => {
   });
 
   describe('register', () => {
-    it('creates the profile with the optional details and announces it as version 1', async () => {
+    it('creates the profile with the optional details', async () => {
       const userId = await register({
         firstName: '  Lidor ',
         lastName: 'Cohen',
@@ -289,16 +331,13 @@ describe('accounts and profiles (users)', () => {
         phone: '+972501234567',
         location: null,
       });
-      expect(store.stateEventsFor(userId)).toEqual([
-        {
-          userId,
-          version: 1,
-          firstName: 'Lidor',
-          lastName: 'Cohen',
-          phone: '+972501234567',
-          location: null,
-        },
-      ]);
+      expect(store.profiles.get(userId)).toEqual({
+        userId,
+        firstName: 'Lidor',
+        lastName: 'Cohen',
+        phone: '+972501234567',
+        location: null,
+      });
     });
 
     it.each([
@@ -337,12 +376,12 @@ describe('accounts and profiles (users)', () => {
       });
       expect(res.status).toBe(400);
       expect(store.users.size).toBe(0);
-      expect(store.events).toEqual([]);
+      expect(store.profiles.size).toBe(0);
     });
   });
 
   describe('GET/PATCH /users/me', () => {
-    it('changes only the fields sent, null clears one, and each change is a new version', async () => {
+    it('changes only the fields sent, and null clears one', async () => {
       const userId = await register({
         firstName: 'Lidor',
         phone: '+972501234567',
@@ -362,18 +401,18 @@ describe('accounts and profiles (users)', () => {
         phone: null,
         location: null,
       });
-      expect(
-        store
-          .stateEventsFor(userId)
-          .map((e) => (e as { version: number }).version),
-      ).toEqual([1, 2]);
+      expect(store.profiles.get(userId)).toMatchObject({
+        firstName: 'Lidor',
+        lastName: 'Cohen',
+        phone: null,
+      });
     });
 
     it('rejects a PATCH with no fields', async () => {
       const userId = await register();
       const res = await send('PATCH', '/users/me', {}, userId);
       expect(res.status).toBe(400);
-      expect(store.stateEventsFor(userId)).toHaveLength(1);
+      expect(store.profiles.get(userId)).toMatchObject({ firstName: null });
     });
 
     it('ignores a userId or version in the body', async () => {
@@ -384,7 +423,11 @@ describe('accounts and profiles (users)', () => {
         { firstName: 'A', userId: 'other', version: 99 },
         userId,
       );
-      expect(store.profiles.get(userId)?.version).toBe(2);
+      expect(store.profiles.get(userId)).toMatchObject({
+        userId,
+        firstName: 'A',
+      });
+      expect(store.profiles.get(userId)).not.toHaveProperty('version');
       expect(store.profiles.has('other')).toBe(false);
     });
 
@@ -421,7 +464,7 @@ describe('accounts and profiles (users)', () => {
   });
 
   describe('PUT /users/me/location', () => {
-    it('saves the location and announces the full state with it', async () => {
+    it('saves the location and answers the full profile', async () => {
       const userId = await register({ firstName: 'Lidor' });
 
       const res = await send(
@@ -439,15 +482,12 @@ describe('accounts and profiles (users)', () => {
         location: { lat: 32.1782, lon: 34.9076 },
       });
       expect(body.location).not.toHaveProperty('tz');
-      const [, latest] = store.stateEventsFor(userId);
-      expect(isUserStateMessage(latest)).toBe(true);
-      expect(latest).toMatchObject({
-        version: 2,
+      expect(store.profiles.get(userId)).toMatchObject({
         firstName: 'Lidor',
         location: {
           lat: 32.1782,
           lon: 34.9076,
-          updatedAt: body.location.updatedAt,
+          updatedAt: new Date(body.location.updatedAt),
         },
       });
     });
@@ -461,13 +501,16 @@ describe('accounts and profiles (users)', () => {
       expect(
         (await send('PUT', '/users/me/location', body, userId)).status,
       ).toBe(400);
-      expect(store.stateEventsFor(userId)).toHaveLength(1);
+      expect(store.profiles.get(userId)?.location).toBeNull();
     });
   });
 
   describe('DELETE /auth/account', () => {
-    it('deletes the account and profile and publishes a tombstone', async () => {
+    it('deletes the account, profile and refresh tokens', async () => {
       const userId = await register();
+      const tokensOf = () =>
+        [...store.refreshTokens.values()].filter((t) => t.userId === userId);
+      expect(tokensOf()).toHaveLength(1);
 
       const res = await send('DELETE', '/auth/account', {
         email: 'a@example.com',
@@ -477,11 +520,7 @@ describe('accounts and profiles (users)', () => {
       expect(res.status).toBe(204);
       expect(store.users.has(userId)).toBe(false);
       expect(store.profiles.has(userId)).toBe(false);
-      expect(store.events.at(-1)).toEqual({
-        topic: KAFKA_TOPICS.USER_STATE,
-        key: userId,
-        payload: null,
-      });
+      expect(tokensOf()).toEqual([]);
       expect(
         (
           await send('POST', '/auth/login', {
@@ -500,7 +539,7 @@ describe('accounts and profiles (users)', () => {
       });
       expect(res.status).toBe(401);
       expect(store.users.has(userId)).toBe(true);
-      expect(store.events).toHaveLength(1);
+      expect(store.profiles.has(userId)).toBe(true);
     });
   });
 });

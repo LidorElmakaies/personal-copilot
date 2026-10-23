@@ -1,23 +1,22 @@
 # personal-copilot
 
-A personal NestJS + Expo app, self-hosted on a home PC and used from a phone over Tailscale.
-Today it shows Shabbat times (candle lighting, Havdalah, countdown) for the phone's location on the
-Home screen and a Jewish-calendar month (both dates, holidays and fasts) on the Calendar tab, with
-optional login. With no login needed, you can set a weekly candle-lighting reminder and add your own
-reminders on the calendar (once, daily, monthly or yearly, by the Gregorian or Hebrew date), both
-kept on the phone and fired by the Android app as local notifications (exact alarms, no server).
-Reminders saved on the server still arrive as push notifications (FCM) on an Android phone
-registered with it until they're removed — so one set in both places arrives twice.
+A personal Android app (Expo/React Native), installed from and updated by a home PC over
+Tailscale. It shows Shabbat times (candle lighting, Havdalah, countdown) for the phone's location on
+the Home screen and a Jewish-calendar month (both dates, holidays and fasts) on the Calendar tab,
+all computed on the phone. With no login needed, you can set a weekly candle-lighting reminder and
+add your own reminders on the calendar (once, daily, monthly or yearly, by the Gregorian or Hebrew
+date), kept on the phone and fired as local notifications (exact alarms, no server). A NestJS
+backend for optional login (Gateway + Users Service) stays in the repo, dormant.
 
 See [CLAUDE.md](CLAUDE.md) for architecture, setup, and how this repo is organized —
-[docs/specs/](docs/specs/) for the service/event contracts. To start the stack, follow CLAUDE.md's
-"First run": it needs both `devops/.env` and `backend/.env`, including `VAPID_*` keys (the stack
-won't boot without them).
+[docs/specs/](docs/specs/) for the service contracts. To start the stack, follow CLAUDE.md's
+"First run": it needs both `devops/.env` and `backend/.env`.
 
 ## Phone access (Tailscale HTTPS)
 
-The app reaches your phone over [Tailscale](https://tailscale.com). It must be served over HTTPS,
-because phone browsers only allow location (GPS) on HTTPS pages — the Shabbat times need it.
+The phone reaches the PC over [Tailscale](https://tailscale.com), on HTTPS — Android blocks plain
+HTTP, so the APK download page, the app's update check and (when running) Gateway all go through
+`tailscale serve`.
 
 One-time setup on this PC:
 
@@ -30,22 +29,21 @@ sudo tailscale set --operator=$USER                    # lets serve.js run witho
 In the Tailscale admin console (DNS page), turn on **MagicDNS** and **HTTPS Certificates**. Install
 Tailscale on your phone and log in with the same account.
 
-Then, with the stack running:
+Then:
 
 ```bash
-node devops/tailscale/serve.js     # prints your https://<pc>.ts.net URLs
+node devops/tailscale/serve.js     # prints https://<pc>.ts.net/apk/ and the Gateway URL (:8443)
+cd devops && docker compose up -d  # the APK registry
 ```
 
-Set the printed Gateway URL as `GATEWAY_PUBLIC_URL` in `devops/.env`, rebuild the frontend
-(`cd devops && docker compose up -d --build frontend`), and open `https://<pc>.ts.net` on your
-phone. `tailscale serve` settings survive reboots; `tailscale serve reset` removes them.
-
-**Reminders** are notifications from the Android app (below), which schedules them itself; the
-web app shows none (it has no service worker and subscribes to no push).
+Set the printed registry URL as `APK_REGISTRY_URL` in `devops/.env` (or the Gateway URL as
+`GATEWAY_PUBLIC_URL`, whose host it defaults to) before building the APK, and open
+`https://<pc>.ts.net/apk/` on your phone to install it. `tailscale serve` settings survive reboots;
+`tailscale serve reset` removes them.
 
 ## Android app (APK)
 
-The same app as a real Android app. One Node script, same on Linux and Windows; the build runs in
+One Node script, same on Linux and Windows; the build runs in
 Docker (nothing else to install):
 
 ```bash
@@ -63,10 +61,9 @@ Docker volumes and takes a while; later ones are faster. `ANDROID_ABIS=arm64-v8a
 
 The first run also creates the release signing key in `devops/data/android/` (git-ignored).
 **Back up `release.keystore` and `keystore.properties` from there.** Every later APK must be signed
-with the same key to update the installed app; with a new key you'd have to uninstall it (and sign
-in again) first. The APK shows its reminders once Android's notification permission is allowed (it
-asks once, on Home). For server push (FCM) to a phone registered with it, put Firebase's `google-services.json` (Firebase → your Android app
-`com.lidor.personalcopilot`) in `devops/data/android/` too — the build uses it when it's there.
+with the same key to update the installed app; with a new key you'd have to uninstall it first. The
+APK shows its reminders once Android's notification permission is allowed (it asks once, when a
+reminder exists).
 
 `publish` puts the built APK (the `frontend` version, or `--version X`) on the download
 page at `https://<pc>.ts.net/apk/`, each argument one bullet of its release notes. Every published
@@ -76,7 +73,8 @@ regenerates the page, and puts back a published APK that went missing); a differ
 published version is refused — bump the version. On the phone, the first install asks to allow
 installs from Chrome, and Google Play Protect may block the app as from an unknown developer:
 More details → Install anyway (the page says so too). `publish` writes `devops/data/apk/` directly, or through a `node:22-alpine`
-container when that folder isn't writable (root-owned on Linux, since Docker created it).
+container when that folder isn't writable (root-owned on Linux, since Docker created it). The
+`apk` container (`devops/apk/`) serves it.
 
 **Updates.** Once installed, the app checks the registry's `latest.json` at start and whenever it
 comes back to the foreground (the phone needs Tailscale on to reach it). When a newer version is published, a
@@ -84,14 +82,13 @@ sheet with its release notes opens by itself (once per version; after Later, an 
 downloads the APK inside the app and opens Android's installer — the first time, Android asks to
 allow installs from Personal Copilot. Only releases count: `-test.N` builds never reach
 `latest.json`. The registry address is baked in at build time: `APK_REGISTRY_URL` (env or
-`devops/.env`), else `https://<GATEWAY_PUBLIC_URL's host>/apk/` — the frontend's HTTPS address as
+`devops/.env`), else `https://<GATEWAY_PUBLIC_URL's host>/apk/` — the registry's HTTPS address as
 `devops/tailscale/serve.js` publishes it.
 
 ## Secrets between PCs
 
 The secrets — `backend/.env`, `devops/.env`, and in `devops/data/android/` the signing key
-(`release.keystore`), its passwords (`keystore.properties`) and Firebase's `google-services.json` —
-never go in git. `scripts/secrets.js` packs them into one encrypted file. It works with two files,
+(`release.keystore`) and its passwords (`keystore.properties`) — never go in git. `scripts/secrets.js` packs them into one encrypted file. It works with two files,
 both in the repo's `secrets/` folder (gitignored, so they never reach git either):
 
 | File | What it is |
@@ -124,13 +121,13 @@ run it again only to start over with a new key (then push and upload both files)
 
 Every component's version is in `version/versions.json`; `node scripts/version.js` shows and bumps them
 (rules in CLAUDE.md's "Versions"). The Account tab (hidden from the bar, opened by a direct link) shows the
-frontend's version; backend services report theirs on their internal `/health`, and the Admin tab
-(admins only, also hidden) lists them all.
+frontend's version; the backend services report theirs (Users on its internal `/health`), and the
+Admin tab (admins only, also hidden) lists them.
 
 ## Docs drift check
 
-`node scripts/docs-check.js` checks the docs against the code (paths they name, env vars incl. `devops/.env`, Kafka
-topics, queues, Caddy's Gateway routes, services, version components, no plan references) and exits
+`node scripts/docs-check.js` checks the docs against the code (paths they name, env vars incl. `devops/.env`,
+services, version components, no plan references) and exits
 1 on drift; `--changed` first lists the docs your uncommitted changes should update.
 
 ## Git rule for Claude and every agent

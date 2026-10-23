@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import type { RefreshToken } from '../../models/refresh-token';
 import type { IRefreshTokenRepository } from '../interfaces/refresh-token-repository.interface';
 import { RefreshTokenEntity } from '../../entities/refresh-token.entity';
@@ -42,7 +42,11 @@ export class TypeOrmRefreshTokenRepository implements IRefreshTokenRepository {
     return entity ? toDomain(entity) : null;
   }
 
-  async revoke(id: string): Promise<void> {
-    await this.repo.update({ id }, { revokedAt: new Date() });
+  async revoke(id: string): Promise<boolean> {
+    const { affected } = await this.repo.update(
+      { id, revokedAt: IsNull() },
+      { revokedAt: new Date() },
+    );
+    return affected === 1;
   }
 }

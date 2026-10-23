@@ -1,5 +1,6 @@
 services:
   postgres:
+    profiles: ["backend"]
     extends:
       file: ../common.yml
       service: _defaults
@@ -19,9 +20,10 @@ services:
       timeout: 5s
       retries: 5
 
-  # One-shot, idempotent: creates each service's schema in personal_copilot if missing. Runs on
+  # One-shot, idempotent: creates the Users Service's schema in personal_copilot if missing. Runs on
   # every `up` — the data dir already exists, so Postgres's own first-boot init scripts never would.
   postgres-init:
+    profiles: ["backend"]
     image: postgres:16-alpine
     depends_on:
       postgres:
@@ -37,8 +39,6 @@ services:
         set -e
         psql -v ON_ERROR_STOP=1 <<'SQL'
         CREATE SCHEMA IF NOT EXISTS users;
-        CREATE SCHEMA IF NOT EXISTS reminders;
-        CREATE SCHEMA IF NOT EXISTS notifications;
         SQL
     restart: "no"
     networks:

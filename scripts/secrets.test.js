@@ -66,19 +66,22 @@ test('a keystore that is not one, or has no password, is refused before it goes 
   assert.throws(() => checkKeystore(KS, PROPS, () => { throw new Refusal('wrong password'); }), /wrong password/);
 });
 
-test('push collects this PC\'s files over the bundle\'s, and keeps what this PC lacks', () => {
+test('push collects this PC\'s files over the bundle\'s, keeps what this PC lacks, drops what\'s no longer shared', () => {
   const root = tree({
-    'backend/.env': 'A=1\n',
     'devops/.env': 'GATEWAY_PUBLIC_URL=https://me.ts.net:8443\nJWT_SECRET=s\n',
     'devops/data/android/release.keystore': KS,
     'devops/data/android/keystore.properties': PROPS,
   });
-  const previous = bundleOf({ 'devops/data/android/google-services.json': '{"x":1}', 'backend/.env': 'A=0\n' });
+  const previous = bundleOf({
+    'devops/data/android/google-services.json': '{"x":1}',
+    'backend/.env': 'A=0\n',
+    'devops/.env': 'GATEWAY_PUBLIC_URL=\nJWT_SECRET=old\n',
+  });
   const { files, done, fingerprint } = collect({ root, previous, keytool });
-  assert.strictEqual(Buffer.from(files['backend/.env'], 'base64').toString(), 'A=1\n');
+  assert.strictEqual(Buffer.from(files['backend/.env'], 'base64').toString(), 'A=0\n');
   assert.strictEqual(Buffer.from(files['devops/.env'], 'base64').toString(), 'GATEWAY_PUBLIC_URL=\nJWT_SECRET=s\n');
-  assert.strictEqual(Buffer.from(files['devops/data/android/google-services.json'], 'base64').toString(), '{"x":1}');
-  assert.deepStrictEqual(done.length, 4);
+  assert.strictEqual(files['devops/data/android/google-services.json'], undefined);
+  assert.deepStrictEqual(done.length, 3);
   assert.strictEqual(fingerprint, 'AA:BB');
 });
 
@@ -87,22 +90,20 @@ test('pull: same files are left, new ones created, a different signing key or pe
     'backend/.env': 'PASSWORD_PEPPER=mine\n',
     'devops/.env': 'GATEWAY_PUBLIC_URL=https://me.ts.net:8443\nJWT_SECRET=s\n',
     'devops/data/android/release.keystore': Buffer.from([0x30, 0x82, 9]),
-    'devops/data/android/keystore.properties': PROPS,
   });
   const bundle = bundleOf({
     'backend/.env': 'PASSWORD_PEPPER=theirs\n',
     'devops/.env': 'GATEWAY_PUBLIC_URL=\nJWT_SECRET=s\n',
     'devops/data/android/release.keystore': KS,
     'devops/data/android/keystore.properties': PROPS,
-    'devops/data/android/google-services.json': '{}',
+    'devops/data/android/google-services.json': '{}', // an older bundle's, no longer shared
   });
   const by = (plan) => Object.fromEntries(plan.map((p) => [p.path, p.action]));
   assert.deepStrictEqual(by(planPull(bundle, { root })), {
     'backend/.env': 'refuse',
     'devops/.env': 'same', // its per-PC URL is kept
     'devops/data/android/release.keystore': 'refuse',
-    'devops/data/android/keystore.properties': 'same',
-    'devops/data/android/google-services.json': 'create',
+    'devops/data/android/keystore.properties': 'create',
   });
   const forced = by(planPull(bundle, { root, force: true }));
   assert.strictEqual(forced['backend/.env'], 'write');

@@ -1,4 +1,4 @@
-// Background tasks are the Android app's only (backgroundTaskService.android.js); on the web build
-// nothing runs.
+// Background tasks are Android's (backgroundTaskService.android.js); elsewhere — Jest's default
+// platform — nothing runs.
 export const define = () => {};
 export const register = async () => {};

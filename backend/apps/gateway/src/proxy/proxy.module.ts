@@ -8,7 +8,7 @@ import type { ServiceClients } from './application/interfaces/service-client.int
 import { createServiceHttpClient } from './infrastructure/service-http.client';
 import { PROXY_SERVICE, SERVICE_CLIENTS } from '../tokens';
 
-// Forwards PROXY_ROUTES (proxy.routes.ts) to Users, Reminders and Notifications.
+// Forwards PROXY_ROUTES (proxy.routes.ts) to the Users Service.
 @Module({
   imports: [HttpModule, AuthKernelModule],
   controllers: [ProxyController],
@@ -25,18 +25,6 @@ import { PROXY_SERVICE, SERVICE_CLIENTS } from '../tokens';
           config,
           'USERS_SERVICE_URL',
           'users_service',
-        ),
-        reminders: createServiceHttpClient(
-          http,
-          config,
-          'REMINDERS_SERVICE_URL',
-          'reminders_service',
-        ),
-        notifications: createServiceHttpClient(
-          http,
-          config,
-          'NOTIFICATIONS_SERVICE_URL',
-          'notifications_service',
         ),
       }),
       inject: [HttpService, ConfigService],

@@ -1,13 +1,13 @@
 import { randomUUID } from 'crypto';
 import { DataSource } from 'typeorm';
-import { OutboxEventEntity, type OutboxRelay } from '@app/kafka-client';
-import { KAFKA_TOPICS } from '@app/kafka-contracts';
 import { ProfileEntity } from '../src/entities/profile.entity';
 import { RefreshTokenEntity } from '../src/entities/refresh-token.entity';
 import { UserEntity } from '../src/entities/user.entity';
 import { TypeOrmProfileRepository } from '../src/infrastructure/postgres/typeorm-profile.repository';
+import { TypeOrmRefreshTokenRepository } from '../src/infrastructure/postgres/typeorm-refresh-token.repository';
 import { TypeOrmUserRepository } from '../src/infrastructure/postgres/typeorm-user.repository';
 import { EmailTakenError } from '../src/infrastructure/interfaces/user-repository.interface';
+import { DropOutboxAndProfileVersion1792800000000 } from '../src/infrastructure/postgres/migrations/1792800000000-drop-outbox-and-profile-version';
 import { EMPTY_PROFILE_DETAILS } from '../src/models/profile';
 
 // Opt-in: needs a real Postgres. Runs in its own throwaway schema, dropped afterwards. The stack's
@@ -25,7 +25,6 @@ maybe('Users Service repositories (real Postgres)', () => {
   let ds: DataSource;
   let users: TypeOrmUserRepository;
   let profiles: TypeOrmProfileRepository;
-  const relay = { notify: jest.fn() };
 
   beforeAll(async () => {
     admin = await new DataSource({ type: 'postgres', url }).initialize();
@@ -34,22 +33,11 @@ maybe('Users Service repositories (real Postgres)', () => {
       type: 'postgres',
       url,
       schema,
-      entities: [
-        UserEntity,
-        RefreshTokenEntity,
-        ProfileEntity,
-        OutboxEventEntity,
-      ],
+      entities: [UserEntity, RefreshTokenEntity, ProfileEntity],
       synchronize: true,
     }).initialize();
-    users = new TypeOrmUserRepository(
-      ds.getRepository(UserEntity),
-      relay as unknown as OutboxRelay,
-    );
-    profiles = new TypeOrmProfileRepository(
-      ds.getRepository(ProfileEntity),
-      relay as unknown as OutboxRelay,
-    );
+    users = new TypeOrmUserRepository(ds.getRepository(UserEntity));
+    profiles = new TypeOrmProfileRepository(ds.getRepository(ProfileEntity));
   }, 30_000);
 
   afterAll(async () => {
@@ -60,49 +48,37 @@ maybe('Users Service repositories (real Postgres)', () => {
 
   beforeEach(async () => {
     await ds.query(
-      `TRUNCATE "${schema}".outbox_events, "${schema}".profiles, "${schema}".refresh_tokens, "${schema}".users`,
+      `TRUNCATE "${schema}".profiles, "${schema}".refresh_tokens, "${schema}".users`,
     );
-    relay.notify.mockClear();
   });
 
-  const outbox = () =>
-    ds.getRepository(OutboxEventEntity).find({ order: { id: 'ASC' } });
+  const profileCount = () => ds.getRepository(ProfileEntity).count();
   const newUser = (email = 'a@example.com') =>
     users.create(
       { email, passwordHash: 'h', passwordSalt: 's', role: 'user' },
       { ...EMPTY_PROFILE_DETAILS, firstName: 'Lidor' },
     );
 
-  it('creates the user, the profile (version 1) and its state event in one go', async () => {
+  it('creates the user and the profile in one go', async () => {
     const user = await newUser();
 
-    expect(await profiles.findByUserId(user.id)).toMatchObject({
+    expect(await profiles.findByUserId(user.id)).toEqual({
+      userId: user.id,
       firstName: 'Lidor',
-      version: 1,
+      lastName: null,
+      phone: null,
+      location: null,
     });
-    const events = await outbox();
-    expect(events).toHaveLength(1);
-    expect(events[0]).toMatchObject({
-      topic: KAFKA_TOPICS.USER_STATE,
-      key: user.id,
-      payload: {
-        userId: user.id,
-        version: 1,
-        firstName: 'Lidor',
-        location: null,
-      },
-    });
-    expect(relay.notify).toHaveBeenCalled();
   });
 
-  it('saves nothing — not even the event — when the user insert fails', async () => {
+  it('saves nothing — not even the profile — when the user insert fails', async () => {
     await newUser();
     await expect(newUser()).rejects.toThrow(); // duplicate email
     expect(await ds.getRepository(UserEntity).count()).toBe(1);
-    expect(await outbox()).toHaveLength(1);
+    expect(await profileCount()).toBe(1);
   });
 
-  it('bumps the version on every update and saves the full state with it', async () => {
+  it('keeps the earlier fields on every update', async () => {
     const user = await newUser();
     const updatedAt = new Date('2026-10-03T10:00:00.000Z');
 
@@ -112,18 +88,10 @@ maybe('Users Service repositories (real Postgres)', () => {
     });
 
     expect(saved).toMatchObject({
-      version: 3,
       phone: '+972501234567',
       location: { lat: 32.1782, lon: 34.9076, updatedAt },
     });
-    const events = await outbox();
-    expect(
-      events.map((e) => (e.payload as { version: number }).version),
-    ).toEqual([1, 2, 3]);
-    expect(events[2].payload).toMatchObject({
-      phone: '+972501234567',
-      location: { updatedAt: updatedAt.toISOString() },
-    });
+    expect(await profiles.findByUserId(user.id)).toEqual(saved);
   });
 
   it('changes the email and password in one update', async () => {
@@ -149,7 +117,7 @@ maybe('Users Service repositories (real Postgres)', () => {
     const rejected = results.find((r) => r.status === 'rejected');
     expect(rejected?.reason).toBeInstanceOf(EmailTakenError);
     expect(await ds.getRepository(UserEntity).count()).toBe(1);
-    expect(await outbox()).toHaveLength(1);
+    expect(await profileCount()).toBe(1);
   });
 
   it('an email taken by another account fails the whole update with EmailTakenError', async () => {
@@ -195,13 +163,29 @@ maybe('Users Service repositories (real Postgres)', () => {
     expect(await revoked('t2')).toBe(false);
   });
 
-  it('returns null, and writes nothing, for a user that does not exist', async () => {
-    expect(await profiles.update(randomUUID(), { firstName: 'X' })).toBeNull();
-    expect(await outbox()).toEqual([]);
-    expect(relay.notify).not.toHaveBeenCalled();
+  it('revoke succeeds once: a second revoke of the same token reports false', async () => {
+    const user = await newUser();
+    const token = await ds.getRepository(RefreshTokenEntity).save({
+      userId: user.id,
+      tokenHash: 't',
+      expiresAt: new Date(Date.now() + 60_000),
+      revokedAt: null,
+    });
+    const tokens = new TypeOrmRefreshTokenRepository(
+      ds.getRepository(RefreshTokenEntity),
+    );
+    expect(
+      await Promise.all([tokens.revoke(token.id), tokens.revoke(token.id)]),
+    ).toEqual(expect.arrayContaining([true, false]));
+    expect(await tokens.revoke(token.id)).toBe(false);
   });
 
-  it('deletes the user, profile and refresh tokens, and saves a tombstone', async () => {
+  it('returns null, and writes nothing, for a user that does not exist', async () => {
+    expect(await profiles.update(randomUUID(), { firstName: 'X' })).toBeNull();
+    expect(await profileCount()).toBe(0);
+  });
+
+  it('deletes the user, profile and refresh tokens', async () => {
     const user = await newUser();
     await ds.getRepository(RefreshTokenEntity).save({
       userId: user.id,
@@ -217,16 +201,31 @@ maybe('Users Service repositories (real Postgres)', () => {
     expect(
       await ds.getRepository(RefreshTokenEntity).countBy({ userId: user.id }),
     ).toBe(0);
-    const [, tombstone] = await outbox();
-    expect(tombstone).toMatchObject({
-      topic: KAFKA_TOPICS.USER_STATE,
-      key: user.id,
-      payload: null,
-    });
   });
 
-  it('deleting an unknown user writes no events', async () => {
+  it('deleting an unknown user leaves the others alone', async () => {
+    await newUser();
     await users.delete(randomUUID());
-    expect(await outbox()).toEqual([]);
+    expect(await ds.getRepository(UserEntity).count()).toBe(1);
+    expect(await profileCount()).toBe(1);
+  });
+
+  it('the migration drops outbox_events and profiles.version, and can run again', async () => {
+    await ds.query(`CREATE TABLE "${schema}".outbox_events (id serial)`);
+    await ds.query(
+      `ALTER TABLE "${schema}".profiles ADD COLUMN version int NOT NULL DEFAULT 0`,
+    );
+    const runner = ds.createQueryRunner();
+    try {
+      const migration = new DropOutboxAndProfileVersion1792800000000();
+      await migration.up(runner);
+      await migration.up(runner);
+      expect(await runner.hasTable(`${schema}.outbox_events`)).toBe(false);
+      expect(await runner.hasColumn(`${schema}.profiles`, 'version')).toBe(
+        false,
+      );
+    } finally {
+      await runner.release();
+    }
   });
 });

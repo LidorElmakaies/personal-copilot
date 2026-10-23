@@ -26,11 +26,7 @@ export async function bootProxy(
       .fn()
       .mockResolvedValue(options.reply ?? { status: 200, body: { ok: true } }),
   });
-  const clients = {
-    users: fake(),
-    reminders: fake(),
-    notifications: fake(),
-  };
+  const clients = { users: fake() };
   let builder = Test.createTestingModule({
     imports: [
       ConfigModule.forRoot({
@@ -39,8 +35,6 @@ export async function bootProxy(
         load: [
           () => ({
             USERS_SERVICE_URL: 'x',
-            NOTIFICATIONS_SERVICE_URL: 'x',
-            REMINDERS_SERVICE_URL: 'x',
             ...options.urls,
             JWT_SECRET: TEST_JWT_SECRET,
           }),

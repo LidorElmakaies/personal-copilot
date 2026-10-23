@@ -24,7 +24,6 @@ import { remindersReducer } from '../features/shabbat';
 import locationReducer from '../shared/device/locationSlice';
 import notificationsReducer from '../shared/device/notificationsSlice';
 import { setUnauthorizedHandler } from '../shared/http/httpClient';
-import wsReducer from '../shared/realtime/wsSlice';
 import themeReducer from '../shared/theme/themeSlice';
 import { getUserFromToken } from '../shared/utils/jwt';
 
@@ -72,12 +71,6 @@ const appUpdatePersistConfig = {
   whitelist: ['dismissedVersionCode'], // the release itself is re-read on every start
 };
 
-const wsPersistConfig = {
-  key: 'ws',
-  storage: AsyncStorage,
-  whitelist: ['deviceToken'], // this install's /ws identity, kept across restarts and sign-outs
-};
-
 const authPersistConfig = {
   key: 'auth',
   storage: AsyncStorage,
@@ -88,7 +81,6 @@ export const store = configureStore({
   reducer: {
     theme: persistReducer(themePersistConfig, themeReducer),
     auth: persistReducer(authPersistConfig, authReducer),
-    ws: persistReducer(wsPersistConfig, wsReducer),
     location: persistReducer(locationPersistConfig, locationReducer),
     calendar: persistReducer(calendarPersistConfig, calendarReducer),
     profile: profileReducer, // not persisted — fetched when needed (profileSlice)

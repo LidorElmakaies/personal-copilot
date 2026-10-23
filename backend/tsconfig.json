@@ -26,18 +26,6 @@
       "@app/auth-kernel/*": ["libs/auth-kernel/src/*"],
       "@app/otel": ["libs/otel/src"],
       "@app/otel/*": ["libs/otel/src/*"],
-      "@app/queue-contracts": ["libs/queue-contracts/src"],
-      "@app/queue-contracts/*": ["libs/queue-contracts/src/*"],
-      "@app/queue-client": ["libs/queue-client/src"],
-      "@app/queue-client/*": ["libs/queue-client/src/*"],
-      "@app/kafka-contracts": ["libs/kafka-contracts/src"],
-      "@app/kafka-contracts/*": ["libs/kafka-contracts/src/*"],
-      "@app/kafka-client": ["libs/kafka-client/src"],
-      "@app/kafka-client/*": ["libs/kafka-client/src/*"],
-      "@app/users-schema": ["libs/users-schema/src"],
-      "@app/users-schema/*": ["libs/users-schema/src/*"],
-      "@app/jewish-calendar": ["libs/jewish-calendar/src"],
-      "@app/jewish-calendar/*": ["libs/jewish-calendar/src/*"],
       "@app/build-info": ["libs/build-info/src"],
       "@app/build-info/*": ["libs/build-info/src/*"]
     }

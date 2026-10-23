@@ -1,7 +1,8 @@
-// Puts the app on HTTPS inside the tailnet — phone browsers only allow GPS on HTTPS. Tailscale
-// terminates TLS with a real *.ts.net certificate and forwards to the published ports:
-//   https://<pc>.ts.net       -> frontend (localhost:8081)
-//   https://<pc>.ts.net:8443  -> gateway  (localhost:8000, incl. Socket.IO)
+// Puts the APK registry (and the dormant Gateway) on HTTPS inside the tailnet — Android blocks
+// plain HTTP. Tailscale terminates TLS with a real *.ts.net certificate and forwards to the
+// published ports:
+//   https://<pc>.ts.net/apk/  -> apk     (localhost:8081)
+//   https://<pc>.ts.net:8443  -> gateway (localhost:8000, only with --profile backend)
 // Plain Node, Linux and Windows alike: node devops/tailscale/serve.js
 // One-time prerequisites: see the "Phone access (Tailscale HTTPS)" section of the root README.
 'use strict';
@@ -30,8 +31,9 @@ tailscale(['serve', '--bg', '--https=443', 'http://127.0.0.1:8081'], { stdio: 'i
 tailscale(['serve', '--bg', '--https=8443', 'http://127.0.0.1:8000'], { stdio: 'inherit' });
 
 console.log(`
-Frontend: https://${name}
-Gateway:  https://${name}:8443
+APK registry: https://${name}/apk/
+Gateway:      https://${name}:8443
 
-Next: set GATEWAY_PUBLIC_URL=https://${name}:8443 in devops/.env, then rebuild the frontend:
-  cd devops && docker compose up -d --build frontend`);
+Next: set APK_REGISTRY_URL=https://${name}/apk/ in devops/.env (or GATEWAY_PUBLIC_URL, whose host
+it defaults to) before building the APK, and start the registry:
+  cd devops && docker compose up -d`);

@@ -499,24 +499,87 @@ Proposed on 2026-10-21 (1–3 now decided, 4–6 still open):
 
 ## Stage R5: delete what goes
 
-- [ ] **R5.1 Backend.** The two apps, the libs, Gateway's realtime/app-update modules and their
+- [x] **R5.1 Backend.** The two apps, the libs, Gateway's realtime/app-update modules and their
   rows, Kafka + the Users outbox (decision 3), packages, `nest-cli.json`, `tsconfig.json` paths,
   `jest.config.js`. Dormant Gateway and Users still build and pass `npm test`.
-- [ ] **R5.2 Frontend.** Web build, FCM, socket, push services, web-only branches, `e2e/`,
+  *Done 2026-10-23:*
+  - Deleted: `apps/reminders`, `apps/notifications`, `libs/{queue-client,queue-contracts,
+    users-schema,kafka-client,kafka-contracts}`, Gateway `src/realtime/` + `src/app-update/`,
+    `DeviceTokenService` (and `signDevice`/`verifyDevice`, used only by it), the Users outbox
+    (`user-events.ts`, the relay, `OutboxEventEntity` out of its entities). Gateway: only the
+    Users rows in `PROXY_ROUTES`, admin probes only `users`, no `REMINDERS_`/
+    `NOTIFICATIONS_SERVICE_URL` (also out of `backend/.env.example`), no `IoAdapter`. Users'
+    name/phone rules moved to `models/profile.ts`; profile changes and deletions publish nothing.
+    Packages: `web-push`, `@types/web-push`, `http_ece`, `bullmq`, `ioredis`, `socket.io`,
+    `socket.io-client`, `@nestjs/websockets`, `@nestjs/platform-socket.io`, `kafkajs`.
+    `nest-cli.json`, `tsconfig.json` paths, `jest.config.js`, `build`/`build:libs` scripts trimmed.
+  - Backend: ≈11.9k lines removed (205 files), 36 suites / 510 tests gone (754 → 244). The
+    `:param` cases moved to a new `forwarded-path.spec.ts`; the testing agent restored the admin
+    "500 / too slow → down" cases, added a no-role token case and a refresh-token precondition.
+  - Passing: `npm install`, `npm run build` (gateway + users), `npm test` (234 pass, 11 opt-in
+    skipped — the Users real-Postgres spec run separately: 11 pass), `npm run lint`. Built Gateway
+    boots with only `USERS_SERVICE_URL`: `/calendar/shabbat` 200, `/reminders` 404, `/users/me` 401.
+  - Docs: `event-schemas.md`, `notification-flow.md`, `docs/reminders/`, `docs/notifications/`
+    deleted; services.md, architecture.md, env docs, READMEs, CLAUDE.md, backend/testing/devops
+    agent files updated; `docs-check.js` lost its Kafka/queue checks (`scripts/*.test.js` 32 pass).
+  - Decided at review (asked): `.claude/agents/docs.md`'s Kafka/queue checks removed (docs-check:
+    all 7 pass); architecture.md's dormant location-sync diagram deleted; `outbox_events` and
+    `profiles.version` dropped — Users' first migration
+    (`migrations/1792800000000-drop-outbox-and-profile-version.ts`, `migrationsRun` on boot,
+    `IF EXISTS` since TypeORM runs migrations before `synchronize`). Checked on a throwaway
+    Postgres 16: the IT spec (11, incl. the migration twice) passes; the built Users boots
+    healthy on a new database (dev) and on one with the old table/column (production: both gone,
+    recorded in `users.migrations`). The live database gets it the next time Users starts.
+  - For R6: `devops/{reminders,notifications}` point at deleted Dockerfiles, Gateway's compose
+    still sets the two URLs and `depends_on` them — `docker compose up --build` fails until then.
+- [x] **R5.2 Frontend.** Web build, FCM, socket, push services, web-only branches, `e2e/`,
   packages. `version/versions.json`: `reminders` and `notifications` removed (`scripts/version.js`
   and its tests if it lists them).
+  *Done 2026-10-23, in one sweep with R6.1 and most of R6.2/R6.3 (asked: "full sweep"):*
+  - Frontend: `public/`, web `Dockerfile`/`Caddyfile`/`.dockerignore`, `web`/`build:web`/`ios`
+    scripts, `app.json`'s `web`/`ios`, `e2e/`, the favicon; FCM (`fcmService`, `fcmReceiver` — the
+    banner handler is now `shared/device/notificationDisplay.js`, loaded by `index.js`);
+    `shared/realtime/` (socket, `wsSlice`, `RealtimeConnectionManager`); `LocationSyncManager`,
+    `syncLocation`, `setLocation`, `distanceKm`; `CssStar`/`CssMeteor`, `TabPager`'s web scroll fix
+    and `touchAction`, `GlowCard`'s blur and `solid`, `BottomSheet`'s `userSelect`;
+    `app.config.js`'s `googleServicesFile`. Packages: `react-native-web`, `react-dom`,
+    `socket.io-client`, `@noble/ciphers`, `expo-secure-store` (`expo-blur` stays: `GradientButton`).
+    The `.js` no-op fallbacks stay (Jest's platform). `version.js` lists no components.
+  - Backend too (asked): Gateway's `/calendar` module and `libs/jewish-calendar` + `@hebcal/core`
+    (the phone has its own copy); Users' second migration drops the `reminders` and
+    `notifications` schemas (asked: drop the data). Boot-checked on a throwaway Postgres 16.
+  - Tests: frontend 324 (new `notificationDisplay.spec`), backend 133 + 11 opt-in (new
+    `jsonwebtoken.service.spec`, a refresh-failure case), scripts + `apk.test.js` 44;
+    `npx expo export --platform android` bundles. docs-check: all 6 pass.
+  - Fixed (found by the testing agent, older than this work): two refreshes with one token at once
+    both got a new pair. `revoke` is now `UPDATE … WHERE revoked_at IS NULL` and reports whether it
+    revoked; the loser gets `401`. Tests: the race (fails without the fix), the real-Postgres revoke.
 - [ ] **R5.3 Opt-in phone smoke tests.** Maestro flows over adb (launch, Shabbat times shown, add a
   reminder, the notification appears) — optional release check, never changing phone settings.
 
 ## Stage R6: devops
 
-- [ ] **R6.1 Compose.** Remove the dead services; `profiles: ["backend"]` for the dormant ones;
+- [x] **R6.1 Compose.** Remove the dead services; `profiles: ["backend"]` for the dormant ones;
   observability only with them.
+  *Done 2026-10-23 (with R5.2):* `devops/{reminders,notifications,redis,kafka,frontend,playwright}/`
+  deleted (the Hetzner/SSH-tunnel path with `frontend/`); `gateway`, `users`, `postgres`,
+  `postgres-init` in `profiles: ["backend"]`; postgres-init creates only `users`; `docker.env`
+  without Redis/Kafka; `docker compose up -d` starts only `apk`, which needs no `backend/.env`
+  (`env_file: !reset []`). `apk.js`: no Kafka announce, no `google-services.json`;
+  `icons/render.js` pins its own Playwright image, no web icons; `scripts/fire-reminder.js`
+  deleted. `devops/data/{kafka,redis}` and `google-services.json` left on disk (never touched).
 - [ ] **R6.2 `/apk/` server** (decision 2) at the same address; `devops/tailscale/serve.js`
   updated; `tailscale serve` live config reset to match. *Check:* the installed APK still finds an
   update.
+  *In code 2026-10-23:* `devops/apk/` — `caddy:2-alpine` on `127.0.0.1:8081` (same port behind
+  `tailscale serve`), `/` and `/apk` → `/apk/`, `latest.json`/page no-cache, the APK MIME type
+  (checked on a temp port). `serve.js` text updated; its two mappings are unchanged, so the live
+  config needs no reset. *Left:* `docker compose up -d` on this PC and the phone finding an update.
 - [ ] **R6.3 Secrets.** `secrets.js` `FILES` and both `.env.example`s without VAPID/FCM/Redis/Kafka;
   re-push the encrypted bundle (Windows and Ubuntu PCs).
+  *In code 2026-10-23:* `FILES` without `google-services.json`; a push now drops bundle files no
+  longer in `FILES`; `backend/.env.example` without VAPID/FCM/Redis/Kafka (devops' had none).
+  *Left:* `node scripts/secrets.js push`, then pull on the other PC.
 
 ## Stage R7: docs
 

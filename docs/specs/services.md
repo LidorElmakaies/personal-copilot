@@ -1,13 +1,15 @@
 # Services
 
-Four NestJS apps in `backend/apps/` (`gateway`, `users`, `reminders`, `notifications`),
-shared libs in `backend/libs/`, one frontend. See `architecture.md` for the topology diagram.
+Two NestJS apps in `backend/apps/` (`gateway`, `users`), shared libs in `backend/libs/`, the
+Android app (`frontend/`, with its calendar maths in `frontend/src/lib/jewish-calendar/`) and
+`apk`, the static APK registry. Both backend services are dormant — `profiles: ["backend"]` in
+compose, called only by the app's hidden login/account screens (see [frontend](#frontend)). See
+`architecture.md` for the topology diagram.
 
 ## gateway
 
-The only backend service reachable from outside the Docker network — directly over Tailscale, or
-(in the cloud/Hetzner deployment — see `architecture.md`'s "System topology") indirectly via an SSH
-tunnel from a Caddy instance on the public internet. HTTP + WebSocket.
+The only backend service reachable from outside the Docker network, through `tailscale serve`
+(`architecture.md`'s "System topology"). HTTP only.
 
 - `POST /auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout`, `/auth/account`,
   `DELETE /auth/account` → the Users Service route of the same name, body untouched. No guard on any of them (for
@@ -15,124 +17,51 @@ tunnel from a Caddy instance on the public internet. HTTP + WebSocket.
   way — see [users](#users)).
 - `GET /users/me`, `PATCH /users/me`, `PUT /users/me/location` (`JwtAuthGuard`) → Users Service's
   routes of the same name. Body relayed untouched.
-- `GET /notifications/vapid-public-key` (open), `POST`/`DELETE /notifications/subscriptions` and
-  `PUT`/`DELETE /notifications/fcm-devices` (`JwtAuthGuard`) → Notification Service's routes of the
-  same name. Body relayed untouched.
-- `GET /reminders`, `PUT /reminders/shabbat-candles`, `DELETE /reminders/shabbat-candles`, and
-  `GET`/`POST /reminders/custom`, `GET /reminders/custom/preview`, `PATCH`/`DELETE
-  /reminders/custom/:id`, `POST /reminders/custom/:id/skip` (`JwtAuthGuard`) → Reminders Service's routes of the same name.
-  Body relayed untouched. **Not called by the app**, which keeps both kinds of reminder on
-  the phone (see [frontend](#frontend)).
-- Every forwarded route above (`/auth/*`, `/users/me*`, `/reminders*`, `/notifications/*`) is one
-  row of `PROXY_ROUTES` (`src/proxy/proxy.routes.ts`): method, path (the same on Gateway and the
+- Every forwarded route above (`/auth/*`, `/users/me*`) is one row of `PROXY_ROUTES` (`src/proxy/proxy.routes.ts`): method, path (the same on Gateway and the
   service; a `:param` is filled in from the request, URL-encoded so it stays one path segment, and
   a `GET`'s query string is passed on as sent — `api/forwarded-path.ts`), target service, `auth: 'user'` (`JwtAuthGuard` + `X-User-Id`) or `'none'`, and
   `throttle: 'strict'` where it applies. `ProxyController` turns each row into its own Nest route,
   so anything unlisted is a `404` — never a wildcard. `ProxyService` sends it through that service's
-  `ServiceHttpClient` (base URL from `<SERVICE>_SERVICE_URL`); an unreachable service answers
+  `ServiceHttpClient` (base URL from `USERS_SERVICE_URL`); an unreachable service answers
   `502 { error: { code: '<service>_unreachable', message } }`. Adding a route is one row there,
   plus the same row in `test/proxy.api.spec.ts`'s `CONTRACT`.
 - **User identity for internal services:** a guarded route forwards only the token's user id, in
   an `X-User-Id` header Gateway sets itself (`USER_ID_HEADER` in `@app/auth-kernel`). Client
   headers are never passed through, so a client can't supply its own. The internal service reads
-  it with `@ForwardedUserId()` (401 if absent) and trusts it because only Gateway can reach it, so
-  no internal service needs `JWT_SECRET`.
-- `GET /calendar/shabbat?lat&lon` — **served by Gateway itself, not proxied** (`src/calendar/`):
-  the Shabbat in progress, otherwise the next one, for that location, computed in-process with
-  [`@app/jewish-calendar`](#libsjewish-calendar). With `/calendar/month`, the only Gateway routes
-  with logic of their own — the maths is the shared lib, so there's nothing for another service to
-  add. Unguarded. **Not called by the app**: it computes the same answer on the phone
-  (`calendarService`).
-  ```json
-  { "candleLighting": "2026-10-02T15:04:00.000Z", "havdalah": "2026-10-03T16:00:00.000Z",
-    "parasha": null, "holidays": [{ "en": "Shmini Atzeret", "he": "שמיני עצרת" }], "isNow": false }
-  ```
-  `lat`/`lon` validated as coordinates → `400` otherwise; any other parameter (e.g. an older
-  client's `tz`) is dropped. Israel's rules and time zone apply wherever the point is (see
-  [`libs/jewish-calendar`](#libsjewish-calendar)). `422` where there's no sunset to count from
-  (e.g. polar summer).
-- `GET /calendar/month?year&month&lat&lon` — served by Gateway itself the same way, unguarded (and
-  likewise not called by the app):
-  every day of that civil month — its Hebrew date, holidays/fasts (`kind`: `yomTov` | `fast` |
-  `holiday`), Saturday's parasha, and its enter/leave times (`candleLighting` | `havdalah` |
-  `fastBegins` | `fastEnds`, on the day each happens; Yom Kippur's are `fastBegins` at its eve's
-  candle lighting and `fastEnds`, not `havdalah`). Same location validation, plus `year`
-  1900–2200 and `month` 1–12 → `400` otherwise. Never `422`: a day with no sunset just has no times.
-  ```json
-  { "year": 2026, "month": 9, "days": [ …, { "date": "2026-09-21",
-      "hebrew": { "day": 10, "dayHe": "י׳", "month": { "en": "Tishrei", "he": "תשרי" },
-                  "year": 5787, "yearHe": "תשפ״ז" },
-      "events": [{ "kind": "yomTov", "name": { "en": "Yom Kippur", "he": "יום כיפור" } }],
-      "parasha": null, "times": [{ "kind": "fastEnds", "at": "2026-09-21T16:15:00.000Z" }] }, … ] }
-  ```
+  it with `@ForwardedUserId()` (401 if absent) and trusts it because only Gateway can reach it.
 - `GET /admin/status` (`AdminGuard`, `src/admin/`) — **answered by Gateway itself**: its own
-  [`buildInfo`](#libsbuild-info) read in-process, plus each internal service's `/health` (Users,
-  Reminders, Notifications — the same `*_SERVICE_URL`s the proxies use), asked in parallel with a
-  timeout (`ADMIN_STATUS_TIMEOUT_MS`, default 2000). No answer, a non-200 or a body without
+  [`buildInfo`](#libsbuild-info) read in-process, plus the Users Service's `/health` (the same
+  `USERS_SERVICE_URL` the proxy uses), asked with a timeout (`ADMIN_STATUS_TIMEOUT_MS`, default 2000). No answer, a non-200 or a body without
   `status: 'ok'` → `down`, never an error. `Cache-Control: no-store`. Gateway first:
   ```json
   [{ "service": "gateway", "status": "up", "version": "0.1.0", "builtAt": "…", "startedAt": "…", "latencyMs": null },
-   { "service": "reminders", "status": "down", "version": null, "builtAt": null, "startedAt": null, "latencyMs": null }]
+   { "service": "users", "status": "down", "version": null, "builtAt": null, "startedAt": null, "latencyMs": null }]
   ```
-- `src/realtime/` — a live connection per app install (the app has it dormant and doesn't connect).
-  - `POST /realtime/device` (open; `authStrictThrottlePolicy`) → `201 { device_token }`: a new
-    device id, signed by `@app/auth-kernel`'s `DeviceTokenService` (`{ sub, typ: 'device' }`, no
-    expiry). Each app install fetches one once and keeps it. A device token is never accepted as a
-    user token, nor the reverse.
-  - Socket.IO at path `/ws`. Handshake `auth.deviceToken` is required; `auth.token` (the access
-    token) is added once signed in, verified the same way as the HTTP guard. A Socket.IO middleware
-    refuses before connecting, with `connect_error` messages `device_token_invalid` (missing or
-    not a device token) or `token_invalid` (a login token that fails). No login token → an
-    anonymous connection that gets broadcasts only.
-  - One connection per device: a newer one from the same device closes the previous at once (a
-    phone that switched networks reconnects before its old connection would time out). So a
-    client holds as many connections as it has device tokens, which the rate limit on
-    `POST /realtime/device` bounds — HTTP's limiter doesn't otherwise see WS.
-  - A feature module imports `RealtimeModule` and injects `IRealtimeConnectionService`:
-    `pushToUser(userId, event, payload)` — to every device the user is signed in on; returns
-    `false`, not an error, if none — and `broadcast(event, payload)` — to every open connection,
-    signed in or not; returns how many.
-
-  In-memory connection store, single Gateway replica only (this
-  project's actual scale) — a Redis-backed store (Socket.IO's official Redis adapter) is the
-  upgrade path if that ever changes.
-
-  Events sent today:
-
-  | Event | To | Payload | Sent when |
-  |---|---|---|---|
-  | `app-update` | `broadcast` | `{}` | a new Android release is published (below) |
-- `src/app-update/` — no routes. `FrontendReleaseConsumer` (Kafka `frontend.releases`, group
-  `gateway`) → `AppUpdateNotifierService` broadcasts `app-update`. No version in the payload —
-  Gateway's public surface never exposes versions. The app doesn't listen for it: it reads
-  `latest.json` on start and in the foreground (see [frontend](#frontend)'s App update). See
-  `event-schemas.md#frontendreleases`.
 - Rate limiting (`@nestjs/throttler`): a global limit (`THROTTLE_TTL_MS`/`THROTTLE_LIMIT`, default
   60 s/100) on every route, plus a strict one (`AUTH_THROTTLE_TTL_MS`/`AUTH_THROTTLE_LIMIT`,
-  default 60 s/5) on `register`/`login`/`refresh`/`account` (both methods) and `/realtime/device`.
-  `logout`, `/calendar/*`, `/notifications/*`, `/reminders*` and `/users/me*` stay on the global
-  one. Why two tiers: `backend/apps/gateway/README.md`. Keyed on client IP: `main.ts` sets
+  default 60 s/5) on `register`/`login`/`refresh`/`account` (both methods). `logout`
+  and `/users/me*` stay on the global one. Why two tiers: `backend/apps/gateway/README.md`. Keyed on client IP: `main.ts` sets
   `trust proxy` to `src/trust-proxy.ts`'s `TRUST_PROXY` (loopback + private networks — safe
-  because the port is published on `127.0.0.1` only), so that IP is the one `tailscale serve` or
-  the SSH tunnel forwarded — see `architecture.md`.
-- CORS is permissive (`origin: true`, reflects any origin) on both HTTP and the WS handshake — why
+  because the port is published on `127.0.0.1` only), so that IP is the one `tailscale serve`
+  forwarded — see `architecture.md`.
+- CORS is permissive (`origin: true`, reflects any origin) — why
   that's safe: `backend/apps/gateway/README.md`.
 - No `/health`, and versions only behind `AdminGuard` (`GET /admin/status`) — Gateway is the
-  public entry (including the cloud path). Its image bakes in its version like the others (see
+  public entry. Its image bakes in its version like the others (see
   [Versions](#versions)).
 
 ## users
 
 HTTP, internal-only (only Gateway calls it), schema `users` in the shared database. Owns both how
-you log in (`users`, `refresh_tokens`) and who you are (`profiles`), and publishes profile changes
-and deletions on Kafka (see "Profiles" below).
+you log in (`users`, `refresh_tokens`) and who you are (`profiles`).
 
 - `POST /auth/register` — `{ email, password, firstName?, lastName?, phone? }` →
   `{ access_token, refresh_token }`. The optional details go into the profile, created in the same
   transaction as the account.
 - `POST /auth/login` — same shape.
 - `POST /auth/refresh` — `{ refresh_token }` → new `{ access_token, refresh_token }` (rotates; the
-  old refresh token is revoked regardless of outcome).
+  old refresh token is revoked regardless of outcome, and of two refreshes with it at once only the
+  one that revoked it gets a pair — the other `401`).
 - `POST /auth/logout` — `{ refresh_token }` → revokes it.
 - `POST /auth/account` — `{ email, currentPassword, newEmail?, newPassword? }` → fresh
   `{ access_token, refresh_token }`. Verifies `currentPassword` the same way `login` verifies a
@@ -146,26 +75,22 @@ and deletions on Kafka (see "Profiles" below).
   authenticating a second sequential call with an already-stale password, something two separate
   endpoints couldn't guarantee.
 - `DELETE /auth/account` — `{ email, currentPassword }` → `204`. Verified like `login`, then
-  deletes the user, profile and refresh tokens in one transaction — and with them the user's
-  reminders and push subscriptions, whose `user_id` foreign keys are `ON DELETE CASCADE` — and
-  publishes a `users.user-state` tombstone. Immediate, no undo. An
+  deletes the user, profile and refresh tokens in one transaction. Immediate, no undo. An
   access token issued before keeps passing `JwtAuthGuard` until it expires (≤ 15 min), but every
   `/users/me` call with it answers `404`.
 - `GET /users/me` → `{ firstName, lastName, phone, location: { lat, lon, updatedAt } | null }`
   (user from `X-User-Id`); `404` for a user that no longer exists.
 - `PATCH /users/me` — any of `{ firstName, lastName, phone }`; only the fields sent change, `null`
   clears one, none at all → `400`. Names are trimmed, 1–100 chars, English or Hebrew letters only with single spaces between words
-  (`NAME_PATTERN` in `@app/kafka-contracts`, also applied by register); `phone` in international format
+  (`NAME_PATTERN` in `models/profile.ts`, also applied by register); `phone` in international format
   (`+972501234567`). Returns the profile.
-- `PUT /users/me/location` — `{ lat, lon }` → the profile. The frontend sends it only after a move
-  of more than 5 km (see [frontend](#frontend)); `updatedAt` is set here.
+- `PUT /users/me/location` — `{ lat, lon }` → the profile; `updatedAt` is set here. No client
+  calls it.
 - `GET /health` — see [Versions](#versions).
 
 **Profiles.** `profiles` table, keyed by `user_id` (the user's id and a foreign key, deleted with
-the user): `first_name`, `last_name`, `phone`, `lat`, `lon`, `location_updated_at`,
-`version`. Every write locks the row, bumps `version`, and saves the full state as a
-`users.user-state` event in the same transaction (the outbox, see `libs/kafka-client`), so a change
-is never published without being saved or saved without being published. Every account has one
+the user): `first_name`, `last_name`, `phone`, `lat`, `lon`, `location_updated_at`. Every write locks the
+row. Every account has one
 from the moment it's created (`register` and the admin seed make both in one transaction). A write
 for a user that no longer exists answers `404` and creates nothing: account deletion removes the
 profile row first, so a write either finishes before it or finds nothing.
@@ -180,14 +105,18 @@ would otherwise keep showing a stale `email` claim until it naturally expired if
 changed, and always reissuing gives the endpoint one response shape regardless of which field(s)
 were updated.
 
-Postgres via TypeORM (`users`, `refresh_tokens`, `profiles`, `outbox_events`), password_hash = SHA256(`PASSWORD_PEPPER` + salt +
+Postgres via TypeORM (`users`, `refresh_tokens`, `profiles`). A change an existing database must
+get (a dropped table, column or schema) is a migration in `src/infrastructure/postgres/migrations/`,
+run on every boot and recorded in `users.migrations` — today they drop `outbox_events`,
+`profiles.version` and the `reminders` and `notifications` schemas; why they're shaped as they are:
+`backend/apps/users/README.md`. password_hash = SHA256(`PASSWORD_PEPPER` + salt +
 plaintext). Access tokens: 15-min TTL, `{ sub, role, email }` payload; refresh tokens: 30 days,
 rotated on every use. `UserRole` is
 `'user' | 'admin'` (`USER_ROLES` in `@app/auth-kernel`); `register` always creates `'user'`. The
 only `'admin'` is the one `AdminSeedService` creates once at boot from `ADMIN_EMAIL`/`ADMIN_PASSWORD`
 (see `docs/users/environment.md`). `JsonWebTokenService.verify` accepts any role in `USER_ROLES`
-(anything else → unauthenticated), so the admin signs in and uses every `JwtAuthGuard` route and the
-WS handshake like any user. `AdminGuard` (same lib) is `JwtAuthGuard` plus `role === 'admin'`: no or
+(anything else → unauthenticated), so the admin signs in and uses every `JwtAuthGuard` route like
+any user. `AdminGuard` (same lib) is `JwtAuthGuard` plus `role === 'admin'`: no or
 a bad token → `401`, a non-admin → `403 Admins only`. Used by Gateway's `GET /admin/status`.
 
 An email is unique by the `users.email` constraint alone: `register` and `account` write and turn a
@@ -199,186 +128,19 @@ token is already a high-entropy random value, not human-guessable like a passwor
 guards against a raw DB leak, not brute force. `refresh` always revokes the used token first, then
 issues a new pair, so a stolen-and-replayed refresh token only ever works once.
 
-## reminders
-
-HTTP + BullMQ worker, internal-only, schema `reminders` in the shared database plus the shared
-Redis (`REDIS_URL`) and Kafka (`KAFKA_BROKERS`). Owns two kinds of reminder: the candle-lighting
-reminder and the user's own (custom) reminders, and turns each into a notification at its time.
-User from Gateway's `X-User-Id` (`@ForwardedUserId()`, 401 without it). **Not called by the
-app** (it keeps reminders on the phone); the reminders already saved here keep firing until
-they're removed.
-
-- `GET /reminders` → the caller's reminders, enabled or not:
-  `[{ type, offsetMinutes, enabled, nextFireAt, waitingForLocation }]`. `waitingForLocation` is
-  `true` until the user's location is known (see below) — the reminder is saved, but can't fire.
-- `PUT /reminders/shabbat-candles` — `{ offsetMinutes }` → the saved reminder. Turns it on, or
-  updates it. `offsetMinutes` is a whole number 1–1440 → `400` otherwise. Any `lat`/`lon` sent
-  is ignored: the location comes from the user's profile.
-- `DELETE /reminders/shabbat-candles` → `204`. Turns it off but keeps the row, so the settings can
-  prefill the sheet next time. Idempotent.
-- `GET /reminders/custom?from=YYYY-MM-DD&to=YYYY-MM-DD` → each of the caller's own reminders,
-  oldest first, with the days it falls on in that range (both included; `from` ≤ `to`, at most 400
-  days, else `400`): `[{ id, title, hour, minute, repeat, calendar, start, skipped, dates }]` — the
-  days from `ReminderOccurrences` ([libs/jewish-calendar](#libsjewish-calendar)).
-- `POST /reminders/custom` — `{ title, hour, minute, repeat, calendar?, start }` → `201` and the
-  reminder (`calendar` defaults to `gregorian`, `skipped` starts empty). `title` 1–60 characters
-  after trimming: English or Hebrew letters, digits and `. , ' ! ? : ( ) " & / -`, single spaces
-  between words; `hour` 0–23, `minute` 0–59; `repeat` `once`/`daily`/`monthly`/`yearly`;
-  `calendar` `gregorian`/`hebrew`; `start` a real `YYYY-MM-DD` date — `400` otherwise. At most 300
-  per user (`MAX_REMINDERS_PER_USER`) → `422`.
-- `PATCH /reminders/custom/:id` — any of those fields → the reminder (the whole series); none
-  (`from`/`to` alone included) → `400`. `DELETE /reminders/custom/:id` → `204`.
-- `POST /reminders/custom/:id/skip` — `{ date }` → `200` and the reminder with `date` in `skipped`
-  ("only this day"; changing one day is this plus a once-reminder on it). Idempotent; `422` if the
-  reminder doesn't fall on `date`, or past 500 skipped days.
-- `POST /reminders/custom`, `PATCH /reminders/custom/:id` and `POST /reminders/custom/:id/skip`
-  also take optional `from`/`to` (`YYYY-MM-DD`) in the body — the months the client shows, both
-  or neither, under the same rules as the list's range, else `400`. With them the answer also has
-  `dates` (the reminder's days in that range), so the client can show the change without asking
-  for the list again; without them it doesn't. They're in the body because Gateway passes a query
-  string on only for a `GET`.
-- A `:id` that isn't the caller's reminder, or isn't a UUID → `404`.
-- `GET /reminders/custom/preview?hour&minute&repeat&calendar&start` — the same timing fields
-  (same rules, `calendar` defaults to `gregorian`, `hour`/`minute` plain digits — `''` or `1e1` →
-  `400`) → `{ next: ['YYYY-MM-DD', …] }`: the next 3 days
-  (`PREVIEW_COUNT`) it would fire on, as if saved now, in Israel time; empty when it won't fire
-  again (a once-reminder whose time passed). Nothing is saved — the add/edit sheet's "Next" dates.
-- `GET /health` — see [Versions](#versions).
-
-**Tables.** `reminders`: one row per user and type (`user_id`, `type`, `offset_min`, `enabled`,
-`next_fire_at`; unique `(user_id, type)`); the only type is `shabbat_candles`. `custom_reminders`:
-`title`, `hour`, `minute`, `repeat`, `calendar`, `start_date` `date`, `skipped_dates`
-`varchar(10)[]`, `next_fire_at`, `created_at`, `updated_at`. In both, `user_id` references
-`users.users(id)` `ON DELETE CASCADE`, so a deleted account's reminders go with it and a reminder
-can't be saved for a user that doesn't exist.
-
-**The user's location** is read straight from the Users Service's `users.profiles` (a read-only
-mapping, `UsersProfileEntity` from `@app/users-schema`) — never copied, never written here. Only
-candle lighting uses it.
-
-**Scheduling.** Every reminder with a next firing has it in `next_fire_at` and one delayed
-`reminder-due` job for exactly that time; when the job runs it requests the notification and queues
-the next firing — what each kind sends: [event-schemas.md](event-schemas.md#reminder-due).
-`ReminderDueConsumer` hands each job to its scheduler by `kind`. As the safety net,
-`ReminderSweeper` reschedules every enabled candle-lighting reminder and every custom reminder at
-startup and every 15 minutes, so a failure anywhere below (e.g. Redis down — a save still
-succeeds) is fixed by the next sweep. It then removes delayed jobs whose reminder row is gone
-(`ReminderJobCleaner`) — an account deletion takes the rows by cascade, so nothing cancelled
-their jobs. Only a missing row counts: a row is saved before its job is queued, so a reminder
-being created is never taken for one.
-
-- **Candle lighting** (`ReminderScheduler`): an enabled reminder with a location fires at the next
-  candle lighting there (`@app/jewish-calendar`, in-process) minus the offset. Recomputed on `PUT`,
-  on every `users.user-state` message for the user (Kafka group `reminders` — the location may have
-  moved) and after each firing. A firing whose time already passed is skipped to next week — except
-  one that was still pending (the service was down), which fires late as long as candle lighting is
-  ahead. `DELETE` drops the job; off, or no location → `next_fire_at` `null`.
-- **Custom** (`CustomReminderScheduler`): fires at its next occurrence
-  (`ReminderOccurrences.nextAfter`, skipped days left out) at its wall-clock time in Israel
-  (`ISRAEL_TIME_ZONE`) — the location plays no part, so it's scheduled even without one.
-  Recomputed on `POST`, `PATCH`, skip and after each firing; `users.user-state` doesn't affect it.
-  `DELETE` drops the job (best effort — a leftover finds the reminder gone and does nothing). A
-  firing that passed without running (the service was down) is kept while the reminder still falls
-  then and it's less than an hour late (`LATE_LIMIT_MS`), so it fires late; past that, the next
-  occurrence is scheduled instead — a job that failed every attempt keeps its id in Redis, so
-  re-adding it would do nothing. A once-reminder that has fired keeps its row with `next_fire_at`
-  `null`.
-
-## notifications
-
-HTTP + BullMQ worker, internal-only, schema `notifications` in the shared database (browsers' push
-subscriptions and the Android app's FCM devices; each `user_id` references `users.users(id)`
-`ON DELETE CASCADE`) plus the shared Redis (`REDIS_URL`, its queues).
-Stores browsers' Web Push subscriptions and Android devices, and delivers `notification-requested`
-jobs to them. Publishers decide *what* and *when*; this service decides *how* (one
-`INotificationChannel` adapter per channel — `WebPushChannel` and `FcmChannel`).
-
-- `GET /notifications/vapid-public-key` → `{ publicKey }`, the server's VAPID public key
-  (base64url), which the browser passes to `PushManager.subscribe`.
-- `POST /notifications/subscriptions` — the browser's `PushSubscription.toJSON()` as-is
-  (`{ endpoint, expirationTime, keys: { p256dh, auth } }`) → `204`. `endpoint` must be `https`, no
-  explicit port, on a known push-service host or a subdomain of one (`models/push-endpoint-policy.ts`:
-  FCM for Chrome/Brave, Mozilla, Apple, Microsoft) — it's what the sender POSTs to, so the server
-  can't be pointed anywhere else. The host must be plain (`[a-z0-9.-]`) and Node's legacy
-  `url.parse` must see the same host as WHATWG `URL`, since `web-push` dials the legacy one. Keys
-  base64url: `p256dh` exactly 65 bytes (uncompressed P-256), `auth` exactly 16. Upsert on
-  `endpoint`: re-registering the same browser moves it to whoever is signed in now.
-- `DELETE /notifications/subscriptions` — `{ endpoint }` → `204`, removed only if it belongs to the
-  caller; idempotent.
-- `PUT /notifications/fcm-devices` — `{ token, key }` → `204`: the Android app's FCM registration
-  token (`[A-Za-z0-9_:-]`, ≤ 4096) and the 256-bit key it decrypts its notifications with (base64,
-  exactly 32 bytes), made on the phone. Upsert on `token`: the same phone moves to whoever is
-  signed in now, with the key it sends now.
-- `DELETE /notifications/fcm-devices` — `{ token }` → `204`, removed only if it belongs to the
-  caller; idempotent.
-- The current app calls none of these routes (its reminders fire on the phone, see
-  [Frontend](#frontend)); subscriptions and devices already stored keep receiving.
-- The subscription and device routes take the user from Gateway's `X-User-Id` (see Gateway above),
-  `401` without it.
-- `GET /health` — see [Versions](#versions).
-
-`push_subscriptions` table: `id`, `user_id` (indexed), `endpoint` (unique), `p256dh`, `auth`,
-`created_at`. `fcm_devices` table: `id`, `user_id` (indexed), `token` (unique), `key`, `created_at`,
-`updated_at`. VAPID keys come from `VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY`/`VAPID_SUBJECT`; the
-service refuses to boot without them. The FCM sending key (`FCM_*`) is optional: without it the
-FCM channel is off (a warning at boot) and devices are still registered (see
-`docs/notifications/environment.md`). Tokens and keys are never logged.
-
-Delivery (queue `notification-requested`, consume-only — this service publishes nothing; see
-[`notification-flow.md`](notification-flow.md) for the diagram and `event-schemas.md` for the job
-shape and the publish options every publisher uses). One job per notification, retried as a whole;
-the job's progress records which devices are already done, so a retry only tries the rest. A rare
-duplicate on one device is accepted in exchange for never losing a notification to a transient
-push-service error.
-- **Expired → dropped.** `NotificationDeliveryService` checks `expiresAt` on every attempt; an
-  expired job completes without sending anything (so it isn't retried either).
-- **Channels.** It calls `deliver(userId, content, expiresAt, progress)` on every channel in
-  `channels` (every channel when omitted). Every channel runs even if an earlier one throws; the
-  first error is rethrown afterwards, so the job is retried.
-- **Web Push (`WebPushChannel`).** On every attempt it looks up the user's *current* subscriptions,
-  so a device removed or taken over by another user since the job was queued isn't sent to, and one
-  added since is. Devices already marked done in the job's progress (`webpush:<subscriptionId>`)
-  are skipped. A subscription whose host is no longer on the allowlist is deleted, nothing sent.
-  Otherwise the payload `{ notificationId, title, body, url? }` is sent as JSON, encrypted for that
-  browser (RFC 8291, `aes128gcm`) and signed with the VAPID key; the push service never sees the
-  text (proven by `apps/notifications/test/web-push-encryption.spec.ts`). TTL = whole seconds left
-  until `expiresAt`, so the push service drops it rather than show it on a phone that comes online
-  too late.
-- **Android (`FcmChannel`).** Same shape as Web Push: the user's *current* devices, minus those
-  marked done (`fcm:<deviceId>`). Each gets a high-priority **data-only** FCM message (HTTP v1,
-  `fcm.googleapis.com`) whose `data` is `{ v: '1', enc }`: `enc` = base64 of iv (12 bytes) |
-  ciphertext | tag (16) — AES-256-GCM of `{ notificationId, title, body, url?, expiresAt }` with that
-  device's key, so Google only carries ciphertext. Android TTL = whole seconds left. The app's
-  background task decrypts and shows it — open, in the background, swiped away or in Doze (proven
-  on a phone). Access tokens come from the service-account key (an RS256 JWT
-  exchanged at `oauth2.googleapis.com`), cached until a minute before they expire. FCM's answer:
-  sent → done; `UNREGISTERED`/404, `SENDER_ID_MISMATCH` or a 400 about the registration token →
-  device deleted, done; 429, 5xx, 401 (a fresh access token next time) or no response → left
-  undone, retried like Web Push; anything else (or a stored key that isn't 32 bytes) → logged,
-  done.
-- **Push service answer, per device.** Sent → marked done. 404/410 → subscription deleted, marked
-  done. 429, 5xx, a network error (`ECONNREFUSED`, `ETIMEDOUT`, …) or web-push's timeout → left
-  undone. Any other failure (other 4xx, unusable keys) → logged, marked done, not retried. If any
-  device was left undone, the channel throws `RetryableDeliveryException` after trying the rest and
-  BullMQ retries the job (8 attempts, exponential backoff from 30 s — about an hour in total, cut
-  short by `expiresAt`). A failing database call also throws, so it's retried too.
-
-Nothing about a notification is stored beyond its jobs: BullMQ keeps completed jobs for 24 h and
-failed ones for 7 days (inspect with `docker compose exec redis redis-cli` from `devops/`, under the
-`bull:notification-requested:*` keys).
-
 ## frontend
 
-Expo Router app. Login is optional app-wide, not a gate on the whole app: `(tabs)` routes are
+Expo Router app, built only as an Android APK (`node devops/android/apk.js build`). Login is optional app-wide, not a gate on the whole app: `(tabs)` routes are
 reachable while signed out, and `(auth)/login`/`(auth)/register` each add a "Continue without
 logging in" link (routes to `/`) for whoever lands there without wanting to authenticate.
 
 The root layout (`app/_layout.js`), inside the Redux `Provider` and `PersistGate`, renders
 `ThemedStatusBar`, the router's `Stack`, then the app-wide managers `ReminderScheduleManager`,
 `NotificationsPrompt` and `AppUpdateManager` (each described below). The account feature's
-`AuthGate` and `LocationSyncManager` and `shared/realtime/`'s `RealtimeConnectionManager` are
-dormant — kept, not mounted — so the app renews no session on its own, syncs no location and opens
-no `/ws` connection.
+`AuthGate` is dormant — kept, not mounted — so the app renews no session on its own. The entry
+(`frontend/index.js`) loads `src/shared/device/notificationDisplay.js` (the foreground
+notification handler: a reminder due with the app open shows as a banner too) and
+`src/store/backgroundTasks.js` before the app, since Android can start the JS with no app at all.
 
 The tabs are a swipeable row (`SwipeTabs` over `TabPager`, `(tabs)/_layout.js`): drag sideways
 anywhere on a screen to the next or previous tab in the bar's order — the screen follows the finger,
@@ -400,7 +162,7 @@ stays the saved `themeSlice.mode` (system by default).
   candle lighting and Havdalah with their dates, and a countdown to whichever comes next. "In
   progress" and the countdown are computed from the device clock against the two returned times
   (`calendarService.getShabbat`, computed on the phone from `src/lib/jewish-calendar` — no network,
-  so it works offline; the same answer `GET /calendar/shabbat` gives, times as ISO strings).
+  so it works offline; times as ISO strings — see [Calendar maths](#calendar-maths)).
   - When it computes: on Home's first mount (`locate()` for a fresh GPS fix; the persisted
     last-known location is used meanwhile), when the fix arrives, when Havdalah passes (next
     Shabbat, same location), and on Retry. Switching tabs or returning from the background doesn't
@@ -417,8 +179,8 @@ stays the saved `themeSlice.mode` (system by default).
     past); "We'll schedule it once we know your location" for the saved offset while the phone has
     no `location.coords`. Unless notifications are allowed (`permission` `granted`), a nudge says
     the reminder won't arrive here, with Turn on (`enableNotifications`) while Android can still
-    ask, Open settings (`openNotificationSettings`) once it's `denied`, nothing when unsupported
-    (the web build). Save (`saveCandleReminder`) and Turn off (`turnOffCandleReminder`, shown only
+    ask, Open settings (`openNotificationSettings`) once it's `denied`, nothing when unsupported.
+    Save (`saveCandleReminder`) and Turn off (`turnOffCandleReminder`, shown only
     while on) are local and close the sheet. Closing the sheet drops an unsaved offset. Each change
     reschedules its notifications (see Reminder notifications below).
 - `(auth)/register` — email and password, plus optional first name, last name and phone
@@ -431,7 +193,7 @@ stays the saved `themeSlice.mode` (system by default).
 - `(tabs)/calendar` — no session required: a month grid (`MonthHeader`, `WeekdayRow`, then
   `MonthGrid` pages in `SwipePager`; `MonthStatus` under it when location or the month fails;
   presentational) for the device's location (`calendarSlice.fetchMonth` → `calendarService.getMonth`,
-  computed on the phone like Home's times — the same answer as `GET /calendar/month`; not persisted). Opens on the device's current month. A sideways drag moves the month with the
+  computed on the phone like Home's times; not persisted). Opens on the device's current month. A sideways drag moves the month with the
   finger (vertical still scrolls); let go past a quarter of the width or with a flick and it slides
   on (~250 ms), else springs back; a held drag runs through as many months as it covers, the title
   following the month mostly in view; ‹ › run the same slide, and quick taps add up. A "Today"
@@ -507,12 +269,12 @@ stays the saved `themeSlice.mode` (system by default).
   `requiresAuth: true` (`(tabs)/_layout.js`'s `TABS`); hidden, it's never pressed or swiped to,
   but the guard stays for any `requiresAuth` tab in the bar. A press on a `requiresAuth` tab in
   `CustomTabBar`, or a swipe onto it (it springs back), while signed out shows `ConfirmModal`
-  ("Log in to view Account?") instead of navigating; a direct hit on the route (deep link, web refresh, reopening the app on this tab)
+  ("Log in to view Account?") instead of navigating; a direct hit on the route (deep link, reopening the app on this tab)
   bypasses that entirely, so `AccountScreen` also calls `useRequireAuth()` on mount and renders
   `RequireAuthNotice` in that case — both are generic (`src/features/account/hooks/`, `src/features/account/components/`),
   reusable by any future `requiresAuth` tab, not Account-specific. Below the cards, `VersionInfo`
   (`base/feedback/`): "Personal Copilot <frontend version>" and "built <date>" from
-  `src/shared/config/version.js` — "dev", and no date, when not built by the Dockerfile or `apk.js build`
+  `src/shared/config/version.js` — "dev", and no date, when not built by `apk.js build`
   (see [Versions](#versions)).
 - `(tabs)/admin` — hidden (direct link only, see above); admins only: `requiresRole: 'admin'` in
   `TABS` would leave it out of the bar and the swipe order for everyone else, and the screen checks again (`useRequireAuth`, `useHasRole('admin')`) for a direct
@@ -520,19 +282,10 @@ stays the saved `themeSlice.mode` (system by default).
   `SystemStatus` lists `GET /admin/status` (`adminSlice.fetchSystemStatus`, not persisted, reset on
   sign-out): each service up/down with its version, build time and uptime. Refreshed on every
   visit, by its button and by pull; then `VersionInfo`.
-- **Location sync** (dormant: `app/_layout.js` doesn't mount `LocationSyncManager`, which the
-  `account` feature still exports) — when mounted, `LocationSyncManager` dispatches `profileSlice`'s
-  `syncLocation` whenever the user is signed in and `locationSlice.status` is `'ready'` (a fresh
-  GPS fix this session — the persisted last-known `coords` alone never trigger it).
-  `syncLocation` compares the fix with the location the server already has (`GET /users/me`'s
-  `location`, fetched first if the profile isn't loaded) and sends `PUT /users/me/location` only if
-  the device moved more than `LOCATION_SYNC_MIN_KM` (5, haversine in `src/shared/utils/geo.js`). The server's copy is the reference — there's no local "last sent" record to go
-  stale across accounts or devices. One sync runs at a time; a reply that lands after sign-out
-  (or a different sign-in) is dropped; a failure is simply retried on the next fix.
 - **Notifications** — `notificationsSlice` is this phone's permission to show the reminders it
   schedules itself (see Reminder notifications below): Android's notification permission, with no
   account involved and nothing registered with a server. State `{ permission, ready, busy,
-  promptDismissed }` — `permission` is `'unsupported'` (the web build, or the channel failed),
+  promptDismissed }` — `permission` is `'unsupported'` (the channel failed, or not Android),
   `'default'`, `'granted'` or `'denied'` (only once Android won't ask again: Android 13+ asks twice
   at most; below 13 notifications are allowed unless turned off in settings); `ready` once
   `initNotifications` has run; `busy` while Android's prompt is open. Only `promptDismissed`
@@ -559,18 +312,6 @@ stays the saved `themeSlice.mode` (system by default).
     warning `Alert` with Open settings; the switch is disabled while unsupported or busy.
   - Log Out and account deletion leave notifications alone: the reminders and their notifications
     belong to the phone, not the account.
-  - **Server push (FCM, Android).** The app registers nothing with the Notification Service. A
-    phone that holds an FCM device key (`fcmDeviceKey` in `expo-secure-store`,
-    `src/shared/device/fcmService.android.js`) still receives what the server sends it.
-    Receiving: `frontend/index.js` (the entry) loads `src/shared/device/fcmReceiver.android.js`
-    before the app, since a message can start the JS headless with the app swiped away. Its
-    `expo-task-manager` task finds `{ v: '1', enc }`, decrypts it with the key (AES-256-GCM,
-    `@noble/ciphers`), skips it past `expiresAt`, and shows it in the "Reminders" channel with
-    `identifier` = `notificationId` (a retry duplicate replaces the first) and `data.url`; a tap
-    opens that page (`ReminderScheduleManager`, as for local reminders). No key → nothing shown.
-  - **Web.** The web build has no service worker and no push: it neither subscribes to Web Push
-    nor schedules notifications. The Notification Service still delivers to browser subscriptions
-    it stores (`WebPushChannel`, see [Notifications](#notifications)).
 - **Staying signed in** — the 15-min access token is renewed with the 30-day refresh token
   (`authSlice.refreshSession` → `authService.refresh`, `POST /auth/refresh`; each use rotates the
   pair), so an app opened at least once in 30 days stays signed in. One renewal at a time:
@@ -583,9 +324,7 @@ stays the saved `themeSlice.mode` (system by default).
   it passes the rejected token to the handler set with
   `setUnauthorizedHandler` (`src/store/index.js`) — the current token → `refreshSession`; an
   older one → the current token if it's still the same user's — and retries that call once with
-  the token it resolves with, never more. Signed-in effects that load the user's data
-  (`LocationSyncManager`, `syncLocation`'s same-user
-  check) key on `selectUserId`, not the token, so a renewal doesn't re-run them.
+  the token it resolves with, never more.
 - **Session ended** — only a refresh the server refuses (`400`/`401`: revoked by Log Out, account
   deletion or a password change elsewhere, or 30 days unused) signs out:
   `clearAuth({ notice: SESSION_ENDED_NOTICE })`. Offline, a `5xx` or `429` keeps the session.
@@ -593,21 +332,18 @@ stays the saved `themeSlice.mode` (system by default).
   once when a notice appears). The notice (not persisted) is
   cleared by Register, "Continue without logging in", unmounting login, and a successful
   login/register. Log Out signs out with no notice (it waits for a renewal in flight, then revokes
-  the current refresh token). Other errors (e.g. `500`) keep the session. Two browser tabs share
-  the saved tokens but renew separately, so one may find its refresh token already rotated by the
-  other and sign out.
-- `profileSlice` (`{ profile, status, error, locationSyncing }`) isn't persisted; it's fetched when
-  `ProfileCard` mounts or a sync needs it, and reset on `clearAuth` and a successful
+  the current refresh token). Other errors (e.g. `500`) keep the session.
+- `profileSlice` (`{ profile, status, error }`) isn't persisted; it's fetched when
+  `ProfileCard` mounts, and reset on `clearAuth` and a successful
   `deleteAccount` so one user's profile is never shown to the next.
 - `remindersSlice` (`{ candles, candleFirings }` — `candles` is `{ enabled, offsetMinutes }`,
   starting `{ enabled: false, offsetMinutes: 90 }`, never `null`; `candleFirings` see "Reminder
   notifications" below) persists both and isn't
   reset on sign-out or account deletion. Turning off keeps the offset, so the sheet reopens on it.
-- **Reminder notifications** (Android APK only — `localNotificationsService.js`, the web build's
-  stand-in, does nothing). Both kinds of reminder fire as exact local alarms the phone schedules
+- **Reminder notifications** (Android only — the plain `localNotificationsService.js`, which Jest's
+  default platform resolves, does nothing). Both kinds of reminder fire as exact local alarms the phone schedules
   itself (`src/shared/device/localNotificationsService.android.js` over expo-notifications: a date
-  trigger in the "Reminders" channel, which it also creates — `ensureChannel`, also called by
-  `fcmService.init`). `reminders/utils/schedulePlan.js` is the pure planner: each reminder's
+  trigger in the "Reminders" channel, which it also creates — `ensureChannel`). `reminders/utils/schedulePlan.js` is the pure planner: each reminder's
   firings from now to 30 days ahead (`WINDOW_DAYS`) plus its very next one even when further, at
   most 100 in all (`MAX_TOTAL` — every reminder's next firing first, then the earliest of the rest).
   Each reminder's firings come from a generator, worked out only as far as they're kept (a merge
@@ -632,12 +368,12 @@ stays the saved `themeSlice.mode` (system by default).
     which also covers the first start after an update — on return to the foreground
     (`appStateService.watchForeground`) and when the location really moves (`placeOf` in
     `src/shared/utils/geo.js`: coordinates rounded to 2 decimals, ~1 km — GPS wobble doesn't count). A tap on any
-    notification with `data.url` (local or FCM; also the one that opened the app) navigates there.
+    notification with `data.url` (also the one that opened the app) navigates there.
   - Daily background run, so the 30-day window keeps moving with the app unopened:
     `ReminderScheduleManager` registers the task `reminder-notifications`
     (`registerBackgroundReconcile`, ~every 24 h; a failure only warns), and Android's WorkManager
     runs it through expo-background-task (`src/shared/device/backgroundTaskService.android.js`;
-    the web build's `.js` stand-in does nothing) — when it allows, only while online, never at an
+    the plain `.js`, Jest's, does nothing) — when it allows, only while online, never at an
     exact time, with the app closed or swiped away. The task (`defineBackgroundReconcile`) waits
     for redux-persist to rehydrate, then dispatches the same `reconcileReminderNotifications`. It's
     defined in `src/store/backgroundTasks.js`, imported by the entry (`frontend/index.js`) before
@@ -645,13 +381,10 @@ stays the saved `themeSlice.mode` (system by default).
     nothing: the exact alarms already scheduled cover 30 days.
   - expo-notifications re-arms pending alarms after a reboot or an APK update; one due while the
     phone was off is dropped, never shown late. `app.json`'s `USE_EXACT_ALARM` keeps them exact.
-    Reminders still saved on the server fire there too, so the same one can arrive twice until
-    it's removed from the server.
-- **App update** (Android APK only — `appUpdateSlice` does nothing on the web, or when
-  `URLS.apkRegistry`/`EXPO_PUBLIC_FRONTEND_VERSION` isn't baked in). `app/_layout.js`'s
+- **App update** (`appUpdateSlice` does nothing off Android, or when
+  `URLS.apkRegistry`/`EXPO_PUBLIC_FRONTEND_VERSION` isn't baked in — a dev server). `app/_layout.js`'s
   `AppUpdateManager` dispatches `deleteOldUpdates` and `checkForUpdate` at start, and
-  `checkForUpdate` again whenever `AppState` returns to `active`. Gateway's `app-update`
-  broadcast has no listener in the app. The check fetches the registry's
+  `checkForUpdate` again whenever `AppState` returns to `active`. The check fetches the registry's
   `latest.json` (`appUpdateService`, `cache: 'no-store'`; a relative `url` resolved against the
   registry folder) and compares its `versionCode` with the installed one —
   `src/shared/utils/versionCode.js` applied to the baked frontend version; a failed check is ignored. No
@@ -677,13 +410,8 @@ Only the dormant login/register and account screens make API calls, and only to 
 any other backend service directly. The variable is optional: without it `URLS.gateway` is `null`
 and those calls fail; nothing else in the app needs it. The one other origin it reads is the APK registry
 (`URLS.apkRegistry`, `EXPO_PUBLIC_APK_REGISTRY_URL`): static, read-only files (`latest.json` and
-the APK) served by the frontend's own Caddy at `/apk/` — not a backend service and no API, see
-`frontend/README.md`'s `/apk/` paragraph.
-
-The web build is installable (Android Chrome's Install): `frontend/public/manifest.webmanifest`
-plus `frontend/public/index.html` (Expo's single-page template with the manifest link and
-`theme-color`), the manifest served as `application/manifest+json` by `frontend/Caddyfile` — see
-`frontend/README.md`'s "Installable web app".
+the APK) served by `apk`'s Caddy at `/apk/` — not a backend service and no API, see
+[apk](#apk).
 
 Themed via `themeSlice` → `useAppTheme()` and the shared components under `src/shared/components/`
 (`base/` primitives, `composite/` built from them) — the list is in `frontend/README.md`, the
@@ -693,41 +421,35 @@ the calendar maths in `src/lib/jewish-calendar/` — layout and import rules in 
 "Feature folders".
 
 I/O lives in each feature's `services/` and in `src/shared/`. HTTP (fetch-based calls — `authService`,
-`usersService` for `/users/me*`, `adminService` for `/admin/status`,
-`realtimeService` for the device token, `appUpdateService` for the APK registry's `latest.json`;
-signed-in calls go through `httpClient`'s `authorizedFetch` (`shared/http/`)), `shared/realtime/`
-(`socketService`, a single shared Socket.IO connection), and on-device I/O (`shared/device/`: `locationService` —
-`expo-location` permission + position; `fcmService` /
-`fcmReceiver` — incoming FCM messages on Android; `localNotificationsService` — the phone's own scheduled reminder notifications, the "Reminders" channel and the notification permission; `appStateService` — foreground changes; `backgroundTaskService` — periodic background tasks (WorkManager); app-update's `apkInstallerService` —
-the update APK's download into the app cache, Android's installer, and cleanup). calendar's
-`calendarService` does no I/O but keeps the same boundary: Shabbat times and months computed on
-the phone from `src/lib/jewish-calendar/`, returned as plain JSON (times as ISO strings, the shape
-Gateway's `/calendar/*` answered) so Redux state stays serializable.
-
-The Socket.IO connection is dormant: `app/_layout.js` doesn't mount `RealtimeConnectionManager`,
-so no connection is opened and nothing subscribes. As written, it opens signed in or not, always
-with this install's device token:
-`wsSlice` fetches it once (`realtimeService.requestDeviceToken`, `POST /realtime/device`) and
-persists it; if Gateway refuses it (`device_token_invalid`, e.g. after a `JWT_SECRET` change), it
-fetches a new one and reconnects. Without a login token the connection is anonymous and gets
-Gateway's broadcasts only. `RealtimeConnectionManager` dispatches `wsSlice`'s
-`connectWebSocket` whenever `authSlice.accessToken` changes and the app isn't in the background:
-signing in or out changes identity, so it reconnects; a new token for the same session (refresh,
-`updateAccount`) keeps the connection and only replaces the token its next reconnect sends — or
-reopens it at once if Gateway refused it (`token_invalid`, e.g. the expired token it replaces). It
-calls `disconnectWebSocket` when `AppState` goes to `background` and `connectWebSocket` again on
-`active`. Features subscribe with `socketService.on(event, handler)` (returns the unsubscribe),
-which re-attaches the handler to every new connection — never a second connection. A device has
-one connection, so in the browser only one tab holds it: another tab connecting closes it, and it
-opens a new one when it's shown again.
+`usersService` for `/users/me`, `adminService` for `/admin/status`, `appUpdateService` for the APK
+registry's `latest.json`; signed-in calls go through `httpClient`'s `authorizedFetch`
+(`shared/http/`)) and on-device I/O (`shared/device/`: `locationService` — `expo-location`
+permission + position; `localNotificationsService` — the phone's own scheduled reminder
+notifications, the "Reminders" channel and the notification permission; `appStateService` —
+foreground changes; `backgroundTaskService` — periodic background tasks (WorkManager);
+app-update's `apkInstallerService` — the update APK's download into the app cache, Android's
+installer, and cleanup). calendar's `calendarService` does no I/O but keeps the same boundary:
+Shabbat times and months computed on the phone from `src/lib/jewish-calendar/`, returned as plain
+JSON (times as ISO strings) so Redux state stays serializable.
 
 `authSlice` stores the `refreshToken` that register/login return; it renews the session (see
 "Staying signed in" above) and is revoked by `logOut`.
 
+## apk
+
+The APK registry: `caddy:2-alpine` (`devops/apk/docker-compose.yml` + `devops/apk/Caddyfile`)
+serving `devops/data/apk` read-only at `/apk/` (`/` and `/apk` redirect there), published on
+`127.0.0.1:8081`, which `tailscale serve` puts at `https://<pc>.ts.net/apk/`. No API, no logic: the
+files are written by `node devops/android/apk.js publish` (every published APK, `releases.json`,
+`latest.json`, the `index.html` download page — `frontend/README.md`'s "APK registry"). `.apk`
+files go out as `application/vnd.android.package-archive`; the page and `latest.json` with
+`Cache-Control: no-cache`, so a new release shows at once. The installed app's update check reads
+`latest.json` and downloads the APK from here (see [frontend](#frontend)'s "App update").
+
 ## Versions
 
 `version/versions.json` (repo root) holds one version per deployable component (`frontend`,
-`gateway`, `users`, `reminders`, `notifications`), each its own. Bumped only by
+`gateway`, `users`), each its own. Bumped only by
 `node scripts/version.js` (bump rules: `CLAUDE.md`'s "Versions" section; tests:
 `node --test scripts/version.test.js`):
 
@@ -741,30 +463,31 @@ prints the `git tag <component>-v<version>` to add after committing.
 
 Images get the folder as a separate build context named `version` (see `architecture.md`'s
 "Compose / build layout"). Each backend image copies only its own entry to
-`/app/version/versions.json`, plus its build time in `/app/version/built-at`. Users, Reminders and
-Notifications answer `GET /health` (compose healthcheck; internal-only) with:
+`/app/version/versions.json`, plus its build time in `/app/version/built-at`. Users answers
+`GET /health` (compose healthcheck; internal-only) with:
 
 ```json
-{ "status": "ok", "service": "reminders", "version": "0.1.0",
+{ "status": "ok", "service": "users", "version": "0.1.0",
   "builtAt": "2026-10-05T18:00:00Z", "startedAt": "2026-10-05T18:02:11.123Z" }
 ```
 
-([`@app/build-info`](#libsbuild-info).) The frontend image bakes in its version and build time
-(`EXPO_PUBLIC_FRONTEND_VERSION`/`EXPO_PUBLIC_BUILT_AT`), shown by the
-(hidden) Account tab's `VersionInfo` (and at the bottom of the hidden Admin tab, which lists every backend
-service's version from `GET /admin/status`).
+([`@app/build-info`](#libsbuild-info).) `apk.js build` bakes the frontend's version and build time
+into the APK (`EXPO_PUBLIC_FRONTEND_VERSION`/`EXPO_PUBLIC_BUILT_AT`; the version also sets
+Android's `versionCode`), shown by the
+(hidden) Account tab's `VersionInfo` (and at the bottom of the hidden Admin tab, which lists the
+backend services' versions from `GET /admin/status`).
 
 ## libs/auth-kernel
 
 Shared JWT sign/verify (`IJwtService`/`JsonWebTokenService`, the only class allowed to import
 `jsonwebtoken`), the higher-level `IAuthTokenService`/`AuthTokenService` used by every guard,
-`DeviceTokenService` (Gateway's device tokens), `JwtAuthGuard` (any role in `USER_ROLES`) and
+`JwtAuthGuard` (any role in `USER_ROLES`) and
 `AdminGuard` (`JwtAuthGuard` + admins only → `403`). Used by `apps/users` (signs, on
 login/register/refresh/account) and `apps/gateway` (verifies — `JwtAuthGuard` on every
-`auth: 'user'` row of `PROXY_ROUTES`, `AdminGuard` on `GET /admin/status`, and the `/ws`
-handshake). Also `USER_ID_HEADER` + `@ForwardedUserId()`, the internal-service side of Gateway's
-forwarded user id (see Gateway above) — used by `apps/users`, `apps/reminders` and
-`apps/notifications`.
+`auth: 'user'` row of `PROXY_ROUTES`, `AdminGuard` on `GET /admin/status`). Also `USER_ID_HEADER` +
+`@ForwardedUserId()`, the internal-service side of Gateway's forwarded user id (see Gateway above)
+— used by `apps/users`.
+
 ## libs/build-info
 
 `buildInfo(service)` → `{ service, version, builtAt, startedAt }`. Reads `versions.json` and
@@ -773,17 +496,23 @@ so a local `nest start` from `backend/` reads the repo's own file, with `builtAt
 writes `built-at` outside Docker). Missing entry or file → `null`. `startedAt` is fixed at module
 load.
 
-## libs/jewish-calendar
+## libs/otel
 
-All of the project's Jewish-calendar maths, in one place.
+`startOtel` (traces, metrics and logs over OTLP/gRPC to the collector), `OtelLogger`,
+`createRequestLoggingMiddleware` and `installGracefulShutdown` — generic, ported unmodified from
+`ask-my-crawl`. Each app's `main.ts` imports it before anything else (the file header of
+`libs/otel/src/start-otel.ts` says why). Its variables: `docs/backend/environment.md`.
+
+## Calendar maths
+
+`frontend/src/lib/jewish-calendar/` — all of the app's Jewish-calendar maths, on the phone.
 `@hebcal/core` v6, imported only under `hebcal/` (`HebcalCalendarCalculator` behind
 `ICalendarCalculator`, and `hebrew-dates.ts`); `ShabbatCalendar` (`IShabbatCalendar`),
 `MonthCalendar` (`IMonthCalendar`) and `ReminderOccurrences` (`IReminderOccurrences`) are the
-entry points, pure and synchronous. Used in-process by Gateway (`GET /calendar/shabbat`,
-`GET /calendar/month` — not called by the app) and the Reminders scheduler. The app computes
-Home's times and the Calendar tab's months from its own copy, `frontend/src/lib/jewish-calendar/`
-(the same source) — so Home, the calendar and reminders always agree, and a rule changes in one place (`calendar-options.ts` picks the candle-lighting
-minutes for all of them).
+entry points, pure and synchronous. Home's times and the Calendar tab's months go through
+calendar's `calendarService`, the reminders' days and firings through `reminders/utils/` — so
+Home, the calendar and reminders always agree, and a rule changes in one place
+(`calendar-options.ts` picks the candle-lighting minutes for all of them).
 
 - `current(location, now)` — the Shabbat in progress at `now`, otherwise the next one: candle
   lighting, Havdalah, parasha, holidays, `isNow`. The Shabbat that started last Friday is returned
@@ -794,8 +523,8 @@ minutes for all of them).
   (`holiday-names.ts`: "Rosh Hashana I" without the year, "Sukkot · day 3 (Chol HaMoed)" for
   Sukkot/Pesach II–VI (CH''M), "Hoshana Raba" for Sukkot VII).
 - `nextCandleLighting(location, after)` — the first Friday candle lighting strictly after `after`.
-  Weeks with no sunset are skipped; throws `UnprocessableEntityException` (`422`) only after 26
-  such weeks in a row (or from `current` when this week has none).
+  Weeks with no sunset are skipped; throws `InvalidLocationError` only after 26 such weeks in a row
+  (or from `current` when this week has none).
 - `MonthCalendar.month(location, year, month)` — every day of a civil month: its Hebrew date
   (numbers, plus the day and year in Hebrew letters), its holidays/fasts — `yomTov` when work is
   forbidden (Yom Kippur too), `fast` for other fasts, `holiday` for the rest (Chol HaMoed, Rosh
@@ -815,59 +544,12 @@ minutes for all of them).
   (`'Asia/Jerusalem'`) is exported for callers that fix the zone to Israel's.
 - Rules, for all: the app is Israel-only. A `GeoLocation` is just `{ latitude, longitude }`;
   every calculation uses Israel's calendar (one-day Yom Tov) and Israel's time zone
-  (`ISRAEL_TIME_ZONE`) wherever the point is — "today" is the date in Israel, never the server's,
+  (`ISRAEL_TIME_ZONE`) wherever the point is — "today" is the date in Israel, never the device's,
   and a point abroad gets Israel's rules with that spot's sunset. Candle lighting is 20 min before
   sunset — 40 in Jerusalem and Petach Tikva, 30 in Haifa, Tzfat and Zikhron Ya'akov (OU Israel /
   MyZmanim), matched by distance from the city center (`israel-city-customs.ts`; the radius is
   approximate, so a town right next to a city can count as it). Havdalah is Hebcal's default (sun 8.5° below the horizon).
 
-See `backend/libs/jewish-calendar/README.md` for the non-obvious implementation details (ESM-only
-import, server time zone, finding Havdalah, reminders' repeat rules).
-
-## libs/kafka-contracts / libs/kafka-client
-
-Kafka is for events (a fact any number of services may react to); BullMQ (below) is for jobs. The
-Users Service publishes (through the outbox); Reminders consumes `users.user-state`.
-
-`kafka-client` (the only code that imports `kafkajs`, via `KAFKA_BROKERS`):
-`IEventPublisher`/`KafkajsEventPublisher` (`publish(topic, key, message | null)`; `null` is a
-tombstone; idempotent producer, one request in flight, so a key's messages keep their order;
-connects on first publish, so a service starts while Kafka is down) and
-`IEventConsumer`/`KafkajsEventConsumer` (`subscribe(topic, guard, handler)`, one consumer group per
-service, starts on `onApplicationBootstrap` reading from the beginning for a new
-group, connecting in the background and retrying with a delay doubling from 1 s to 60 s; a message
-failing the guard is logged and skipped, a tombstone skipped silently, a
-handler that throws is retried). The outbox: `addOutboxEvent(manager, topic, key, payload)` saves an event in the caller's
-TypeORM transaction (`outbox_events`, `OutboxEventEntity` — add it to the service's entities), and
-`OutboxRelay` (over `TypeOrmOutboxStore` + the publisher) publishes saved events in order and
-deletes each once Kafka has it — on startup and on `notify()` after a commit, retrying a failure
-with a delay doubling from 1 s to 60 s. No polling. At-least-once: a crash between publish and
-delete re-sends one, so consumers must be idempotent.
-`kafka-contracts`: `KAFKA_TOPICS`, `KAFKA_CONSUMER_GROUPS`, and each message type with its guard.
-See `event-schemas.md`.
-
-## libs/queue-contracts / libs/queue-client
-
-`queue-client`: `IQueuePublisher`/`BullmqQueuePublisher` (`publish(queue, data, { dedupeId,
-dedupeTtlMs, delayMs, attempts, backoffMs })`, `remove(queue, jobId)`, `delayed(queue)` — every
-delayed job's id and data, JSON job data, one BullMQ `Queue` per name) and
-`IQueueConsumer`/`BullmqQueueConsumer` (`process(queue, guard, handler, { concurrency })`, the
-handler getting the data plus `JobMeta` — ids, attempt number, and the job's `progress` with
-`saveProgress(patch)`, which is kept across retries; workers
-start on `onApplicationBootstrap` and close on `onModuleDestroy`, finishing in-flight jobs, before
-the publisher's queues close on `onApplicationShutdown`; a job failing the guard fails with `UnrecoverableError`, never
-retried; a handler that throws is retried while the job has attempts left). Both connect via
-`REDIS_URL`; the only files that import `bullmq`.
-`queue-contracts`: this project's cross-service queue names and job types with their guards —
-`notification-requested` (Reminders → Notification Service) and `reminder-due` (Reminders' own
-delayed jobs, candle-lighting or custom by `kind`).
-Also `notificationRequestedPublishOptions(message)`, the dedupe/retry options every publisher of
-that queue must pass. See `event-schemas.md`.
-
-## libs/users-schema
-
-The Users Service's tables as other services may see them: read-only TypeORM entities
-(`synchronize: false`, so a service that lists them never creates or alters them) —
-`UsersUserEntity` (`users.users`, id only; the target of other services' `ON DELETE CASCADE`
-foreign keys) and `UsersProfileEntity` (`users.profiles`, location columns; read by Reminders). Only
-the Users Service writes these tables; its own full entities stay in `apps/users`.
+See `frontend/src/lib/jewish-calendar/README.md` for the non-obvious implementation details
+(`@hebcal/core` on Hermes and Jest, the device's time zone, finding Havdalah, reminders' repeat
+rules).

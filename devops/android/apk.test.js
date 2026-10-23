@@ -7,7 +7,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
-const { publish: publishApk, releaseEvent, Refusal } = require('./apk.js');
+const { publish: publishApk, Refusal } = require('./apk.js');
 
 let IN, OUT;
 const at = (dir, f) => path.join(dir, f);
@@ -243,24 +243,4 @@ test('app.config.js stamps versionCode from FRONTEND_VERSION, app.json as is wit
     if (saved === undefined) delete process.env.FRONTEND_VERSION;
     else process.env.FRONTEND_VERSION = saved;
   }
-});
-
-test("the release event is latest.json's version, versionCode and publish time, keyed by platform", () => {
-  const latest = {
-    version: '0.4.0',
-    versionCode: 40099,
-    url: '/apk/personal-copilot-0.4.0.apk',
-    sha256: 'abc',
-    notes: ['Something new'],
-    publishedAt: '2026-10-09T12:00:00Z',
-  };
-  const { key, value } = releaseEvent(latest);
-  assert.equal(key, 'android');
-  assert.deepEqual(JSON.parse(value), {
-    version: '0.4.0',
-    versionCode: 40099,
-    publishedAt: '2026-10-09T12:00:00Z',
-  });
-  // One line: kafka-console-producer reads one message per line.
-  assert.ok(!value.includes('\n'));
 });

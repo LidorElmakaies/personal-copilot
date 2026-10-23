@@ -7,8 +7,7 @@
 // The version is `frontend` in version/versions.json; Android's versionCode comes from it
 // (frontend/src/shared/utils/versionCode.js). `build` runs in Docker (the Android SDK lives only in
 // the image, Dockerfile here); `publish` writes directly, or through a Node container when devops/data/apk is
-// root-owned (Docker created it on Linux), then — when the newest release changed — tells open apps
-// through Kafka (`frontend.releases`). Tests: node --test devops/android/apk.test.js
+// root-owned (Docker created it on Linux). Tests: node --test devops/android/apk.test.js
 'use strict';
 const fs = require('fs');
 const path = require('path');
@@ -118,8 +117,6 @@ function insideBuild() {
       return !skip.includes(top) && !top.startsWith('.env');
     },
   });
-  // Firebase's app config, for push (app.config.js uses it when present). Kept outside git.
-  if (fs.existsSync('/data/google-services.json')) fs.copyFileSync('/data/google-services.json', '/work/google-services.json');
   run('npm', ['ci', '--no-audit', '--no-fund', '--loglevel=error'], { cwd: '/work' });
   run('npx', ['expo', 'prebuild', '--platform', 'android', '--clean', '--no-install'], { cwd: '/work' });
 
@@ -234,7 +231,6 @@ function publishCli(args) {
     version = args[1];
     args = args.slice(2);
   }
-  const before = readLatest();
   try {
     fs.mkdirSync(REGISTRY, { recursive: true });
     fs.accessSync(REGISTRY, fs.constants.W_OK);
@@ -248,47 +244,11 @@ function publishCli(args) {
       'node:22-alpine', 'node', '/repo/devops/android/apk.js', 'inside-publish', version, ...args,
     ]);
   }
-  const after = readLatest();
-  if (after && after.versionCode !== before?.versionCode) announce(after);
 }
 
-// Inside the Node container publishCli falls back to: just the registry, no announcement.
+// Inside the Node container publishCli falls back to when devops/data/apk is root-owned.
 function insidePublish([version, ...notes]) {
   console.log(publish({ version, notes }));
-}
-
-function readLatest(registry = REGISTRY) {
-  try {
-    return JSON.parse(fs.readFileSync(path.join(registry, 'latest.json'), 'utf8'));
-  } catch {
-    return null;
-  }
-}
-
-// ---- telling open apps ----
-
-const RELEASES_TOPIC = 'frontend.releases';
-
-// The `frontend.releases` message for a new newest release (backend/libs/kafka-contracts'
-// FrontendReleaseMessage), keyed by platform.
-function releaseEvent(latest) {
-  const { version, versionCode, publishedAt } = latest;
-  return { key: 'android', value: JSON.stringify({ version, versionCode, publishedAt }) };
-}
-
-// Through the running stack's Kafka container (its broker isn't published to the host); Gateway
-// consumes it and tells every open app. Best effort: with the stack down, apps see the release on
-// their next start anyway.
-function announce(latest) {
-  const { key, value } = releaseEvent(latest);
-  const r = spawnSync('docker', [
-    'compose', '-f', path.join(ROOT, 'devops/docker-compose.yml'), 'exec', '-T', 'kafka',
-    '/opt/kafka/bin/kafka-console-producer.sh', '--bootstrap-server', 'kafka:19092',
-    '--topic', RELEASES_TOPIC, '--reader-property', 'parse.key=true', '--reader-property', 'key.separator=|',
-  ], { input: `${key}|${value}\n`, stdio: ['pipe', 'ignore', 'pipe'] });
-  if (r.error || r.status !== 0)
-    console.warn(`Couldn't announce ${latest.version} on Kafka (is the stack running?) — open apps will see it on their next start.`);
-  else console.log(`Announced ${latest.version} to open apps (Kafka ${RELEASES_TOPIC}).`);
 }
 
 // ---- the download page ----
@@ -397,7 +357,7 @@ document.querySelectorAll('time[datetime]').forEach(function (t) {
 
 // ---- command line ----
 
-module.exports = { publish, releaseEvent, Refusal };
+module.exports = { publish, Refusal };
 
 if (require.main === module) {
   const [command, ...args] = process.argv.slice(2);

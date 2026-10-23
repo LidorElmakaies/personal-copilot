@@ -28,7 +28,4 @@ export class ProfileEntity {
 
   @Column({ name: 'location_updated_at', type: 'timestamptz', nullable: true })
   locationUpdatedAt: Date | null;
-
-  @Column({ type: 'int', default: 0 })
-  version: number;
 }

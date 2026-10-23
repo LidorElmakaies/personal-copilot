@@ -1,8 +1,6 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, QueryFailedError, Repository } from 'typeorm';
-import type { OutboxRelay } from '@app/kafka-client';
-import { OUTBOX_RELAY } from '../../tokens';
 import type { ProfileDetails } from '../../models/profile';
 import type { User } from '../../models/user';
 import {
@@ -14,8 +12,6 @@ import {
 import { ProfileEntity } from '../../entities/profile.entity';
 import { RefreshTokenEntity } from '../../entities/refresh-token.entity';
 import { UserEntity } from '../../entities/user.entity';
-import { toProfile } from './typeorm-profile.repository';
-import { addUserStateEvent, addUserStateTombstone } from './user-events';
 
 function toDomain(entity: UserEntity): User {
   return {
@@ -49,28 +45,24 @@ async function emailTakenOnConflict<T>(write: Promise<T>): Promise<T> {
 export class TypeOrmUserRepository implements IUserRepository {
   constructor(
     @InjectRepository(UserEntity) private readonly repo: Repository<UserEntity>,
-    @Inject(OUTBOX_RELAY) private readonly relay: OutboxRelay,
   ) {}
 
   async create(input: CreateUserInput, details: ProfileDetails): Promise<User> {
     const user = await emailTakenOnConflict(
       this.repo.manager.transaction(async (m) => {
         const saved = await m.save(m.create(UserEntity, input));
-        const profile = await m.save(
+        await m.save(
           m.create(ProfileEntity, {
             userId: saved.id,
             ...details,
             lat: null,
             lon: null,
             locationUpdatedAt: null,
-            version: 1,
           }),
         );
-        await addUserStateEvent(m, toProfile(profile));
         return saved;
       }),
     );
-    this.relay.notify();
     return toDomain(user);
   }
 
@@ -103,16 +95,10 @@ export class TypeOrmUserRepository implements IUserRepository {
   }
 
   async delete(userId: string): Promise<void> {
-    // Other services' rows (reminders, push subscriptions) go too: their user_id foreign keys
-    // are ON DELETE CASCADE.
-    const deleted = await this.repo.manager.transaction(async (m) => {
+    await this.repo.manager.transaction(async (m) => {
       await m.delete(RefreshTokenEntity, { userId });
       await m.delete(ProfileEntity, { userId });
-      const { affected } = await m.delete(UserEntity, { id: userId });
-      if (!affected) return false;
-      await addUserStateTombstone(m, userId);
-      return true;
+      await m.delete(UserEntity, { id: userId });
     });
-    if (deleted) this.relay.notify();
   }
 }

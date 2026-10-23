@@ -1,9 +1,8 @@
 # `src/lib/jewish-calendar/` — implementation notes
 
 All of the app's Jewish-calendar maths, computed on the phone: pure and synchronous, no I/O. One
-place for every rule (Shabbat times, month calendars, custom reminders' repeat rules). The
-backend's `libs/jewish-calendar` is a separate copy of the same code.
-The app reads it only through calendar's `calendarService` (Home's Shabbat times, the Calendar
+place for every rule (Shabbat times, month calendars, custom reminders' repeat rules); its contract
+is `docs/specs/services.md#calendar-maths`. The app reads it only through calendar's `calendarService` (Home's Shabbat times, the Calendar
 tab's months), which JSON-round-trips the results so Redux gets ISO strings, never `Date`s.
 This file is the "why" behind decisions here that aren't obvious from the code.
 
@@ -11,7 +10,7 @@ This file is the "why" behind decisions here that aren't obvious from the code.
 
 Imported from the package root; Metro picks its ESM build. Loading it installs a global
 `Temporal` polyfill (`temporal-polyfill`). Checked on Hermes: BigInt and `Intl` with
-`timeZone` + `formatToParts` work, and the results match the server's to the minute.
+`timeZone` + `formatToParts` work.
 
 The files are TypeScript in a JS app: Expo's Babel strips the types; there's no `tsconfig`, so
 nothing type-checks them. The specs run with the app's `npm test` (`frontend/jest.config.js`), which

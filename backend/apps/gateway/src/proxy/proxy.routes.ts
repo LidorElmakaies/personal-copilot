@@ -15,21 +15,4 @@ export const PROXY_ROUTES: readonly ProxyRoute[] = [
   { method: 'GET', path: '/users/me', service: 'users', auth: 'user' },
   { method: 'PATCH', path: '/users/me', service: 'users', auth: 'user' },
   { method: 'PUT', path: '/users/me/location', service: 'users', auth: 'user' },
-
-  { method: 'GET', path: '/reminders', service: 'reminders', auth: 'user' },
-  { method: 'PUT', path: '/reminders/shabbat-candles', service: 'reminders', auth: 'user' },
-  { method: 'DELETE', path: '/reminders/shabbat-candles', service: 'reminders', auth: 'user' },
-  { method: 'GET', path: '/reminders/custom', service: 'reminders', auth: 'user' },
-  { method: 'GET', path: '/reminders/custom/preview', service: 'reminders', auth: 'user' },
-  { method: 'POST', path: '/reminders/custom', service: 'reminders', auth: 'user' },
-  { method: 'PATCH', path: '/reminders/custom/:id', service: 'reminders', auth: 'user' },
-  { method: 'DELETE', path: '/reminders/custom/:id', service: 'reminders', auth: 'user' },
-  { method: 'POST', path: '/reminders/custom/:id/skip', service: 'reminders', auth: 'user' },
-
-  // Open: the browser needs it before login matters.
-  { method: 'GET', path: '/notifications/vapid-public-key', service: 'notifications', auth: 'none' },
-  { method: 'POST', path: '/notifications/subscriptions', service: 'notifications', auth: 'user' },
-  { method: 'DELETE', path: '/notifications/subscriptions', service: 'notifications', auth: 'user' },
-  { method: 'PUT', path: '/notifications/fcm-devices', service: 'notifications', auth: 'user' },
-  { method: 'DELETE', path: '/notifications/fcm-devices', service: 'notifications', auth: 'user' },
 ];

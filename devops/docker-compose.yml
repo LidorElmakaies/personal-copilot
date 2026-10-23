@@ -1,23 +1,20 @@
 # App stack (as opposed to devops/observability/docker-compose.yml, the telemetry stack).
 # See docs/specs/architecture.md#compose--build-layout for the include/extends layout, and
-# .claude/agents/devops.md for how to add a new service.
+# .claude/agents/devops.md for how to add a new service. `docker compose up -d` starts only the APK
+# registry; the dormant backend (Gateway, Users, Postgres) is `--profile backend`.
 
 include:
+  - path: apk/docker-compose.yml
   - path: gateway/docker-compose.yml
   - path: users/docker-compose.yml
-  - path: reminders/docker-compose.yml
-  - path: notifications/docker-compose.yml
-  - path: frontend/docker-compose.yml
   - path: postgres/docker-compose.yml
-  - path: redis/docker-compose.yml
-  - path: kafka/docker-compose.yml
 
 networks:
   personal-copilot:      # internal service-to-service traffic
     driver: bridge
 
-  # Owned by devops/observability/docker-compose.yml, must already be running — see root
-  # CLAUDE.md's "First run" for startup order.
+  # Owned by devops/observability/docker-compose.yml, which must be running before the backend
+  # profile starts — see root CLAUDE.md's "First run" for startup order.
   observability:
     external: true
     name: observability

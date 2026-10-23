@@ -1,5 +1,4 @@
 import { randomUUID } from 'crypto';
-import { KAFKA_TOPICS } from '@app/kafka-contracts';
 import type { IProfileRepository } from '../src/infrastructure/interfaces/profile-repository.interface';
 import type { IRefreshTokenRepository } from '../src/infrastructure/interfaces/refresh-token-repository.interface';
 import {
@@ -7,7 +6,6 @@ import {
   type CreateUserInput,
   type IUserRepository,
 } from '../src/infrastructure/interfaces/user-repository.interface';
-import { toUserStateMessage } from '../src/infrastructure/postgres/user-events';
 import type {
   Profile,
   ProfileChange,
@@ -16,18 +14,11 @@ import type {
 import type { RefreshToken } from '../src/models/refresh-token';
 import type { User } from '../src/models/user';
 
-export interface RecordedEvent {
-  topic: string;
-  key: string;
-  payload: object | null;
-}
-
-/** Same semantics as the TypeORM repositories, events recorded instead of written to an outbox. */
+/** Same semantics as the TypeORM repositories. */
 export class InMemoryStore {
   readonly users = new Map<string, User>();
   readonly profiles = new Map<string, Profile>();
   readonly refreshTokens = new Map<string, RefreshToken>();
-  readonly events: RecordedEvent[] = [];
 
   readonly userRepository: IUserRepository = {
     create: (input: CreateUserInput, details: ProfileDetails) => {
@@ -42,11 +33,10 @@ export class InMemoryStore {
         updatedAt: now,
       };
       this.users.set(user.id, user);
-      this.saveProfile({
+      this.profiles.set(user.id, {
         userId: user.id,
         ...details,
         location: null,
-        version: 1,
       });
       return Promise.resolve(user);
     },
@@ -71,11 +61,6 @@ export class InMemoryStore {
         this.profiles.delete(userId);
         for (const [id, token] of this.refreshTokens)
           if (token.userId === userId) this.refreshTokens.delete(id);
-        this.events.push({
-          topic: KAFKA_TOPICS.USER_STATE,
-          key: userId,
-          payload: null,
-        });
       }
       return Promise.resolve();
     },
@@ -92,9 +77,8 @@ export class InMemoryStore {
         ...Object.fromEntries(
           Object.entries(change).filter(([, v]) => v !== undefined),
         ),
-        version: current.version + 1,
       };
-      this.saveProfile(next);
+      this.profiles.set(userId, next);
       return Promise.resolve(next);
     },
   };
@@ -119,8 +103,10 @@ export class InMemoryStore {
         ) ?? null,
       ),
     revoke: (id) => {
-      this.refreshTokens.get(id)!.revokedAt = new Date();
-      return Promise.resolve();
+      const token = this.refreshTokens.get(id);
+      if (!token || token.revokedAt) return Promise.resolve(false);
+      token.revokedAt = new Date();
+      return Promise.resolve(true);
     },
   };
 
@@ -128,20 +114,5 @@ export class InMemoryStore {
     return [...this.users.values()].some(
       (u) => u.email === email && u.id !== exceptUserId,
     );
-  }
-
-  stateEventsFor(userId: string) {
-    return this.events
-      .filter((e) => e.topic === KAFKA_TOPICS.USER_STATE && e.key === userId)
-      .map((e) => e.payload);
-  }
-
-  private saveProfile(profile: Profile): void {
-    this.profiles.set(profile.userId, profile);
-    this.events.push({
-      topic: KAFKA_TOPICS.USER_STATE,
-      key: profile.userId,
-      payload: toUserStateMessage(profile),
-    });
   }
 }

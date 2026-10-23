@@ -31,7 +31,6 @@ const FILES = [
   { path: 'devops/.env', env: true, local: ['GATEWAY_PUBLIC_URL', 'APK_REGISTRY_URL'] },
   { path: 'devops/data/android/release.keystore', guarded: true },
   { path: 'devops/data/android/keystore.properties', guarded: true },
-  { path: 'devops/data/android/google-services.json' },
 ];
 
 class Refusal extends Error {}
@@ -141,7 +140,10 @@ const readLocal = (root, p) => (fs.existsSync(path.join(root, p)) ? fs.readFileS
 
 /** This PC's files over the bundle's (a file this PC lacks keeps the bundle's copy). */
 function collect({ root = ROOT, previous, keytool } = {}) {
-  const files = { ...(previous?.files ?? {}) };
+  // The bundle's files this PC lacks are kept; a file no longer in FILES is dropped.
+  const files = Object.fromEntries(
+    Object.entries(previous?.files ?? {}).filter(([p]) => FILES.some((f) => f.path === p)),
+  );
   const done = [];
   for (const f of FILES) {
     let data = readLocal(root, f.path);
