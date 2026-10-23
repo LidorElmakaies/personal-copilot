@@ -635,11 +635,20 @@ Proposed on 2026-10-21 (1–3 now decided, 4–6 still open):
   still call Gateway. Tests: backend 134 (+12 opt-in), frontend 328, scripts 30; docs-check passes.
   Kept (conventions for a future service): backend.md's read-only cross-schema entities, devops.md's
   `depends_on users`.
-- [ ] **R7.3** `scripts/docs-check.js`: drop `checkCaddy`, `checkQueues`, `checkTopics` (and their
+- [x] **R7.3** `scripts/docs-check.js`: drop `checkCaddy`, `checkQueues`, `checkTopics` (and their
   fixtures in `docs-check.test.js`), `DOCS_MAP` rows for `frontend/public|Caddyfile` and `e2e/`, a
   row for the new on-phone code; delete orphaned `docs/reminders|notifications/environment.md` by
   hand (`checkEnv` won't flag them).
-- [ ] **R7.4** Mark the old plan's reversed decisions (see below) as superseded by this plan.
+  *Done 2026-10-23:* the removals, the `frontend/maestro/` row and the deleted env docs had come with
+  R5.1–R5.3. Added: `DOCS_MAP` rows for `frontend/src/lib/jewish-calendar/` (services.md's
+  "Calendar maths", the lib's README) and `devops/apk/` (services.md's `apk`, frontend/README's
+  "APK registry"), on top of the general rows; the `--changed` test pins both (fails with either
+  removed or widened). Scripts 30 pass; docs-check passes.
+- [x] **R7.4** Mark the old plan's reversed decisions (see below) as superseded by this plan.
+  *Done 2026-10-23:* each reversed decision in the old plan starts with a one-line *Superseded* note
+  saying what replaced it (in part where some still holds; "Israel vs. abroad" by its own 3.7);
+  2.26a and 4.1 dropped, 3.4 moved here, 3.5 → R7, "Holiday eves" answered; `architecture.html`
+  has a "Superseded" banner. Here, 3.4b names `frontend/src/lib/jewish-calendar/`.
 
 ## Stage R8: more "floating" (after R1–R7)
 
@@ -663,7 +672,7 @@ Proposed on 2026-10-21 (1–3 now decided, 4–6 still open):
   and dawn fasts); no fast-end notification. What changes:
   - **3.4a Mockup** — not started (stopped 2026-10-21 for this refactor). Drop the signed-out
     "Log in" prompt from its list.
-  - **3.4b Rules** — in `packages/jewish-calendar`, not the backend lib.
+  - **3.4b Rules** — in `frontend/src/lib/jewish-calendar/` (R2.1), not the backend lib.
   - **3.4c** — no Reminders Service: on holidays stored on the phone (keys from 3.4b), scheduled by
     R3's reconcile.
   - **3.4d Frontend** — no `GET /reminders/holidays`, no sign-in; e2e becomes Jest + the phone.

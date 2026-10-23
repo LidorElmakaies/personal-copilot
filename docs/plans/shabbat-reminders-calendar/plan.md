@@ -10,6 +10,10 @@ wiring, so read them before starting a task):
 
 If a design changes, update the HTML file here in the same commit.
 
+*`architecture.html` shows the server design that
+[the Android-only plan](../android-only-refactor/plan.md) replaced; `docs/specs/` describes what
+exists.*
+
 ## How we work through this plan
 
 - One task at a time. After each task: stop, summarize what changed and how to check it, and wait.
@@ -20,65 +24,68 @@ If a design changes, update the HTML file here in the same commit.
 
 ## Decisions already made
 
-- **Exact location**, not a fixed city: the phone reads GPS via `expo-location` (and, signed in,
+Decisions marked *Superseded* were reversed by
+[the Android-only plan](../android-only-refactor/plan.md) (decided 2026-10-21), unless the note names another task.
+
+- *Superseded in part: the location stays on the phone, no server sync.* **Exact location**, not a fixed city: the phone reads GPS via `expo-location` (and, signed in,
   syncs it to the server for reminders — see "Location follows the phone" below).
-- **All calendar calculation is on the server, in one library.** `@app/jewish-calendar`
+- *Superseded: the maths runs on the phone (`frontend/src/lib/jewish-calendar/`); Gateway's `/calendar` and the backend lib are deleted.* **All calendar calculation is on the server, in one library.** `@app/jewish-calendar`
   (`@hebcal/core`) holds every rule; Gateway serves Home's `GET /calendar/shabbat` from it directly
   (the one Gateway route that isn't a proxy) and the Reminders scheduler uses it in-process. One
   implementation keeps Home, the calendar and reminders in agreement, and a rule changes in one
   place. (It replaced a separate Calendar Service; computing on the phone was tried and dropped —
   it meant keeping the rules in two codebases.) Stage 3's `/calendar/month` goes in Gateway's
   calendar module too.
-- **Israel vs. abroad** comes from the time zone (`Asia/Jerusalem`). Candle lighting is **20 minutes
+- *Superseded by 3.7: the app is Israel-only — 20 min (or a city's custom) wherever the point is.* **Israel vs. abroad** comes from the time zone (`Asia/Jerusalem`). Candle lighting is **20 minutes
   before sunset in Israel, 18 abroad** (set explicitly; `@hebcal/core` would otherwise silently
   swap 18→20 in Israel). **City customs by location:** Jerusalem and Petach Tikva 40, Haifa, Tzfat
   and Zikhron Ya'akov 30 (per OU Israel / MyZmanim — Hebcal's own list misses Petach Tikva and
   Tzfat), matched by distance from the city center (`israel-city-customs.ts`). A per-user minutes
   setting may come later for communities that differ.
-- **`@hebcal/core` v6** (ESM-only). Imported via its `@hebcal/core/dist/esm/index` subpath so the
+- *Superseded in part: v6 stays, imported by the app; the backend no longer uses it.* **`@hebcal/core` v6** (ESM-only). Imported via its `@hebcal/core/dist/esm/index` subpath so the
   CommonJS backend can `require()` it on Node 22; Jest compiles it to CJS (`backend/jest.config.js`).
   v5 was tried and rejected: its type declarations don't resolve under `nodenext`.
-- **Reminders are per user** (login required, user id from the JWT). The first type is "before
+- *Superseded: reminders are kept on the phone, no login.* **Reminders are per user** (login required, user id from the JWT). The first type is "before
   candle lighting", with a user-picked offset (e.g. 1h 30m), repeating weekly.
-- **Reminders → BullMQ (Redis) → Notifications.** Reminders decides *when* and enqueues a
+- *Superseded: the phone schedules exact local notifications; Reminders, Notifications, BullMQ and Redis are deleted.* **Reminders → BullMQ (Redis) → Notifications.** Reminders decides *when* and enqueues a
   `notification-requested` job (deduplicated by `notificationId` until its `expiresAt`). The
   Notification Service decides *how* (push first; email/SMS later as new adapters, with no change
   to Reminders). One job per notification; a retry skips the devices the job already reached
   (saved in its progress). Replaced Kafka for this (task 2.3): per-job retries,
   dedupe and delayed jobs fit this better, and Redis was already running. Kafka came back later
   for events only (see below).
-- **Push = Web Push, encrypted, no Expo.** The phone's browser (Chrome or Brave, on the HTTPS
+- *Superseded: no push — local notifications only, no web app.* **Push = Web Push, encrypted, no Expo.** The phone's browser (Chrome or Brave, on the HTTPS
   tailnet site) subscribes; the Notification Service sends through the browser's push service with
   the payload end-to-end encrypted (RFC 8291, `aes128gcm`) using keys only the phone holds. The push
   service (Google) sees timing, size, and which server talks to which subscription — never the text.
   Our own VAPID key pair identifies the server; nothing goes through Expo. The Android app (APK)
   has its own channel, FCM (see below).
 - Every new service is internal-only (no published port). Only Gateway is reachable from outside.
-- **Kafka for events, BullMQ for jobs.** A fact that services may need to react to ("this user's
+- *Superseded: Kafka and BullMQ are deleted.* **Kafka for events, BullMQ for jobs.** A fact that services may need to react to ("this user's
   profile changed") goes on a Kafka topic; each service reads it with its own consumer group. Work
   that runs once, possibly delayed or in parallel (`notification-requested`, a reminder's next
   firing), stays a BullMQ job. Kafka was brought back for this in task 2.6.
-- **One database, a schema per service.** Every service uses the one `personal_copilot` database,
+- *Superseded in part: the rule stays; only `users` is left (`reminders` and `notifications` dropped).* **One database, a schema per service.** Every service uses the one `personal_copilot` database,
   in its own schema (`users.*`, `reminders.*`, `notifications.*`). A service only ever writes its
   own schema; it may read another's tables directly (a read-only TypeORM mapping,
   `synchronize: false`, so it never creates or alters them). Ownership is a convention, not
   database roles. Replaced one database per service (task 2.10).
-- **Users, location and events.** One Users Service (the Auth Service, renamed) owns both how you
+- *Superseded in part: Users (dormant) keeps accounts and profiles; its outbox and `users.user-state` are deleted.* **Users, location and events.** One Users Service (the Auth Service, renamed) owns both how you
   log in (`users`, `refresh_tokens`) and who you are (`profiles`: first and last name, phone,
   location; keyed by the user id, the JWT `sub`). Account and profile are created in one
   transaction. Other services read `users.profiles` when they need a location — no copies. Every
   profile change is announced on a compacted `users.user-state` topic (through an outbox saved in
   the same transaction, so none is lost), which is how Reminders knows to reschedule.
-- **Deleting an account cascades.** Other services' tables reference `users.users(id)` with
+- *Superseded: nothing references users any more; reminders belong to the phone.* **Deleting an account cascades.** Other services' tables reference `users.users(id)` with
   `ON DELETE CASCADE`, so deleting the user removes their reminders and push subscriptions in the
   same transaction. No delete event.
-- **Location follows the phone.** Signed in, the phone sends its location only when it moved more
+- *Superseded: no sync; the phone uses its GPS directly.* **Location follows the phone.** Signed in, the phone sends its location only when it moved more
   than 5 km or the time zone changed. The server knows where the app was last opened (a web app
   can't read GPS in the background). Two phones in two places: the last update wins. Signed out,
   Home uses the phone's GPS directly, as before.
-- **No "server → open app" channel for this.** The phone is the one that changes the location, so
+- *Superseded (moot): no server channel at all.* **No "server → open app" channel for this.** The phone is the one that changes the location, so
   it re-fetches what depends on it. Web Push is for notifications only (every push must show one).
-- **Versions, the Android app and FCM** (added before stage 3, tasks 2.17–2.27). One
+- *Superseded in part: versions, the APK and its registry stay; FCM and Web Push are deleted.* **Versions, the Android app and FCM** (added before stage 3, tasks 2.17–2.27). One
   `version/versions.json` holds the app's version and one per deployable component (semver,
   `-test.N` for test builds), bumped by one script that never touches git; each image bakes in its
   own version and build time, backend services report them with their start time on `/health`, and
@@ -92,14 +99,14 @@ If a design changes, update the HTML file here in the same commit.
   key only that phone holds, so Google sees timing and size, never the text — the same as Web Push
   in Chrome, which already rides on FCM. No server to run, no new exposed port, no permanent
   notification on the phone. Web Push stays for the browser.
-- **Phones: Android gets the APK, iPhone the Home Screen web app.** Both run the same Expo code.
+- *Superseded: Android only — no web app, PWA or iPhone.* **Phones: Android gets the APK, iPhone the Home Screen web app.** Both run the same Expo code.
   iPhones can't install apps from our own server (only through Apple), so the APK, its registry,
   the in-app updater and FCM are **Android only**. iPhone uses the web app installed to the Home
   Screen (a PWA: web manifest + icons) — iOS 16.4+ delivers Web Push to Home Screen web apps
   through Apple's push service, so reminders reach it through the Web Push we already have (FCM
   on iPhone would need a native app). **No native iOS app**: it needs the paid Apple Developer
   Program, and isn't planned.
-- **Ready to move to the cloud.** Today everything runs at home behind Tailscale. Anything new must
+- *Superseded (moot while the backend is dormant).* **Ready to move to the cloud.** Today everything runs at home behind Tailscale. Anything new must
   also work if the whole project moves to a public cloud server: nothing may rely on the tailnet
   being private for its security. FCM needs nothing exposed: the Notification Service only calls
   out to Google.
@@ -520,7 +527,7 @@ move to the cloud" under Decisions.
   token before sending (the e2e test now asserts no call goes out with it). Log Out → signed out, that refresh token revoked, the phone's FCM
   device deleted; the account's other session stayed valid. FCM registration on 0.4.0 worked with
   the regenerated Firebase files.
-- [ ] **2.26a Installable web app (PWA), Android.** A web manifest (`manifest.webmanifest`: name,
+- *Dropped by the Android-only plan: no web app.* [ ] **2.26a Installable web app (PWA), Android.** A web manifest (`manifest.webmanifest`: name,
   short name, `display: standalone`, `start_url`/`scope` `/`, theme and background colors from the
   palette) and the app icon from 2.20b in the sizes Android needs (192/512 px, a maskable version,
   favicon), linked from the web build's HTML. Android Chrome then offers "Install app".
@@ -754,7 +761,7 @@ and a day card with that day's times.
     a default city (e.g. Jerusalem)?
   - Tests updated across all of the above; docs: services.md, architecture.md, the lib's README,
     CLAUDE.md.
-- **3.4 Holiday reminders, on/off per holiday** (after 3.6; asked and decided 2026-10-19; replaces "holiday-eve
+- *Moved to the Android-only plan (on the phone, after its R3) — see its "What's left".* **3.4 Holiday reminders, on/off per holiday** (after 3.6; asked and decided 2026-10-19; replaces "holiday-eve
   reminders"). Holidays can't be removed, but each one can remind you. Three kinds: **candle
   lighting before Yom Tov** (like Shabbat's, minutes before); **a fast's start and end**; **"the
   holiday is coming"** — a heads-up for any holiday, those without candle lighting too (Chanukah,
@@ -794,9 +801,11 @@ and a day card with that day's times.
     stays per holiday across years, signed out.
   - [ ] **3.4e On the phone + docs.** Each kind arrives as a notification at its time (app closed);
     docs: services.md, event-schemas.md, CLAUDE.md.
-- [ ] **3.5 Docs sync.**
+- *Became the Android-only plan's R7.* [ ] **3.5 Docs sync.**
 
 ## Later: iPhone (deferred 2026-10-13)
+
+*Dropped by the Android-only plan: no web app, no iPhone.*
 
 Left out for now, no iPhone to test on. Nothing else depends on it: Web Push already accepts
 Apple's push service (`push.apple.com`), and 2.26a's manifest is what the iPhone needs too.
@@ -820,6 +829,6 @@ Smaller bugs, config fixes and ideas found along the way are tracked in
 
 - ~~**Release key backup**~~ — answered 2026-10-13: the signing key and its passwords are in the
   encrypted secrets bundle (`scripts/secrets.js`), kept in Google Drive.
-- **Holiday eves for the reminder** (task 3.4): yes or no?
+- ~~**Holiday eves for the reminder**~~ — answered by 3.4's 2026-10-21 decision (one switch per holiday).
 - **Location denied:** is the "Location is off" message enough, or do you want a manual city
   picker as a fallback?

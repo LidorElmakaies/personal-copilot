@@ -103,6 +103,7 @@ ol.steps b{color:var(--ink)}
 
 <div class="wrap">
   <h1>Shabbat, calendar &amp; reminders architecture</h1>
+  <p class="lede"><strong>Superseded.</strong> This is the server design the Android-only plan (<code>docs/plans/android-only-refactor/plan.md</code>) replaced: the app computes the calendar and fires its reminders on the phone. <code>docs/specs/</code> describes what exists.</p>
   <p class="lede">A Calendar Service handles all the calendar calculations. A Reminders Service decides <em>when</em> to notify you and enqueues a job on a BullMQ queue (Redis). A Notification Service decides <em>how</em> (push today, and email or SMS later with one new adapter each). A Users Service knows <em>who</em> you are and where you last opened the app; it announces changes on Kafka so others can react. All services share one Postgres database, a schema each: a service writes only its own tables and reads the others directly.</p>
 
   <section>

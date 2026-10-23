@@ -122,7 +122,9 @@ test('--changed maps each changed path to its docs, listing optional READMEs onl
     'backend/apps/gateway/src/main.ts',
     'backend/libs/otel/src/start-otel.ts',
     'devops/ntfy/server.yml',
+    'devops/apk/Caddyfile',
     'frontend/src/x.js',
+    'frontend/src/lib/jewish-calendar/a.ts',
     'frontend/src/x.spec.js',
     'frontend/app.json',
     'scripts/tool.js',
@@ -136,10 +138,14 @@ test('--changed maps each changed path to its docs, listing optional READMEs onl
   assert.deepStrictEqual(get('.claude/agents/testing.md'), ['backend/apps/users/src/a.service.spec.ts', 'frontend/src/x.spec.js']);
   assert.deepStrictEqual(get('.claude/agents/backend.md'), ['backend/apps/users/src/a.service.spec.ts', 'backend/apps/gateway/src/main.ts', 'backend/libs/otel/src/start-otel.ts']);
   assert.deepStrictEqual(get('docs/specs/services.md — ## libs/otel'), ['backend/libs/otel/src/start-otel.ts']);
-  assert.deepStrictEqual(get('.claude/agents/devops.md'), ['devops/ntfy/server.yml']);
+  assert.deepStrictEqual(get('.claude/agents/devops.md'), ['devops/ntfy/server.yml', 'devops/apk/Caddyfile']);
+  assert.deepStrictEqual(get('docs/specs/services.md — ## apk'), ['devops/apk/Caddyfile']);
+  assert.deepStrictEqual(get('frontend/README.md — APK registry'), ['devops/apk/Caddyfile']);
+  assert.deepStrictEqual(get('docs/specs/services.md — ## Calendar maths'), ['frontend/src/lib/jewish-calendar/a.ts']);
+  assert.deepStrictEqual(get('frontend/src/lib/jewish-calendar/README.md'), ['frontend/src/lib/jewish-calendar/a.ts']);
   assert.ok(!docs.has('docs/ntfy/environment.md'));
-  assert.deepStrictEqual(get('frontend/README.md'), ['frontend/src/x.js', 'frontend/src/x.spec.js', 'frontend/app.json']);
-  assert.deepStrictEqual(get('.claude/agents/frontend.md'), ['frontend/src/x.js', 'frontend/src/x.spec.js', 'frontend/app.json']);
+  assert.deepStrictEqual(get('frontend/README.md'), ['frontend/src/x.js', 'frontend/src/lib/jewish-calendar/a.ts', 'frontend/src/x.spec.js', 'frontend/app.json']);
+  assert.deepStrictEqual(get('.claude/agents/frontend.md'), ['frontend/src/x.js', 'frontend/src/lib/jewish-calendar/a.ts', 'frontend/src/x.spec.js', 'frontend/app.json']);
   assert.deepStrictEqual(get('CLAUDE.md — Versions, Commands'), ['scripts/tool.js']);
   assert.deepStrictEqual(unmapped, ['package.json']);
 });
