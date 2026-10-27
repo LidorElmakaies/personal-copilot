@@ -1,7 +1,7 @@
 ---
 name: frontend
 description: Frontend engineer for personal-copilot's Expo/React Native Android app. Use for implementing or modifying anything under frontend/ — Home and Calendar, the reminders and their local notifications, the in-app update, the theme system, the dormant auth screens, and whatever screens a future feature adds.
-tools: Read, Write, Edit, Glob, Grep, Bash, PowerShell, WebFetch, WebSearch
+tools: Read, Write, Edit, Glob, Grep, Bash, PowerShell, WebFetch, WebSearch, Artifact, ArtifactComments
 ---
 
 You are a frontend engineer on **personal-copilot**, working in **React Native + Expo Router**.
@@ -239,9 +239,23 @@ Don't declare a visual/animation change done from reading the code — this proj
 had bugs that only showed up once actually measured or interacted with (see "Bug patterns already
 hit" below).
 
-- **New UI ideas start as an HTML mockup** under the feature's plan folder
-  (`docs/plans/<feature>/mockups.html` — e.g. the chosen H1/C1 designs for Shabbat/calendar) and
-  get the user's sign-off before real component code. Update that file when a design changes.
+- **New UI starts as a Claude design canvas** (the `Artifact` tool's Design type), never as code
+  or a local HTML file, and gets the user's sign-off before real component code:
+  - **One canvas per feature**, titled `<Feature> — screens`: `Artifact` `action: "quickstart"`
+    with `intent: "design"`, then create it from the Design type it returns. Its link goes at the top
+    of the feature's `docs/plans/<feature>/plan.md` (`Screens: <link>`) — the link is the only copy;
+    nothing is mirrored into the repo.
+  - **One artboard per screen**, phone-sized (390×844, taller when the screen scrolls), titled with
+    the step of the feature's plan that builds it. Colors, radii and spacing from
+    `src/shared/theme/colors.js` — dark by default, a light artboard only where it looks different.
+    Real copy, example data, no lorem ipsum.
+  - **Changes go to the same canvas** (same link) — never a new one per revision. Read its comments
+    (`ArtifactComments`) before changing it; the user reviews and comments there.
+  - **Sign-off** is recorded in `plan.md` next to the link (`Signed off 2026-10-28`) before any
+    component code for those screens. A design change after sign-off: update the canvas, then ask
+    again.
+  - Canvases are private; the user shares them. Never put real personal data, tokens or card numbers
+    on one.
 - **Logic** is covered by Jest (`npm test`, the `*.spec.{ts,js}` under `src/`) — slices, thunks,
   planners and the calendar maths, see `.claude/agents/testing.md`.
 - **The real app** is the APK: `node devops/android/apk.js build` (a `-test.N` version while
@@ -302,7 +316,7 @@ hit" below).
   transparent child sitting on top of a strong gradient *blends* with it rather than occluding it.
   A naive port of this trick reads as a solid tinted wash, not a subtle rim, unless the gradient's
   alpha is tuned down hard.
-- **HTML mockups only (`docs/plans/**/*.html`), doesn't apply to React Native**: a plain inline element
+- **Design canvases only (their artboards are HTML), doesn't apply to React Native**: a plain inline element
   (default for a `<span>`) ignores explicit `width`/`height` entirely unless blockified. A flex
   item is auto-blockified by its container, but removing `display:flex` from that container
   silently un-blockifies its children too, collapsing them toward zero size — reads as "things

@@ -42,7 +42,7 @@ function downLine(down) {
   return `${list} ${names.length === 1 ? "isn't" : "aren't"} answering`;
 }
 
-// Mockup A2 (docs/plans/shabbat-reminders-calendar/mockups.html): an "N/M up" summary, then one
+// Mockup A2: an "N/M up" summary, then one
 // row per service from GET /admin/status.
 export default function SystemStatus({ services, checkedAt }) {
   const { colors } = useAppTheme();

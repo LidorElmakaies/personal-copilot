@@ -12,7 +12,7 @@ function countdownParts(from, to) {
   };
 }
 
-// Home's H1 design (docs/plans/shabbat-reminders-calendar/mockups.html); presentational, Home owns Redux.
+// Home's H1 design; presentational, Home owns Redux.
 // `footer` renders under the times (Home's reminder bell), only while there are times to show.
 export default function ShabbatSection({
   shabbat,

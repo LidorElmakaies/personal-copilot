@@ -9,13 +9,13 @@ times and the Jewish calendar on the phone and keeps its reminders there as loca
 no login, no server — plus a dormant NestJS backend: Gateway and a Postgres-backed Users Service
 (login + profiles), with full OTel observability, called only by the app's hidden login/account
 screens and not started by default.
-The feature work is staged in
-[`docs/plans/shabbat-reminders-calendar/plan.md`](docs/plans/shabbat-reminders-calendar/plan.md)
-and [`docs/plans/android-only-refactor/plan.md`](docs/plans/android-only-refactor/plan.md); read
-them, and the Shabbat plan's `mockups.html` for the UI, before working on a feature. The current
-architecture is `docs/specs/`; that plan's `architecture.html` shows a server design that no longer exists.
-Progress lives in the plans' checkboxes; "What's implemented" below is what exists now. Work a
-plan one task at a time and stop for review after each.
+The feature work is staged in [`docs/plans/finance/plan.md`](docs/plans/finance/plan.md), its
+design in [`docs/plans/finance/README.md`](docs/plans/finance/README.md), its screens in the Claude
+design canvas linked at the top of the plan; read them before working on the feature. The current architecture is `docs/specs/`.
+Progress lives in the plan's checkboxes; "What's implemented" below is what exists now. Work a
+plan one task at a time and stop for review after each. **Docs are updated in the same stage as
+the code they describe** (each stage's "Docs" line; the `docs` agent sweeps at the end of each
+phase) — never saved up for the end.
 
 Runs on the user's personal PC, reached from their phone via **Tailscale**. By default the PC runs
 only `apk` (`devops/apk/`): a Caddy serving the APK registry the app installs and updates from,
@@ -86,7 +86,8 @@ devops/                   docker-compose.yml (app stack: apk, plus the dormant g
 docs/specs/               services.md, architecture.md (Mermaid diagrams) —
                           source of truth for how it's wired
 docs/<service>/           environment.md — every variable each service reads
-docs/plans/               staged feature plans + their HTML design pages
+docs/plans/               staged feature plans; each links its screens, a Claude design
+                          canvas (see .claude/agents/frontend.md) — no HTML mockups in the repo
 version/versions.json     every version (one per component) — see "Versions" above
 scripts/version.js        the only way to bump them (Node, + version.test.js)
 scripts/secrets.js        secrets between PCs (+ secrets.test.js) — see Commands

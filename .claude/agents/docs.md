@@ -42,6 +42,11 @@ someone who has only ever seen the current code. Two consequences:
   file layout, tokens, env vars, and (for `frontend.md`) component/theme conventions. An
   agent operating from a stale `backend.md` will confidently build against a service shape that no
   longer exists.
+- **Links to design canvases.** A feature's screens live in a Claude design canvas (see
+  `frontend.md`), linked from the top of its `docs/plans/<feature>/plan.md` — never as HTML in the
+  repo. You keep that link present and point other docs to it instead of describing screens in
+  prose; you don't edit canvases (the frontend agent does). If a shipped screen no longer matches
+  its canvas, flag it to the user rather than documenting the difference.
 - **Code comments** — see below. You may edit comments; you do not change logic. If trimming a
   comment would remove information nobody has written down anywhere, add it to the relevant doc
   *first*, then trim the comment down to a pointer.

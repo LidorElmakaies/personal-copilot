@@ -9,8 +9,8 @@ metadata:
 **personal-copilot** — renamed from **shabbat-notifier** on 2026-09-07; GitHub:
 https://github.com/LidorElmakaies/personal-copilot. Since 2026-10-23 an **Android-only Expo app**:
 Shabbat times, the Jewish calendar and every reminder are computed and stored on the phone and fired
-as local notifications, no login needed (`docs/plans/android-only-refactor/plan.md`, which replaced
-`docs/plans/shabbat-reminders-calendar/plan.md`). The NestJS Gateway + Users Service (login,
+as local notifications, no login needed (the Android-only refactor; its plan and the earlier
+Shabbat & calendar plan were deleted 2026-10-27). Next feature: Finance, `docs/plans/finance/`. The NestJS Gateway + Users Service (login,
 profiles) stay in the repo **dormant**, behind `docker compose --profile backend`; the Reminders and
 Notification services, Kafka, Redis and the web app were deleted. **The root `CLAUDE.md` is the
 source of truth for what exists** — this file only holds context that isn't in the code.
