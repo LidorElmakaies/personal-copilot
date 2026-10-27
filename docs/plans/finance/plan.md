@@ -55,8 +55,8 @@ Docs are updated **in the same stage** as the code they describe, never saved up
 
 1. **Claude runs the automated tests** (`frontend: npm test`, and `backend: npm test` in Phase B)
    and shows the result — nothing goes to the phone with a red test.
-2. **Phase U and L: the dev client.** While a stage is in progress, the app runs on the phone as an
-   Expo dev client over Tailscale, so a change shows in seconds without a new APK (open question 7).
+2. **Phase U and L: the dev build.** While a stage is in progress, the code runs live on the phone
+   in "Personal Copilot Dev" (U0.0) over Tailscale, so a change shows in seconds without a new APK.
    **At the end of the stage** Claude builds a test APK (`node devops/android/apk.js build`,
    `x.y.z-test.N`) and publishes it, so the stage is also tried in the real app.
 3. **Phase B:** Claude restarts what changed (`docker compose up -d --build <service>`) and checks
@@ -206,8 +206,27 @@ No Redux I/O, no server, nothing saved. Components take plain props; screens rea
 
 ## Stage U0: the tab and the preview screen
 
-- [ ] **U0.1 The Finance tab.** `src/features/finance/` (components, screens, mocks, `index.js`), a
+- [x] **U0.0 The dev build** *(added 2026-10-27: Expo Go can't run this app — it lacks
+  `expo-notifications`, and the Play Store's Expo Go is already SDK 58)*. `expo-dev-client`; an
+  `APP_VARIANT=dev` variant in `app.config.js` (app id `com.lidor.personalcopilot.dev`, "Personal
+  Copilot Dev", scheme `personalcopilotdev`) so it installs next to the real app;
+  `node devops/android/apk.js build --dev` builds it as a debug APK; how to run it in
+  `docs/frontend/environment.md`.
+  *Done 2026-10-27:* built in 3m49s, installed over USB next to the real app (both packages
+  present), loaded the code from `expo start` on `:8082` (bundle 2.6 s). `apk.test.js` 14/14.
+  Also installed the missing `expo-background-task` in `node_modules` (fixes the test suite that
+  failed in U0.1) and deleted the leftover `frontend/e2e/` (git-ignored Playwright files). Docs:
+  README's "Android app (APK)", CLAUDE.md's Commands, `frontend/README.md`, `frontend.md`,
+  `docs/frontend/environment.md` ("The dev build") — Expo Go removed everywhere.
+- [x] **U0.1 The Finance tab.** `src/features/finance/` (components, screens, mocks, `index.js`), a
   Finance row in `TABS`, `app/(tabs)/finance.js` rendering `FinanceScreen` (a title for now).
+  *Done 2026-10-27:* `screens/FinanceScreen.js` (`AmbientBackground` + the title) and `index.js`;
+  `components/` and `mocks/` are created by the tasks that first put something in them. Tab icon
+  `wallet-outline` / `wallet`. Not `requiresAuth` — the tab shows its own logged-out view (U1.3).
+  Docs: Finance added to the tab and feature lists in CLAUDE.md, `frontend/DESIGN.md`,
+  `frontend.md` and `docs/specs/services.md`. Tests: 32/33 suites pass; the failing one,
+  `backgroundTaskService.android.spec.js`, was failing before this change — `expo-background-task`
+  is in `package.json` but missing from this PC's `node_modules` (`npm install` fixes it).
 - [ ] **U0.2 The preview screen.** `app/finance-preview.js` (deep link
   `personalcopilot://finance-preview`, no tab) with a list of component sections and the state
   switches (theme, empty, loading, error, offline, long text, Hebrew). Empty sections for now.
@@ -688,5 +707,5 @@ stop FreeToken → after 3 tries, "Couldn't reach the LLM".
 5. **Evening reminder:** on or off by default (L7).
 6. **When do real entries start?** After B2 (entries saved on the server), or only after the whole
    plan? Until then everything is tried on the test account.
-7. **The dev client:** OK to run the app as an Expo dev client over Tailscale during Phase U and L
-   (instant changes on the phone), with a test APK at the end of each stage?
+7. ~~**The dev client**~~ — decided 2026-10-27: the dev build, a separate app next to the real one
+   (U0.0).

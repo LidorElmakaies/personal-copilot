@@ -101,8 +101,8 @@ Each service's contract is in [`docs/specs/services.md`](docs/specs/services.md)
 
 - **frontend** (`frontend/`) — Expo Router app, built as an Android APK; login optional. Swipeable
   tabs: Home (clock, Hebrew date, Shabbat times for the GPS location, the candle-lighting reminder
-  bell) and Calendar (Jewish-calendar month; the user's own reminders, added and edited in a bottom
-  sheet). Shabbat times and months are computed on the phone (`src/lib/jewish-calendar/`, over
+  bell), Calendar (Jewish-calendar month; the user's own reminders, added and edited in a bottom
+  sheet) and Finance (being built — `docs/plans/finance/`; a title only so far). Shabbat times and months are computed on the phone (`src/lib/jewish-calendar/`, over
   `@hebcal/core`). Both kinds of reminder need no login, are kept on the phone (persisted) and fired
   as local notifications (`ReminderScheduleManager` → `reconcileReminderNotifications`, a 30-day
   window, at most 100 scheduled; also a daily background task, `reminder-notifications`, so the
@@ -169,6 +169,7 @@ npm run lint
 Android app (from the repo root, Linux or Windows; `build` runs in Docker — see README's "Android app (APK)"):
 ```bash
 node devops/android/apk.js build              # → devops/data/android/apk/personal-copilot-<frontend version>.apk
+node devops/android/apk.js build --dev        # → personal-copilot-dev.apk: the dev build, live code from expo start
 node devops/android/apk.js publish "note" ... # → devops/data/apk/, served at https://<pc>.ts.net/apk/
 node --test devops/android/apk.test.js        # publisher tests, on the host
 ```
@@ -195,7 +196,7 @@ node devops/icons/render.js
 Frontend (run from `frontend/`):
 ```bash
 npm install
-npx expo start          # Expo Go / dev client
+npx expo start          # for the dev build — see docs/frontend/environment.md
 npm test                # jest.config.js (jest-expo) — the *.spec.{ts,js} under src/
 ```
 
@@ -221,7 +222,7 @@ schema per table-owning service, each writing only its own.
 
 **Frontend** — Expo Router, file-based routing, `(auth)`/`(tabs)` groups; the route files only
 render a screen from a feature folder, `src/features/<name>/` (`shabbat`, `calendar`, `reminders`,
-`app-update`, and the dormant `account`), each with its components, slice, services, utils and an
+`finance`, `app-update`, and the dormant `account`), each with its components, slice, services, utils and an
 `index.js` — the only way another feature may import it. Cross-feature code is `src/shared/`
 (never imports a feature), the calendar maths `src/lib/jewish-calendar/`, the root store
 `src/store/index.js`. Redux Toolkit with a strict services-layer convention: all I/O lives in a

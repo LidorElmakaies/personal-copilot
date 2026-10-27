@@ -47,7 +47,7 @@ swipe springs back), while signed out shows `ConfirmModal` instead of navigating
 tap or a swipe; a direct hit on the route (deep link,
 reopening the app on that tab) bypasses it, so a `requiresAuth` screen also needs its own mount-time
 check. A tab with `hidden: true` is left out of the bar and the swipe order for everyone (its
-route opens only from a direct link) — Account and Admin are, so the bar is Home and Calendar and
+route opens only from a direct link) — Account and Admin are, so the bar is Home, Calendar and Finance and
 the theme (`ThemeCard`, on Account) has no switch reachable from it: `themeSlice.mode` stays as
 saved, system by default. Both halves are generic, not Account-specific: `useRequireAuth()`
 (`src/features/account/hooks/useRequireAuth.js`) is the mount-time check, `RequireAuthNotice`
@@ -259,8 +259,9 @@ hit" below).
 - **Logic** is covered by Jest (`npm test`, the `*.spec.{ts,js}` under `src/`) — slices, thunks,
   planners and the calendar maths, see `.claude/agents/testing.md`.
 - **The real app** is the APK: `node devops/android/apk.js build` (a `-test.N` version while
-  iterating), installed on the phone, or Expo Go / a dev client over Tailscale
-  (`docs/frontend/environment.md`) for a quick look. Behavior that only the device has —
+  iterating), installed on the phone, or the dev build (`apk.js build --dev`, live code from
+  `npx expo start` over Tailscale — `docs/frontend/environment.md`) for a quick look; Expo Go can't
+  run this app. Behavior that only the device has —
   notifications, exact alarms, background tasks, permissions, GPS, the update flow — is checked
   there.
 - **Measure on the phone**: `adb logcat` for JS errors, `adb shell top` and `dumpsys gfxinfo` for
@@ -328,6 +329,6 @@ hit" below).
 ```bash
 cd frontend
 npm install
-npx expo start          # Expo Go / dev client
+npx expo start          # for the dev build — see docs/frontend/environment.md
 npm test                # Jest (jest-expo + React Native Testing Library), *.spec.{ts,js} under src/
 ```

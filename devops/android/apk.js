@@ -1,6 +1,7 @@
 // The Android app's one script, plain Node on Linux and Windows alike. See README's "Android app (APK)".
 //
 //   node devops/android/apk.js build                          → devops/data/android/apk/personal-copilot-<version>.apk
+//   node devops/android/apk.js build --dev                    → …/personal-copilot-dev.apk (the dev build)
 //   node devops/android/apk.js publish "New icon" "Fixes"     → https://<pc>.ts.net/apk/ (devops/data/apk/)
 //   node devops/android/apk.js publish --version 0.1.0 "Note"
 //
@@ -43,7 +44,9 @@ function setting(name) {
   return fs.existsSync(file) ? (parseEnv(fs.readFileSync(file, 'utf8'))[name] ?? '') : '';
 }
 
-function build() {
+// `dev`: the dev build — a debug APK of the APP_VARIANT=dev app (frontend/app.config.js) that loads
+// its code from `npx expo start`; no update check, installs next to the real app.
+function build({ dev = false } = {}) {
   const version = frontendVersion();
   // Optional: only the dormant login and account screens call Gateway.
   const gateway = setting('GATEWAY_PUBLIC_URL');
@@ -54,9 +57,10 @@ function build() {
     );
   // Where the app looks for updates (latest.json). Default: Gateway's host on the default port —
   // how devops/tailscale/serve.js publishes the two.
-  const registry =
-    setting('APK_REGISTRY_URL') || (gateway && `https://${new URL(gateway).hostname}/apk/`);
-  if (!registry)
+  const registry = dev
+    ? ''
+    : setting('APK_REGISTRY_URL') || (gateway && `https://${new URL(gateway).hostname}/apk/`);
+  if (!registry && !dev)
     throw new Refusal(
       'Set APK_REGISTRY_URL (or GATEWAY_PUBLIC_URL) in devops/.env: the app checks it for updates.',
     );
@@ -75,7 +79,9 @@ function build() {
   }
 
   console.log(
-    `Building Personal Copilot ${version}${gateway ? ` for ${gateway}` : ''}, updates from ${registry} ...`,
+    dev
+      ? 'Building the Personal Copilot Dev build ...'
+      : `Building Personal Copilot ${version}${gateway ? ` for ${gateway}` : ''}, updates from ${registry} ...`,
   );
   inImage(
     '-v', `${path.join(ROOT, 'frontend')}:/src:ro`,
@@ -84,6 +90,7 @@ function build() {
     '-v', 'pc-npm-cache:/root/.npm',
     '-e', `FRONTEND_VERSION=${version}`,
     '-e', `ANDROID_ABIS=${abis}`,
+    '-e', `APP_VARIANT=${dev ? 'dev' : ''}`,
     '-e', `EXPO_PUBLIC_GATEWAY_ORIGIN=${gateway}`,
     '-e', `EXPO_PUBLIC_APK_REGISTRY_URL=${registry}`,
     '-e', `EXPO_PUBLIC_FRONTEND_VERSION=${version}`,
@@ -91,7 +98,7 @@ function build() {
     IMAGE, 'node', '/tools/apk.js', 'inside-build',
   );
   const suffix = abis === 'arm64-v8a' ? '' : '-emulator';
-  console.log(`Done: devops/data/android/apk/personal-copilot-${version}${suffix}.apk`);
+  console.log(`Done: devops/data/android/apk/personal-copilot-${dev ? 'dev' : version}${suffix}.apk`);
   console.log('(Back up devops/data/android/release.keystore and keystore.properties if you haven\'t.)');
 }
 
@@ -128,13 +135,17 @@ function insideBuild() {
   // Every current Android phone is arm64; building one ABI instead of four is ~4× faster.
   // ANDROID_ABIS=arm64-v8a,x86_64 adds the emulator's, for testing — a separate -emulator file.
   const abis = process.env.ANDROID_ABIS || 'arm64-v8a';
-  run('./gradlew', ['assembleRelease', '--no-daemon', `-PreactNativeArchitectures=${abis}`], { cwd: '/work/android', env });
+  // The dev build is a debug build: it carries the dev client and takes its code from the PC.
+  const dev = process.env.APP_VARIANT === 'dev';
+  const type = dev ? 'debug' : 'release';
+  const task = dev ? 'assembleDebug' : 'assembleRelease';
+  run('./gradlew', [task, '--no-daemon', `-PreactNativeArchitectures=${abis}`], { cwd: '/work/android', env });
 
   const suffix = abis === 'arm64-v8a' ? '' : '-emulator';
   fs.mkdirSync('/data/apk', { recursive: true });
   fs.copyFileSync(
-    '/work/android/app/build/outputs/apk/release/app-release.apk',
-    `/data/apk/personal-copilot-${process.env.FRONTEND_VERSION}${suffix}.apk`,
+    `/work/android/app/build/outputs/apk/${type}/app-${type}.apk`,
+    `/data/apk/personal-copilot-${dev ? 'dev' : process.env.FRONTEND_VERSION}${suffix}.apk`,
   );
 }
 
@@ -362,14 +373,14 @@ module.exports = { publish, Refusal };
 if (require.main === module) {
   const [command, ...args] = process.argv.slice(2);
   const commands = {
-    build,
+    build: () => build({ dev: args.includes('--dev') }),
     publish: () => publishCli(args),
     'inside-publish': () => insidePublish(args),
     'inside-build': insideBuild,
     'inside-genkey': insideGenkey,
   };
   try {
-    if (!commands[command]) throw new Refusal('usage: node devops/android/apk.js build | publish [--version X] "note" ...');
+    if (!commands[command]) throw new Refusal('usage: node devops/android/apk.js build [--dev] | publish [--version X] "note" ...');
     commands[command]();
   } catch (e) {
     if (!(e instanceof Refusal)) throw e;

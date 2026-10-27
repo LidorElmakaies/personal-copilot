@@ -149,7 +149,7 @@ first or last tab it only stretches a little. A tap on the bar runs the same sli
 than one tab starts from the tab next to the target). A drag starting within 20 dp of either side is
 left to Android's back gesture; on the Calendar, a drag on the month grid moves months instead
 (`SwipePager` blocks the tab pan). A tab mounts when it's shown or next to the one shown, then stays
-mounted. The bar and the swipe order are Home and Calendar: Account and Admin are `hidden: true` in
+mounted. The bar and the swipe order are Home, Calendar and Finance: Account and Admin are `hidden: true` in
 `TABS`, left out for everyone, and their routes open only from a direct link (`/account`,
 `/admin`), drawn over the row with the swipe off. The theme has no switch in the bar's tabs: it
 stays the saved `themeSlice.mode` (system by default).
@@ -416,7 +416,7 @@ the APK) served by `apk`'s Caddy at `/apk/` — not a backend service and no API
 Themed via `themeSlice` → `useAppTheme()` and the shared components under `src/shared/components/`
 (`base/` primitives, `composite/` built from them) — the list is in `frontend/README.md`, the
 conventions in `.claude/agents/frontend.md`. The code is in feature folders (`src/features/<name>/`:
-`shabbat`, `calendar`, `reminders`, `app-update`, `account`), cross-feature code in `src/shared/`,
+`shabbat`, `calendar`, `reminders`, `finance`, `app-update`, `account`), cross-feature code in `src/shared/`,
 the calendar maths in `src/lib/jewish-calendar/` — layout and import rules in `frontend/README.md`'s
 "Feature folders".
 

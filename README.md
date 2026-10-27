@@ -48,6 +48,7 @@ Docker (nothing else to install):
 
 ```bash
 node devops/android/apk.js build     # → devops/data/android/apk/personal-copilot-<version>.apk
+node devops/android/apk.js build --dev  # → personal-copilot-dev.apk, the dev build (see below)
 node devops/android/apk.js publish "Release note" "Another note"   # → https://<pc>.ts.net/apk/
 node --test devops/android/apk.test.js          # the publisher's tests, on the host
 ```
@@ -58,6 +59,11 @@ neither is set; `GATEWAY_PUBLIC_URL` is optional, used only by the dormant login
 and must be the HTTPS tailnet URL (see above) when set. The first build downloads the Android SDK and Gradle into
 Docker volumes and takes a while; later ones are faster. `ANDROID_ABIS=arm64-v8a,x86_64` builds
 `personal-copilot-<version>-emulator.apk` for an x86_64 emulator instead.
+
+`build --dev` makes the **dev build**, "Personal Copilot Dev" (`com.lidor.personalcopilot.dev`):
+a debug APK that installs next to the real app and loads the app's code from `npx expo start` on
+the PC, so a change shows on the phone in seconds. Expo Go can't run this app (it lacks
+`expo-notifications`). How to run it: `docs/frontend/environment.md`.
 
 The first run also creates the release signing key in `devops/data/android/` (git-ignored).
 **Back up `release.keystore` and `keystore.properties` from there.** Every later APK must be signed

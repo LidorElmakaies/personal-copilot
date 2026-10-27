@@ -13,7 +13,7 @@ for the conventions to follow when changing anything here.
 ```bash
 npm install
 cp .env.example .env    # EXPO_PUBLIC_GATEWAY_ORIGIN — optional, only the dormant login/account screens use it
-npx expo start          # Expo Go / dev client
+npx expo start          # for the dev build — see docs/frontend/environment.md
 npm test                # Jest: the *.spec.{ts,js} under src/ (jest-expo, React Native Testing Library)
 ```
 
@@ -23,9 +23,9 @@ npm test                # Jest: the *.spec.{ts,js} under src/ (jest-expo, React 
 accessibility label, so renaming "Add reminder", "Candle lighting", a stepper's "More min" or the
 reminder form's summary line means updating them.
 
-On your phone over Tailscale (Expo Go): see `docs/frontend/environment.md` — run Expo on `:8082`
-with `EXPO_PUBLIC_GATEWAY_ORIGIN` pointing at the PC's tailnet IP. The release build is the APK
-(Android app, below).
+On your phone over Tailscale: the dev build ("Personal Copilot Dev", `apk.js build --dev`) loads the
+code from `npx expo start` on `:8082` — see `docs/frontend/environment.md`. Expo Go can't run this
+app (it lacks `expo-notifications`). The release build is the APK (Android app, below).
 
 Matches the sibling project it's modeled on (`ask-my-crawl`) for theme/component conventions — the
 same theme pipeline (`themeSlice` → `useAppTheme()`; `AmbientBackground` cross-fades its two

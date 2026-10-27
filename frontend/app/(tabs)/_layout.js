@@ -21,6 +21,12 @@ const TABS = [
     iconActive: 'calendar',
   },
   {
+    name: 'finance',
+    label: 'Finance',
+    icon: 'wallet-outline',
+    iconActive: 'wallet',
+  },
+  {
     name: 'account',
     label: 'Account',
     icon: 'person-circle-outline',
@@ -72,6 +78,7 @@ export default function TabsLayout() {
       >
         <SwipeTabs.Screen name="index" />
         <SwipeTabs.Screen name="calendar" />
+        <SwipeTabs.Screen name="finance" />
         <SwipeTabs.Screen name="account" />
         <SwipeTabs.Screen name="admin" />
       </SwipeTabs>
