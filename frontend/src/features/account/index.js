@@ -5,6 +5,7 @@ export { default as AdminScreen } from './screens/AdminScreen';
 export { default as LoginScreen } from './screens/LoginScreen';
 export { default as RegisterScreen } from './screens/RegisterScreen';
 export { default as AuthGate } from './components/AuthGate';
+export { default as RequireAuthNotice } from './components/RequireAuthNotice';
 export { useHasRole } from './hooks/useHasRole';
 export {
   default as authReducer,

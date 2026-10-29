@@ -290,12 +290,22 @@ screen of the app; the plan's preview steps became stories.
 
 ## Stage U1: `FinanceHeader`, `FinanceEmpty`, logged out (screens 1, 9)
 
-- [ ] **U1.1 `FinanceHeader`** — "Finance", ‹ October 2026 › (no months after this one), the
+- [x] **U1.1 `FinanceHeader`** — "Finance", ‹ October 2026 › (no months after this one), the
   Monthly check pill. Both arrows and the pill pressable (move between example months; the pill
   goes to an empty screen 4 for now).
-- [ ] **U1.2 `FinanceEmpty`** — the empty month: a short line and a hint at the + button.
-- [ ] **U1.3 Logged-out view** — screen 9 with the existing `RequireAuthNotice` (text adapted: "kept
+  *Done 2026-10-29:* `components/FinanceHeader.js` (+ stories: the current month, › dimmed; an
+  earlier one); the screen keeps the month (`monthIndex`/`monthAt` from `shared/utils/date.js`),
+  `mocks/` gained `CURRENT_MONTH` and `entriesOfMonth`. **The pill does nothing yet** — it gets its
+  `onMonthlyCheck` when U9 builds screen 4, rather than 2 files for an empty screen now.
+- [x] **U1.2 `FinanceEmpty`** — the empty month: a short line and a hint at the + button.
+  *Done 2026-10-29:* `components/FinanceEmpty.js` (a `GlowCard`: "Nothing yet this month" / "Tap
+  + to add what you spent."), shown for any month without entries (+ a story).
+- [x] **U1.3 Logged-out view** — screen 9 with the existing `RequireAuthNotice` (text adapted: "kept
   on your PC, survives reinstalling"). A story shows it.
+  *Done 2026-10-29:* the `LoggedOut` story of `FinanceScreen`; `account` now exports
+  `RequireAuthNotice` (finance → account). The tab itself shows it from B1, when login is live —
+  before that nobody could see the tab. On the phone: October with › dimmed, ‹ to September →
+  `FinanceEmpty`, no JS errors. 10 files. Frontend 34/34 suites, 335 tests.
 
 **Try it:** switch months with the arrows; an empty month shows `FinanceEmpty`; the logged-out
 story; check both themes.
@@ -305,13 +315,22 @@ story; check both themes.
 
 ## Stage U2: `EntryRow` and `EntryList` (screen 1)
 
-- [ ] **U2.1 `EntryRow`** — what for (one line, cut with …), "category · paid with" below
+- [x] **U2.1 `EntryRow`** — what for (one line, cut with …), "category · paid with" below
   (`Card ••4821`, `Bit`…), the amount on the right, optional badges: "not sent", "2 photos",
   "matched". Pressable (opens screen 3, empty for now).
-- [ ] **U2.2 `EntryList`** — grouped under day labels (TODAY, YESTERDAY, OCT 25), newest first,
+- [x] **U2.2 `EntryList`** — grouped under day labels (TODAY, YESTERDAY, OCT 25), newest first,
   inside a panel card; scrolls with the screen.
-- [ ] **U2.3 Stories** — every badge, a 40-character "what for", a Hebrew one, 0 / 1 / 50
+- [x] **U2.3 Stories** — every badge, a 40-character "what for", a Hebrew one, 0 / 1 / 50
   entries.
+  *Done 2026-10-29 (U2.1–U2.3):* `components/EntryRow.js` (its own layout, not `Row`: the title
+  needs one line with …), `components/EntryList.js` (in a `GlowCard`; a hairline between rows of a
+  day), `utils/format.js` (₪ from agorot, the day heading, "Card ••4821") + `format.spec.js`;
+  stories: every badge, plain, 40 characters, Hebrew; 1 / 42 / 50 entries (0 is `FinanceEmpty`).
+  **Rows do nothing when tapped yet** — screen 3 comes in U8. Photos sit in the details line, as on
+  the canvas. On the phone: October as on screen 1, scrolls with the screen, no JS errors; seen —
+  "matched" is on 36 of 42 rows, and next to a badge the details line is cut ("2 …"). 9 files.
+  Test APK `0.6.0-test.14` (U1 + U2) published and installed over USB: the same in the real app.
+  Frontend 35/35 suites, 342 tests.
 
 **Try it:** scroll a 50-entry month; every badge in its story; long and Hebrew text never
 overlap the amount; tap a row → screen 3 opens.
@@ -348,6 +367,21 @@ spending (e.g. vs last month)?
 the + never covers the last row's amount.
 **Docs:** `frontend.md` (`ReviewBanner`, `ConnectionNotice`).
 **Feedback questions:** Screen 1 as a whole — what's too loud, what's missing?
+**Feedback:** —
+
+## Stage U4b: search and filters (screen 1) *(added 2026-10-29)*
+
+**Paused until the Hebrew plan (`docs/plans/hebrew/plan.md`) is done** — every stage after U2
+starts after it, in both languages.
+
+- [ ] **U4b.1 Design** — on the canvas first: a search field (by name — "what for" and the shop)
+  and filters by category and by price range (from–to ₪) over the month's list; how they show
+  when on, and how to clear them.
+- [ ] **U4b.2 Build** — after sign-off; the list filters as you type; stories for each filter and
+  "nothing matches".
+
+**Try it:** search "challah"; filter Groceries; ₪50–₪300; combine them; clear.
+**Feedback questions:** Search only the month on screen, or every month?
 **Feedback:** —
 
 ## Stage U5: `QuickAddSheet` — amount, what for, categories (screen 2)

@@ -117,7 +117,13 @@ feature's `components/` (listed under `composite/` below with its feature):
   `CandleReminder`; calendar: `MonthHeader`/`MonthGrid`/`MonthStatus`,
   `DayCard`; reminders: `ReminderRow`, `RemindersSheet`, `CustomReminderSheet`,
   `NotificationsPrompt`; app-update:
-  `UpdateSheet`, `UpdateChip`; account: `ProfileFields`, `RequireAuthNotice`, `SystemStatus` and
+  `UpdateSheet`, `UpdateChip`; finance: `FinanceHeader` (from `PillButton` — "Finance", ‹ month ›
+  and the Monthly check pill; `month` `{ year, month }`, `onPrevious`, `onNext` (none dims ›),
+  `onMonthlyCheck`), `FinanceEmpty` (from `GlowCard` — a month with no entries), `EntryRow` (one
+  entry: what for, "category · paid with · N photos", the "not sent"/"matched" badges, the amount;
+  `entry`, `category`, `onPress`), `EntryList` (from `GlowCard`, `EntryRow` — newest first under
+  day headings; `entries`, `categories`, `today`, `onPressEntry`); `finance/utils/format.js` holds
+  `formatShekels` (whole agorot → "₪284.90"), `dayLabel` and `paidWithLabel`; account: `ProfileFields`, `RequireAuthNotice`, `SystemStatus` and
   the Account tab's cards but `ThemeCard`. Each: `AmbientBackground` (from `Meteors`, `Stars`), `SwipeTabs` (from
   `TabPager` — the `(tabs)` navigator: Expo Router's `withLayoutContext` + `TabRouter`, the screens
   side by side; `order`, `canEnter`, `onBlocked`, `tabBar({ navigation, activeName })`), `ConfirmModal` (from
@@ -178,7 +184,7 @@ src/store/backgroundTasks.js  background tasks, defined with the rehydrated stor
 ```
 
 - A feature imports from `shared/` and `lib/`, and another feature only through its `index.js`
-  — no cycles: shabbat → calendar, reminders, app-update; calendar → reminders; nothing imports account. `shared/` and `lib/` never import a
+  — no cycles: shabbat → calendar, reminders, app-update; calendar → reminders; finance → account (`RequireAuthNotice`). `shared/` and `lib/` never import a
   feature; that's why the root store is `src/store/`, not `shared/`.
 - A new feature = a folder, a route, a `TABS` entry, its reducer in `src/store/index.js`.
 - A service that computes rather than fetches (calendar's `calendarService` over
