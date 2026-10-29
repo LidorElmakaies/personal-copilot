@@ -227,17 +227,46 @@ No Redux I/O, no server, nothing saved. Components take plain props; screens rea
   `frontend.md` and `docs/specs/services.md`. Tests: 32/33 suites pass; the failing one,
   `backgroundTaskService.android.spec.js`, was failing before this change — `expo-background-task`
   is in `package.json` but missing from this PC's `node_modules` (`npm install` fixes it).
-- [ ] **U0.2 The preview screen.** `app/finance-preview.js` (deep link
+- [x] **U0.2 The preview screen.** `app/finance-preview.js` (deep link
   `personalcopilot://finance-preview`, no tab) with a list of component sections and the state
   switches (theme, empty, loading, error, offline, long text, Hebrew). Empty sections for now.
-- [ ] **U0.3 Example data.** `mocks/` with October 2026 as on the canvas: categories, ~15 entries,
+  *Done 2026-10-29:* `FinancePreviewScreen` (a root `Stack` route, not in `TABS`; a Close pill —
+  back, or the Finance tab when opened cold from the link). `PreviewSwitches` (`GlowCard`, `Row`,
+  `Switch`): Dark theme sets the app's real `themeSlice.mode`, so it stays as left; the six states
+  are the screen's own state. `PreviewSection` per row of the components table
+  (`utils/previewSections.js`, 28 sections), each a dashed "Not built yet — U<n>" until its stage.
+  Test: `PreviewSwitches.spec.js`; frontend 34/34 suites, 330 tests. On the phone (dev build,
+  S23 Ultra): the link opens it over the tabs, a switch flips, Close returns, no JS errors. Docs: `frontend.md`
+  (feature folders, the two components, "The finance preview screen"), `frontend/README.md`
+  (finance in the feature folders; the intro's stale "only those two" tabs), CLAUDE.md,
+  `docs/specs/services.md#frontend`.
+  *Removed 2026-10-29* (the user: no preview code to maintain, or to forget in the app) — the
+  screen, its two components, the section list and its test are deleted; `mocks/` stays.
+  Showing components in every state moves to Storybook, if adopted (see Feedback below).
+- [x] **U0.3 Example data.** `mocks/` with October 2026 as on the canvas: categories, ~15 entries,
   one statement with 42 lines.
+  *Done 2026-10-29:* `mocks/` — `categories.js` (10 defaults), `entries.js` (42 entries, `TODAY` =
+  2026-10-27), `statement.js` (MAX ••4821, 42 lines built from the entries: 36 auto-matched, the
+  BIT ₪150 question, 5 not reported; its errors; the paste sample), `index.js` (links each entry to
+  its line; the screen 10 settings). Shapes as README §5, money in agorot. `mocks.spec.js` pins the
+  canvas's numbers (₪7,840 both spent and on the statement, top 3 categories, today's rows, screen
+  6's list). **42 entries, not ~15:** each of the 36 matched lines needs its own entry. Where the
+  canvas contradicts itself: "Dinner with Dana" is both today (screen 1) and Oct 12 (screen 6) —
+  two ₪150 dinners; "Weekly groceries" is today's charge, so line 42, not 14 (screen 3); the 4 smaller
+  categories, unnamed on the canvas, are Transport ₪620, Bills ₪600, Shopping ₪520, Subscriptions ₪400.
+  Frontend 35/35 suites, 337 tests.
 
-**Try it:** Finance is a third tab, swipeable like the others; Home and Calendar unchanged; the
-preview link opens the preview screen.
+**Try it:** Finance is a third tab, swipeable like the others; Home and Calendar unchanged.
 **Docs:** `frontend.md` (the finance feature folder, the preview screen), `frontend/README.md`.
 **Feedback questions:** Is the tab's place (third, after Calendar) right?
-**Feedback:** —
+**Test session 2026-10-29:** `0.6.0-test.13` built, published and installed over USB; Finance is
+the third tab (tap and swipe), the preview link opens and closes in the real app. Found: the
+Finance title sat under the status bar (U0.1's 20 px top padding) — now `paddingTop: 64` like
+Account (in the next test build).
+**Feedback:** 2026-10-29 — couldn't open the preview on the phone (no place to type the link); a
+Preview pill was added, then the user asked to drop the preview screen altogether: no preview code
+in the app. Removed (U0.2). Proposed instead: Storybook for React Native — awaiting the user's
+decision; until then the "preview" lines in U1–U13, Phase L and B12 are pending a rewrite.
 
 ## Stage U1: `FinanceHeader`, `FinanceEmpty`, logged out (screens 1, 9)
 

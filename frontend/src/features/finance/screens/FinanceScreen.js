@@ -15,6 +15,6 @@ export default function FinanceScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flexGrow: 1, padding: 20, paddingBottom: 96 },
+  container: { flexGrow: 1, padding: 20, paddingTop: 64, paddingBottom: 96 },
   title: { fontSize: 28, fontWeight: '600' },
 });

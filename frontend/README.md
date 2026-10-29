@@ -3,8 +3,8 @@
 Expo/React Native app, built as an Android APK — optional login/register (the app doesn't gate itself on a session), a Home
 tab (clock, dates, Shabbat times for the device's location, and a candle-lighting reminder bell),
 a Calendar tab (the Jewish-calendar month; the user's own reminders on it, added and
-edited in a bottom sheet — both kinds of reminder kept on the phone, no login needed). The bar
-holds only those two: an auth-gated Account tab (theme, notifications, email/password, profile,
+edited in a bottom sheet — both kinds of reminder kept on the phone, no login needed) and a Finance tab (being built — `docs/plans/finance/`). The
+bar holds only those three: an auth-gated Account tab (theme, notifications, email/password, profile,
 logout, delete account) and an admins-only Admin tab of service status are hidden (`hidden: true`
 in `TABS`), reachable only by a direct link, so the theme stays the saved mode (system by default). See the root
 [CLAUDE.md](../CLAUDE.md) for architecture, [.claude/agents/frontend.md](../.claude/agents/frontend.md)
@@ -43,6 +43,8 @@ src/features/<name>/      components/ screens/ store/ services/ utils/ hooks/ + 
   shabbat/                Home: clock, dates, Shabbat times, the candle-lighting reminder
   calendar/               the Calendar tab: month grid, day card
   reminders/              the user's own reminders
+  finance/                the Finance tab (being built — docs/plans/finance/plan.md); mocks/ is
+                          its example month (October 2026), until the fake API (Phase L)
   app-update/             the APK's update sheet and chip
   account/                auth, profile, admin — dormant
 src/lib/jewish-calendar/  the calendar maths — pure, no React

@@ -168,7 +168,7 @@ definitions or business logic in it.
 ```
 app/                      routes only: each renders a feature's screen (+ the layouts, TABS)
 src/features/<name>/      components/ screens/ store/ services/ utils/ hooks/ + index.js (public API)
-  shabbat/ calendar/ reminders/ app-update/ account/ (dormant: auth, profile, admin)
+  shabbat/ calendar/ reminders/ finance/ app-update/ account/ (dormant: auth, profile, admin)
 src/lib/jewish-calendar/  the calendar maths — pure, no React
 src/shared/               components/ (base/, composite/), theme/, config/, http/, utils/,
                           device/ (location, notifications, background tasks)
@@ -183,6 +183,14 @@ src/store/backgroundTasks.js  background tasks, defined with the rehydrated stor
 - A service that computes rather than fetches (calendar's `calendarService` over
   `src/lib/jewish-calendar/`) still sits in `services/` and returns a Promise of plain JSON — no
   `Date`s or class instances in Redux state.
+
+### The finance example data (Phase U and L)
+
+`finance/mocks/` (`index.js`): October 2026 as on the canvas, in the API's shape
+(the plan's design README §5 — money in whole agorot, dates `YYYY-MM-DD`) — `CATEGORIES`,
+`OCTOBER_ENTRIES` (each with its `statementLine`), `TODAY` (`2026-10-27`, the canvas's "today"),
+`STATEMENT` and its 42 `STATEMENT_LINES`, `STATEMENT_ERRORS`, `PASTE_SAMPLE`, `FINANCE_SETTINGS`.
+`mocks.spec.js` pins every number the canvas shows; change the canvas and the spec together.
 
 ## Services layer — where all I/O lives
 
