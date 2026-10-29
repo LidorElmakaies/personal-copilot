@@ -67,14 +67,15 @@ Docs are updated **in the same stage** as the code they describe, never saved up
    the database to see what happened behind a problem.
 6. Fixes → try again → the stage's feedback questions → the user says "next stage".
 
-### The preview screen (Phase U)
+### Storybook (from U0.4)
 
-`personalcopilot://finance-preview` — a hidden screen (not a tab) that shows each finance
-component on its own, **in every state**, with switches to flip them: empty / loading / error /
-offline / many entries / a 40-character "what for" / Hebrew shop names / light and dark theme.
-It's how a component is checked before the screen it belongs to exists, and how odd states
-(errors, offline) are checked without making them happen for real. It stays in test APKs until
-the end of Phase B, then it's removed (B12).
+Every component is checked on its own, **in every state**, in Storybook on the phone (the dev
+build; `docs/frontend/environment.md`, "Storybook"): its stories sit next to it, one per state —
+empty / loading / error / offline / many entries / a 40-character "what for" / Hebrew shop names —
+in the phone's own light or dark. It's how a component is checked before the screen it belongs to
+exists, and how odd states (errors, offline) are checked without making them happen for real. Not
+part of any APK — Metro strips it — so nothing has to be removed later. (It replaced a hidden
+preview screen inside the app, U0.2, dropped 2026-10-29.)
 
 ### Example data and test data
 
@@ -159,7 +160,7 @@ only render them.
 | Stage | You see on the phone | Screen |
 |---|---|---|
 | **Phase U — UI with example data** | | |
-| U0 | The Finance tab exists; the preview screen opens | — |
+| U0 | The Finance tab exists; Storybook shows the first stories | — |
 | U1 | `FinanceHeader`, `FinanceEmpty`, the logged-out view | 1, 9 |
 | U2 | `EntryRow`, `EntryList` with example entries | 1 |
 | U3 | The `SpentCard` panel card and its `CategoryBar`s | 1 |
@@ -195,7 +196,7 @@ only render them.
 | B9 | FreeToken on this PC (server only) | — |
 | B10 | Pasted statements | 4, 5 |
 | B11 | LLM suggestions | 6, 7 |
-| B12 | Clean-up: fake API out of the app, preview screen removed | — |
+| B12 | Clean-up: fake API out of the app | — |
 
 ---
 
@@ -204,7 +205,7 @@ only render them.
 No Redux I/O, no server, nothing saved. Components take plain props; screens read
 `src/features/finance/mocks/`. Buttons move between screens; Save closes the sheet.
 
-## Stage U0: the tab and the preview screen
+## Stage U0: the tab, example data, Storybook
 
 - [x] **U0.0 The dev build** *(added 2026-10-27: Expo Go can't run this app — it lacks
   `expo-notifications`, and the Play Store's Expo Go is already SDK 58)*. `expo-dev-client`; an
@@ -255,9 +256,28 @@ No Redux I/O, no server, nothing saved. Components take plain props; screens rea
   two ₪150 dinners; "Weekly groceries" is today's charge, so line 42, not 14 (screen 3); the 4 smaller
   categories, unnamed on the canvas, are Transport ₪620, Bills ₪600, Shopping ₪520, Subscriptions ₪400.
   Frontend 35/35 suites, 337 tests.
+- [x] **U0.4 Storybook** *(added 2026-10-29, replaces U0.2's preview screen)*. Storybook for React
+  Native on the phone, for every component and screen of the app, not only finance: stories next
+  to their component (`*.stories.js` under `src/`), one story per state; the dev build shows
+  Storybook instead of the app when its dev server is started with `EXPO_PUBLIC_STORYBOOK=true`;
+  with it unset (every APK) Metro strips Storybook out of the bundle. No native module added (the
+  lite UI), so the dev build needs no rebuild. Example stories for a few shared components and
+  `FinanceScreen`.
+  *Done 2026-10-29:* `@storybook/react-native` 10.7.0 + `react-native-ui-lite` + ondevice
+  actions, `storybook` 10.6.5 (exact, dev dependencies; no existing package moved).
+  `metro.config.js` (`withStorybook`, lite mode, telemetry off), `index.js` picks Storybook or the
+  app, `.rnstorybook/` (config, root, `StoryFrame`: the app's store behind `PersistGate`, the
+  system's light/dark, a stand-in focused screen for `useIsFocused`). `react-native-svg`, pulled in
+  by Storybook's unused full UI, is excluded from Android autolinking (checked: no longer linked).
+  A release-style `expo export` with Storybook off has no Storybook code. On the phone: the story
+  list by folder, search, `FinanceScreen` with its stars, `Alert`'s four stories, no JS errors. A
+  Dark/Light pair over each story was tried and removed (the user: follow the system). Found by
+  the Hebrew story: `Alert` lines Hebrew text up on the left — for U14.2. `notificationDisplay.spec`
+  now reads `index.js`'s `require`s. Frontend 34/34 suites, 335 tests.
 
 **Try it:** Finance is a third tab, swipeable like the others; Home and Calendar unchanged.
-**Docs:** `frontend.md` (the finance feature folder, the preview screen), `frontend/README.md`.
+**Docs:** `frontend.md` (the finance feature folder, the example data, Storybook), `frontend/README.md`,
+`docs/frontend/environment.md` (Storybook).
 **Feedback questions:** Is the tab's place (third, after Calendar) right?
 **Test session 2026-10-29:** `0.6.0-test.13` built, published and installed over USB; Finance is
 the third tab (tap and swipe), the preview link opens and closes in the real app. Found: the
@@ -265,8 +285,8 @@ Finance title sat under the status bar (U0.1's 20 px top padding) — now `paddi
 Account (in the next test build).
 **Feedback:** 2026-10-29 — couldn't open the preview on the phone (no place to type the link); a
 Preview pill was added, then the user asked to drop the preview screen altogether: no preview code
-in the app. Removed (U0.2). Proposed instead: Storybook for React Native — awaiting the user's
-decision; until then the "preview" lines in U1–U13, Phase L and B12 are pending a rewrite.
+in the app. Removed (U0.2). Instead, the user chose Storybook (U0.4), for every component and
+screen of the app; the plan's preview steps became stories.
 
 ## Stage U1: `FinanceHeader`, `FinanceEmpty`, logged out (screens 1, 9)
 
@@ -275,10 +295,10 @@ decision; until then the "preview" lines in U1–U13, Phase L and B12 are pendin
   goes to an empty screen 4 for now).
 - [ ] **U1.2 `FinanceEmpty`** — the empty month: a short line and a hint at the + button.
 - [ ] **U1.3 Logged-out view** — screen 9 with the existing `RequireAuthNotice` (text adapted: "kept
-  on your PC, survives reinstalling"). A preview switch shows it.
+  on your PC, survives reinstalling"). A story shows it.
 
-**Try it:** switch months with the arrows; an empty month shows `FinanceEmpty`; flip "logged out"
-in the preview; check both themes.
+**Try it:** switch months with the arrows; an empty month shows `FinanceEmpty`; the logged-out
+story; check both themes.
 **Docs:** `frontend.md` component list (`FinanceHeader`, `FinanceEmpty`).
 **Feedback questions:** Header size and spacing right? Is the empty state friendly enough?
 **Feedback:** —
@@ -290,10 +310,10 @@ in the preview; check both themes.
   "matched". Pressable (opens screen 3, empty for now).
 - [ ] **U2.2 `EntryList`** — grouped under day labels (TODAY, YESTERDAY, OCT 25), newest first,
   inside a panel card; scrolls with the screen.
-- [ ] **U2.3 Preview states** — every badge, a 40-character "what for", a Hebrew one, 0 / 1 / 50
+- [ ] **U2.3 Stories** — every badge, a 40-character "what for", a Hebrew one, 0 / 1 / 50
   entries.
 
-**Try it:** scroll a 50-entry month; every badge in the preview; long and Hebrew text never
+**Try it:** scroll a 50-entry month; every badge in its story; long and Hebrew text never
 overlap the amount; tap a row → screen 3 opens.
 **Docs:** `frontend.md` (`EntryRow`, `EntryList`).
 **Feedback questions:** Which details belong on a row? Too dense or too airy?
@@ -304,7 +324,7 @@ overlap the amount; tap a row → screen 3 opens.
 - [ ] **U3.1 `CategoryBar`** — name, amount, a bar scaled to the biggest category.
 - [ ] **U3.2 `SpentCard`** — a `GlowCard` panel: "SPENT THIS MONTH", the big total, the top 3
   `CategoryBar`s, "+ N more" expanding to all of them (animated).
-- [ ] **U3.3 Preview states** — 0 categories (card hidden or "₪0"?), 1, 3, 10; a total over
+- [ ] **U3.3 Stories** — 0 categories (card hidden or "₪0"?), 1, 3, 10; a total over
   ₪100,000 still fits.
 
 **Try it:** expand and collapse "+ N more"; huge and tiny totals; both themes.
@@ -324,7 +344,7 @@ spending (e.g. vs last month)?
 - [ ] **U4.4 Screen 1 assembled** — header, banner, notice, `SpentCard`, `EntryList`, + — in that
   order, as on the canvas.
 
-**Try it:** the full screen 1 with example data; flip the banner and both notices in the preview;
+**Try it:** the full screen 1 with example data; the banner and both notices in their stories;
 the + never covers the last row's amount.
 **Docs:** `frontend.md` (`ReviewBanner`, `ConnectionNotice`).
 **Feedback questions:** Screen 1 as a whole — what's too loud, what's missing?
@@ -366,7 +386,7 @@ message.
 - [ ] **U7.2 In the sheet** — under the other fields; the add tile asks "Camera / Gallery" (the
   choice only — the real pickers come in L5).
 
-**Try it:** 0, 1 and 8 photos in the preview; remove one; the sheet still fits on screen.
+**Try it:** 0, 1 and 8 photos in stories; remove one; the sheet still fits on screen.
 **Docs:** `frontend.md` (`PhotoStrip`).
 **Feedback questions:** Thumbnail size — readable enough to tell receipts apart?
 **Feedback:** —
@@ -405,9 +425,9 @@ never hides Check statement.
 - [ ] **U10.2 `StatementError`** — one card per error, each with its own words and action: totals
   don't match (both amounts), not a MAX file, couldn't reach the LLM (tried 3 times), unknown.
 - [ ] **U10.3 Screen 5** — the progress animates through its steps with example timing, then goes
-  to screen 6; the preview shows each error.
+  to screen 6; a story per error.
 
-**Try it:** watch the steps tick; every error in the preview; "Upload or paste again" goes back.
+**Try it:** watch the steps tick; every error in its story; "Upload or paste again" goes back.
 **Docs:** `frontend.md` (`StatementProgress`, `StatementError`).
 **Feedback questions:** Is each error clear enough to act on without asking anyone?
 **Feedback:** —
@@ -421,7 +441,7 @@ never hides Check statement.
 - [ ] **U11.3 Screen 6** — header "October · MAX ••4821 · 42 lines · 36 already reported ✓", the
   question cards, the "Not reported" list; answering a question removes its card (animated).
 
-**Try it:** answer each kind of question; every row variant in the preview; a list of 30.
+**Try it:** answer each kind of question; every row variant in its story; a list of 30.
 **Docs:** `frontend.md` (`MatchQuestion`, `UnreportedRow`).
 **Feedback questions:** Is it obvious why each charge is on the list?
 **Feedback:** —
@@ -473,7 +493,8 @@ then the same with TalkBack and with the largest font.
 
 The screens stop reading `mocks/` directly. A **fake API** (`services/financeApi.fake.js`) answers
 every route in §6 exactly as the server will, keeping its data in memory (seeded from `mocks/`) —
-with preview switches for "slow", "offline" and "fails". The real API client
+with three modes, "slow", "offline" and "fails", picked by the dev server
+(`EXPO_PUBLIC_FAKE_API`, documented in L1) — no switch inside the app. The real API client
 (`services/financeApi.js`) has the same functions; Phase B switches each area over.
 
 ## Stage L1: the fake API and the Redux wiring
@@ -518,7 +539,8 @@ back next time; type a "what for" used before → its category is suggested.
   unreachable; sent on app start, back to foreground, and every minute while open; never twice.
 - [ ] **L4.2 The UI follows** — "not sent" badges, `ConnectionNotice` with the count.
 
-**Try it:** flip "offline" in the preview, add two entries, close the app, reopen, flip back →
+**Try it:** run the dev server in the "offline" mode, add two entries, close the app, restart it
+normally, reopen →
 they arrive once.
 **Docs:** `frontend.md` (the outbox).
 **Feedback:** —
@@ -716,8 +738,8 @@ stop FreeToken → after 3 tries, "Couldn't reach the LLM".
 
 ## Stage B12: clean-up
 
-- [ ] **B12.1** The fake API leaves the app bundle (kept for tests only); the preview screen is
-  removed; leftover example data out of the APK.
+- [ ] **B12.1** The fake API leaves the app bundle (kept for tests and stories only); leftover
+  example data out of the APK.
 - [ ] **B12.2** Final `docs` agent sweep: CLAUDE.md "What's implemented", `docs/specs/`, the
   READMEs, the agent guides.
 

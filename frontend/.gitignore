@@ -10,3 +10,6 @@ npm-debug.*
 .env*.local
 /ios
 /android
+
+# Storybook: generated on every Storybook start (metro.config.js)
+.rnstorybook/storybook.requires.js

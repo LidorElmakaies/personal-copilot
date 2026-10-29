@@ -14,6 +14,7 @@ for the conventions to follow when changing anything here.
 npm install
 cp .env.example .env    # EXPO_PUBLIC_GATEWAY_ORIGIN — optional, only the dormant login/account screens use it
 npx expo start          # for the dev build — see docs/frontend/environment.md
+# with EXPO_PUBLIC_STORYBOOK=true and --clear: Storybook instead of the app (same doc)
 npm test                # Jest: the *.spec.{ts,js} under src/ (jest-expo, React Native Testing Library)
 ```
 
@@ -52,7 +53,13 @@ src/shared/               components/ (base/, composite/), theme/, config/, http
                           device/ (location, notifications, background tasks)
 src/store/index.js        the root store: each feature's reducer (from its index.js) + persistence
 src/store/backgroundTasks.js  background tasks, defined with the rehydrated store (loaded by index.js)
+.rnstorybook/             Storybook (dev server only): config, root, StoryFrame
 ```
+
+Every component and screen can have stories (`PillButton.stories.js` beside `PillButton.js`), seen on the
+phone in Storybook — a dev server started with `EXPO_PUBLIC_STORYBOOK=true`; Metro leaves
+Storybook out of every APK. How: `docs/frontend/environment.md` ("Storybook"); conventions:
+`.claude/agents/frontend.md` ("Storybook").
 
 A feature imports from `shared/` and `lib/`, and another feature only through its `index.js`;
 `shared/` and `lib/` never import a feature (so the root store isn't in `shared/`). A new feature =

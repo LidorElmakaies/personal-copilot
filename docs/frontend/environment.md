@@ -15,6 +15,9 @@ environment to read later. `node devops/android/apk.js build` sets them for the 
 - **`EXPO_PUBLIC_FRONTEND_VERSION`** / **`EXPO_PUBLIC_BUILT_AT`** — the `frontend` version from
   `version/versions.json` and the build time, shown by `VersionInfo` and compared with the
   registry's `latest.json`. Unset in a dev server ("dev").
+- **`EXPO_PUBLIC_STORYBOOK`** — `true` only for a dev server started for Storybook (below): the
+  dev build then shows Storybook instead of the app. Unset everywhere else, every APK included —
+  `frontend/metro.config.js` then strips Storybook out of the bundle.
 
 ## The dev build
 
@@ -33,3 +36,16 @@ then open `http://<pc-tailnet-ip>:8082` in the dev build's launcher. `8081` is t
 - **`REACT_NATIVE_PACKAGER_HOSTNAME`** — the address the phone is told to load the code from.
 - Add `EXPO_PUBLIC_GATEWAY_ORIGIN=http://<pc-tailnet-ip>:8000` for screens that call Gateway; plain
   HTTP is fine for a dev server.
+
+## Storybook
+
+Every component and screen can be looked at on its own, in each of its states, on the phone: its
+stories sit next to it (`PillButton.stories.js`), one exported story per state — see
+`.claude/agents/frontend.md`'s "Storybook". The same dev server as above, with Storybook on and a
+cleared cache (an `EXPO_PUBLIC_*` value is baked into the cached bundle):
+
+`EXPO_PUBLIC_STORYBOOK=true APP_VARIANT=dev EXPO_NO_TYPESCRIPT_SETUP=1 REACT_NATIVE_PACKAGER_HOSTNAME=<pc-tailnet-ip> npx expo start --dev-client --port 8082 --clear`
+
+then open it in the dev build as above: the story list instead of the app, in the phone's own light or dark
+(Storybook clears a theme the dev build saved). Back to the app: restart without `EXPO_PUBLIC_STORYBOOK`, again
+with `--clear`. On Windows, set each variable first in PowerShell (`$env:EXPO_PUBLIC_STORYBOOK='true'`, …).

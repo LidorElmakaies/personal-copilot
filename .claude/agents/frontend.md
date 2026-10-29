@@ -174,6 +174,7 @@ src/shared/               components/ (base/, composite/), theme/, config/, http
                           device/ (location, notifications, background tasks)
 src/store/index.js        the root store: each feature's reducer (from its index.js) + persistence
 src/store/backgroundTasks.js  background tasks, defined with the rehydrated store (loaded by index.js)
+.rnstorybook/             Storybook's config, root and StoryFrame; stories sit next to their component
 ```
 
 - A feature imports from `shared/` and `lib/`, and another feature only through its `index.js`
@@ -264,6 +265,8 @@ hit" below).
     again.
   - Canvases are private; the user shares them. Never put real personal data, tokens or card numbers
     on one.
+- **Each component and screen in all its states: Storybook**, on the phone in the dev build
+  (`docs/frontend/environment.md`, "Storybook"). See "Storybook" below.
 - **Logic** is covered by Jest (`npm test`, the `*.spec.{ts,js}` under `src/`) — slices, thunks,
   planners and the calendar maths, see `.claude/agents/testing.md`.
 - **The real app** is the APK: `node devops/android/apk.js build` (a `-test.N` version while
@@ -332,11 +335,39 @@ hit" below).
   aren't centered" when it's actually one element that shrank. Yoga (React Native's layout engine)
   has no inline/block distinction, so this specific footgun is mockup-only.
 
+## Storybook
+
+Storybook for React Native (v10, its lite UI — plain JS, so the dev build needs no native module
+for it). `frontend/metro.config.js` wraps Expo's config with `withStorybook`: on only when the dev
+server runs with `EXPO_PUBLIC_STORYBOOK=true`, otherwise every Storybook import resolves to an empty
+module, so no APK carries any of it. `index.js` then registers `.rnstorybook/`'s root instead of the
+app. `react-native-svg` comes in with Storybook's full UI (unused) and is excluded from Android
+autolinking in `package.json`'s `expo.autolinking.exclude` — keep it there, or every APK gains an
+unused native library.
+
+- **Stories sit next to what they show**: `PillButton.stories.js` beside `PillButton.js`, any
+  `*.stories.js` under `src/` (`.rnstorybook/main.js`). Component Story Format: a default export
+  `{ component, args, argTypes }`, then one named export per state (`export const Pending = { args:
+  { tone: 'pending' } }`); `render` for a composition (`GlowCard.stories.js`). The title comes from
+  the file's path. A handler prop gets `argTypes: { onPress: { action: 'pressed' } }` — the
+  Actions panel logs the calls. A `Error` export would shadow the global: name it `ErrorVariant`
+  with `name: 'Error'`.
+- **Every story** renders inside the app's real store once rehydrated (`.rnstorybook/preview.js`,
+  `PersistGate`) and `StoryFrame`: the system's light/dark (it clears a saved theme mode), the
+  app's background, padding
+  (`parameters: { layout: 'fullscreen' }` drops it, for a screen) and a stand-in focused screen so
+  `useIsFocused` works (`AmbientBackground`). A component that navigates (`useRouter`) needs more
+  than that stand-in.
+- **A new component or screen gets its stories in the same task** — every state the plan names
+  (empty, loading, error, long text, Hebrew…), example data from the feature's `mocks/`. Stories are
+  never imported by the app.
+
 ## Commands
 
 ```bash
 cd frontend
 npm install
 npx expo start          # for the dev build — see docs/frontend/environment.md
+# EXPO_PUBLIC_STORYBOOK=true … npx expo start … --clear  # Storybook instead of the app (same doc)
 npm test                # Jest (jest-expo + React Native Testing Library), *.spec.{ts,js} under src/
 ```

@@ -27,9 +27,9 @@ describe('notificationDisplay', () => {
       'utf8',
     );
     const handler = entry.indexOf(
-      "import './src/shared/device/notificationDisplay'",
+      "require('./src/shared/device/notificationDisplay')",
     );
     expect(handler).toBeGreaterThanOrEqual(0);
-    expect(handler).toBeLessThan(entry.indexOf("import 'expo-router/entry'"));
+    expect(handler).toBeLessThan(entry.indexOf("require('expo-router/entry')"));
   });
 });

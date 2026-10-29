@@ -197,6 +197,7 @@ Frontend (run from `frontend/`):
 ```bash
 npm install
 npx expo start          # for the dev build — see docs/frontend/environment.md
+# EXPO_PUBLIC_STORYBOOK=true … npx expo start … --clear  # Storybook (every component, every state) instead
 npm test                # jest.config.js (jest-expo) — the *.spec.{ts,js} under src/
 ```
 
