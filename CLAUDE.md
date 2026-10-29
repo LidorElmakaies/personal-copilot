@@ -66,6 +66,24 @@ plans, tests or agent files only don't bump anything; a `devops/` change that al
 runs is a patch for that service. Where each version is baked in and shown:
 `docs/specs/services.md#versions`. Applies to every agent in `.claude/agents/` too.
 
+## Clean up after yourself (every agent)
+
+Leave the PC and the phone as you found them, apart from what the task was meant to change — every
+time, before reporting a task done, without being asked:
+
+- **Stop what you started**: dev servers (`npx expo start`, Storybook's included; `nest start
+  --watch`), containers brought up for a check, background commands. Keep one running only if the
+  user asked for it, and say so.
+- **Delete what you made for yourself**: scratch and temp files, exports, unpacked packages, test
+  containers, images, networks and volumes, test rows and accounts.
+- **Put back what you changed to look at something**: the phone's app state (its theme, a test
+  reminder), a container stopped to free a port.
+- **This project's dead leftovers you come across** (containers of deleted services, their images,
+  orphans after a compose change) — remove them and say what went. Never anything of another
+  project (other compose projects' containers, images or volumes): report it instead.
+
+Applies to every agent in `.claude/agents/` too.
+
 ## Repo layout
 
 ```

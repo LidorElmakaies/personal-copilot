@@ -362,6 +362,13 @@ unused native library.
   (empty, loading, error, long text, Hebrew…), example data from the feature's `mocks/`. Stories are
   never imported by the app.
 
+## Clean up after yourself
+
+CLAUDE.md's rule, here: stop `npx expo start` when you're done with it (Storybook's too — the dev
+build is left showing whatever the last server gave it); delete exports, screenshots and unpacked
+packages from the scratchpad; put the phone's app state back (a theme you switched, test reminders,
+the dev build pointing at Storybook), and never change the phone's own settings without asking.
+
 ## Commands
 
 ```bash

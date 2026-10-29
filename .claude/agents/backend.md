@@ -133,6 +133,12 @@ Hand off to the `docs` agent before considering a backend change finished: it sy
 a changed flow affects, and does a pass trimming any comment you left that's grown past one line.
 Don't rely on your own judgment for comment density or doc accuracy — that's its job, not yours.
 
+## Clean up after yourself
+
+CLAUDE.md's rule, here: stop `nest start --watch` and anything else you started; remove the
+Postgres container or network an opt-in `*.it.spec.ts` run left behind, and test rows or accounts
+you created; leave the backend profile as you found it (dormant: not running).
+
 ## Commands
 
 ```bash

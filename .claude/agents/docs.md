@@ -103,6 +103,11 @@ history that belongs in `docs/specs/`. Rules:
 - When you trim a comment, verify the information it carried is actually findable in a doc
   afterward — don't delete context and leave nothing in its place.
 
+## Clean up after yourself
+
+CLAUDE.md's rule, here: delete any scratch file you wrote while sweeping, and stop anything you
+started to check a doc against the running system.
+
 ## Commands
 
 ```bash

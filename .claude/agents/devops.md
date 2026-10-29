@@ -86,6 +86,13 @@ Hand off to the `docs` agent before considering an infra change finished: it syn
 `docs/specs/architecture.md`'s topology diagram and this file with whatever actually changed
 (a new service, a moved port).
 
+## Clean up after yourself
+
+CLAUDE.md's rule, here: leave the stack in its documented state — only `apk` running unless the
+task says otherwise; remove containers, images, networks and volumes you created for a check; after
+deleting a service, `docker compose up -d --remove-orphans` and remove its image. Another project's
+containers, images or volumes (other compose projects on this PC) are never yours to remove.
+
 ## OpenTelemetry — shared library + wiring
 
 `backend/libs/otel` (`startOtel`/`OtelLogger`/`createRequestLoggingMiddleware`/

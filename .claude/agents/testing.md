@@ -99,6 +99,12 @@ waits ~25 s) and `retryTapIfNoChange: false`; never `hideKeyboard` (Back closes 
 match what the accessibility tree holds (`maestro hierarchy`), e.g. the reminder form's summary line
 rather than a stepper's middle label. Its pure parts are tested by `devops/maestro/smoke.test.js`.
 
+## Clean up after yourself
+
+CLAUDE.md's rule, here: remove test containers and temp directories a run left behind, delete test
+data you added (on the phone too — Maestro's reminders), and restore any phone setting a run
+changed, as `smoke.js` does.
+
 ## Commands
 
 ```bash
