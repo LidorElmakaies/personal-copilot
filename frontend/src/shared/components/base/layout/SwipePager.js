@@ -7,7 +7,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { I18nManager, StyleSheet, View } from 'react-native';
 import {
   Gesture,
   GestureDetector,
@@ -26,6 +26,9 @@ import { TabPagerGesture } from './TabPager';
 const SLIDE = { duration: 250, easing: Easing.out(Easing.cubic) };
 const PAST = 0.25; // of the width: let go past this and it moves on
 const FLICK = 600; // px/s
+// Hebrew lays the months out right to left (later ones on the left) but doesn't mirror a drag or a
+// transform: -1 flips both.
+const DIR = I18nManager.isRTL ? -1 : 1;
 
 // Pages side by side on an endless strip, one per integer index; drag sideways to move between
 // them. Each page sits at its own place on the strip (keyed by index), so passing one on a long drag
@@ -116,7 +119,8 @@ const SwipePager = forwardRef(function SwipePager(
       })
       .onUpdate((e) => {
         if (!widthSV.value) return;
-        position.value = startPosition.value - e.translationX / widthSV.value;
+        position.value =
+          startPosition.value - (DIR * e.translationX) / widthSV.value;
         const n = Math.round(position.value);
         if (n !== nearest.value) {
           nearest.value = n;
@@ -125,7 +129,7 @@ const SwipePager = forwardRef(function SwipePager(
       })
       .onEnd((e) => {
         const p = position.value;
-        const forward = e.translationX < 0; // finger moved left → later pages
+        const forward = DIR * e.translationX < 0; // finger moved left (right in Hebrew) → later pages
         const base = forward ? Math.floor(p) : Math.ceil(p);
         const step = forward ? 1 : -1;
         const moved =
@@ -137,7 +141,9 @@ const SwipePager = forwardRef(function SwipePager(
   }, [position, startPosition, widthSV, nearest, moveTo, slideTo, tabPan]);
 
   const strip = useAnimatedStyle(() => ({
-    transform: [{ translateX: -(position.value - anchor) * widthSV.value }],
+    transform: [
+      { translateX: -DIR * (position.value - anchor) * widthSV.value },
+    ],
   }));
   // The neighbours need the width to sit beside the page in view; that one doesn't.
   // Two either side, so a page is built well before a swipe reaches it (not mid-drag).

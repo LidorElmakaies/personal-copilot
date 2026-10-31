@@ -3,10 +3,11 @@
 Expo/React Native app, built as an Android APK — optional login/register (the app doesn't gate itself on a session), a Home
 tab (clock, dates, Shabbat times for the device's location, and a candle-lighting reminder bell),
 a Calendar tab (the Jewish-calendar month; the user's own reminders on it, added and
-edited in a bottom sheet — both kinds of reminder kept on the phone, no login needed) and a Finance tab (being built — `docs/plans/finance/`). The
-bar holds only those three: an auth-gated Account tab (theme, notifications, email/password, profile,
+edited in a bottom sheet — both kinds of reminder kept on the phone, no login needed), a Finance tab (being built — `docs/plans/finance/`) and a Settings
+tab (language — Hebrew mirrors the app right to left after a restart — and theme). The
+bar holds only those four: an auth-gated Account tab (notifications, email/password, profile,
 logout, delete account) and an admins-only Admin tab of service status are hidden (`hidden: true`
-in `TABS`), reachable only by a direct link, so the theme stays the saved mode (system by default). See the root
+in `TABS`), reachable only by a direct link. See the root
 [CLAUDE.md](../CLAUDE.md) for architecture, [.claude/agents/frontend.md](../.claude/agents/frontend.md)
 for the conventions to follow when changing anything here.
 
@@ -46,11 +47,12 @@ src/features/<name>/      components/ screens/ store/ services/ utils/ hooks/ + 
   reminders/              the user's own reminders
   finance/                the Finance tab (being built — docs/plans/finance/plan.md); mocks/ is
                           its example month (October 2026), until the fake API (Phase L)
+  settings/               the Settings tab: language and theme
   app-update/             the APK's update sheet and chip
   account/                auth, profile, admin — dormant
 src/lib/jewish-calendar/  the calendar maths — pure, no React
-src/shared/               components/ (base/, composite/), theme/, config/, http/, utils/,
-                          device/ (location, notifications, background tasks)
+src/shared/               components/ (base/, composite/), theme/, i18n/ (the language), config/,
+                          http/, utils/, device/ (location, notifications, background tasks)
 src/store/index.js        the root store: each feature's reducer (from its index.js) + persistence
 src/store/backgroundTasks.js  background tasks, defined with the rehydrated store (loaded by index.js)
 .rnstorybook/             Storybook (dev server only): config, root, StoryFrame

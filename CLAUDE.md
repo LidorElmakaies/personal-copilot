@@ -122,14 +122,15 @@ Each service's contract is in [`docs/specs/services.md`](docs/specs/services.md)
 - **frontend** (`frontend/`) — Expo Router app, built as an Android APK; login optional. Swipeable
   tabs: Home (clock, Hebrew date, Shabbat times for the GPS location, the candle-lighting reminder
   bell), Calendar (Jewish-calendar month; the user's own reminders, added and edited in a bottom
-  sheet) and Finance (being built — `docs/plans/finance/`; a title only so far). Shabbat times and months are computed on the phone (`src/lib/jewish-calendar/`, over
+  sheet), Finance (being built — `docs/plans/finance/`; example entries so far) and Settings
+  (language English/Hebrew — Hebrew mirrors the app right to left after a restart — and the theme,
+  kept on the phone; the words themselves are still English, `docs/plans/hebrew/`). Shabbat times and months are computed on the phone (`src/lib/jewish-calendar/`, over
   `@hebcal/core`). Both kinds of reminder need no login, are kept on the phone (persisted) and fired
   as local notifications (`ReminderScheduleManager` → `reconcileReminderNotifications`, a 30-day
   window, at most 100 scheduled; also a daily background task, `reminder-notifications`, so the
-  window keeps moving with the app unopened). Account (theme, notifications, email/password,
+  window keeps moving with the app unopened). Account (notifications, email/password,
   profile, log out, delete account, version) and Admin (service status) are `hidden: true` in
-  `TABS`: out of the bar and the swipe, a direct link still opens them. No tab in the bar switches
-  the theme; it stays the saved mode (system by default). App-wide (`app/_layout.js`): Android's
+  `TABS`: out of the bar and the swipe, a direct link still opens them. App-wide (`app/_layout.js`): Android's
   notification permission (`notificationsSlice`; `NotificationsPrompt`, a one-time "Turn on
   notifications?" over any tab once a reminder exists and Android can still ask; Log Out leaves
   notifications alone — they're the phone's) and the in-app update from the APK registry (checked
@@ -243,7 +244,7 @@ schema per table-owning service, each writing only its own.
 
 **Frontend** — Expo Router, file-based routing, `(auth)`/`(tabs)` groups; the route files only
 render a screen from a feature folder, `src/features/<name>/` (`shabbat`, `calendar`, `reminders`,
-`finance`, `app-update`, and the dormant `account`), each with its components, slice, services, utils and an
+`finance`, `settings`, `app-update`, and the dormant `account`), each with its components, slice, services, utils and an
 `index.js` — the only way another feature may import it. Cross-feature code is `src/shared/`
 (never imports a feature), the calendar maths `src/lib/jewish-calendar/`, the root store
 `src/store/index.js`. Redux Toolkit with a strict services-layer convention: all I/O lives in a

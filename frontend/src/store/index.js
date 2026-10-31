@@ -24,6 +24,7 @@ import { remindersReducer } from '../features/shabbat';
 import locationReducer from '../shared/device/locationSlice';
 import notificationsReducer from '../shared/device/notificationsSlice';
 import { setUnauthorizedHandler } from '../shared/http/httpClient';
+import languageReducer from '../shared/i18n/languageSlice';
 import themeReducer from '../shared/theme/themeSlice';
 import { getUserFromToken } from '../shared/utils/jwt';
 
@@ -32,6 +33,11 @@ import { getUserFromToken } from '../shared/utils/jwt';
 
 const themePersistConfig = {
   key: 'theme',
+  storage: AsyncStorage,
+};
+
+const languagePersistConfig = {
+  key: 'language',
   storage: AsyncStorage,
 };
 
@@ -80,6 +86,7 @@ const authPersistConfig = {
 export const store = configureStore({
   reducer: {
     theme: persistReducer(themePersistConfig, themeReducer),
+    language: persistReducer(languagePersistConfig, languageReducer),
     auth: persistReducer(authPersistConfig, authReducer),
     location: persistReducer(locationPersistConfig, locationReducer),
     calendar: persistReducer(calendarPersistConfig, calendarReducer),
@@ -98,6 +105,8 @@ export const store = configureStore({
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
+      // A thunk that restarts the app writes the saved state first (changeLanguage).
+      thunk: { extraArgument: { flushState: () => persistor.flush() } },
       serializableCheck: {
         ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
       },

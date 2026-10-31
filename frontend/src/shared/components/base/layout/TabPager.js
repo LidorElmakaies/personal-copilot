@@ -6,7 +6,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { I18nManager, StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Gesture,
@@ -28,6 +28,9 @@ const PAST = 0.25; // of the width: let go past this and it moves on
 const FLICK = 600; // px/s
 const EDGE = 20; // a drag starting this close to a side is Android's back gesture, not ours
 const STRETCH = 1 / 3; // past the first or last page the screen moves a third of the finger
+// The pages keep the English order in Hebrew too, like the tab bar: the strip is laid out left to
+// right and each page mirrors back to the app's direction.
+const PAGE_DIRECTION = I18nManager.isRTL ? 'rtl' : 'ltr';
 
 // The pager's pan, for a gesture inside a page that must win over it (SwipePager's months):
 // `pan.blocksExternalGesture(useContext(TabPagerGesture))`.
@@ -216,6 +219,11 @@ export default function TabPager({
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
-  clip: { flex: 1, overflow: 'hidden' },
-  page: { position: 'absolute', top: 0, bottom: 0 },
+  clip: { flex: 1, overflow: 'hidden', direction: 'ltr' },
+  page: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    direction: PAGE_DIRECTION,
+  },
 });

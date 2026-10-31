@@ -64,6 +64,7 @@ export default function CustomTabBar({ tabs, activeName, onPress }) {
 const styles = StyleSheet.create({
   barWrapper: {
     flexDirection: 'row',
+    direction: 'ltr', // the tabs keep the English order in Hebrew too (TabPager matches)
     paddingBottom: 8,
     paddingTop: 6,
     overflow: 'hidden',

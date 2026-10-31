@@ -6,7 +6,6 @@ import LogoutCard from '../components/LogoutCard';
 import NotificationsCard from '../components/NotificationsCard';
 import ProfileCard from '../components/ProfileCard';
 import RequireAuthNotice from '../components/RequireAuthNotice';
-import ThemeCard from '../../../shared/components/composite/ThemeCard';
 import VersionInfo from '../../../shared/components/base/feedback/VersionInfo';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
 import { useRequireAuth } from '../hooks/useRequireAuth';
@@ -33,7 +32,6 @@ export default function AccountScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <Text style={[styles.heading, { color: colors.text }]}>Account</Text>
-        <ThemeCard />
         <NotificationsCard />
         <AccountCard />
         <ProfileCard />

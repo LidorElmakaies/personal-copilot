@@ -3,7 +3,9 @@
 Asked 2026-10-29. The app speaks English today. This plan makes every screen work in **Hebrew,
 right to left**, and in English, picked in a new **Settings** screen; then the Finance plan
 (`docs/plans/finance/plan.md`, paused after U2) continues — in both languages from then on.
-**Screens:** a Claude design canvas, made in H0 (its link goes here).
+**Screens: https://claude.ai/artifact/74mvjNp7jhctFgZb9tzuNG** — the Claude design canvas
+"Hebrew — screens" (H0). Changes go to this same canvas (`.claude/agents/frontend.md`).
+Signed off 2026-10-31.
 
 ## Decisions (2026-10-29)
 
@@ -24,28 +26,59 @@ a Hebrew story.
 
 ## Stage H0: the design
 
-- [ ] **H0.1 Canvas** "Hebrew — screens": the Settings screen (both languages), and Home, Calendar
+- [x] **H0.1 Canvas** "Hebrew — screens": the Settings screen (both languages), and Home, Calendar
   and the Finance tab as they look in Hebrew, mirrored. Dark, phone-sized, real Hebrew copy.
+  *Done 2026-10-31:* five artboards. 1–2 the Settings tab (English, Hebrew): a Language card
+  (English / עברית, each in its own language, same order in both) with "changing it restarts the
+  app" under it, then `ThemeCard` as it is; Settings is the fourth tab (gear). 3–5 Home, Calendar
+  (30 Oct selected: Erev Shabbat, two reminders) and Finance (as built through U2), mirrored with
+  `dir="rtl"`. Dates and times from `@hebcal/core` for Tel Aviv. Numbers, times, `₪` amounts and
+  `••4821` stay left-to-right inside the mirrored rows. Hebrew dates in Hebrew letters ("ט״ז בחשון
+  תשפ״ז"), hebcal's month spelling (חשון). In Hebrew the day card drops its second, Hebrew-name line
+  (the title is already Hebrew) and the small-caps labels lose their capitals and letter-spacing.
 
 **Try it:** the canvas link; comment on wording and layout there.
 **Feedback questions:** Is the Hebrew wording natural? Anything that shouldn't mirror (numbers,
 times, the ₪ sign)?
-**Sign-off:** —
+**Sign-off:** 2026-10-31 — the tabs as drawn; `₪284.90` stays as is (₪ first, left-to-right).
 
 ## Stage H1: Settings and the restart
 
-- [ ] **H1.1 Language state** — `language` (`'en' | 'he'`), persisted, next to `theme`
+- [x] **H1.1 Language state** — `language` (`'en' | 'he'`), persisted, next to `theme`
   (`src/shared/`); tests.
-- [ ] **H1.2 Settings screen** — reached from where H0 decides (open question 1); `ThemeCard`
-  moves here from the hidden Account tab; a Language card (Hebrew / English).
-- [ ] **H1.3 RTL and restart** — switching the language sets `I18nManager` and restarts the app
+  *Done 2026-10-31:* `src/shared/i18n/languageSlice.js` (`{ code: 'en' }`, `setLanguage`), in the
+  root store as `language`, persisted whole. Tests: the slice's spec; `store/persistence.spec.js`
+  checks it survives a restart and starts English. Nothing reads it yet (H1.2).
+- [x] **H1.2 Settings screen** — a fourth tab, "Settings", after Finance (open question 1);
+  `ThemeCard` moves here from the hidden Account tab; a Language card (Hebrew / English).
+  *Done 2026-10-31:* `src/features/settings/` (`SettingsScreen`, `LanguageCard` — presentational,
+  so its Hebrew story picks עברית without touching the app's language), `app/(tabs)/settings.js`,
+  a `TABS` entry (gear). `ThemeCard` off Account. Stories: `LanguageCard` English/Hebrew,
+  `SettingsScreen`.
+- [x] **H1.3 RTL and restart** — switching the language sets `I18nManager` and restarts the app
   (open question 2). Check: the tab bar, a row, an arrow, a sheet all mirror in Hebrew; back to
   English restores them.
+  *Done 2026-10-31:* `changeLanguage` (in `languageSlice`) saves, flushes the store, then
+  `layoutDirectionService` (`I18nManager.forceRTL`, `reloadAppAsync()` from `expo` — no
+  `expo-updates`, no rebuild). Works on the phone in the dev build: one tap restarts mirrored,
+  landing on Home (on Settings since the feedback below). Found and fixed: Android mirrors layout but not motion — `TabPager` showed every
+  tab but Home blank, `SwipePager` months, the `Switch` knob, the month chevrons (Calendar,
+  Finance) all needed flipping (frontend.md "Bug patterns"). Checked: tab bar, swipe (right = next; since
+  the feedback below, English order: left = next), rows, arrows (previous points right), the reminder sheet; back to English restores all. Still
+  English words and English-aligned text (H2). The dev build logs a soft "Expected to run on UI
+  thread" from Expo's debug reload; the release APK (0.6.0-test.15) restarts with no warning or
+  crash. The dev build can't restart without its dev server running (it falls back to its
+  launcher).
 
 **Try it:** switch to Hebrew → the app restarts mirrored (still English words); back to English.
 **Docs:** `frontend.md`, `frontend/README.md`, `docs/specs/services.md#frontend`, CLAUDE.md.
 **Feedback questions:** Is the restart acceptable? Is Settings easy to find?
-**Feedback:** —
+**Feedback:** 2026-10-31, on 0.6.0-test.15 — "looks good"; the English words left are H2–H5's.
+Then: the tabs must keep the English order in Hebrew (Home on the left) — the tab bar and the tab
+swipe are laid out left to right, the screens stay mirrored; the Calendar's month swipe stays
+mirrored; the canvas's Hebrew tab bars changed to match. Then: the restart must land back on
+Settings, not Home (several settings in a row) — `reopenSettings`, saved before the restart and
+acted on only at start; an ordinary launch still opens on Home.
 
 ## Stage H2: the words layer
 
@@ -97,12 +130,12 @@ times, the ₪ sign)?
 
 ## Open questions
 
-1. **Where Settings lives:** a fourth tab ("Settings", after Finance) — least code, already how
-   tabs work — or a gear button on each tab's header? *Recommended: a fourth tab.*
-2. **The restart:** Android applies RTL only at app start. Either `expo-updates`'
-   `reloadAsync()` (a new native module: one dev-build rebuild) restarts it for you, or the app
-   asks you to close and reopen it (no new code beyond the message). *Decided in H1.3 after trying
-   the first.*
-3. **The default language** for a new install: English (as today) or the phone's language?
-4. **Notifications** already scheduled when the language changes: re-scheduled in the new language
-   (H4.2) — fine?
+Answered 2026-10-31:
+
+1. **Where Settings lives:** a fourth tab, "Settings", after Finance.
+2. **The restart:** Android applies RTL only at app start. Try `expo-updates`' `reloadAsync()`
+   first (a new native module: one dev-build rebuild); if it fails, the app asks you to close and
+   reopen it. Decided in H1.3.
+3. **The default language** for a new install: English, as today.
+4. **Notifications** already scheduled when the language changes are re-scheduled in the new
+   language (H4.2).

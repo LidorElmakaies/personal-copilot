@@ -1,5 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  I18nManager,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
 
 // The Calendar tab's title row: the Gregorian month, the Hebrew months under it (once loaded),
@@ -74,7 +80,12 @@ function ArrowButton({ icon, label, onPress }) {
         },
       ]}
     >
-      <Ionicons name={icon} size={16} color={colors.textMuted} />
+      <Ionicons
+        name={icon}
+        size={16}
+        color={colors.textMuted}
+        style={styles.flip}
+      />
     </Pressable>
   );
 }
@@ -97,6 +108,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   todayText: { fontSize: 12.5, fontWeight: '700' },
+  // In Hebrew the row mirrors but an icon doesn't: "previous" must point right.
+  flip: { transform: [{ scaleX: I18nManager.isRTL ? -1 : 1 }] },
   arrow: {
     width: 32,
     height: 32,

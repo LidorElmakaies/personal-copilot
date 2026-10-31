@@ -1,10 +1,11 @@
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
-import { useSelector } from 'react-redux';
+import { useRootNavigationState, useRouter } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { useHasRole } from '../../src/features/account';
 import CustomTabBar from '../../src/shared/components/base/layout/CustomTabBar';
 import ConfirmModal from '../../src/shared/components/composite/ConfirmModal';
 import SwipeTabs from '../../src/shared/components/composite/SwipeTabs';
+import { setReopenSettings } from '../../src/shared/i18n/languageSlice';
 
 // One entry per tab (bar + Tabs.Screen below); icon set per DESIGN.md's "Navigation" section.
 // `requiresAuth: true` opts a tab into the guard below (a tap or a swipe onto it while signed out
@@ -27,6 +28,12 @@ const TABS = [
     iconActive: 'wallet',
   },
   {
+    name: 'settings',
+    label: 'Settings',
+    icon: 'settings-outline',
+    iconActive: 'settings',
+  },
+  {
     name: 'account',
     label: 'Account',
     icon: 'person-circle-outline',
@@ -46,7 +53,20 @@ const TABS = [
 
 export default function TabsLayout() {
   const router = useRouter();
+  const dispatch = useDispatch();
+  const reopenSettings = useSelector((s) => s.language.reopenSettings);
   const isAuthenticated = useSelector((s) => !!s.auth.accessToken);
+  // Restarted by a language change: back to Settings, where the change was made — once the
+  // router is ready (a navigation before that is dropped). Only the flag found at start: the one
+  // set just before the restart is for the next run.
+  const reopenAtStart = useRef(reopenSettings);
+  const routerReady = !!useRootNavigationState()?.key;
+  useEffect(() => {
+    if (!reopenAtStart.current || !routerReady) return;
+    reopenAtStart.current = false;
+    dispatch(setReopenSettings(false));
+    router.navigate('/settings');
+  }, [routerReady, dispatch, router]);
   const isAdmin = useHasRole('admin');
   const visibleTabs = TABS.filter(
     (tab) => !tab.hidden && (tab.requiresRole !== 'admin' || isAdmin),
@@ -79,6 +99,7 @@ export default function TabsLayout() {
         <SwipeTabs.Screen name="index" />
         <SwipeTabs.Screen name="calendar" />
         <SwipeTabs.Screen name="finance" />
+        <SwipeTabs.Screen name="settings" />
         <SwipeTabs.Screen name="account" />
         <SwipeTabs.Screen name="admin" />
       </SwipeTabs>

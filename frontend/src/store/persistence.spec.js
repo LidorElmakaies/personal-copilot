@@ -1,6 +1,6 @@
-// What of the reminders survives a restart: the root store (src/store/index.js) and
-// its real persist configs over an in-memory AsyncStorage — the candle reminder and the reminder
-// definitions persist; the Calendar tab's range and the error don't.
+// What of the reminders and the language survives a restart: the root store (src/store/index.js)
+// and its real persist configs over an in-memory AsyncStorage — the candle reminder, the reminder
+// definitions and the language persist; the Calendar tab's range and the error don't.
 
 // One storage for every boot, so a second store reads what the first wrote.
 const mockStorage = jest.requireActual(
@@ -8,7 +8,7 @@ const mockStorage = jest.requireActual(
 );
 jest.mock('@react-native-async-storage/async-storage', () => mockStorage);
 
-// The two slices under test are real; every other reducer the root store mounts is a stub, so the
+// The slices under test (the two reminder ones, language) are real; every other reducer the root store mounts is a stub, so the
 // store loads without the screens and device services the feature barrels also export.
 const mockStub =
   () =>
@@ -156,6 +156,21 @@ describe('reminders persistence', () => {
     });
   });
 
+  it('the language picked survives a restart', async () => {
+    const first = await bootStore();
+    const { setLanguage } = require('../shared/i18n/languageSlice');
+    first.store.dispatch(setLanguage('he'));
+    await first.persistor.flush();
+    expect(await stored('persist:language')).toStrictEqual({
+      code: 'he',
+      reopenSettings: false,
+    });
+    first.persistor.pause();
+
+    const { store } = await bootStore();
+    expect(store.getState().language.code).toBe('he');
+  });
+
   it('nothing stored yet: the defaults', async () => {
     const { store } = await bootStore();
     expect(store.getState().reminders.candles).toEqual({
@@ -163,5 +178,6 @@ describe('reminders persistence', () => {
       offsetMinutes: 90,
     });
     expect(store.getState().customReminders.items).toEqual([]);
+    expect(store.getState().language.code).toBe('en');
   });
 });

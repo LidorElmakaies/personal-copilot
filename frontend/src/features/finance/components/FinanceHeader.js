@@ -1,5 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  I18nManager,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import PillButton from '../../../shared/components/base/buttons/PillButton';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
 
@@ -28,7 +34,12 @@ export default function FinanceHeader({
       accessibilityLabel={label}
       style={({ pressed }) => ({ opacity: !onPress ? 0.3 : pressed ? 0.6 : 1 })}
     >
-      <Ionicons name={icon} size={16} color={colors.textMuted} />
+      <Ionicons
+        name={icon}
+        size={16}
+        color={colors.textMuted}
+        style={styles.flip}
+      />
     </Pressable>
   );
 
@@ -60,4 +71,6 @@ const styles = StyleSheet.create({
   title: { fontSize: 28, fontWeight: '600' },
   month: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   monthText: { fontSize: 13 },
+  // In Hebrew the row mirrors but an icon doesn't: "previous" must point right.
+  flip: { transform: [{ scaleX: I18nManager.isRTL ? -1 : 1 }] },
 });

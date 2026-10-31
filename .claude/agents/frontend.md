@@ -30,7 +30,8 @@ loaded months worked out by `selectDayReminders` (`customRemindersSlice`, over `
 `reminders/utils/schedulePlan.js`, scheduled via `shared/device/localNotificationsService.android.js`; re-run ~daily in the
 background by the `reminder-notifications` task, `shared/device/backgroundTaskService.android.js`,
 defined in `src/store/backgroundTasks.js`) + an auth-gated,
-hidden Account tab (theme, notifications, email/password, profile, logout, delete account — one card
+Settings tab (language, theme) + an auth-gated,
+hidden Account tab (notifications, email/password, profile, logout, delete account — one card
 component each — then `VersionInfo`) + Android's notification permission
 (`notificationsSlice` over `localNotificationsService`, kept current by `ReminderScheduleManager`;
 `NotificationsPrompt`, `NotificationsCard`; no account involved; the foreground handler
@@ -47,9 +48,8 @@ swipe springs back), while signed out shows `ConfirmModal` instead of navigating
 tap or a swipe; a direct hit on the route (deep link,
 reopening the app on that tab) bypasses it, so a `requiresAuth` screen also needs its own mount-time
 check. A tab with `hidden: true` is left out of the bar and the swipe order for everyone (its
-route opens only from a direct link) — Account and Admin are, so the bar is Home, Calendar and Finance and
-the theme (`ThemeCard`, on Account) has no switch reachable from it: `themeSlice.mode` stays as
-saved, system by default. Both halves are generic, not Account-specific: `useRequireAuth()`
+route opens only from a direct link) — Account and Admin are, so the bar is Home, Calendar, Finance
+and Settings. Both halves are generic, not Account-specific: `useRequireAuth()`
 (`src/features/account/hooks/useRequireAuth.js`) is the mount-time check, `RequireAuthNotice`
 (`src/features/account/components/RequireAuthNotice.js`) is the logged-out fallback to render when it's false — see
 `AccountScreen` (`src/features/account/screens/`) for the pattern the next `requiresAuth` tab should follow. A tab for one role
@@ -117,7 +117,8 @@ feature's `components/` (listed under `composite/` below with its feature):
   `CandleReminder`; calendar: `MonthHeader`/`MonthGrid`/`MonthStatus`,
   `DayCard`; reminders: `ReminderRow`, `RemindersSheet`, `CustomReminderSheet`,
   `NotificationsPrompt`; app-update:
-  `UpdateSheet`, `UpdateChip`; finance: `FinanceHeader` (from `PillButton` — "Finance", ‹ month ›
+  `UpdateSheet`, `UpdateChip`; settings: `LanguageCard` (from `GlowCard` — English / עברית and
+  the restart note; `value` `'en' | 'he'`, `onChange(code)`); finance: `FinanceHeader` (from `PillButton` — "Finance", ‹ month ›
   and the Monthly check pill; `month` `{ year, month }`, `onPrevious`, `onNext` (none dims ›),
   `onMonthlyCheck`), `FinanceEmpty` (from `GlowCard` — a month with no entries), `EntryRow` (one
   entry: what for, "category · paid with · N photos", the "not sent"/"matched" badges, the amount;
@@ -154,7 +155,7 @@ feature's `components/` (listed under `composite/` below with its feature):
   "Only this day", offered on an edit only while date, repeat and calendar are unchanged; owns its
   Redux wiring, the form is private), `SystemStatus`
   (presentational — the Admin tab's list of services from `GET /admin/status`), and the
-  Account tab's cards — `ThemeCard` (`GlowCard`, `Row`, `Switch`), `NotificationsCard`
+  Account tab's cards — `NotificationsCard`
   (`GlowCard`, `Row`, `Switch`, `Alert`), `AccountCard`, `ProfileCard`,
   `LogoutCard`, `DeleteAccountCard` (`GlowCard`, `Row`, `GradientButton`, plus `InputField`/
   `ProfileFields`/`Alert` as needed). A card owns its own Redux wiring and keeps its edit/confirm
@@ -174,10 +175,10 @@ definitions or business logic in it.
 ```
 app/                      routes only: each renders a feature's screen (+ the layouts, TABS)
 src/features/<name>/      components/ screens/ store/ services/ utils/ hooks/ + index.js (public API)
-  shabbat/ calendar/ reminders/ finance/ app-update/ account/ (dormant: auth, profile, admin)
+  shabbat/ calendar/ reminders/ finance/ settings/ app-update/ account/ (dormant: auth, profile, admin)
 src/lib/jewish-calendar/  the calendar maths — pure, no React
-src/shared/               components/ (base/, composite/), theme/, config/, http/, utils/,
-                          device/ (location, notifications, background tasks)
+src/shared/               components/ (base/, composite/), theme/, i18n/ (the language), config/,
+                          http/, utils/, device/ (location, notifications, background tasks)
 src/store/index.js        the root store: each feature's reducer (from its index.js) + persistence
 src/store/backgroundTasks.js  background tasks, defined with the rehydrated store (loaded by index.js)
 .rnstorybook/             Storybook's config, root and StoryFrame; stories sit next to their component
@@ -224,7 +225,7 @@ when a component genuinely needs something no thunk/selector combination can giv
 - Always use `useAppTheme()` for colors — never hardcode or import `colors.js` directly in a
   screen/component.
 - Don't hand-write to AsyncStorage — redux-persist handles persisted slices (`auth` — tokens only, `theme`,
-  `location` — `coords` only, `calendar` — `shabbat` only, `notifications` — `promptDismissed`
+  `language` (`code`: `'en' | 'he'`, English on a new install), `location` — `coords` only, `calendar` — `shabbat` only, `notifications` — `promptDismissed`
   only, `appUpdate` — `dismissedVersionCode` only,
   `reminders` — `candles` and `candleFirings`, `customReminders` — `items` only; neither reminder slice is reset
   on `clearAuth`/`deleteAccount`). `profile` and `admin` aren't persisted, and are reset on
@@ -325,6 +326,13 @@ hit" below).
 - **Round numbers interpolated into a style string inside a worklet** (e.g. a `boxShadow`'s
   opacity/radius). Near the end of an animation they reach values like `2.8e-8`, which stringify
   in exponent form — an invalid color that crashes Reanimated on Android.
+- **Hebrew mirrors the layout, not motion or icons.** With `I18nManager.forceRTL` Android lays rows
+  out right to left and swaps `left`/`right`, but a `translateX`, a gesture's `translationX` and an
+  Ionicons chevron stay as they are: the tab pager slid away from every tab but Home, the
+  `Switch` knob slid off its track, "previous month" pointed left. Flip them with
+  `I18nManager.isRTL ? -1 : 1` (`SwipePager`'s `DIR`, `Switch`, the headers' `flip`). Text arrows
+  (‹ › ) mirror by themselves. Something that must not mirror gets `direction: 'ltr'` — the tab bar
+  and `TabPager` keep the English order (the user's call), each page set back to the app's direction.
 - **Toggle a style prop's value, not its presence, on Android.** A `borderWidth` added after mount
   drew with square corners (lost its `borderRadius`); keep the border always set and switch its
   color to `'transparent'` instead. Likewise a translucent `borderTop` drew near-white — use a

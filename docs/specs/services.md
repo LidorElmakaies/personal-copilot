@@ -149,10 +149,21 @@ first or last tab it only stretches a little. A tap on the bar runs the same sli
 than one tab starts from the tab next to the target). A drag starting within 20 dp of either side is
 left to Android's back gesture; on the Calendar, a drag on the month grid moves months instead
 (`SwipePager` blocks the tab pan). A tab mounts when it's shown or next to the one shown, then stays
-mounted. The bar and the swipe order are Home, Calendar and Finance: Account and Admin are `hidden: true` in
+mounted. The bar and the swipe order are Home, Calendar, Finance and Settings: Account and Admin are `hidden: true` in
 `TABS`, left out for everyone, and their routes open only from a direct link (`/account`,
-`/admin`), drawn over the row with the swipe off. The theme has no switch in the bar's tabs: it
-stays the saved `themeSlice.mode` (system by default).
+`/admin`), drawn over the row with the swipe off. In Hebrew the bar and the swipe keep the English
+order (Home on the left, a drag to the left goes to the next tab — `CustomTabBar` and `TabPager`
+are laid out `direction: 'ltr'`); each screen inside is mirrored.
+
+- `(tabs)/settings` (`src/features/settings/`) — `LanguageCard` (English / עברית, presentational;
+  the screen dispatches `changeLanguage`) and `ThemeCard`. `languageSlice` (`src/shared/i18n/`,
+  `{ code: 'en' | 'he' }`, persisted, English on a new install): `changeLanguage` saves the pick,
+  waits for it to be written (the store's `flushState`, a thunk extra argument), then, if the
+  direction changes, `layoutDirectionService` sets Android's `I18nManager.forceRTL` and restarts the
+  app with `expo`'s `reloadAppAsync()` — Android applies right-to-left only at start. Before the
+  restart it saves `reopenSettings`; the tabs layout, finding it at start, opens Settings and clears
+  it, so the restart lands back where the change was made. The app's
+  words stay English until `docs/plans/hebrew/` H2.
 
 - `(tabs)/index` (Home — the landing tab, no session required: live clock, today's Gregorian date,
   and today's Hebrew/Jewish date via `@hebcal/hdate`, chosen over `Intl`'s `'he-u-ca-hebrew'`
@@ -255,9 +266,7 @@ stays the saved `themeSlice.mode` (system by default).
   it's in the month shown. `customRemindersSlice` persists only `items` and isn't reset on sign-out
   or account deletion. Each change reschedules the
   notifications (see Reminder notifications below).
-- `(tabs)/account` — hidden (direct link only, see above). A heading and six cards (`src/features/account/components/`, `ThemeCard` in
-  `src/shared/components/composite/`): `ThemeCard` (light/
-  dark toggle), `NotificationsCard` (see Notifications below), `AccountCard` (email; edit email/password via `POST /auth/account` — the
+- `(tabs)/account` — hidden (direct link only, see above). A heading and five cards (`src/features/account/components/`): `NotificationsCard` (see Notifications below), `AccountCard` (email; edit email/password via `POST /auth/account` — the
   `updateAccount` thunk, see `apps/users` above), `ProfileCard` (name and phone; fetches
   `GET /users/me` on mount, saves via `PATCH /users/me`, an emptied field sent as `null`),
   `LogoutCard` (confirmed in place; `authSlice`'s `logOut`, which also revokes the refresh token
@@ -416,7 +425,7 @@ the APK) served by `apk`'s Caddy at `/apk/` — not a backend service and no API
 Themed via `themeSlice` → `useAppTheme()` and the shared components under `src/shared/components/`
 (`base/` primitives, `composite/` built from them) — the list is in `frontend/README.md`, the
 conventions in `.claude/agents/frontend.md`. The code is in feature folders (`src/features/<name>/`:
-`shabbat`, `calendar`, `reminders`, `finance`, `app-update`, `account`), cross-feature code in `src/shared/`,
+`shabbat`, `calendar`, `reminders`, `finance`, `settings`, `app-update`, `account`), cross-feature code in `src/shared/`,
 the calendar maths in `src/lib/jewish-calendar/` — layout and import rules in `frontend/README.md`'s
 "Feature folders".
 
