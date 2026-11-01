@@ -128,7 +128,8 @@ function signOut(state) {
   state.error = null;
 }
 
-const SESSION_ENDED_NOTICE = 'Your session ended — please log in again.';
+// A dictionary key: the login screen shows it in the chosen language.
+const SESSION_ENDED_NOTICE = 'auth.sessionEnded';
 
 const authSlice = createSlice({
   name: 'auth',

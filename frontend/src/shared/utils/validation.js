@@ -4,8 +4,6 @@ export function isValidEmail(email) {
   return EMAIL_RE.test(email.trim());
 }
 
-export const PASSWORD_REQUIREMENTS_HINT = 'At least 8 characters.';
-
 // Same rules as the Users Service (NAME_MAX_LENGTH, NAME_PATTERN in backend/apps/users/src/models/profile.ts).
 export const NAME_MAX_LENGTH = 100;
 

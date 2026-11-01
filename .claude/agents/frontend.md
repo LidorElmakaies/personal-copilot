@@ -60,8 +60,8 @@ screen checks again with `useHasRole` (`AdminScreen`); the server checks the rol
 A signed-in HTTP call goes through `httpClient`'s `authorizedFetch`: an already-expired token is
 renewed before sending, and a `401` renews the session (`authSlice.refreshSession` — single-flight,
 the refresh token rotates) and retries the call once.
-Only a refresh the server refuses signs out with `authSlice.notice` set (`SESSION_ENDED_NOTICE`);
-the login screen shows it. The hook is
+Only a refresh the server refuses signs out with `authSlice.notice` set (`SESSION_ENDED_NOTICE`,
+a dictionary key); the login screen shows it in the chosen language. The hook is
 `setUnauthorizedHandler`, registered in `src/store/index.js` so the service stays Redux-free. Don't
 hand-roll a bearer `fetch` that skips it. `selectUser(state)` → `{ id, email, role }` from the
 token, for anything role-dependent; an effect that loads the user's data keys on
@@ -224,7 +224,7 @@ when a component genuinely needs something no thunk/selector combination can giv
   Hebrew-calendar day — is itself a key (`ordinal`, `hebrewCalendar.*`). Names that are always in
   their own language (English / עברית in `LanguageCard`) stay literals; holiday and parasha names
   come from hebcal in both (`name[useLanguage()]`). A tab's `label` in `TABS` is a key too.
-  (Still English: the dormant account screens — `docs/plans/hebrew/` H6.)
+  (Still English: the dormant Account and Admin screens — `docs/plans/hebrew/` H6.2–H6.3.)
 - **Dates through `src/shared/i18n/format.js`**, never `toLocaleDateString`: `longDate`,
   `shortDate`, `dayMonth`, `weekdayMonth`, `monthTitle`, `hebrewDate` — each `(translate, date)` —
   and `duration(translate, minutes)` ("1h 30m" · "שעה ו־30 דק׳"), `count(translate, key, n)`
@@ -349,9 +349,9 @@ hit" below).
   in exponent form — an invalid color that crashes Reanimated on Android.
 - **Hebrew mirrors the layout, not motion or icons.** With `I18nManager.forceRTL` Android lays rows
   out right to left and swaps `left`/`right`, but a `translateX`, a gesture's `translationX` and an
-  Ionicons chevron stay as they are: the tab pager slid away from every tab but Home, the
-  `Switch` knob slid off its track, "previous month" pointed left. Flip them with
-  `I18nManager.isRTL ? -1 : 1` (`SwipePager`'s `DIR`, `Switch`, the headers' `flip`). Text arrows
+  Ionicons chevron and a position measured on screen (`measureInWindow`, from the left) stay as they are: the tab pager slid away from every tab but Home, the
+  `Switch` knob slid off its track, "previous month" pointed left, `SelectField`'s list opened under the wrong field. Flip them with
+  `I18nManager.isRTL ? -1 : 1` (`SwipePager`'s `DIR`, `Switch`, the headers' `flip`, `SelectField`'s `start`). Text arrows
   (‹ › ) mirror by themselves. Something that must not mirror gets `direction: 'ltr'` — the tab bar
   and `TabPager` keep the English order (the user's call), each page set back to the app's direction.
 - **`textAlign: 'right'` is the end of the line, not the right side.** Measured on the phone (H2.3):
@@ -363,7 +363,7 @@ hit" below).
   תמונות" (a category typed in English) read left to right and scrambled the Hebrew; Android
   ignores `writingDirection`. A Hebrew line that may start with the user's text begins with a
   right-to-left mark in the dictionary (`'\u200F{details}'`); a left-to-right piece inside Hebrew
-  (`••4821`) is an isolate (`\u2066…\u2069`). Write them as escapes — the characters are invisible.
+  (`••4821`, a dial code "+972") is an isolate (`\u2066…\u2069`). Write them as escapes — the characters are invisible.
 - **Android's `monospace` has no Hebrew letters**: the fallback spaced Hebrew words apart
   (`UpdateSheet`'s subtitle). Monospace for English and digits only.
 - **Toggle a style prop's value, not its presence, on Android.** A `borderWidth` added after mount

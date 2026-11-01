@@ -1,6 +1,7 @@
 import { StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useDispatch } from 'react-redux';
+import { useTranslate } from '../../../shared/i18n/translate';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
 import { clearAuthError, clearAuthNotice } from '../store/authSlice';
 
@@ -10,6 +11,7 @@ export default function AuthLinks({ prompt, linkLabel, href }) {
   const dispatch = useDispatch();
   const router = useRouter();
   const { colors } = useAppTheme();
+  const translate = useTranslate();
 
   return (
     <>
@@ -37,7 +39,7 @@ export default function AuthLinks({ prompt, linkLabel, href }) {
         style={styles.link}
       >
         <Text style={[styles.text, { color: colors.textMuted }]}>
-          Continue without logging in
+          {translate('auth.continueWithout')}
         </Text>
       </TouchableOpacity>
     </>

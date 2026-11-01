@@ -8,13 +8,11 @@ import GlowCard from '../../../shared/components/base/layout/GlowCard';
 import GradientButton from '../../../shared/components/base/buttons/GradientButton';
 import InputField from '../../../shared/components/base/form/InputField';
 import ProfileFields from '../components/ProfileFields';
+import { usePlainInHebrew, useTranslate } from '../../../shared/i18n/translate';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
 import { registerUser } from '../store/authSlice';
 import { DEFAULT_PHONE_COUNTRY, phoneError, toE164 } from '../utils/phone';
-import {
-  isValidEmail,
-  PASSWORD_REQUIREMENTS_HINT,
-} from '../../../shared/utils/validation';
+import { isValidEmail } from '../../../shared/utils/validation';
 
 // AuthGate (components/AuthGate.js) handles the post-register redirect via accessToken — don't duplicate it here.
 export default function RegisterScreen() {
@@ -30,15 +28,16 @@ export default function RegisterScreen() {
   const dispatch = useDispatch();
   const { status, error } = useSelector((state) => state.auth);
   const { colors } = useAppTheme();
+  const translate = useTranslate();
+  const plain = usePlainInHebrew();
 
   const emailError =
     email.trim().length > 0 && !isValidEmail(email)
-      ? 'Enter a valid email address'
+      ? translate('auth.invalidEmail')
       : null;
+  const passwordHint = translate('auth.passwordHint');
   const passwordError =
-    password.length > 0 && password.length < 8
-      ? PASSWORD_REQUIREMENTS_HINT
-      : null;
+    password.length > 0 && password.length < 8 ? passwordHint : null;
   const canSubmit =
     email.trim().length > 0 &&
     isValidEmail(email) &&
@@ -68,17 +67,17 @@ export default function RegisterScreen() {
       >
         <View style={styles.header}>
           <Text style={[styles.heading, { color: colors.text }]}>
-            Create account
+            {translate('auth.createAccount')}
           </Text>
           <Text style={[styles.subheading, { color: colors.textMuted }]}>
-            Register to get started
+            {translate('auth.registerToStart')}
           </Text>
         </View>
 
         <GlowCard>
           <View style={styles.fields}>
             <InputField
-              label="Email"
+              label={translate('auth.email')}
               value={email}
               onChangeText={setEmail}
               placeholder="you@example.com"
@@ -86,20 +85,18 @@ export default function RegisterScreen() {
               error={submitAttempted ? emailError : null}
             />
             <InputField
-              label="Password"
+              label={translate('auth.password')}
               value={password}
               onChangeText={setPassword}
-              placeholder="At least 8 characters"
+              placeholder={translate('auth.passwordPlaceholder')}
               isPassword
-              hint={
-                submitAttempted && passwordError
-                  ? null
-                  : PASSWORD_REQUIREMENTS_HINT
-              }
+              hint={submitAttempted && passwordError ? null : passwordHint}
               error={submitAttempted ? passwordError : null}
             />
-            <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>
-              Optional
+            <Text
+              style={[styles.sectionLabel, plain, { color: colors.textMuted }]}
+            >
+              {translate('auth.optional')}
             </Text>
             <ProfileFields
               value={details}
@@ -109,7 +106,7 @@ export default function RegisterScreen() {
           </View>
 
           <GradientButton
-            label="Register"
+            label={translate('auth.register')}
             onPress={handleSubmit}
             loading={status === 'loading'}
             disabled={!canSubmit}
@@ -122,8 +119,8 @@ export default function RegisterScreen() {
         ) : null}
 
         <AuthLinks
-          prompt="Already have an account?"
-          linkLabel="Log in"
+          prompt={translate('auth.haveAccount')}
+          linkLabel={translate('auth.logInLink')}
           href="/login"
         />
       </ScrollView>

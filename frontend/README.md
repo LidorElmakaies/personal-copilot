@@ -139,7 +139,8 @@ resolves. Flow and state rules: `docs/specs/services.md#frontend`.
 The optional phone field (register, Account → Profile) is a country dropdown plus local digits;
 `src/features/account/utils/phone.js` validates them with `libphonenumber-js` and converts to/from the E.164 form
 the Users Service stores. Supported countries are `PHONE_COUNTRIES` — adding one is just a new
-entry, the library already knows every numbering plan.
+entry (and its name, `country.<code>`, in both dictionaries), the library already knows every
+numbering plan.
 
 ## Hebrew date (`@hebcal/hdate`)
 

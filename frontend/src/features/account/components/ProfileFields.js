@@ -2,32 +2,34 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import InputField from '../../../shared/components/base/form/InputField';
 import SelectField from '../../../shared/components/base/form/SelectField';
+import { useTranslate } from '../../../shared/i18n/translate';
 import { onlyDigits, PHONE_COUNTRIES, phoneError } from '../utils/phone';
 import {
   NAME_MAX_LENGTH,
   sanitizeName,
 } from '../../../shared/utils/validation';
 
-const COUNTRY_OPTIONS = PHONE_COUNTRIES.map((c) => ({
-  value: c.code,
-  label: `${c.flag}  ${c.name} (${c.dialCode})`,
-  shortLabel: `${c.flag} ${c.dialCode}`,
-}));
-
 // Composite component (InputField/SelectField) — optional name/phone fields for register and
 // ProfileCard. `value`: { firstName, lastName, country, phone (local digits — utils/phone.js) }.
 export default function ProfileFields({ value, onChange, showErrors = false }) {
+  const translate = useTranslate();
   const [phoneTouched, setPhoneTouched] = useState(false);
   const set = (field, clean) => (text) =>
     onChange({ ...value, [field]: clean ? clean(text) : text });
-  const phoneFieldError =
+  const phoneProblem =
     showErrors || phoneTouched ? phoneError(value.country, value.phone) : null;
+  const countryOptions = PHONE_COUNTRIES.map((c) => ({
+    value: c.code,
+    // The dial code kept left to right in a Hebrew line ("+972", not "972+").
+    label: `${c.flag}  ${translate(`country.${c.code}`)} (\u2066${c.dialCode}\u2069)`,
+    shortLabel: `${c.flag} ${c.dialCode}`,
+  }));
 
   return (
     <View style={styles.group}>
       <View style={styles.row}>
         <InputField
-          label="First name"
+          label={translate('profile.firstName')}
           value={value.firstName}
           onChangeText={set('firstName', sanitizeName)}
           autoCapitalize="words"
@@ -35,7 +37,7 @@ export default function ProfileFields({ value, onChange, showErrors = false }) {
           style={styles.flex}
         />
         <InputField
-          label="Last name"
+          label={translate('profile.lastName')}
           value={value.lastName}
           onChangeText={set('lastName', sanitizeName)}
           autoCapitalize="words"
@@ -46,21 +48,21 @@ export default function ProfileFields({ value, onChange, showErrors = false }) {
       {/* Wraps: on a narrow screen the phone field drops to its own full-width line. */}
       <View style={[styles.row, styles.wrap]}>
         <SelectField
-          label="Country"
+          label={translate('profile.country')}
           value={value.country}
-          options={COUNTRY_OPTIONS}
+          options={countryOptions}
           onChange={set('country')}
           style={styles.country}
         />
         <InputField
-          label="Phone"
+          label={translate('profile.phone')}
           value={value.phone}
           onChangeText={set('phone', onlyDigits)}
           placeholder="0501234567"
           keyboardType="number-pad"
           maxLength={15}
           onBlur={() => setPhoneTouched(true)}
-          error={phoneFieldError}
+          error={phoneProblem && translate(phoneProblem)}
           style={styles.phone}
         />
       </View>

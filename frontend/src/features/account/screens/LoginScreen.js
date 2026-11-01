@@ -7,6 +7,7 @@ import Alert from '../../../shared/components/base/feedback/Alert';
 import GlowCard from '../../../shared/components/base/layout/GlowCard';
 import GradientButton from '../../../shared/components/base/buttons/GradientButton';
 import InputField from '../../../shared/components/base/form/InputField';
+import { useTranslate } from '../../../shared/i18n/translate';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
 import { clearAuthNotice, loginUser } from '../store/authSlice';
 import { isValidEmail } from '../../../shared/utils/validation';
@@ -19,6 +20,7 @@ export default function LoginScreen() {
   const dispatch = useDispatch();
   const { status, error, notice } = useSelector((state) => state.auth);
   const { colors } = useAppTheme();
+  const translate = useTranslate();
 
   // The notice is for this visit only. The stack can keep this screen mounted underneath, so it's
   // also cleared when leaving through the links below.
@@ -26,7 +28,7 @@ export default function LoginScreen() {
 
   const emailError =
     email.trim().length > 0 && !isValidEmail(email)
-      ? 'Enter a valid email address'
+      ? translate('auth.invalidEmail')
       : null;
   const canSubmit =
     email.trim().length > 0 && isValidEmail(email) && password.length > 0;
@@ -45,19 +47,19 @@ export default function LoginScreen() {
       >
         <View style={styles.header}>
           <Text style={[styles.heading, { color: colors.text }]}>
-            Welcome back
+            {translate('auth.welcome')}
           </Text>
           <Text style={[styles.subheading, { color: colors.textMuted }]}>
-            Log in to continue
+            {translate('auth.logInToContinue')}
           </Text>
         </View>
 
-        {notice ? <Alert variant="warning">{notice}</Alert> : null}
+        {notice ? <Alert variant="warning">{translate(notice)}</Alert> : null}
 
         <GlowCard>
           <View style={styles.fields}>
             <InputField
-              label="Email"
+              label={translate('auth.email')}
               value={email}
               onChangeText={setEmail}
               placeholder="you@example.com"
@@ -65,7 +67,7 @@ export default function LoginScreen() {
               error={submitAttempted ? emailError : null}
             />
             <InputField
-              label="Password"
+              label={translate('auth.password')}
               value={password}
               onChangeText={setPassword}
               placeholder="••••••••"
@@ -74,7 +76,7 @@ export default function LoginScreen() {
           </View>
 
           <GradientButton
-            label="Log In"
+            label={translate('auth.logIn')}
             onPress={handleSubmit}
             loading={status === 'loading'}
             disabled={!canSubmit}
@@ -87,8 +89,8 @@ export default function LoginScreen() {
         ) : null}
 
         <AuthLinks
-          prompt="Don't have an account?"
-          linkLabel="Register"
+          prompt={translate('auth.noAccount')}
+          linkLabel={translate('auth.register')}
           href="/register"
         />
       </ScrollView>

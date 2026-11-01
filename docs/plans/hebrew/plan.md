@@ -211,9 +211,26 @@ tab is fine as is (the difference is understood). H5.2 split out as stage H6, to
 
 ## Stage H6: the dormant screens
 
-Split out of H5 on 2026-11-01 (it was H5.2), at the user's ask: it waits until they say.
+Split out of H5 on 2026-11-01 (it was H5.2), at the user's ask; started the same day. Split again
+into three (about 15 components, none with a story yet, and no canvas copy — every Hebrew word
+is new):
 
-- [ ] **H6.1** The dormant Account / login / register / Admin screens.
+- [x] **H6.1** Login and register: `LoginScreen`, `RegisterScreen`, `AuthLinks`, `ProfileFields`,
+  the phone and email errors, the password hint, the "session ended" notice,
+  `RequireAuthNotice`'s button.
+  *Done 2026-11-01:* every word of both screens and `AuthLinks` (ברוכים השבים, התחברות, הרשמה,
+  להמשיך בלי להתחבר…), `ProfileFields` (שם פרטי, מדינה, טלפון; the country's name from the
+  dictionary, `country.IL`), `RequireAuthNotice`'s button. `phoneError` and the slice's
+  `SESSION_ENDED_NOTICE` now give dictionary keys, translated where shown (as `titleProblem`);
+  `PASSWORD_REQUIREMENTS_HINT` gone for `auth.passwordHint` (`AccountCard` too). Errors the
+  Users Service sends stay as it sends them. Found on the phone: `SelectField`'s list opened under
+  the field beside it in Hebrew (`measureInWindow` counts from the left, the mirrored `left` from
+  the right — now flipped), and "+972" read "972+" in the Hebrew option (an isolate). Stories:
+  `LoginScreen` (English, Hebrew, session ended), `RegisterScreen`, `ProfileFields` (a phone
+  error) — English and Hebrew. Seen on the phone in Storybook.
+- [ ] **H6.2** The Account tab: its screen and logged-out notice, `NotificationsCard`,
+  `AccountCard`, `ProfileCard`, `LogoutCard`, `DeleteAccountCard`, `VersionInfo`.
+- [ ] **H6.3** Admin: `AdminScreen` (its notices, refresh, the checked time), `SystemStatus`.
 
 **Try it:** the account screens in Hebrew (they open only from a direct link).
 **Feedback:** —

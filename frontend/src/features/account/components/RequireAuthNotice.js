@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import AmbientBackground from '../../../shared/components/composite/AmbientBackground';
 import GlowCard from '../../../shared/components/base/layout/GlowCard';
 import GradientButton from '../../../shared/components/base/buttons/GradientButton';
+import { useTranslate } from '../../../shared/i18n/translate';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
 
 // Composite component — pairs with useRequireAuth (and useHasRole) as the standard fallback for any
@@ -14,6 +15,7 @@ export default function RequireAuthNotice({
 }) {
   const router = useRouter();
   const { colors } = useAppTheme();
+  const translate = useTranslate();
 
   return (
     <AmbientBackground>
@@ -25,7 +27,7 @@ export default function RequireAuthNotice({
           </Text>
           {showLogin ? (
             <GradientButton
-              label="Log In"
+              label={translate('auth.logIn')}
               onPress={() => router.push('/login')}
               style={styles.button}
             />

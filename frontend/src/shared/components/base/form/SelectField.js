@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import {
+  I18nManager,
   Modal,
   Pressable,
   ScrollView,
@@ -59,8 +60,12 @@ export default function SelectField({
     );
     const below = anchor.y + anchor.height + GAP;
     const fitsBelow = below + listHeight <= window.height - EDGE;
+    // measureInWindow counts from the screen's left; in Hebrew `left` is the start, the right side.
+    const start = I18nManager.isRTL
+      ? window.width - anchor.x - anchor.width
+      : anchor.x;
     listStyle = {
-      left: Math.min(anchor.x, window.width - EDGE - width),
+      left: Math.min(start, window.width - EDGE - width),
       top: fitsBelow ? below : Math.max(EDGE, anchor.y - GAP - listHeight),
       width,
       maxHeight: listHeight,
