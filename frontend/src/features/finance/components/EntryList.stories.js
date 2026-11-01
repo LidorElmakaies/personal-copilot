@@ -18,5 +18,6 @@ export const FiftyEntries = {
   },
 };
 
-// The day headings' dates in Hebrew ("25 באוק׳").
+// The app's words in Hebrew (היום, אתמול, "25 באוק׳", the badges); what for and the categories are
+// the user's own, as typed.
 export const Hebrew = { parameters: { language: 'he' } };

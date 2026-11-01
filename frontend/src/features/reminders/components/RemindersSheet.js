@@ -47,7 +47,7 @@ export default function RemindersSheet({
           ]}
         >
           <Text style={[styles.closeText, { color: colors.text }]}>
-            {translate('reminders.close')}
+            {translate('common.close')}
           </Text>
         </Pressable>
       </View>

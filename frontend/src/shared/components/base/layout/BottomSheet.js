@@ -12,6 +12,7 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
+import { useTranslate } from '../../../i18n/translate';
 import { useAppTheme } from '../../../theme/useAppTheme';
 
 // Past this much of the panel's height (capped), or a fast flick down, a drag closes the sheet.
@@ -34,6 +35,7 @@ export default function BottomSheet({
   children,
 }) {
   const { colors } = useAppTheme();
+  const translate = useTranslate();
   const offset = useSharedValue(400);
   const height = useSharedValue(400);
 
@@ -87,7 +89,7 @@ export default function BottomSheet({
             collapsable={false}
             style={styles.backdrop}
             accessibilityRole="button"
-            accessibilityLabel="Close"
+            accessibilityLabel={translate('common.close')}
           />
         </GestureDetector>
         <DragArea gesture={pan} enabled={!dragFromHandle}>

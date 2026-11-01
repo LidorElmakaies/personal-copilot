@@ -1,17 +1,19 @@
 import { StyleSheet, Text } from 'react-native';
 import GlowCard from '../../../shared/components/base/layout/GlowCard';
+import { useTranslate } from '../../../shared/i18n/translate';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
 
 // A month with no entries yet (screen 1's empty state).
 export default function FinanceEmpty() {
   const { colors } = useAppTheme();
+  const translate = useTranslate();
   return (
     <GlowCard>
       <Text style={[styles.title, { color: colors.text }]}>
-        Nothing yet this month
+        {translate('finance.empty')}
       </Text>
       <Text style={[styles.hint, { color: colors.textMuted }]}>
-        Tap + to add what you spent.
+        {translate('finance.emptyHint')}
       </Text>
     </GlowCard>
   );

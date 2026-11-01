@@ -188,7 +188,7 @@ function ReminderForm({ target, onClose, onSaved }) {
             contentStyle={styles.actionContent}
           />
           <GradientButton
-            label={translate('sheet.cancel')}
+            label={translate('common.cancel')}
             onPress={() => setStep('form')}
             contentStyle={styles.actionContent}
           />
@@ -209,7 +209,7 @@ function ReminderForm({ target, onClose, onSaved }) {
           {translate(original ? 'sheet.edit' : 'sheet.new')}
         </Text>
         <PillButton
-          label={translate('reminders.close')}
+          label={translate('common.close')}
           tone="muted"
           onPress={onClose}
         />
@@ -352,7 +352,7 @@ function ReminderForm({ target, onClose, onSaved }) {
             />
           ) : (
             <GradientButton
-              label={translate('sheet.cancel')}
+              label={translate('common.cancel')}
               onPress={onClose}
               style={styles.flex}
               contentStyle={styles.actionContent}

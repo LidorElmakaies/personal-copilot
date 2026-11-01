@@ -33,5 +33,9 @@ export const LongText = {
   },
 };
 export const Hebrew = {
-  args: { entry: { ...groceries, description: 'קניות שבועיות בשופרסל דיל' } },
+  parameters: { language: 'he' },
+  args: {
+    entry: { ...groceries, description: 'קניות שבועיות בשופרסל דיל' },
+    category: 'סופר',
+  },
 };

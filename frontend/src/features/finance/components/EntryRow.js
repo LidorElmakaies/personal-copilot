@@ -1,19 +1,13 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useTranslate } from '../../../shared/i18n/translate';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
-import { formatShekels, paidWithLabel } from '../utils/format';
+import { entryDetails, formatShekels } from '../utils/format';
 
 // One entry (screen 1): what for (one line, cut with …), "category · paid with · N photos" under
 // it, then its badges — "not sent", "matched" (a statement line) — and the amount.
 export default function EntryRow({ entry, category, onPress }) {
   const { colors } = useAppTheme();
-  const photos = entry.attachmentIds.length;
-  const details = [
-    category,
-    paidWithLabel(entry),
-    photos && `${photos} photo${photos > 1 ? 's' : ''}`,
-  ]
-    .filter(Boolean)
-    .join(' · ');
+  const translate = useTranslate();
   const badge = (label, color, bg) => (
     <Text style={[styles.badge, { color, backgroundColor: bg }]}>{label}</Text>
   );
@@ -32,12 +26,13 @@ export default function EntryRow({ entry, category, onPress }) {
           numberOfLines={1}
           style={[styles.details, { color: colors.textMuted }]}
         >
-          {details}
+          {entryDetails(translate, entry, category)}
         </Text>
       </View>
-      {entry.notSent && badge('not sent', colors.pending, colors.pendingBg)}
+      {entry.notSent &&
+        badge(translate('finance.notSent'), colors.pending, colors.pendingBg)}
       {entry.statementLine &&
-        badge('matched', colors.success, colors.successBg)}
+        badge(translate('finance.matched'), colors.success, colors.successBg)}
       <Text style={[styles.amount, { color: colors.text }]}>
         {formatShekels(entry.amountAgorot)}
       </Text>

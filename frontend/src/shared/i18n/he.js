@@ -12,6 +12,12 @@ export default {
 
   'common.save': 'שמירה',
   'common.retry': 'נסו שוב',
+  'common.cancel': 'ביטול',
+  'common.close': 'סגירה',
+  'common.yes': 'כן',
+  'common.no': 'לא',
+  'common.fewer': 'פחות',
+  'common.more': 'יותר',
 
   // Durations — format.js's duration().
   'duration.hour': 'שעה',
@@ -88,7 +94,6 @@ export default {
   'reminders.row': '{title}, {time}',
   'reminders.rowDone': '{title}, {time}, בוצעה',
   'reminders.done': 'בוצעה · {repeat}',
-  'reminders.close': 'סגירה',
   'repeat.once': 'פעם אחת · {day} ב{month}',
   'repeat.daily': 'כל יום',
   'repeat.monthly': 'כל חודש · ב־{nth}',
@@ -123,7 +128,6 @@ export default {
   'sheet.hebrew': 'עברי · {choice}',
   'sheet.choiceMonthly': 'ב־{nth}',
   'sheet.choiceYearly': '{day} ב{month}',
-  'sheet.cancel': 'ביטול',
   'sheet.delete': 'מחיקה',
   'sheet.keep': 'להשאיר',
   'sheet.confirmDelete': 'למחוק את ״{title}״?',
@@ -155,6 +159,57 @@ export default {
   'notify.candlesTitle': 'הדלקת נרות שבת',
   'notify.candlesBody': 'הדלקת הנרות ב־{time} (בעוד {offset}).',
   'notify.customBody': 'התזכורת שלך לשעה {time}.',
+
+  // The tab bar.
+  'tabs.home': 'בית',
+  'tabs.calendar': 'לוח שנה',
+  'tabs.finance': 'כספים',
+  'tabs.settings': 'הגדרות',
+  'tabs.account': 'חשבון',
+  'tabs.admin': 'ניהול',
+  'tabs.logInToView': 'להתחבר כדי לפתוח את {tab}?',
+
+  // The one-time notifications prompt.
+  'notifications.title': 'להפעיל התראות?',
+  'notifications.message': 'כדי שהתזכורות יגיעו לטלפון, גם כשהאפליקציה סגורה.',
+  'notifications.turnOn': 'הפעלה',
+  'notifications.notNow': 'לא עכשיו',
+
+  // The in-app update: its sheet and Home's chip.
+  'update.available': 'גרסה {version} זמינה',
+  'update.ready': 'גרסה {version} מוכנה',
+  'update.youHave': 'הגרסה שלך: {version}',
+  'update.downloaded': 'הורדה הושלמה · {mb} MB',
+  'update.whatsNew': 'מה חדש',
+  'update.downloading': 'מורידים…',
+  'update.progress': '{written} / {total} MB',
+  'update.allowSource':
+    'אם Android שואל, הפעילו את "אפשר ממקור זה" עבור Personal Copilot, ואז חזרו והקישו על התקנה.',
+  'update.failed': 'ההורדה נעצרה. בדקו את החיבור ונסו שוב.',
+  'update.update': 'עדכון',
+  'update.install': 'התקנה',
+  'update.tryAgain': 'נסו שוב',
+  'update.later': 'אחר כך',
+  'update.chip': 'עדכון לגרסה {version}',
+
+  // The Finance tab.
+  'finance.title': 'כספים',
+  'finance.monthlyCheck': 'בדיקה חודשית',
+  'finance.empty': 'עדיין אין כלום החודש',
+  'finance.emptyHint': 'הקישו על + כדי להוסיף הוצאה.',
+  'finance.yesterday': 'אתמול',
+  'finance.notSent': 'לא נשלח',
+  'finance.matched': 'הותאם',
+  // A right-to-left mark first: the line stays a Hebrew one when a category is typed in English.
+  'finance.details': '\u200F{details}',
+  'count.photos.one': 'תמונה אחת',
+  'count.photos.other': '{n} תמונות',
+  // ••4821 kept left to right inside the Hebrew line (an isolate), as on the canvas.
+  'paidWith.card': 'כרטיס \u2066••{last4}\u2069',
+  'paidWith.bit': 'ביט',
+  'paidWith.paybox': 'פייבוקס',
+  'paidWith.cash': 'מזומן',
+  'paidWith.transfer': 'העברה',
 
   // Dates — src/shared/i18n/format.js puts these together.
   'date.long': 'יום {weekday}, {day} ב{month}',

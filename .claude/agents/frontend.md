@@ -124,7 +124,7 @@ feature's `components/` (listed under `composite/` below with its feature):
   entry: what for, "category · paid with · N photos", the "not sent"/"matched" badges, the amount;
   `entry`, `category`, `onPress`), `EntryList` (from `GlowCard`, `EntryRow` — newest first under
   day headings; `entries`, `categories`, `today`, `onPressEntry`); `finance/utils/format.js` holds
-  `formatShekels` (whole agorot → "₪284.90", the same in both languages), `dayLabel(translate, …)` and `paidWithLabel`; account: `ProfileFields`, `RequireAuthNotice`, `SystemStatus` and
+  `formatShekels` (whole agorot → "₪284.90", the same in both languages), `dayLabel(translate, …)` and `entryDetails(translate, entry, category)` (the row's second line); account: `ProfileFields`, `RequireAuthNotice`, `SystemStatus` and
   the Account tab's cards but `ThemeCard`. Each: `AmbientBackground` (from `Meteors`, `Stars`), `SwipeTabs` (from
   `TabPager` — the `(tabs)` navigator: Expo Router's `withLayoutContext` + `TabRouter`, the screens
   side by side; `order`, `canEnter`, `onBlocked`, `tabBar({ navigation, activeName })`), `ConfirmModal` (from
@@ -223,8 +223,8 @@ when a component genuinely needs something no thunk/selector combination can giv
   doesn't (Hebrew may leave one out); a value each language writes its own way — an ordinal, a
   Hebrew-calendar day — is itself a key (`ordinal`, `hebrewCalendar.*`). Names that are always in
   their own language (English / עברית in `LanguageCard`) stay literals; holiday and parasha names
-  come from hebcal in both (`name[useLanguage()]`). (Being moved over screen by screen —
-  `docs/plans/hebrew/` H3–H5.)
+  come from hebcal in both (`name[useLanguage()]`). A tab's `label` in `TABS` is a key too.
+  (Still English: the dormant account screens — `docs/plans/hebrew/` H6.)
 - **Dates through `src/shared/i18n/format.js`**, never `toLocaleDateString`: `longDate`,
   `shortDate`, `dayMonth`, `weekdayMonth`, `monthTitle`, `hebrewDate` — each `(translate, date)` —
   and `duration(translate, minutes)` ("1h 30m" · "שעה ו־30 דק׳"), `count(translate, key, n)`
@@ -359,6 +359,13 @@ hit" below).
   for English, Hebrew and digits alike; inside a `direction: 'ltr'` view they follow that view.
   DayCard's Hebrew lines (`'right'` in English) jumped to the left in Hebrew — they now drop it
   there. `writingDirection` doesn't move a line at all.
+- **A line takes its direction from its first letter.** Finance's "Groceries · כרטיס ••4821 · 2
+  תמונות" (a category typed in English) read left to right and scrambled the Hebrew; Android
+  ignores `writingDirection`. A Hebrew line that may start with the user's text begins with a
+  right-to-left mark in the dictionary (`'\u200F{details}'`); a left-to-right piece inside Hebrew
+  (`••4821`) is an isolate (`\u2066…\u2069`). Write them as escapes — the characters are invisible.
+- **Android's `monospace` has no Hebrew letters**: the fallback spaced Hebrew words apart
+  (`UpdateSheet`'s subtitle). Monospace for English and digits only.
 - **Toggle a style prop's value, not its presence, on Android.** A `borderWidth` added after mount
   drew with square corners (lost its `borderRadius`); keep the border always set and switch its
   color to `'transparent'` instead. Likewise a translucent `borderTop` drew near-white — use a
@@ -398,6 +405,10 @@ unused native library.
   by `I18nManager.isRTL` — `Switch`, `SwipePager` — still follows the app's own direction.)
   The calendar's example data, from the app's own maths: `calendar/mocks/` (Tel Aviv, October
   2026, "now" 27 Oct).
+- **A component that reads its state from Redux** (`UpdateSheet`, `NotificationsPrompt`) is shown
+  in a state of its own with `parameters: { state: { appUpdate: … } }` (`preview.js`'s `OwnState`):
+  those slices over the real store's, read-only — its buttons dispatch nothing, so no download or
+  Android permission prompt starts from a story.
 - **Every story** renders inside the app's real store once rehydrated (`.rnstorybook/preview.js`,
   `PersistGate`) and `StoryFrame`: the system's light/dark (it clears a saved theme mode), the
   app's background, padding

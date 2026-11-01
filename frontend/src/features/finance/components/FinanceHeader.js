@@ -37,16 +37,25 @@ export default function FinanceHeader({
   return (
     <View style={styles.row}>
       <View style={styles.titles}>
-        <Text style={[styles.title, { color: colors.text }]}>Finance</Text>
+        <Text style={[styles.title, { color: colors.text }]}>
+          {translate('finance.title')}
+        </Text>
         <View style={styles.month}>
-          {arrow('chevron-back', 'Previous month', onPrevious)}
+          {arrow(
+            'chevron-back',
+            translate('calendar.previousMonth'),
+            onPrevious,
+          )}
           <Text style={[styles.monthText, { color: colors.textMuted }]}>
             {title}
           </Text>
-          {arrow('chevron-forward', 'Next month', onNext)}
+          {arrow('chevron-forward', translate('calendar.nextMonth'), onNext)}
         </View>
       </View>
-      <PillButton label="Monthly check" onPress={onMonthlyCheck} />
+      <PillButton
+        label={translate('finance.monthlyCheck')}
+        onPress={onMonthlyCheck}
+      />
     </View>
   );
 }

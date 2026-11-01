@@ -1,4 +1,4 @@
-import { dayMonth } from '../../../shared/i18n/format';
+import { count, dayMonth } from '../../../shared/i18n/format';
 import { utcDay } from '../../../shared/utils/date';
 
 // ₪ from whole agorot: "₪150", "₪284.90", "₪3,200" — agorot shown only when there are any.
@@ -12,18 +12,24 @@ export const formatShekels = (agorot) =>
 // `translate`'s language).
 export function dayLabel(translate, date, today) {
   const daysAgo = (utcDay(today) - utcDay(date)) / 86_400_000;
-  if (daysAgo === 0) return 'Today';
-  if (daysAgo === 1) return 'Yesterday';
+  if (daysAgo === 0) return translate('calendar.today');
+  if (daysAgo === 1) return translate('finance.yesterday');
   return dayMonth(translate, date);
 }
 
-const PAID_WITH = {
-  bit: 'Bit',
-  paybox: 'PayBox',
-  cash: 'Cash',
-  transfer: 'Transfer',
-};
+// "Card ••4821", "Bit"… · "כרטיס ••4821", "ביט"…
+const paidWithLabel = (translate, { paidWith, cardLast4 }) =>
+  translate(`paidWith.${paidWith}`, { last4: cardLast4 });
 
-// "Card ••4821", "Bit"…
-export const paidWithLabel = ({ paidWith, cardLast4 }) =>
-  paidWith === 'card' ? `Card ••${cardLast4}` : PAID_WITH[paidWith];
+// An entry's line under what it was for: "Groceries · Card ••4821 · 2 photos".
+export function entryDetails(translate, entry, category) {
+  const photos = entry.attachmentIds.length;
+  const parts = [
+    category,
+    paidWithLabel(translate, entry),
+    photos && count(translate, 'count.photos', photos),
+  ];
+  return translate('finance.details', {
+    details: parts.filter(Boolean).join(' · '),
+  });
+}

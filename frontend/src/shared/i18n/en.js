@@ -13,6 +13,12 @@ export default {
 
   'common.save': 'Save',
   'common.retry': 'Retry',
+  'common.cancel': 'Cancel',
+  'common.close': 'Close',
+  'common.yes': 'Yes',
+  'common.no': 'No',
+  'common.fewer': 'Fewer',
+  'common.more': 'More',
 
   // Durations — format.js's duration().
   'duration.hour': '1h',
@@ -90,7 +96,6 @@ export default {
   'reminders.row': '{title}, {time}',
   'reminders.rowDone': '{title}, {time}, done',
   'reminders.done': 'Done · {repeat}',
-  'reminders.close': 'Close',
   'repeat.once': 'Once · {weekday} {day} {month}',
   'repeat.daily': 'Every day',
   'repeat.monthly': 'Monthly · the {nth}',
@@ -125,7 +130,6 @@ export default {
   'sheet.hebrew': 'Hebrew · {choice}',
   'sheet.choiceMonthly': 'the {nth}',
   'sheet.choiceYearly': '{day} {month}',
-  'sheet.cancel': 'Cancel',
   'sheet.delete': 'Delete',
   'sheet.keep': 'Keep',
   'sheet.confirmDelete': 'Delete "{title}"?',
@@ -157,6 +161,56 @@ export default {
   'notify.candlesTitle': 'Shabbat candle lighting',
   'notify.candlesBody': 'Candle lighting is at {time} (in {offset}).',
   'notify.customBody': 'Your reminder for {time}.',
+
+  // The tab bar.
+  'tabs.home': 'Home',
+  'tabs.calendar': 'Calendar',
+  'tabs.finance': 'Finance',
+  'tabs.settings': 'Settings',
+  'tabs.account': 'Account',
+  'tabs.admin': 'Admin',
+  'tabs.logInToView': 'Log in to view {tab}?',
+
+  // The one-time notifications prompt.
+  'notifications.title': 'Turn on notifications?',
+  'notifications.message':
+    'Get your reminders on this phone, even when the app is closed.',
+  'notifications.turnOn': 'Turn on',
+  'notifications.notNow': 'Not now',
+
+  // The in-app update: its sheet and Home's chip.
+  'update.available': 'Version {version} is available',
+  'update.ready': 'Version {version} is ready',
+  'update.youHave': 'You have {version}',
+  'update.downloaded': 'Downloaded · {mb} MB',
+  'update.whatsNew': "What's new",
+  'update.downloading': 'Downloading…',
+  'update.progress': '{written} / {total} MB',
+  'update.allowSource':
+    'If Android asks, turn on "Allow from this source" for Personal Copilot, then come back and tap Install.',
+  'update.failed': 'The download stopped. Check the connection and try again.',
+  'update.update': 'Update',
+  'update.install': 'Install',
+  'update.tryAgain': 'Try again',
+  'update.later': 'Later',
+  'update.chip': 'Update to {version}',
+
+  // The Finance tab.
+  'finance.title': 'Finance',
+  'finance.monthlyCheck': 'Monthly check',
+  'finance.empty': 'Nothing yet this month',
+  'finance.emptyHint': 'Tap + to add what you spent.',
+  'finance.yesterday': 'Yesterday',
+  'finance.notSent': 'not sent',
+  'finance.matched': 'matched',
+  'finance.details': '{details}',
+  'count.photos.one': '1 photo',
+  'count.photos.other': '{n} photos',
+  'paidWith.card': 'Card ••{last4}',
+  'paidWith.bit': 'Bit',
+  'paidWith.paybox': 'PayBox',
+  'paidWith.cash': 'Cash',
+  'paidWith.transfer': 'Transfer',
 
   // Dates — src/shared/i18n/format.js puts these together.
   'date.long': '{weekday} {day} {month}',

@@ -186,16 +186,41 @@ words):
 
 ## Stage H5: everything else
 
-- [ ] **H5.1** The Finance tab as built so far (U1–U2), the update sheet and chip, the tab bar,
+- [x] **H5.1** The Finance tab as built so far (U1–U2), the update sheet and chip, the tab bar,
   `NotificationsPrompt`, the shared components.
-- [ ] **H5.2** The dormant Account / login / register / Admin screens.
+  *Done 2026-11-01:* the canvas's copy for Finance (כספים, בדיקה חודשית, היום / אתמול, לא נשלח /
+  הותאם, "סופר · כרטיס ••4821 · 2 תמונות" — `entryDetails(translate, …)` in `finance/utils/format.js`
+  builds the line, `paidWithLabel` is private to it) and the tab bar (בית, לוח שנה, כספים, הגדרות —
+  `TABS`' `label` is now a key, translated in the layout; "Log in to view …?" too). `UpdateSheet`
+  (every step), `UpdateChip`'s TalkBack label, `NotificationsPrompt`; shared: `ConfirmModal`'s
+  default Yes / No, `FormActions`, `BottomSheet`'s and `Stepper`'s TalkBack labels. `common.close` /
+  `common.cancel` replace `reminders.close` / `sheet.cancel`. Found on the phone: a Hebrew line
+  takes its direction from its first letter, so an English category scrambled the details line —
+  it now starts with a right-to-left mark (`finance.details`), and `••4821` is an isolate;
+  Android's `monospace` has no Hebrew letters (the update sheet's subtitle) — English only
+  (frontend.md "Bug patterns"). Category names and what-for are the user's data, kept as typed
+  (the example data stays English). `VersionInfo` (Account only) moves to H6. Storybook:
+  `parameters: { state }` (`OwnState`, read-only) shows a Redux-reading component in a state of
+  its own. Stories, with Hebrew ones: `UpdateSheet` (available, downloading, ready, failed),
+  `UpdateChip`, `NotificationsPrompt`, `ConfirmModal`, `FormActions`, `FinanceEmpty`,
+  `FinanceScreen`; `EntryRow`'s Hebrew story now in Hebrew. Seen on the phone in Storybook.
 
-**Try it:** every tab in Hebrew; nothing left in English.
+**Try it:** every tab in Hebrew; nothing left in English but the dormant account screens (H6).
+**Feedback:** 2026-11-01, on H5.1 in Storybook — the English example data in the Hebrew Finance
+tab is fine as is (the difference is understood). H5.2 split out as stage H6, to wait.
+
+## Stage H6: the dormant screens
+
+Split out of H5 on 2026-11-01 (it was H5.2), at the user's ask: it waits until they say.
+
+- [ ] **H6.1** The dormant Account / login / register / Admin screens.
+
+**Try it:** the account screens in Hebrew (they open only from a direct link).
 **Feedback:** —
 
-## Stage H6: sweep
+## Stage H7: sweep
 
-- [ ] **H6.1** Every story in both languages; the Maestro smoke flows still pass (they find
+- [ ] **H7.1** Every story in both languages; the Maestro smoke flows still pass (they find
   elements by English text — run in English, or by accessibility label); the `docs` agent sweep;
   test APK.
 

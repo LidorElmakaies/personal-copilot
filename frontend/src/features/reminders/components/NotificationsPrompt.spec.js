@@ -3,6 +3,7 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 import { Provider } from 'react-redux';
 import * as localNotifications from '../../../shared/device/localNotificationsService';
 import notificationsReducer from '../../../shared/device/notificationsSlice';
+import languageReducer from '../../../shared/i18n/languageSlice';
 import NotificationsPrompt from './NotificationsPrompt';
 
 // The one-time "Turn on notifications?" (N1): for everyone, signed in or not — shown once there's
@@ -40,6 +41,7 @@ function makeStore(notifications, { candles = true, items = [] } = {}) {
   return configureStore({
     reducer: {
       notifications: notificationsReducer,
+      language: languageReducer,
       reminders: (state = { candles: { enabled: candles } }) => state,
       customReminders: (state = { items }) => state,
     },

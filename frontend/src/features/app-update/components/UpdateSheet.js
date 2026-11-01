@@ -4,6 +4,11 @@ import GradientButton from '../../../shared/components/base/buttons/GradientButt
 import Alert from '../../../shared/components/base/feedback/Alert';
 import BottomSheet from '../../../shared/components/base/layout/BottomSheet';
 import { VERSION } from '../../../shared/config/version';
+import {
+  useLanguage,
+  usePlainInHebrew,
+  useTranslate,
+} from '../../../shared/i18n/translate';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
 import {
   cancelUpdateDownload,
@@ -15,21 +20,28 @@ const ICON = require('../../../../assets/images/icon.png');
 
 const mb = (bytes) => Math.round(bytes / 1e6);
 
+// Android's monospace has no Hebrew letters: its fallback spaces them out. English only.
+const useMono = () => (useLanguage() === 'en' ? styles.mono : null);
+
 // Composite component (BottomSheet/GradientButton/Alert) — the APK's "new version" sheet (mockups
 // U2, U2a–c). Opens by itself once per version (appUpdateSlice); UpdateChip on Home reopens it.
 // Later, a drag down or a tap outside close it — a running download carries on.
 export default function UpdateSheet() {
   const dispatch = useDispatch();
   const { colors } = useAppTheme();
+  const translate = useTranslate();
+  const mono = useMono();
   const { latest, sheetOpen, download } = useSelector(
     (state) => state.appUpdate,
   );
   const later = () => dispatch(dismissUpdate());
   const install = () => dispatch(installUpdate());
 
-  let subtitle = `You have ${VERSION.frontend}`;
-  if (download.status === 'ready' && download.total > 0)
-    subtitle = `Downloaded · ${mb(download.total)} MB`;
+  const ready = download.status === 'ready';
+  const subtitle =
+    ready && download.total > 0
+      ? translate('update.downloaded', { mb: mb(download.total) })
+      : translate('update.youHave', { version: VERSION.frontend ?? 'dev' });
 
   return (
     <BottomSheet visible={sheetOpen && !!latest} onClose={later}>
@@ -39,10 +51,13 @@ export default function UpdateSheet() {
             <Image source={ICON} style={styles.icon} />
             <View style={styles.headText}>
               <Text style={[styles.title, { color: colors.text }]}>
-                Version {latest.version} is{' '}
-                {download.status === 'ready' ? 'ready' : 'available'}
+                {translate(ready ? 'update.ready' : 'update.available', {
+                  version: latest.version,
+                })}
               </Text>
-              <Text style={[styles.subtitle, { color: colors.textMuted }]}>
+              <Text
+                style={[styles.subtitle, mono, { color: colors.textMuted }]}
+              >
                 {subtitle}
               </Text>
             </View>
@@ -56,37 +71,34 @@ export default function UpdateSheet() {
             <>
               <Progress download={download} />
               <GradientButton
-                label="Cancel"
+                label={translate('common.cancel')}
                 onPress={() => dispatch(cancelUpdateDownload())}
                 contentStyle={styles.actionContent}
               />
             </>
           ) : (
             <>
-              {download.status === 'ready' ? (
+              {ready ? (
                 <Alert variant="warning">
-                  If Android asks, turn on "Allow from this source" for Personal
-                  Copilot, then come back and tap Install.
+                  {translate('update.allowSource')}
                 </Alert>
               ) : null}
               {download.status === 'failed' ? (
-                <Alert>
-                  The download stopped. Check the connection and try again.
-                </Alert>
+                <Alert>{translate('update.failed')}</Alert>
               ) : null}
               <View style={styles.actions}>
                 <GradientButton
-                  label={
-                    { ready: 'Install', failed: 'Try again' }[
+                  label={translate(
+                    { ready: 'update.install', failed: 'update.tryAgain' }[
                       download.status
-                    ] ?? 'Update'
-                  }
+                    ] ?? 'update.update',
+                  )}
                   onPress={install}
                   style={styles.actionFlex}
                   contentStyle={styles.actionContent}
                 />
                 <GradientButton
-                  label="Later"
+                  label={translate('update.later')}
                   onPress={later}
                   style={styles.actionFlex}
                   contentStyle={styles.actionContent}
@@ -102,11 +114,13 @@ export default function UpdateSheet() {
 
 function Notes({ notes }) {
   const { colors } = useAppTheme();
+  const translate = useTranslate();
+  const plain = usePlainInHebrew();
   if (!notes?.length) return null;
   return (
     <View style={styles.notes}>
-      <Text style={[styles.label, { color: colors.textFaint }]}>
-        What's new
+      <Text style={[styles.label, plain, { color: colors.textFaint }]}>
+        {translate('update.whatsNew')}
       </Text>
       {notes.map((note) => (
         <View key={note} style={styles.noteRow}>
@@ -124,16 +138,27 @@ function Notes({ notes }) {
 
 function Progress({ download }) {
   const { colors } = useAppTheme();
+  const translate = useTranslate();
+  const mono = useMono();
   const fraction = download.total > 0 ? download.written / download.total : 0;
   return (
     <View style={styles.progress}>
       <View style={styles.progressLine}>
-        <Text style={[styles.progressText, { color: colors.textMuted }]}>
-          Downloading…
+        <Text style={[styles.progressText, mono, { color: colors.textMuted }]}>
+          {translate('update.downloading')}
         </Text>
         {download.total > 0 ? (
-          <Text style={[styles.progressText, { color: colors.textMuted }]}>
-            {mb(download.written)} / {mb(download.total)} MB
+          <Text
+            style={[
+              styles.progressText,
+              styles.mono,
+              { color: colors.textMuted },
+            ]}
+          >
+            {translate('update.progress', {
+              written: mb(download.written),
+              total: mb(download.total),
+            })}
           </Text>
         ) : null}
       </View>
@@ -155,7 +180,7 @@ const styles = StyleSheet.create({
   icon: { width: 44, height: 44, borderRadius: 12 },
   headText: { flex: 1, gap: 2 },
   title: { fontSize: 16, fontWeight: '700' },
-  subtitle: { fontSize: 12, fontFamily: 'monospace' },
+  subtitle: { fontSize: 12 },
   notes: { gap: 4 },
   label: {
     fontSize: 11,
@@ -169,7 +194,8 @@ const styles = StyleSheet.create({
   noteText: { flex: 1 },
   progress: { gap: 8 },
   progressLine: { flexDirection: 'row', justifyContent: 'space-between' },
-  progressText: { fontSize: 12, fontWeight: '600', fontFamily: 'monospace' },
+  progressText: { fontSize: 12, fontWeight: '600' },
+  mono: { fontFamily: 'monospace' },
   bar: { height: 8, borderRadius: 4, overflow: 'hidden' },
   barFill: { height: '100%', borderRadius: 4 },
   actions: { flexDirection: 'row', gap: 12 },
