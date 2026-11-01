@@ -265,9 +265,9 @@ are laid out `direction: 'ltr'`); each screen inside is mirrored.
   Each thunk saves with one plain action (ids from RTK's `nanoid`, titles trimmed, `calendar`
   `gregorian` unless given, `skipped` sorted without duplicates); the only checks are the title
   (`titleProblem`) and at most 300 reminders — the sheet's controls can't produce anything else —
-  and a failed one rejects with the message the sheet shows (`error`). An id that's gone does
-  nothing. Saving selects the reminder's start day when
-  it's in the month shown. `customRemindersSlice` persists only `items` and isn't reset on sign-out
+  and a failed one rejects with a dictionary key the sheet shows in the chosen language (`error`).
+  An id that's gone does nothing. Saving selects the reminder's start day when it's in the month
+  shown. `customRemindersSlice` persists only `items` and isn't reset on sign-out
   or account deletion. Each change reschedules the
   notifications (see Reminder notifications below).
 - `(tabs)/account` — hidden (direct link only, see above). A heading and five cards (`src/features/account/components/`): `NotificationsCard` (see Notifications below), `AccountCard` (email; edit email/password via `POST /auth/account` — the
@@ -363,13 +363,15 @@ are laid out `direction: 'ltr'`); each screen inside is mirrored.
   of the reminders' streams), so a few hundred reminders plan in well under a second on the phone.
   - Candle lighting: each successive `ShabbatCalendar.nextCandleLighting` for `location.coords`,
     fired at candle lighting − offset (whole minutes) — "Shabbat candle lighting" / "Candle lighting
-    is at 17:34 (in 1 h 30 min).", opening `/`. No location, or one with no sunset (polar) → none.
+    is at 17:34 (in 1h 30m)." ("הדלקת נרות שבת" / "הדלקת הנרות ב־17:34 (בעוד שעה ו־30 דק׳)." in
+    Hebrew — the texts are in the language picked in Settings), opening `/`. No location, or one with no sunset (polar) → none.
     Once a week: after each reconcile, the shabbat slice keeps the planned firing time per candle
     lighting date (`reminders.candleFirings`, persisted, set with `candleFiringsPlanned`); a date
     whose time has passed — gone off, or dropped with the phone off — is left out of the plan
     until it's over, so a move or a new offset after it can't fire that week again.
   - Custom: its days walked from Israel's midnight today, each at that day's `changed` time and
-    title if any, else the series' — its title / "Your reminder for 08:00.", opening `/calendar`.
+    title if any, else the series' — its title / "Your reminder for 08:00." ("התזכורת שלך לשעה
+    08:00."), opening `/calendar`.
   - Ids are deterministic: `rem:candles:<candle lighting ms>`, `rem:c:<reminder id>:<YYYY-MM-DD>`;
     only `rem:` ids count as ours. Data `{ url, at }`; HH:MM from `israelClock`
     (`src/shared/utils/date.js`).
@@ -380,7 +382,8 @@ are laid out `direction: 'ltr'`); each screen inside is mirrored.
     their plain action, not awaited), and `ReminderScheduleManager` (`app/_layout.js`) on start —
     which also covers the first start after an update — on return to the foreground
     (`appStateService.watchForeground`) and when the location really moves (`placeOf` in
-    `src/shared/utils/geo.js`: coordinates rounded to 2 decimals, ~1 km — GPS wobble doesn't count). A tap on any
+    `src/shared/utils/geo.js`: coordinates rounded to 2 decimals, ~1 km — GPS wobble doesn't count),
+    or the language changes (the texts are re-written in it). A tap on any
     notification with `data.url` (also the one that opened the app) navigates there.
   - Daily background run, so the 30-day window keeps moving with the app unopened:
     `ReminderScheduleManager` registers the task `reminder-notifications`

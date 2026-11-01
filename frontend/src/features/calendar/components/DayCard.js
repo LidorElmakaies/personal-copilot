@@ -32,7 +32,8 @@ export default function DayCard({
   const plain = usePlainInHebrew();
   // The Hebrew lines sit on the right: in English at the end, in Hebrew at the start like the rest
   // ('right' means the end of the text's direction — frontend.md's "Bug patterns").
-  const hebrewSide = useLanguage() === 'he' ? null : styles.end;
+  const language = useLanguage();
+  const hebrewSide = language === 'he' ? null : styles.end;
   const names = dayNames(day);
   const rows = dayTimeRows(day);
   const { hebrew } = day;
@@ -53,23 +54,36 @@ export default function DayCard({
         </Text>
         <View style={styles.chips}>
           {isToday && (
-            <Chip label="Today" color={colors.success} bg={colors.successBg} />
+            <Chip
+              label={translate('calendar.today')}
+              color={colors.success}
+              bg={colors.successBg}
+            />
           )}
           {day.events.some((e) => e.kind === 'yomTov') && (
-            <Chip label="Yom Tov" color={colors.accent} bg={colors.card} />
+            <Chip
+              label={translate('calendar.yomTov')}
+              color={colors.accent}
+              bg={colors.card}
+            />
           )}
           {day.events.some((e) => e.kind === 'fast') && (
-            <Chip label="Fast" color={colors.error} bg={colors.errorBg} />
+            <Chip
+              label={translate('calendar.fast')}
+              color={colors.error}
+              bg={colors.errorBg}
+            />
           )}
         </View>
       </View>
 
       <Text style={[styles.title, { color: colors.text }]}>
         {names.length
-          ? names.map((n) => n.en).join(' · ')
+          ? names.map((n) => n[language]).join(' · ')
           : translate(`weekday.${weekdayOf(day.date)}`)}
       </Text>
-      {names.length > 0 && (
+      {/* In Hebrew the title is already the Hebrew name (canvas): no second line. */}
+      {names.length > 0 && language !== 'he' && (
         <Text
           style={[
             styles.hebrew,
@@ -86,10 +100,22 @@ export default function DayCard({
       </Text>
       {day.parasha && (
         <Text style={[styles.parasha, { color: colors.textMuted }]}>
-          {`${day.parasha.en} · `}
-          <Text style={{ color: colors.text, fontWeight: '600' }}>
-            {day.parasha.he}
-          </Text>
+          {language === 'he' ? (
+            // "פרשת וירא": the parasha's own name in bold (canvas).
+            <>
+              {`${day.parasha.he.split(' ')[0]} `}
+              <Text style={{ color: colors.text, fontWeight: '600' }}>
+                {day.parasha.he.split(' ').slice(1).join(' ')}
+              </Text>
+            </>
+          ) : (
+            <>
+              {`${day.parasha.en} · `}
+              <Text style={{ color: colors.text, fontWeight: '600' }}>
+                {day.parasha.he}
+              </Text>
+            </>
+          )}
         </Text>
       )}
 
@@ -98,7 +124,7 @@ export default function DayCard({
         rows.map((row) => (
           <View key={row.label} style={styles.row}>
             <Text style={[styles.rowLabel, { color: colors.text }]}>
-              {row.label}
+              {translate(row.label)}
             </Text>
             <Text
               style={[
@@ -112,7 +138,7 @@ export default function DayCard({
         ))
       ) : (
         <Text style={[styles.empty, { color: colors.textFaint }]}>
-          No candle lighting or fast times
+          {translate('calendar.noTimes')}
         </Text>
       )}
 
@@ -123,7 +149,7 @@ export default function DayCard({
           />
           <View style={styles.remHead}>
             <Text style={[styles.label, plain, { color: colors.textFaint }]}>
-              Your reminders
+              {translate('calendar.yourReminders')}
             </Text>
             <Chip
               label={String(reminders.length)}
@@ -152,7 +178,9 @@ export default function DayCard({
               ]}
             >
               <Text style={[styles.moreText, { color: colors.pending }]}>
-                {`+${reminders.length - PREVIEW} more · Show all`}
+                {translate('calendar.showAll', {
+                  n: reminders.length - PREVIEW,
+                })}
               </Text>
             </Pressable>
           )}

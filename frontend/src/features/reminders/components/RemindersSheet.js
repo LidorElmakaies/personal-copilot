@@ -8,7 +8,7 @@ import {
   View,
 } from 'react-native';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
-import { longDate } from '../../../shared/i18n/format';
+import { count, longDate } from '../../../shared/i18n/format';
 import { useTranslate } from '../../../shared/i18n/translate';
 import { pad2 } from '../../../shared/utils/time';
 import BottomSheet from '../../../shared/components/base/layout/BottomSheet';
@@ -35,7 +35,7 @@ export default function RemindersSheet({
       <View style={styles.head}>
         <Text style={[styles.title, { color: colors.text }]}>
           {date
-            ? `${reminders.length} reminders · ${longDate(translate, date)}`
+            ? `${count(translate, 'count.reminders', reminders.length)} · ${longDate(translate, date)}`
             : ''}
         </Text>
         <Pressable
@@ -46,7 +46,9 @@ export default function RemindersSheet({
             { borderColor: colors.cardBorder, opacity: pressed ? 0.6 : 1 },
           ]}
         >
-          <Text style={[styles.closeText, { color: colors.text }]}>Close</Text>
+          <Text style={[styles.closeText, { color: colors.text }]}>
+            {translate('reminders.close')}
+          </Text>
         </Pressable>
       </View>
       <FlatList

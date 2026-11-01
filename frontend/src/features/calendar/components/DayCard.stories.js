@@ -25,3 +25,11 @@ export const HebrewPlainDay = {
   parameters: { language: 'he' },
   args: { day: OCTOBER.days[26], isToday: true },
 };
+
+// Shmini Atzeret (3 October): a Yom Tov, its name in both languages.
+export const YomTov = { args: { day: OCTOBER.days[2] } };
+
+export const YomTovHebrew = {
+  parameters: { language: 'he' },
+  args: { day: OCTOBER.days[2] },
+};

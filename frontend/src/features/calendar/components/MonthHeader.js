@@ -1,11 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import {
-  I18nManager,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { I18nManager, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useTranslate } from '../../../shared/i18n/translate';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
 
 // The Calendar tab's title row: the Gregorian month, the Hebrew months under it (once loaded),
@@ -19,6 +14,7 @@ export default function MonthHeader({
   onToday,
 }) {
   const { colors } = useAppTheme();
+  const translate = useTranslate();
   return (
     <View style={styles.head}>
       <View style={styles.titles}>
@@ -34,7 +30,7 @@ export default function MonthHeader({
           <Pressable
             onPress={onToday}
             accessibilityRole="button"
-            accessibilityLabel="Go to today"
+            accessibilityLabel={translate('calendar.goToToday')}
             style={({ pressed }) => [
               styles.today,
               {
@@ -45,18 +41,18 @@ export default function MonthHeader({
             ]}
           >
             <Text style={[styles.todayText, { color: colors.accent }]}>
-              Today
+              {translate('calendar.today')}
             </Text>
           </Pressable>
         )}
         <ArrowButton
           icon="chevron-back"
-          label="Previous month"
+          label={translate('calendar.previousMonth')}
           onPress={onPrevious}
         />
         <ArrowButton
           icon="chevron-forward"
-          label="Next month"
+          label={translate('calendar.nextMonth')}
           onPress={onNext}
         />
       </View>

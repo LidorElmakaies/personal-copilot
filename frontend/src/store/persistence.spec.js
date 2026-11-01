@@ -130,7 +130,7 @@ describe('reminders persistence', () => {
     await first.persistor.flush();
     const items = first.store.getState().customReminders.items;
     expect(first.store.getState().customReminders.error).toBe(
-      'Give it a title',
+      'reminders.titleEmpty',
     );
 
     // written: the candle reminder, its planned firings and the definitions — not the range or

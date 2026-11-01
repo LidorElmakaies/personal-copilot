@@ -7,6 +7,8 @@ import {
   ShabbatCalendar,
 } from '../../../lib/jewish-calendar';
 import { ID_PREFIX } from '../../../shared/device/localNotificationsService';
+import { duration } from '../../../shared/i18n/format';
+import { translateIn } from '../../../shared/i18n/translate';
 import { israelClock, israelIsoDate } from '../../../shared/utils/date';
 import { ruleOf } from './occurrences';
 
@@ -21,6 +23,8 @@ import { ruleOf } from './occurrences';
 const WINDOW_DAYS = 30;
 export const MAX_TOTAL = 100;
 
+const english = (key, vars) => translateIn('en', key, vars);
+
 const DAY_MS = 24 * 60 * 60_000;
 const MINUTE_MS = 60_000;
 const MAX_CANDLE_FIRINGS = 10; // more than a window's Fridays
@@ -30,14 +34,6 @@ const shabbat = new ShabbatCalendar();
 const occurrences = new ReminderOccurrences();
 
 const timeOf = (ms) => israelClock(new Date(ms)).slice(11); // 'HH:MM'
-
-/** 90 → "1 h 30 min", 120 → "2 h", 45 → "45 min". */
-export function formatMinutes(total) {
-  const h = Math.floor(total / 60);
-  const m = total % 60;
-  if (h === 0) return `${m} min`;
-  return m === 0 ? `${h} h` : `${h} h ${m} min`;
-}
 
 const CANDLE_PREFIX = `${ID_PREFIX}candles:`;
 const candleId = (candleLightingMs) => `${CANDLE_PREFIX}${candleLightingMs}`;
@@ -55,6 +51,7 @@ function* candleFirings(
   done,
   now,
   windowEnd,
+  translate,
 ) {
   if (!enabled || !coords) return;
   const location = { latitude: coords.latitude, longitude: coords.longitude };
@@ -76,8 +73,11 @@ function* candleFirings(
     yield {
       id: candleId(candleMs),
       at,
-      title: 'Shabbat candle lighting',
-      body: `Candle lighting is at ${timeOf(candleMs)} (in ${formatMinutes(offsetMinutes)}).`,
+      title: translate('notify.candlesTitle'),
+      body: translate('notify.candlesBody', {
+        time: timeOf(candleMs),
+        offset: duration(translate, offsetMinutes),
+      }),
       url: '/',
     };
     if (at > windowEnd) return;
@@ -87,7 +87,7 @@ function* candleFirings(
 // A user's own reminder's firings, in order, each day at its own time (`changed[date]`, else the
 // series'). Days are walked from Israel's midnight today, so a changed day later today than the
 // series' time isn't missed.
-function* customFirings(reminder, now, windowEnd) {
+function* customFirings(reminder, now, windowEnd, translate) {
   const rule = ruleOf(reminder);
   const today = civilDateIn(ISRAEL_TIME_ZONE, new Date(now));
   let after = new Date(instantAt(ISRAEL_TIME_ZONE, today, 0, 0).getTime() - 1);
@@ -109,7 +109,7 @@ function* customFirings(reminder, now, windowEnd) {
       id: customId(reminder.id, date),
       at,
       title: own?.title ?? reminder.title,
-      body: `Your reminder for ${timeOf(at)}.`,
+      body: translate('notify.customBody', { time: timeOf(at) }),
       url: '/calendar',
     };
     if (at > windowEnd) return;
@@ -119,14 +119,30 @@ function* customFirings(reminder, now, windowEnd) {
 const byTime = (a, b) =>
   a.at - b.at || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
 
-// [{ id, at (ms), title, body, url }], sorted by `at`. Each reminder's firings are worked out only
+// [{ id, at (ms), title, body, url }], sorted by `at`; the words in `translate`'s language. Each reminder's firings are worked out only
 // as far as they're kept: every reminder's first, then the earliest of the rest, one at a time.
-export function plan({ candles, coords, items, now, candlesDone = [] }) {
+export function plan({
+  candles,
+  coords,
+  items,
+  now,
+  candlesDone = [],
+  translate = english,
+}) {
   const nowMs = typeof now === 'number' ? now : now.getTime();
   const windowEnd = nowMs + WINDOW_DAYS * DAY_MS;
   const streams = [
-    candleFirings(candles, coords, new Set(candlesDone), nowMs, windowEnd),
-    ...items.map((reminder) => customFirings(reminder, nowMs, windowEnd)),
+    candleFirings(
+      candles,
+      coords,
+      new Set(candlesDone),
+      nowMs,
+      windowEnd,
+      translate,
+    ),
+    ...items.map((reminder) =>
+      customFirings(reminder, nowMs, windowEnd, translate),
+    ),
   ];
   const firsts = [];
   const live = [];
@@ -176,7 +192,7 @@ export function candleFiringsAfter(planned, desired, now) {
   return out;
 }
 
-// The plan for the store's state.
+// The plan for the store's state, in the language picked in Settings.
 export const planFor = (state, now) =>
   plan({
     candles: state.reminders.candles,
@@ -184,4 +200,5 @@ export const planFor = (state, now) =>
     items: state.customReminders.items,
     now,
     candlesDone: doneCandleDates(state.reminders.candleFirings, now),
+    translate: (key, vars) => translateIn(state.language.code, key, vars),
   });

@@ -1,6 +1,8 @@
 import {
+  count,
   dayMonth,
   duration,
+  hebrewLetters,
   hebrewDate,
   longDate,
   monthTitle,
@@ -68,5 +70,23 @@ describe('duration', () => {
       'שעתיים',
       '3 שעות',
     ]);
+  });
+});
+
+describe('count', () => {
+  it('one and many', () => {
+    expect(count(en, 'count.reminders', 1)).toBe('1 reminder');
+    expect(count(en, 'count.reminders', 3)).toBe('3 reminders');
+    expect(count(he, 'count.reminders', 1)).toBe('תזכורת אחת');
+    expect(count(he, 'count.reminders', 3)).toBe('3 תזכורות');
+  });
+});
+
+describe('hebrewLetters', () => {
+  it("a Date's Hebrew date in letters, a two-word month too", () => {
+    expect(hebrewDate(he, hebrewLetters(new Date(2026, 10, 1)))).toBe(
+      'כ״א בחשון תשפ״ז',
+    );
+    expect(hebrewLetters(new Date(2027, 1, 20)).month.he).toBe('אדר א׳');
   });
 });

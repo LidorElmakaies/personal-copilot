@@ -13,7 +13,11 @@ import CandleReminder from '../components/CandleReminder';
 import ShabbatSection from '../components/ShabbatSection';
 import { UpdateChip } from '../../app-update';
 import GlowCard from '../../../shared/components/base/layout/GlowCard';
-import { hebrewDate, weekdayMonth } from '../../../shared/i18n/format';
+import {
+  hebrewDate,
+  hebrewLetters,
+  weekdayMonth,
+} from '../../../shared/i18n/format';
 import { useLanguage, useTranslate } from '../../../shared/i18n/translate';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
 import { fetchShabbat } from '../../calendar';
@@ -29,16 +33,10 @@ function formatNumericDate(date) {
 
 // @hebcal/hdate rather than Intl's 'he-u-ca-hebrew' calendar — see frontend/README.md for why.
 // English: render('he')'s comma stripped, as the approved mockup's "14 Tishrei 5787". Hebrew: in
-// letters, as the Hebrew canvas — "כ״א בחשון תשפ״ז" (a month can be two words: "אדר א׳").
+// letters, as the Hebrew canvas — "כ״א בחשון תשפ״ז".
 function formatHebrewDate(date, translate, language) {
-  const hdate = new HDate(date);
-  if (language !== 'he') return hdate.render('he').replace(',', '');
-  const words = hdate.renderGematriya(true).split(' ');
-  return hebrewDate(translate, {
-    dayHe: words[0],
-    month: { he: words.slice(1, -1).join(' ') },
-    yearHe: words.at(-1),
-  });
+  if (language !== 'he') return new HDate(date).render('he').replace(',', '');
+  return hebrewDate(translate, hebrewLetters(date));
 }
 
 export default function HomeScreen() {

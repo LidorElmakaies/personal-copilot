@@ -144,11 +144,45 @@ Home's Hebrew date in English (stays "21 חֶשְׁוָן 5787"), a plain day's 
 
 ## Stage H4: Calendar and reminders
 
-- [ ] **H4.1** The Calendar tab, the day card, the reminder sheets.
-- [ ] **H4.2** Notification texts in the chosen language; changing the language re-schedules them.
+Split 2026-11-01 (H4.1 turned out three tasks' worth: the add/edit sheet alone is 465 lines of
+words):
+
+- [x] **H4.1** The Calendar tab: the month header and its status, the day card, "Show all", the
+  reminder rows and their "how it repeats" line.
+  *Done 2026-11-01:* `MonthHeader` (היום, the arrows' labels), `MonthStatus`, `DayCard` (the
+  chips; in Hebrew the title is hebcal's Hebrew name and the second, Hebrew-name line goes, as on
+  the canvas; "פרשת **וירא**"; the time rows — `dayTimeRows` now gives a `times.*` key, shared with
+  Home; התזכורות שלך, "ועוד 2 · הצגת הכול"), `MonthGrid`'s TalkBack labels, `RemindersSheet`
+  ("3 תזכורות · …", סגירה), the + button's label, `ReminderRow` (בוצעה) and `repeatLabel(translate,
+  …)`: "פעם אחת · 30 באוק׳", "כל חודש · ב־י״ט (עברי)", "כל שנה · ח׳ בחשון". `format.js`: `count()`
+  (one/other — "תזכורת אחת") and `hebrewLetters()` (any date's Hebrew date in letters, Home's too).
+  A Hebrew text may now leave out a value its English uses (no weekday in "פעם אחת · 30 באוק׳");
+  how each language writes a number or Hebrew-calendar date in a sentence is in the dictionary
+  (`ordinal`, `hebrewCalendar.*`), so `i18n.spec` still catches a placeholder English lacks. The
+  sheet's "It repeats: …" stays English for H4.2. Stories: `MonthHeader`, `MonthStatus`,
+  `ReminderRow` (every repeat), `DayCard` Yom Tov — with Hebrew ones. Seen on the phone in
+  Storybook: the Calendar screen, the day card (Erev Shabbat, Shmini Atzeret), every row.
+- [x] **H4.2** The add/edit reminder sheet: its form, the summary and "repeats" sentences, the
+  calendar choices and odd-date notes, the title's error messages (`titleProblem`, also the
+  slice's), "Only this day / Every time".
+  *Done 2026-11-01:* every word of `CustomReminderSheet` (תזכורת חדשה / עריכת תזכורת, the field
+  labels set plain, כל יום / כל חודש…, "עברי · ח׳ בחשון", "רק ב־30 באוק׳" / "בכל הפעמים", מחיקה,
+  להשאיר…). `customReminders.js`' sentences take `translate` and share one `repeatDay()` for how a
+  monthly or yearly day is written in its calendar: "כל חודש עברי ב־ח׳, 09:30", the odd-date notes;
+  its own date tables gone (`shortDate` from `format.js`, now with a year). `titleProblem` and the
+  slice's cap reject with a dictionary key (`reminders.titleEmpty` / `titleInvalid` / `tooMany`) —
+  state keeps the key, the sheet shows it in the chosen language. Hour/minute units shared
+  (`units.*`, Home's sheet too). Stories: `CustomReminderSheet` new and edit, English and Hebrew.
+- [x] **H4.3** Notification texts in the chosen language; changing the language re-schedules them.
+  *Done 2026-11-01:* `schedulePlan`'s `plan()` takes `translate` (`planFor` — the saved
+  language): "הדלקת נרות שבת" / "הדלקת הנרות ב־17:34 (בעוד שעה ו־30 דק׳).", "התזכורת שלך לשעה
+  08:00."; its own `formatMinutes` gone for `duration()` (English now "in 1h 30m"). Nothing
+  else was needed to re-schedule: the reconcile already replaces a notification whose title or
+  body changed, and `ReminderScheduleManager` now reconciles when the language changes too
+  (besides the restart's own reconcile on start). A reminder's own title stays as typed.
 
 **Try it:** add a reminder in Hebrew; its notification arrives in Hebrew.
-**Feedback:** —
+**Feedback:** 2026-11-01, on 0.6.0-test.20 — H4.1–H4.2 "looks good".
 
 ## Stage H5: everything else
 

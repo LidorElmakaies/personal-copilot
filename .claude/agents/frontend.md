@@ -219,13 +219,17 @@ when a component genuinely needs something no thunk/selector combination can giv
   `useTranslate()` (`src/shared/i18n/translate.js`, the language picked in Settings;
   `translateIn(code, key, vars)` in a thunk). A new string: one key in `en.js` and the same key in
   `he.js` (canvas copy first), `{name}` for a value — `translate('x.count', { n })`;
-  `i18n.spec.js` fails if a key or a placeholder is missing in either. Names that are always in
+  `i18n.spec.js` fails if a key is missing in either, or the Hebrew uses a value its English
+  doesn't (Hebrew may leave one out); a value each language writes its own way — an ordinal, a
+  Hebrew-calendar day — is itself a key (`ordinal`, `hebrewCalendar.*`). Names that are always in
   their own language (English / עברית in `LanguageCard`) stay literals; holiday and parasha names
   come from hebcal in both (`name[useLanguage()]`). (Being moved over screen by screen —
   `docs/plans/hebrew/` H3–H5.)
 - **Dates through `src/shared/i18n/format.js`**, never `toLocaleDateString`: `longDate`,
   `shortDate`, `dayMonth`, `weekdayMonth`, `monthTitle`, `hebrewDate` — each `(translate, date)` —
-  and `duration(translate, minutes)` ("1h 30m" · "שעה ו־30 דק׳"); the names from the dictionaries
+  and `duration(translate, minutes)` ("1h 30m" · "שעה ו־30 דק׳"), `count(translate, key, n)`
+  (`key.one`/`key.other` — "תזכורת אחת"), `hebrewLetters(date)` (a date's Hebrew date in letters,
+  for `hebrewDate`); the names from the dictionaries
   (`month.N`, `weekday.N`, `weekdayLetter.N`…), so the phone and Jest agree. Times ("18:12"), numbers and ₪ read the same in both languages.
 - **Text lines up by itself**: in Hebrew everything starts on the right. `textAlign` `'left'` and
   `'right'` mean the start and end of the surrounding direction, not sides of the screen — leave

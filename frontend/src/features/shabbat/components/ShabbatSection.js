@@ -75,7 +75,7 @@ export default function ShabbatSection({
       <View style={styles.times}>
         <View>
           <Text style={[styles.timeCaption, { color: colors.textMuted }]}>
-            {translate('shabbat.candleLighting')}
+            {translate('times.candleLighting')}
           </Text>
           <Text style={[styles.time, { color: colors.pending }]}>
             {formatTime(candleLighting)}
@@ -86,7 +86,7 @@ export default function ShabbatSection({
         </View>
         <View style={styles.alignEnd}>
           <Text style={[styles.timeCaption, { color: colors.textMuted }]}>
-            {translate('shabbat.havdalah')}
+            {translate('times.havdalah')}
           </Text>
           <Text style={[styles.time, { color: colors.text }]}>
             {formatTime(havdalah)}

@@ -94,7 +94,7 @@ function ReminderForm({ candles, candleLighting, now, onDone }) {
           value={hours}
           onChange={setHours}
           max={23}
-          unit={translate('candles.hours')}
+          unit={translate('units.hours')}
           style={styles.stepper}
         />
         <Stepper
@@ -102,7 +102,7 @@ function ReminderForm({ candles, candleLighting, now, onDone }) {
           onChange={setMinutes}
           max={55}
           step={5}
-          unit={translate('candles.minutes')}
+          unit={translate('units.minutes')}
           style={styles.stepper}
         />
       </View>

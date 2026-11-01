@@ -1,3 +1,5 @@
+import { HDate } from '@hebcal/hdate';
+
 // Dates in the chosen language, one function per kind. Each takes `translate` — useTranslate()'s,
 // or `(key, vars) => translateIn(code, key, vars)` outside React — and a date: 'YYYY-MM-DD' (a
 // calendar day, read as is) or a Date (read on the phone's clock, like formatTime). Times ("18:12"), numbers
@@ -27,13 +29,14 @@ export function longDate(translate, date) {
   });
 }
 
-// "Fri 30 Oct" · "שישי, 30 באוק׳"
-export function shortDate(translate, date) {
-  const { month, day, weekday } = partsOf(date);
-  return translate('date.short', {
+// "Fri 30 Oct" · "שישי, 30 באוק׳"; `withYear` adds it: "Fri 30 Oct 2026".
+export function shortDate(translate, date, withYear = false) {
+  const { year, month, day, weekday } = partsOf(date);
+  return translate(withYear ? 'date.shortYear' : 'date.short', {
     weekday: translate(`weekdayShort.${weekday}`),
     day,
     month: translate(`monthShort.${month}`),
+    year,
   });
 }
 
@@ -82,4 +85,20 @@ export function duration(translate, minutes) {
   if (hours && mins)
     return translate('duration.both', { hours, minutes: mins });
   return hours || mins || '';
+}
+
+// "1 reminder", "3 reminders" · "תזכורת אחת", "3 תזכורות": `key`.one for 1, `key`.other otherwise.
+export const count = (translate, key, n) =>
+  translate(`${key}.${n === 1 ? 'one' : 'other'}`, { n });
+
+// A Date's Hebrew day, month and year in letters — the shape of the calendar's `day.hebrew`, for
+// hebrewDate(): { dayHe: 'כ״א', month: { he: 'חשון' }, yearHe: 'תשפ״ז' }. A month can be two words
+// ("אדר א׳"). hebcal reads the Date's local year, month and day.
+export function hebrewLetters(date) {
+  const words = new HDate(date).renderGematriya(true).split(' ');
+  return {
+    dayHe: words[0],
+    month: { he: words.slice(1, -1).join(' ') },
+    yearHe: words.at(-1),
+  };
 }

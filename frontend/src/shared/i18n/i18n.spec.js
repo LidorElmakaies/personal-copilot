@@ -14,12 +14,18 @@ describe('the dictionaries', () => {
     for (const key of Object.keys(en)) expect(he[key].trim()).not.toBe('');
   });
 
-  it('a Hebrew text has the same {placeholders} as its English one', () => {
-    for (const key of Object.keys(en)) {
-      expect([key, placeholders(he[key])]).toEqual([
-        key,
-        placeholders(en[key]),
-      ]);
+  // Hebrew may leave a value out ("פעם אחת · 30 באוק׳" has no weekday), never use one English lacks
+  // — but for `hebrewCalendar.*`, which pick a Hebrew-calendar date's form in each language ("8" ·
+  // "ח׳") from values given for both.
+  it("a Hebrew text's {placeholders} are all its English one's", () => {
+    const keys = Object.keys(en).filter(
+      (k) => !k.startsWith('hebrewCalendar.'),
+    );
+    for (const key of keys) {
+      const missing = placeholders(he[key]).filter(
+        (p) => !placeholders(en[key]).includes(p),
+      );
+      expect([key, missing]).toEqual([key, []]);
     }
   });
 });

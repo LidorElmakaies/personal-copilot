@@ -18,15 +18,8 @@ export function dayNames(day) {
   return [];
 }
 
-const TIME_LABELS = {
-  candleLighting: 'Candle lighting',
-  havdalah: 'Havdalah',
-  fastBegins: 'Fast begins',
-  fastEnds: 'Fast ends',
-};
-
 // The card's rows, in order; a fast that begins with candle lighting (Erev Yom Kippur) is one
-// row. `candle` marks the rows shown in amber.
+// row. `label` is a dictionary key (`times.*`); `candle` marks the rows shown in amber.
 export function dayTimeRows(day) {
   const candles = day.times.find((t) => t.kind === 'candleLighting');
   return day.times
@@ -35,8 +28,8 @@ export function dayTimeRows(day) {
       label:
         t.kind === 'candleLighting' &&
         day.times.some((f) => f.kind === 'fastBegins' && f.at === t.at)
-          ? 'Candle lighting · fast begins'
-          : TIME_LABELS[t.kind],
+          ? 'times.candlesAndFast'
+          : `times.${t.kind}`,
       at: new Date(t.at),
       candle: t.kind === 'candleLighting',
     }));

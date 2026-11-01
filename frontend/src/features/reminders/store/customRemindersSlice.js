@@ -13,7 +13,7 @@ import { reconcileReminderNotifications } from './scheduleNotifications';
 // is worked out by selectDayReminders. A definition's `changed` holds days given their own title
 // and time ("Only this day" on an edit).
 
-const MAX_REMINDERS = 300;
+export const MAX_REMINDERS = 300;
 
 const findReminder = (getState, id) =>
   getState().customReminders.items.find((r) => r.id === id);
@@ -24,15 +24,15 @@ const trimTitle = (fields) =>
     : fields;
 
 // Each change saves with one plain action and starts the notifications' reconcile without waiting
-// for it. A bad title or the reminders cap rejects with the message the sheet shows (state.error);
-// a missing reminder does nothing.
+// for it. A bad title or the reminders cap rejects with a dictionary key the sheet shows
+// (state.error); a missing reminder does nothing.
 export const createCustomReminder = createAsyncThunk(
   'customReminders/create',
   async (input, { getState, dispatch, rejectWithValue }) => {
     const problem = titleProblem(input.title);
     if (problem) return rejectWithValue(problem);
     if (getState().customReminders.items.length >= MAX_REMINDERS)
-      return rejectWithValue(`At most ${MAX_REMINDERS} reminders`);
+      return rejectWithValue('reminders.tooMany');
     const reminder = {
       calendar: 'gregorian',
       ...trimTitle(input),

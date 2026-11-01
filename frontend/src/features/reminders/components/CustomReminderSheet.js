@@ -7,8 +7,11 @@ import PillButton from '../../../shared/components/base/buttons/PillButton';
 import InputField from '../../../shared/components/base/form/InputField';
 import Stepper from '../../../shared/components/base/form/Stepper';
 import BottomSheet from '../../../shared/components/base/layout/BottomSheet';
+import { shortDate } from '../../../shared/i18n/format';
+import { usePlainInHebrew, useTranslate } from '../../../shared/i18n/translate';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
 import {
+  MAX_REMINDERS,
   clearCustomReminderError,
   createCustomReminder,
   deleteCustomReminder,
@@ -22,7 +25,6 @@ import {
   hebrewDateText,
   oddDateNotes,
   repeatLabel,
-  shortDate,
   straightenQuotes,
   summaryLine,
   TITLE_MAX_LENGTH,
@@ -31,7 +33,6 @@ import {
 import { nextDates } from '../utils/occurrences';
 
 const REPEATS = ['once', 'daily', 'monthly', 'yearly'];
-const label = (s) => s[0].toUpperCase() + s.slice(1);
 
 // Composite component (BottomSheet/InputField/Stepper/PillButton/GradientButton/Alert) — the add and
 // edit sheet for a user's own reminder (mockups 3.6a P2/X1). `target` is { reminder, date }: no
@@ -57,7 +58,10 @@ export default function CustomReminderSheet({ target, onClose, onSaved }) {
 function ReminderForm({ target, onClose, onSaved }) {
   const dispatch = useDispatch();
   const { colors } = useAppTheme();
+  const translate = useTranslate();
   const error = useSelector((s) => s.customReminders.error);
+  // The slice keeps a dictionary key (an unexpected error's own message shows as it is).
+  const errorText = error && translate(error, { max: MAX_REMINDERS });
   const original = target.reminder;
   const day = original?.changed[target.date] ?? original;
   const [draft, setDraft] = useState(() => ({
@@ -86,6 +90,14 @@ function ReminderForm({ target, onClose, onSaved }) {
   );
 
   const problem = titleProblem(draft.title);
+  const [y, m, d] = target.date.split('-').map(Number);
+  const tappedDay = {
+    weekday: translate(
+      `weekdayShort.${new Date(Date.UTC(y, m - 1, d)).getUTCDay()}`,
+    ),
+    day: d,
+    month: translate(`monthShort.${m}`),
+  };
   const repeating = original && original.repeat !== 'once';
   // "Only this day" keeps that day where it is: a new date, repeat or calendar is for the series.
   const onlyDayFits =
@@ -122,16 +134,20 @@ function ReminderForm({ target, onClose, onSaved }) {
     return (
       <View style={styles.form}>
         <Text style={[styles.title, { color: colors.text }]}>
-          {`${isDelete ? 'Delete' : 'Change'} "${original.title}"`}
+          {translate(isDelete ? 'sheet.deleteWhich' : 'sheet.changeWhich', {
+            title: original.title,
+          })}
         </Text>
         <Text style={[styles.muted, { color: colors.textMuted }]}>
-          {`It repeats: ${repeatLabel(original).toLowerCase()}.`}
+          {translate('sheet.itRepeats', {
+            repeat: repeatLabel(translate, original).toLowerCase(),
+          })}
         </Text>
-        {error ? <Alert>{error}</Alert> : null}
+        {error ? <Alert>{errorText}</Alert> : null}
         <View style={styles.choices}>
           {(isDelete || onlyDayFits) && (
             <GradientButton
-              label={`Only ${shortDate(target.date)}`}
+              label={translate('sheet.onlyDay', tappedDay)}
               onPress={() =>
                 finish(
                   isDelete
@@ -155,7 +171,7 @@ function ReminderForm({ target, onClose, onSaved }) {
             />
           )}
           <GradientButton
-            label="Every time"
+            label={translate('sheet.everyTime')}
             variant={isDelete ? 'danger' : 'primary'}
             onPress={() =>
               finish(
@@ -172,7 +188,7 @@ function ReminderForm({ target, onClose, onSaved }) {
             contentStyle={styles.actionContent}
           />
           <GradientButton
-            label="Cancel"
+            label={translate('sheet.cancel')}
             onPress={() => setStep('form')}
             contentStyle={styles.actionContent}
           />
@@ -183,30 +199,36 @@ function ReminderForm({ target, onClose, onSaved }) {
 
   const choices =
     draft.repeat === 'monthly' || draft.repeat === 'yearly'
-      ? calendarChoices(draft)
+      ? calendarChoices(translate, draft)
       : null;
 
   return (
     <View style={styles.form}>
       <View style={styles.head}>
         <Text style={[styles.title, { color: colors.text }]}>
-          {original ? 'Edit reminder' : 'New reminder'}
+          {translate(original ? 'sheet.edit' : 'sheet.new')}
         </Text>
-        <PillButton label="Close" tone="muted" onPress={onClose} />
+        <PillButton
+          label={translate('reminders.close')}
+          tone="muted"
+          onPress={onClose}
+        />
       </View>
 
       <InputField
-        label="Title"
+        label={translate('sheet.title')}
         value={draft.title}
         onChangeText={(title) => set({ title: straightenQuotes(title) })}
-        placeholder="e.g. Call Grandma"
+        placeholder={translate('sheet.titlePlaceholder')}
         autoCapitalize="sentences"
         maxLength={TITLE_MAX_LENGTH}
         showCharCount
-        error={draft.title && problem ? problem : undefined}
+        error={draft.title && problem ? translate(problem) : undefined}
       />
 
-      <Field label={draft.repeat === 'once' ? 'On' : 'Starts'}>
+      <Field
+        label={translate(draft.repeat === 'once' ? 'sheet.on' : 'sheet.starts')}
+      >
         <View
           style={[
             styles.date,
@@ -218,32 +240,32 @@ function ReminderForm({ target, onClose, onSaved }) {
         >
           <DayArrow
             icon="‹"
-            label="Day before"
+            label={translate('sheet.dayBefore')}
             onPress={() => set({ start: addDay(draft.start, -1) })}
           />
           <View style={styles.dateMiddle}>
             <Text style={[styles.dateText, { color: colors.text }]}>
-              {shortDate(draft.start, true)}
+              {shortDate(translate, draft.start, true)}
             </Text>
             <Text style={[styles.hebrew, { color: colors.textMuted }]}>
-              {hebrewDateText(draft.start)}
+              {hebrewDateText(translate, draft.start)}
             </Text>
           </View>
           <DayArrow
             icon="›"
-            label="Day after"
+            label={translate('sheet.dayAfter')}
             onPress={() => set({ start: addDay(draft.start, 1) })}
           />
         </View>
       </Field>
 
-      <Field label="Time">
+      <Field label={translate('sheet.time')}>
         <View style={styles.row}>
           <Stepper
             value={draft.hour}
             onChange={(hour) => set({ hour })}
             max={23}
-            unit="hours"
+            unit={translate('units.hours')}
             style={styles.flex}
           />
           <Stepper
@@ -251,18 +273,18 @@ function ReminderForm({ target, onClose, onSaved }) {
             onChange={(minute) => set({ minute })}
             max={55}
             step={5}
-            unit="min"
+            unit={translate('units.minutes')}
             style={styles.flex}
           />
         </View>
       </Field>
 
-      <Field label="Repeats">
+      <Field label={translate('sheet.repeats')}>
         <View style={styles.pills}>
           {REPEATS.map((repeat) => (
             <PillButton
               key={repeat}
-              label={label(repeat)}
+              label={translate(`sheet.${repeat}`)}
               tone={draft.repeat === repeat ? 'selected' : 'muted'}
               onPress={() => set({ repeat })}
               style={styles.pill}
@@ -276,7 +298,9 @@ function ReminderForm({ target, onClose, onSaved }) {
           {['gregorian', 'hebrew'].map((calendar) => (
             <PillButton
               key={calendar}
-              label={`${label(calendar)} · ${choices[calendar]}`}
+              label={translate(`sheet.${calendar}`, {
+                choice: choices[calendar],
+              })}
               tone={draft.calendar === calendar ? 'selected' : 'muted'}
               onPress={() => set({ calendar })}
               style={styles.pill}
@@ -285,7 +309,7 @@ function ReminderForm({ target, onClose, onSaved }) {
         </View>
       ) : null}
 
-      {oddDateNotes(draft).map((note) => (
+      {oddDateNotes(translate, draft).map((note) => (
         <Alert key={note} variant="warning">
           {note}
         </Alert>
@@ -293,22 +317,22 @@ function ReminderForm({ target, onClose, onSaved }) {
 
       <Summary draft={draft} next={next} />
 
-      {error ? <Alert>{error}</Alert> : null}
+      {error ? <Alert>{errorText}</Alert> : null}
 
       {step === 'confirmDelete' ? (
         <View style={styles.confirm}>
           <Text style={[styles.muted, { color: colors.text }]}>
-            {`Delete "${original.title}"?`}
+            {translate('sheet.confirmDelete', { title: original.title })}
           </Text>
           <View style={styles.row}>
             <GradientButton
-              label="Keep"
+              label={translate('sheet.keep')}
               onPress={() => setStep('form')}
               style={styles.flex}
               contentStyle={styles.actionContent}
             />
             <GradientButton
-              label="Delete"
+              label={translate('sheet.delete')}
               variant="danger"
               onPress={() => finish(deleteCustomReminder(original.id), null)}
               style={styles.flex}
@@ -320,7 +344,7 @@ function ReminderForm({ target, onClose, onSaved }) {
         <View style={styles.row}>
           {original ? (
             <GradientButton
-              label="Delete"
+              label={translate('sheet.delete')}
               variant="danger"
               onPress={remove}
               style={styles.flex}
@@ -328,14 +352,14 @@ function ReminderForm({ target, onClose, onSaved }) {
             />
           ) : (
             <GradientButton
-              label="Cancel"
+              label={translate('sheet.cancel')}
               onPress={onClose}
               style={styles.flex}
               contentStyle={styles.actionContent}
             />
           )}
           <GradientButton
-            label="Save"
+            label={translate('common.save')}
             onPress={save}
             disabled={!!problem}
             style={styles.flex}
@@ -350,35 +374,38 @@ function ReminderForm({ target, onClose, onSaved }) {
 // What it'll do and the next days it falls on, in both calendars.
 function Summary({ draft, next }) {
   const { colors } = useAppTheme();
-  const body =
-    next.length === 0 ? "That time has passed — it won't go off." : null;
+  const translate = useTranslate();
+  const plain = usePlainInHebrew();
+  const body = next.length === 0 ? translate('sheet.passed') : null;
   return (
     <View
       style={[
         styles.summary,
         { borderColor: colors.cardBorderSoft, backgroundColor: colors.card },
       ]}
-      accessibilityLabel="Next dates"
+      accessibilityLabel={translate('sheet.nextDates')}
     >
       <Text style={[styles.summaryLine, { color: colors.text }]}>
-        {summaryLine(draft)}
+        {summaryLine(translate, draft)}
       </Text>
       {body ? (
         <Text style={[styles.muted, { color: colors.textMuted }]}>{body}</Text>
       ) : (
         <>
           {draft.repeat !== 'once' && (
-            <Text style={[styles.fieldLabel, { color: colors.textFaint }]}>
-              Next
+            <Text
+              style={[styles.fieldLabel, plain, { color: colors.textFaint }]}
+            >
+              {translate('sheet.next')}
             </Text>
           )}
           {next.map((date) => (
             <View key={date} style={styles.nextRow}>
               <Text style={[styles.nextDate, { color: colors.text }]}>
-                {shortDate(date, true)}
+                {shortDate(translate, date, true)}
               </Text>
               <Text style={[styles.hebrew, { color: colors.textMuted }]}>
-                {hebrewDateText(date)}
+                {hebrewDateText(translate, date)}
               </Text>
             </View>
           ))}
@@ -390,9 +417,10 @@ function Summary({ draft, next }) {
 
 function Field({ label: text, children }) {
   const { colors } = useAppTheme();
+  const plain = usePlainInHebrew();
   return (
     <View style={styles.field}>
-      <Text style={[styles.fieldLabel, { color: colors.textFaint }]}>
+      <Text style={[styles.fieldLabel, plain, { color: colors.textFaint }]}>
         {text}
       </Text>
       {children}

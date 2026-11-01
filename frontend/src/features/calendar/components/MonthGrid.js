@@ -1,8 +1,8 @@
 import { memo, useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
-import { longDate } from '../../../shared/i18n/format';
-import { useTranslate } from '../../../shared/i18n/translate';
+import { count, longDate } from '../../../shared/i18n/format';
+import { useLanguage, useTranslate } from '../../../shared/i18n/translate';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
 import { weekdayOf } from '../../../shared/utils/date';
 
@@ -10,16 +10,17 @@ const FRIDAY = 5;
 const SATURDAY = 6;
 const fadeIn = FadeIn.duration(300);
 
-const labelOf = (translate, day, isToday) => {
-  const greg = longDate(translate, day.date);
-  const names = day.events.map((e) => e.name.en);
-  return [
-    greg,
-    ...(isToday ? ['today'] : []),
+// What TalkBack reads for a day: its date, today, its Hebrew date, holidays, its reminders.
+const labelOf = (translate, language, day, isToday, reminderCount) =>
+  [
+    longDate(translate, day.date),
+    ...(isToday ? [translate('calendar.today')] : []),
     ...(day.hebrew ? [`${day.hebrew.dayHe} ${day.hebrew.month.he}`] : []),
-    ...names,
+    ...day.events.map((e) => e.name[language]),
+    ...(reminderCount
+      ? [count(translate, 'count.reminders', reminderCount)]
+      : []),
   ].join(', ');
-};
 
 // A fast outranks a holiday on the same day (red over cyan).
 function dotOf(day) {
@@ -58,6 +59,7 @@ export default memo(function MonthGrid({
 }) {
   const { colors } = useAppTheme();
   const translate = useTranslate();
+  const language = useLanguage();
   // Fade the Hebrew dates and dots in only if this grid first showed the bare numbers (its month
   // arrived late). A month already loaded — preloaded, then mounted beside the one in view during
   // a swipe — appears complete, not "loading".
@@ -78,7 +80,7 @@ export default memo(function MonthGrid({
           const dot = dotOf(day);
           const isToday = day.date === today;
           const isSelected = day.date === selected;
-          const count = reminders[day.date]?.length ?? 0;
+          const reminderCount = reminders[day.date]?.length ?? 0;
           // On the selected (filled) cell everything is drawn in the contrast color.
           const ink = (color) => (isSelected ? colors.onPrimary : color);
           const weekend = weekday === FRIDAY || weekday === SATURDAY;
@@ -88,10 +90,13 @@ export default memo(function MonthGrid({
               onPress={() => onSelect(day.date)}
               accessibilityRole="button"
               aria-selected={isSelected}
-              accessibilityLabel={
-                labelOf(translate, day, isToday) +
-                (count ? `, ${count} reminder${count === 1 ? '' : 's'}` : '')
-              }
+              accessibilityLabel={labelOf(
+                translate,
+                language,
+                day,
+                isToday,
+                reminderCount,
+              )}
               // Border always set, only its color changes — see frontend.md's "Bug patterns".
               style={[
                 styles.cell,
@@ -134,7 +139,7 @@ export default memo(function MonthGrid({
               />
               {showCounts && (
                 <Text style={[styles.count, { color: ink(colors.pending) }]}>
-                  {count > 99 ? '99+' : count || ' '}
+                  {reminderCount > 99 ? '99+' : reminderCount || ' '}
                 </Text>
               )}
             </Pressable>
