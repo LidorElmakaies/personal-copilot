@@ -67,3 +67,19 @@ export const hebrewDate = (translate, hebrew) =>
     month: hebrew.month.he,
     year: hebrew.yearHe,
   });
+
+// A length of time in minutes: "30m", "1h", "1h 30m" · "30 דק׳", "שעה", "שעה ו־30 דק׳".
+export function duration(translate, minutes) {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  const hours =
+    h === 1
+      ? translate('duration.hour')
+      : h === 2
+        ? translate('duration.twoHours')
+        : h && translate('duration.hours', { n: h });
+  const mins = m && translate('duration.minutes', { n: m });
+  if (hours && mins)
+    return translate('duration.both', { hours, minutes: mins });
+  return hours || mins || '';
+}

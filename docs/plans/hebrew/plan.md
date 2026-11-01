@@ -119,15 +119,28 @@ acted on only at start; an ordinary launch still opens on Home.
 
 **Try it:** nothing visible yet beyond H1, except `Alert`'s Hebrew story.
 **Docs:** `frontend.md` (how to add a string, the rule: no English literal in a component).
-**Feedback:** —
+**Feedback:** 2026-11-01, on 0.6.0-test.18 — `t`/`useT` didn't say what they do: renamed
+`translate`/`useTranslate` (`translateIn` outside React, `translate.js`). Asked, still open: do the
+Hebrew dates read naturally; a plain day's title "ראשון" or "יום ראשון"; Home's Hebrew date in the
+canvas's form (H3). Work moves to the branch `feature/hebrew`.
 
 ## Stage H3: Home
 
-- [ ] **H3.1** Home and its candle-lighting reminder sheet in both languages; Hebrew stories.
+- [x] **H3.1** Home and its candle-lighting reminder sheet in both languages; Hebrew stories.
+  *Done 2026-11-01:* `ShabbatSection` (the Shabbat line — hebcal's own Hebrew holiday and parasha
+  names, "שבת · פרשת חיי שרה" — the times' captions, the countdown and what TalkBack reads, the
+  location and loading states, נסו שוב) and `CandleReminder` (the button, the sheet, its units and
+  presets, "כל יום שישי · השבוע ב־14:57", the notifications nudges) — the canvas's copy where it
+  has one. `duration()` in `format.js` ("שעה ו־30 דק׳", "שעתיים"). Home's Hebrew date in Hebrew is
+  the canvas's "כ״א בחשון תשפ״ז"; in English it stays "21 חֶשְׁוָן 5787" (asked in H2's feedback).
+  Stories: `ShabbatSection` (Shabbat Shalom, locating, location off, load failed, last known
+  location — Hebrew ones), `CandleReminder` (English, Hebrew). Seen on the phone in Storybook:
+  Home, the sheet, the four states. Left for H5: Home's update chip.
 
 **Try it:** Home in Hebrew and English, both themes; the reminder sheet.
 **Feedback questions:** Shabbat times wording, the parasha line.
-**Feedback:** —
+**Feedback:** 2026-11-01, on 0.6.0-test.19 — "looks good". Not answered, so left as they are:
+Home's Hebrew date in English (stays "21 חֶשְׁוָן 5787"), a plain day's title "ראשון" (H4).
 
 ## Stage H4: Calendar and reminders
 

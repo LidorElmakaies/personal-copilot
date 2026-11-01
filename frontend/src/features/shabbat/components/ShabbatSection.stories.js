@@ -22,3 +22,26 @@ export default {
 export const ThisWeek = {};
 
 export const Hebrew = { parameters: { language: 'he' } };
+
+// Shabbat in progress: Shabbat Shalom, counting down to Havdalah.
+const SATURDAY = new Date('2026-10-31T12:00:00+02:00');
+export const ShabbatShalom = { args: { now: SATURDAY } };
+export const ShabbatShalomHebrew = {
+  parameters: { language: 'he' },
+  args: { now: SATURDAY },
+};
+
+// No times yet, or none to be had.
+export const Locating = { args: { shabbat: null } };
+export const LocationOff = {
+  args: { shabbat: null, locationStatus: 'denied' },
+};
+export const LoadFailed = { args: { shabbat: null, loadFailed: true } };
+export const LocationOffHebrew = {
+  parameters: { language: 'he' },
+  args: { shabbat: null, locationStatus: 'denied' },
+};
+export const LastKnownLocationHebrew = {
+  parameters: { language: 'he' },
+  args: { locationStatus: 'failed' },
+};

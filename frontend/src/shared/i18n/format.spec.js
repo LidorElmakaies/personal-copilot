@@ -1,5 +1,6 @@
 import {
   dayMonth,
+  duration,
   hebrewDate,
   longDate,
   monthTitle,
@@ -48,5 +49,24 @@ describe('date formatters', () => {
     const fridayEvening = new Date(2026, 9, 30, 16, 32);
     expect(shortDate(en, fridayEvening)).toBe('Fri 30 Oct');
     expect(shortDate(en, '2026-01-01')).toBe('Thu 1 Jan');
+  });
+});
+
+describe('duration', () => {
+  it('hours and minutes', () => {
+    expect([30, 60, 90, 120, 180].map((m) => duration(en, m))).toEqual([
+      '30m',
+      '1h',
+      '1h 30m',
+      '2h',
+      '3h',
+    ]);
+    expect([30, 60, 90, 120, 180].map((m) => duration(he, m))).toEqual([
+      '30 דק׳',
+      'שעה',
+      'שעה ו־30 דק׳',
+      'שעתיים',
+      '3 שעות',
+    ]);
   });
 });

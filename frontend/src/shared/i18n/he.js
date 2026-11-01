@@ -10,6 +10,55 @@ export default {
   'theme.systemDark': 'לפי המערכת · כהה',
   'theme.systemLight': 'לפי המערכת · בהיר',
 
+  'common.save': 'שמירה',
+  'common.retry': 'נסו שוב',
+
+  // Durations — format.js's duration().
+  'duration.hour': 'שעה',
+  'duration.twoHours': 'שעתיים',
+  'duration.hours': '{n} שעות',
+  'duration.minutes': '{n} דק׳',
+  'duration.both': '{hours} ו־{minutes}',
+
+  // Home's Shabbat times.
+  'shabbat.title': 'שבת',
+  'shabbat.titleWith': 'שבת · {occasion}',
+  'shabbat.shalom': 'שבת שלום',
+  'shabbat.candleLighting': 'הדלקת נרות',
+  'shabbat.havdalah': 'הבדלה',
+  'shabbat.days': 'ימים',
+  'shabbat.hours': 'שעות',
+  'shabbat.minutes': 'דקות',
+  'shabbat.untilCandles': 'עד הדלקת הנרות',
+  'shabbat.untilHavdalah': 'עד ההבדלה',
+  'shabbat.countdownCandles':
+    '{days} ימים, {hours} שעות ו־{minutes} דקות עד הדלקת הנרות',
+  'shabbat.countdownHavdalah':
+    '{days} ימים, {hours} שעות ו־{minutes} דקות עד ההבדלה',
+  'shabbat.lastKnown': 'לפי המיקום האחרון הידוע',
+  'shabbat.locationOff':
+    'המיקום כבוי. כדי לראות את זמני השבת לפי המיקום שלך, יש להפעיל אותו לאפליקציה ולהקיש על ״נסו שוב״.',
+  'shabbat.loadFailed': 'לא ניתן לטעון את זמני השבת.',
+  'shabbat.locating': 'מאתרים את המיקום שלך…',
+
+  // Home's candle-lighting reminder and its sheet.
+  'candles.remindMe': 'תזכורת לפני הדלקת הנרות',
+  'candles.on': 'תזכורת · {offset} לפני',
+  'candles.hours': 'שעות',
+  'candles.minutes': 'דק׳',
+  'candles.firesAt': 'כל יום שישי · השבוע ב־{time}',
+  'candles.nextWeek': 'כל יום שישי · הראשונה בשבוע הבא',
+  'candles.noLocation': 'כל יום שישי · התזכורת תתוזמן כשהמיקום יהיה ידוע',
+  'candles.notificationsOff':
+    'ההתראות כבויות בטלפון הזה, ולכן התזכורת לא תגיע אליך כאן.',
+  'candles.notificationsBlocked':
+    'ההתראות חסומות בהגדרות של אנדרואיד, ולכן התזכורת לא תגיע אליך כאן.',
+  'candles.notificationsUnsupported':
+    'המכשיר הזה לא יכול להציג התראות, ולכן התזכורת לא תגיע אליך כאן.',
+  'candles.turnOn': 'הפעלה',
+  'candles.openSettings': 'פתיחת ההגדרות',
+  'candles.turnOff': 'כיבוי',
+
   // Dates — src/shared/i18n/format.js puts these together.
   'date.long': 'יום {weekday}, {day} ב{month}',
   'date.short': '{weekday}, {day} ב{month}',

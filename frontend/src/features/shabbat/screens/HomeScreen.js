@@ -13,8 +13,8 @@ import CandleReminder from '../components/CandleReminder';
 import ShabbatSection from '../components/ShabbatSection';
 import { UpdateChip } from '../../app-update';
 import GlowCard from '../../../shared/components/base/layout/GlowCard';
-import { weekdayMonth } from '../../../shared/i18n/format';
-import { useTranslate } from '../../../shared/i18n/translate';
+import { hebrewDate, weekdayMonth } from '../../../shared/i18n/format';
+import { useLanguage, useTranslate } from '../../../shared/i18n/translate';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
 import { fetchShabbat } from '../../calendar';
 import { locate } from '../../../shared/device/locationSlice';
@@ -28,14 +28,23 @@ function formatNumericDate(date) {
 }
 
 // @hebcal/hdate rather than Intl's 'he-u-ca-hebrew' calendar — see frontend/README.md for why.
-// render('he')'s comma is stripped to match the approved mockup's "14 Tishrei 5787" spacing.
-function formatHebrewDate(date) {
-  return new HDate(date).render('he').replace(',', '');
+// English: render('he')'s comma stripped, as the approved mockup's "14 Tishrei 5787". Hebrew: in
+// letters, as the Hebrew canvas — "כ״א בחשון תשפ״ז" (a month can be two words: "אדר א׳").
+function formatHebrewDate(date, translate, language) {
+  const hdate = new HDate(date);
+  if (language !== 'he') return hdate.render('he').replace(',', '');
+  const words = hdate.renderGematriya(true).split(' ');
+  return hebrewDate(translate, {
+    dayHe: words[0],
+    month: { he: words.slice(1, -1).join(' ') },
+    yearHe: words.at(-1),
+  });
 }
 
 export default function HomeScreen() {
   const { colors } = useAppTheme();
   const translate = useTranslate();
+  const language = useLanguage();
   const dispatch = useDispatch();
   const location = useSelector((state) => state.location);
   const calendar = useSelector((state) => state.calendar);
@@ -64,7 +73,7 @@ export default function HomeScreen() {
 
   const time = `${pad2(now.getHours())}:${pad2(now.getMinutes())}:${pad2(now.getSeconds())}`;
   const numericDate = formatNumericDate(now);
-  const hebrewDate = formatHebrewDate(now);
+  const hebrewDateText = formatHebrewDate(now, translate, language);
   // Eight monospace digits at 56pt need ~285px — more than a 320-wide phone's card has. Scale down
   // to the card's text width (screen minus container + card padding), capped by its maxWidth.
   const { width } = useWindowDimensions();
@@ -93,7 +102,7 @@ export default function HomeScreen() {
               {weekdayMonth(translate, now)}
             </Text>
             <Text style={[styles.hebrewDate, { color: colors.accent }]}>
-              {hebrewDate}
+              {hebrewDateText}
             </Text>
           </View>
 

@@ -11,6 +11,56 @@ export default {
   'theme.systemDark': 'Following system · dark',
   'theme.systemLight': 'Following system · light',
 
+  'common.save': 'Save',
+  'common.retry': 'Retry',
+
+  // Durations — format.js's duration().
+  'duration.hour': '1h',
+  'duration.twoHours': '2h',
+  'duration.hours': '{n}h',
+  'duration.minutes': '{n}m',
+  'duration.both': '{hours} {minutes}',
+
+  // Home's Shabbat times.
+  'shabbat.title': 'Shabbat',
+  'shabbat.titleWith': 'Shabbat · {occasion}',
+  'shabbat.shalom': 'Shabbat Shalom',
+  'shabbat.candleLighting': 'Candle lighting',
+  'shabbat.havdalah': 'Havdalah',
+  'shabbat.days': 'days',
+  'shabbat.hours': 'hrs',
+  'shabbat.minutes': 'min',
+  'shabbat.untilCandles': 'until candle lighting',
+  'shabbat.untilHavdalah': 'until Havdalah',
+  'shabbat.countdownCandles':
+    '{days} days {hours} hours {minutes} minutes until candle lighting',
+  'shabbat.countdownHavdalah':
+    '{days} days {hours} hours {minutes} minutes until Havdalah',
+  'shabbat.lastKnown': 'using your last known location',
+  'shabbat.locationOff':
+    'Location is off. Turn it on for this app to see Shabbat times where you are, then tap Retry.',
+  'shabbat.loadFailed': "Couldn't load Shabbat times.",
+  'shabbat.locating': 'Finding your location…',
+
+  // Home's candle-lighting reminder and its sheet.
+  'candles.remindMe': 'Remind me before candle lighting',
+  'candles.on': 'Reminder · {offset} before',
+  'candles.hours': 'hours',
+  'candles.minutes': 'min',
+  'candles.firesAt': 'Every Friday · fires at {time} this week',
+  'candles.nextWeek': 'Every Friday · first one next week',
+  'candles.noLocation':
+    "Every Friday · We'll schedule it once we know your location",
+  'candles.notificationsOff':
+    "Notifications are off on this phone, so the reminder won't reach you here.",
+  'candles.notificationsBlocked':
+    "Notifications are blocked in Android settings, so the reminder won't reach you here.",
+  'candles.notificationsUnsupported':
+    "This device can't show notifications, so the reminder won't reach you here.",
+  'candles.turnOn': 'Turn on',
+  'candles.openSettings': 'Open settings',
+  'candles.turnOff': 'Turn off',
+
   // Dates — src/shared/i18n/format.js puts these together.
   'date.long': '{weekday} {day} {month}',
   'date.short': '{weekday} {day} {month}',
