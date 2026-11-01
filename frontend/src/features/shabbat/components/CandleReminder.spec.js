@@ -3,6 +3,7 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 import { Provider } from 'react-redux';
 import * as localNotifications from '../../../shared/device/localNotificationsService';
 import notificationsReducer from '../../../shared/device/notificationsSlice';
+import languageReducer from '../../../shared/i18n/languageSlice';
 import remindersReducer from '../store/remindersSlice';
 import CandleReminder from './CandleReminder';
 
@@ -53,6 +54,7 @@ function makeStore(notifications) {
   const initial = notificationsReducer(undefined, { type: '@@init' });
   return configureStore({
     reducer: {
+      language: languageReducer,
       notifications: notificationsReducer,
       reminders: remindersReducer,
       location: (state = { coords: { latitude: 32.08, longitude: 34.78 } }) =>

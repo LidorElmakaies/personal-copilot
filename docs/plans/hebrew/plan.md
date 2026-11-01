@@ -82,13 +82,40 @@ acted on only at start; an ordinary launch still opens on Home.
 
 ## Stage H2: the words layer
 
-- [ ] **H2.1 `src/shared/i18n/`** — `en.js`, `he.js` (the same keys), `useT()` / `t(key, vars)`
+- [x] **H2.1 `src/shared/i18n/`** — `en.js`, `he.js` (the same keys), `useT()` / `t(key, vars)`
   from the language state; a test that every English key has a Hebrew one.
-- [ ] **H2.2 Dates and numbers** — month and day names, the Hebrew calendar's (already Hebrew),
+  *Done 2026-11-01:* flat `'area.name'` keys, `{name}` placeholders; `translate.js`:
+  `translateIn(code, key, vars)` (for thunks — H4.2), `useTranslate()` → `translate(key, vars)`,
+  `useLanguage()`; an unknown key shows as itself. (Named `t`/`useT` at first — renamed at the
+  user's ask: `translate` says what it does.) No
+  library. `i18n.spec.js`: the same keys, no empty text, the same placeholders in both. First user:
+  the Settings tab (canvas copy). A story picks its language with `parameters: { language: 'he' }`
+  (`StoryFrame`'s `LanguageOverride`) — the app's saved language, persisted, stays as it is.
+- [x] **H2.2 Dates and numbers** — month and day names, the Hebrew calendar's (already Hebrew),
   times, ₪ amounts — one formatter per kind, in the chosen language; tests.
-- [ ] **H2.3 Text direction** — Text aligns to the language (the docs: `textAlign` defaults to
+  *Done 2026-11-01:* `src/shared/i18n/format.js` — `longDate`, `shortDate`, `dayMonth`,
+  `weekdayMonth`, `monthTitle`, `hebrewDate`, each `(t, date)`; names from the dictionaries, not
+  `Intl` (Hermes's locale data isn't Node's, and the canvas's forms — "שישי, 30 באוק׳" — aren't
+  `Intl`'s). Every date in the app moved over (Home, Shabbat times, the month title and weekday
+  letters, DayCard, "Show all", Finance's month and day headings); the old English-only
+  `longDate`/`formatDay`/`monthTitle` are gone. Times, numbers and ₪ read the same in both. Left
+  for H4.1: the reminder sentences in `customReminders.js` ("Once · Fri 30 Oct") keep their own
+  English names until they're translated as a whole. Stories (English + Hebrew): `DayCard`,
+  `MonthGrid`, `ShabbatSection`, `RemindersSheet`, `FinanceHeader`, `EntryList`, Home and Calendar
+  screens; example data `calendar/mocks/`.
+- [x] **H2.3 Text direction** — Text aligns to the language (the docs: `textAlign` defaults to
   physical left); fixed once in the shared components, not per screen. Includes `Alert`'s Hebrew
   found in U0.4.
+  *Done 2026-11-01:* measured on the phone first: in the mirrored app an unset `textAlign` already
+  starts on the right for any text (English, Hebrew, digits) — `'left'`/`'right'` are the start/end
+  of the surrounding direction, so only an explicit `'right'` went wrong (DayCard's Hebrew lines;
+  now `'right'` in English only). `StoryFrame` lays a story out in its language's direction —
+  `Alert`'s Hebrew story is right to left in the English app too. In Hebrew, small-caps labels
+  drop their capitals and letter-spacing (canvas): `usePlainInHebrew()`, in `GradientButton`,
+  `InputField`, `SelectField`, `Stepper`, and the labels of the components touched here; the
+  rest as H3–H5 reach them. Stories: those four, `Alert`'s Hebrew. Seen on the phone in Storybook
+  (dev build, Hebrew): Settings, DayCard, MonthGrid, ShabbatSection, Alert, the form fields,
+  Home and Calendar.
 
 **Try it:** nothing visible yet beyond H1, except `Alert`'s Hebrew story.
 **Docs:** `frontend.md` (how to add a string, the rule: no English literal in a component).

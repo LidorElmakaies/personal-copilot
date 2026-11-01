@@ -1,14 +1,6 @@
 import { pad2 } from '../../../shared/utils/time';
 import { monthAt, weekdayOf } from '../../../shared/utils/date';
 
-// "September 2026".
-export const monthTitle = ({ year, month }) =>
-  new Date(Date.UTC(year, month - 1, 1)).toLocaleDateString('en-US', {
-    timeZone: 'UTC',
-    month: 'long',
-    year: 'numeric',
-  });
-
 // "אלול – תשרי תשפ״ז": the Hebrew months a Gregorian month spans, and the year it ends in.
 export function hebrewTitle(days) {
   const months = [...new Set(days.map((d) => d.hebrew.month.he))];

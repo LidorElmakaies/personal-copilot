@@ -15,3 +15,6 @@ export const EarlierMonth = {
   args: { month: { year: 2026, month: 9 } },
   argTypes: { onNext: { action: 'next' } },
 };
+
+// The month in Hebrew.
+export const Hebrew = { parameters: { language: 'he' } };

@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import GlowCard from '../../../shared/components/base/layout/GlowCard';
+import { usePlainInHebrew, useTranslate } from '../../../shared/i18n/translate';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
 
 // Each in its own language, in the same order whichever is picked.
@@ -12,12 +13,14 @@ const LANGUAGES = [
 // `onChange(code)`. Presentational; the screen owns Redux.
 export default function LanguageCard({ value, onChange }) {
   const { colors } = useAppTheme();
+  const translate = useTranslate();
+  const plain = usePlainInHebrew();
 
   return (
     <View style={styles.box}>
       <GlowCard>
-        <Text style={[styles.label, { color: colors.textMuted }]}>
-          Language
+        <Text style={[styles.label, plain, { color: colors.textMuted }]}>
+          {translate('settings.language')}
         </Text>
         {LANGUAGES.map(({ code, label }, i) => {
           const on = code === value;
@@ -64,7 +67,7 @@ export default function LanguageCard({ value, onChange }) {
         })}
       </GlowCard>
       <Text style={[styles.note, { color: colors.textMuted }]}>
-        Changing the language restarts the app.
+        {translate('settings.restartNote')}
       </Text>
     </View>
   );

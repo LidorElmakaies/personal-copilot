@@ -124,7 +124,7 @@ feature's `components/` (listed under `composite/` below with its feature):
   entry: what for, "category · paid with · N photos", the "not sent"/"matched" badges, the amount;
   `entry`, `category`, `onPress`), `EntryList` (from `GlowCard`, `EntryRow` — newest first under
   day headings; `entries`, `categories`, `today`, `onPressEntry`); `finance/utils/format.js` holds
-  `formatShekels` (whole agorot → "₪284.90"), `dayLabel` and `paidWithLabel`; account: `ProfileFields`, `RequireAuthNotice`, `SystemStatus` and
+  `formatShekels` (whole agorot → "₪284.90", the same in both languages), `dayLabel(translate, …)` and `paidWithLabel`; account: `ProfileFields`, `RequireAuthNotice`, `SystemStatus` and
   the Account tab's cards but `ThemeCard`. Each: `AmbientBackground` (from `Meteors`, `Stars`), `SwipeTabs` (from
   `TabPager` — the `(tabs)` navigator: Expo Router's `withLayoutContext` + `TabRouter`, the screens
   side by side; `order`, `canEnter`, `onBlocked`, `tabBar({ navigation, activeName })`), `ConfirmModal` (from
@@ -215,6 +215,22 @@ when a component genuinely needs something no thunk/selector combination can giv
 
 ## Non-negotiables
 
+- **No English literal in a component** — every word on screen is `translate('area.name')` from
+  `useTranslate()` (`src/shared/i18n/translate.js`, the language picked in Settings;
+  `translateIn(code, key, vars)` in a thunk). A new string: one key in `en.js` and the same key in
+  `he.js` (canvas copy first), `{name}` for a value — `translate('x.count', { n })`;
+  `i18n.spec.js` fails if a key or a placeholder is missing in either. Names that are always in
+  their own language (English / עברית in `LanguageCard`) stay literals. (Being moved over screen
+  by screen — `docs/plans/hebrew/` H3–H5.)
+- **Dates through `src/shared/i18n/format.js`**, never `toLocaleDateString`: `longDate`,
+  `shortDate`, `dayMonth`, `weekdayMonth`, `monthTitle`, `hebrewDate` — each `(translate, date)`,
+  the names from the dictionaries (`month.N`, `weekday.N`, `weekdayLetter.N`…), so the phone and
+  Jest agree. Times ("18:12"), numbers and ₪ read the same in both languages.
+- **Text lines up by itself**: in Hebrew everything starts on the right. `textAlign` `'left'` and
+  `'right'` mean the start and end of the surrounding direction, not sides of the screen — leave
+  it unset for ordinary text (see "Bug patterns"). A small-caps label (capitals, letter-spacing)
+  adds `usePlainInHebrew()` after its style; `useLanguage()` gives `'en' | 'he'` where a component
+  must differ.
 - Build-time values come from `src/shared/config/`: `urls.js` (`URLS.gateway` from
   `EXPO_PUBLIC_GATEWAY_ORIGIN`, `null` if unset — every API call, used only by the
   dormant login/account screens; `apkRegistry` from
@@ -333,6 +349,11 @@ hit" below).
   `I18nManager.isRTL ? -1 : 1` (`SwipePager`'s `DIR`, `Switch`, the headers' `flip`). Text arrows
   (‹ › ) mirror by themselves. Something that must not mirror gets `direction: 'ltr'` — the tab bar
   and `TabPager` keep the English order (the user's call), each page set back to the app's direction.
+- **`textAlign: 'right'` is the end of the line, not the right side.** Measured on the phone (H2.3):
+  in the mirrored app unset and `'left'` both start on the right and `'right'` lands on the left,
+  for English, Hebrew and digits alike; inside a `direction: 'ltr'` view they follow that view.
+  DayCard's Hebrew lines (`'right'` in English) jumped to the left in Hebrew — they now drop it
+  there. `writingDirection` doesn't move a line at all.
 - **Toggle a style prop's value, not its presence, on Android.** A `borderWidth` added after mount
   drew with square corners (lost its `borderRadius`); keep the border always set and switch its
   color to `'transparent'` instead. Likewise a translucent `borderTop` drew near-white — use a
@@ -366,6 +387,12 @@ unused native library.
   the file's path. A handler prop gets `argTypes: { onPress: { action: 'pressed' } }` — the
   Actions panel logs the calls. A `Error` export would shadow the global: name it `ErrorVariant`
   with `name: 'Error'`.
+- **A Hebrew story** sets `parameters: { language: 'he' }`: `StoryFrame` hands `useTranslate()` that
+  language (`LanguageOverride`) without touching the app's saved one, and lays the story out in its
+  direction (`direction: 'rtl'`), so it is right to left in the English app too. (Motion flipped
+  by `I18nManager.isRTL` — `Switch`, `SwipePager` — still follows the app's own direction.)
+  The calendar's example data, from the app's own maths: `calendar/mocks/` (Tel Aviv, October
+  2026, "now" 27 Oct).
 - **Every story** renders inside the app's real store once rehydrated (`.rnstorybook/preview.js`,
   `PersistGate`) and `StoryFrame`: the system's light/dark (it clears a saved theme mode), the
   app's background, padding

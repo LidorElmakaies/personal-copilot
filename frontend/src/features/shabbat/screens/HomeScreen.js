@@ -13,6 +13,8 @@ import CandleReminder from '../components/CandleReminder';
 import ShabbatSection from '../components/ShabbatSection';
 import { UpdateChip } from '../../app-update';
 import GlowCard from '../../../shared/components/base/layout/GlowCard';
+import { weekdayMonth } from '../../../shared/i18n/format';
+import { useTranslate } from '../../../shared/i18n/translate';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
 import { fetchShabbat } from '../../calendar';
 import { locate } from '../../../shared/device/locationSlice';
@@ -33,6 +35,7 @@ function formatHebrewDate(date) {
 
 export default function HomeScreen() {
   const { colors } = useAppTheme();
+  const translate = useTranslate();
   const dispatch = useDispatch();
   const location = useSelector((state) => state.location);
   const calendar = useSelector((state) => state.calendar);
@@ -61,8 +64,6 @@ export default function HomeScreen() {
 
   const time = `${pad2(now.getHours())}:${pad2(now.getMinutes())}:${pad2(now.getSeconds())}`;
   const numericDate = formatNumericDate(now);
-  const weekday = now.toLocaleDateString('en-US', { weekday: 'long' });
-  const monthName = now.toLocaleDateString('en-US', { month: 'long' });
   const hebrewDate = formatHebrewDate(now);
   // Eight monospace digits at 56pt need ~285px — more than a 320-wide phone's card has. Scale down
   // to the card's text width (screen minus container + card padding), capped by its maxWidth.
@@ -89,7 +90,7 @@ export default function HomeScreen() {
               {numericDate}
             </Text>
             <Text style={[styles.dateLong, { color: colors.textFaint }]}>
-              {weekday}, {monthName}
+              {weekdayMonth(translate, now)}
             </Text>
             <Text style={[styles.hebrewDate, { color: colors.accent }]}>
               {hebrewDate}

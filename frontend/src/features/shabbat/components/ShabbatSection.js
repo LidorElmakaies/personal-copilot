@@ -1,7 +1,9 @@
 import { StyleSheet, Text, View } from 'react-native';
 import GradientButton from '../../../shared/components/base/buttons/GradientButton';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
-import { formatDay, formatTime, pad2 } from '../../../shared/utils/time';
+import { shortDate } from '../../../shared/i18n/format';
+import { usePlainInHebrew, useTranslate } from '../../../shared/i18n/translate';
+import { formatTime, pad2 } from '../../../shared/utils/time';
 
 function countdownParts(from, to) {
   const totalMinutes = Math.max(0, Math.floor((to - from) / 60000));
@@ -23,6 +25,8 @@ export default function ShabbatSection({
   footer,
 }) {
   const { colors } = useAppTheme();
+  const translate = useTranslate();
+  const plain = usePlainInHebrew();
 
   if (!shabbat) {
     return (
@@ -53,7 +57,9 @@ export default function ShabbatSection({
 
   return (
     <View style={[styles.section, { borderTopColor: colors.cardBorderSoft }]}>
-      <Text style={[styles.label, { color: colors.textFaint }]}>{label}</Text>
+      <Text style={[styles.label, plain, { color: colors.textFaint }]}>
+        {label}
+      </Text>
 
       <View style={styles.times}>
         <View>
@@ -64,7 +70,7 @@ export default function ShabbatSection({
             {formatTime(candleLighting)}
           </Text>
           <Text style={[styles.timeCaption, { color: colors.textMuted }]}>
-            {formatDay(candleLighting)}
+            {shortDate(translate, candleLighting)}
           </Text>
         </View>
         <View style={styles.alignEnd}>
@@ -75,7 +81,7 @@ export default function ShabbatSection({
             {formatTime(havdalah)}
           </Text>
           <Text style={[styles.timeCaption, { color: colors.textMuted }]}>
-            {formatDay(havdalah)}
+            {shortDate(translate, havdalah)}
           </Text>
         </View>
       </View>
@@ -96,7 +102,9 @@ export default function ShabbatSection({
             <Text style={[styles.countdownValue, { color: colors.accent }]}>
               {value}
             </Text>
-            <Text style={[styles.countdownUnit, { color: colors.textFaint }]}>
+            <Text
+              style={[styles.countdownUnit, plain, { color: colors.textFaint }]}
+            >
               {unit}
             </Text>
           </View>

@@ -8,7 +8,8 @@ import {
   View,
 } from 'react-native';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
-import { longDate } from '../../../shared/utils/date';
+import { longDate } from '../../../shared/i18n/format';
+import { useTranslate } from '../../../shared/i18n/translate';
 import { pad2 } from '../../../shared/utils/time';
 import BottomSheet from '../../../shared/components/base/layout/BottomSheet';
 import { ReminderRow } from './ReminderRow';
@@ -25,6 +26,7 @@ export default function RemindersSheet({
   onPressReminder,
 }) {
   const { colors } = useAppTheme();
+  const translate = useTranslate();
   const { height } = useWindowDimensions();
   const { rows, headers } = useMemo(() => groupByHour(reminders), [reminders]);
 
@@ -32,7 +34,9 @@ export default function RemindersSheet({
     <BottomSheet visible={!!date} onClose={onClose} dragFromHandle>
       <View style={styles.head}>
         <Text style={[styles.title, { color: colors.text }]}>
-          {date ? `${reminders.length} reminders · ${longDate(date)}` : ''}
+          {date
+            ? `${reminders.length} reminders · ${longDate(translate, date)}`
+            : ''}
         </Text>
         <Pressable
           onPress={onClose}

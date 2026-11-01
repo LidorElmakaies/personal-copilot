@@ -162,8 +162,12 @@ are laid out `direction: 'ltr'`); each screen inside is mirrored.
   direction changes, `layoutDirectionService` sets Android's `I18nManager.forceRTL` and restarts the
   app with `expo`'s `reloadAppAsync()` — Android applies right-to-left only at start. Before the
   restart it saves `reopenSettings`; the tabs layout, finding it at start, opens Settings and clears
-  it, so the restart lands back where the change was made. The app's
-  words stay English until `docs/plans/hebrew/` H2.
+  it, so the restart lands back where the change was made. The words
+  come from `src/shared/i18n/` (`en.js`, `he.js` — the same keys; `useTranslate()` → `translate(key, vars)` in the
+  saved language, `translateIn(code, key, vars)` outside React); Settings uses them, and every date is
+  put together by `src/shared/i18n/format.js` in the chosen language (month and weekday names from
+  the dictionaries; times, numbers and ₪ the same in both); the rest stays English until
+  `docs/plans/hebrew/` H3–H5.
 
 - `(tabs)/index` (Home — the landing tab, no session required: live clock, today's Gregorian date,
   and today's Hebrew/Jewish date via `@hebcal/hdate`, chosen over `Intl`'s `'he-u-ca-hebrew'`

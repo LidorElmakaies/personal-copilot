@@ -1,4 +1,8 @@
+import { translateIn } from '../../../shared/i18n/translate';
 import { dayLabel, formatShekels, paidWithLabel } from './format';
+
+const en = (key, vars) => translateIn('en', key, vars);
+const he = (key, vars) => translateIn('he', key, vars);
 
 describe('formatShekels', () => {
   it.each([
@@ -14,10 +18,11 @@ describe('formatShekels', () => {
 
 describe('dayLabel', () => {
   it('names today and yesterday, else the month and day', () => {
-    expect(dayLabel('2026-10-27', '2026-10-27')).toBe('Today');
-    expect(dayLabel('2026-10-26', '2026-10-27')).toBe('Yesterday');
-    expect(dayLabel('2026-10-25', '2026-10-27')).toBe('Oct 25');
-    expect(dayLabel('2026-09-30', '2026-10-01')).toBe('Yesterday');
+    expect(dayLabel(en, '2026-10-27', '2026-10-27')).toBe('Today');
+    expect(dayLabel(en, '2026-10-26', '2026-10-27')).toBe('Yesterday');
+    expect(dayLabel(en, '2026-10-25', '2026-10-27')).toBe('Oct 25');
+    expect(dayLabel(he, '2026-10-25', '2026-10-27')).toBe('25 באוק׳');
+    expect(dayLabel(en, '2026-09-30', '2026-10-01')).toBe('Yesterday');
   });
 });
 

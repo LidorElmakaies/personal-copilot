@@ -1,12 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-import {
-  I18nManager,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { I18nManager, Pressable, StyleSheet, Text, View } from 'react-native';
 import PillButton from '../../../shared/components/base/buttons/PillButton';
+import { monthTitle } from '../../../shared/i18n/format';
+import { useTranslate } from '../../../shared/i18n/translate';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
 
 // The Finance tab's title row (screen 1): "Finance", ‹ month › under it, the Monthly check pill.
@@ -18,13 +14,8 @@ export default function FinanceHeader({
   onMonthlyCheck,
 }) {
   const { colors } = useAppTheme();
-  const title = new Date(
-    Date.UTC(month.year, month.month - 1),
-  ).toLocaleDateString('en-GB', {
-    timeZone: 'UTC',
-    month: 'long',
-    year: 'numeric',
-  });
+  const translate = useTranslate();
+  const title = monthTitle(translate, month);
   const arrow = (icon, label, onPress) => (
     <Pressable
       onPress={onPress}

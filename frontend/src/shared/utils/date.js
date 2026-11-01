@@ -32,12 +32,3 @@ export const utcDay = (date) => new Date(`${date}T00:00:00Z`);
 
 // Weekday of a YYYY-MM-DD date, 0 = Sunday.
 export const weekdayOf = (date) => utcDay(date).getUTCDay();
-
-// "Saturday 19 September".
-export const longDate = (date) =>
-  utcDay(date).toLocaleDateString('en-GB', {
-    timeZone: 'UTC',
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-  });

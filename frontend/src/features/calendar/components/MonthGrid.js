@@ -1,21 +1,17 @@
 import { memo, useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
+import { longDate } from '../../../shared/i18n/format';
+import { useTranslate } from '../../../shared/i18n/translate';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
-import { utcDay, weekdayOf } from '../../../shared/utils/date';
+import { weekdayOf } from '../../../shared/utils/date';
 
-const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 const FRIDAY = 5;
 const SATURDAY = 6;
 const fadeIn = FadeIn.duration(300);
 
-const labelOf = (day, isToday) => {
-  const greg = utcDay(day.date).toLocaleDateString('en-US', {
-    timeZone: 'UTC',
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-  });
+const labelOf = (translate, day, isToday) => {
+  const greg = longDate(translate, day.date);
   const names = day.events.map((e) => e.name.en);
   return [
     greg,
@@ -35,11 +31,12 @@ function dotOf(day) {
 // draws one above its swipe, so the letters stay put while the days slide.
 export function WeekdayRow() {
   const { colors } = useAppTheme();
+  const translate = useTranslate();
   return (
     <View style={styles.row}>
-      {WEEKDAYS.map((d, i) => (
+      {[0, 1, 2, 3, 4, 5, 6].map((i) => (
         <Text key={i} style={[styles.weekday, { color: colors.textFaint }]}>
-          {d}
+          {translate(`weekdayLetter.${i}`)}
         </Text>
       ))}
     </View>
@@ -60,6 +57,7 @@ export default memo(function MonthGrid({
   reminders = NO_REMINDERS,
 }) {
   const { colors } = useAppTheme();
+  const translate = useTranslate();
   // Fade the Hebrew dates and dots in only if this grid first showed the bare numbers (its month
   // arrived late). A month already loaded — preloaded, then mounted beside the one in view during
   // a swipe — appears complete, not "loading".
@@ -91,7 +89,7 @@ export default memo(function MonthGrid({
               accessibilityRole="button"
               aria-selected={isSelected}
               accessibilityLabel={
-                labelOf(day, isToday) +
+                labelOf(translate, day, isToday) +
                 (count ? `, ${count} reminder${count === 1 ? '' : 's'}` : '')
               }
               // Border always set, only its color changes — see frontend.md's "Bug patterns".

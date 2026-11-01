@@ -5,6 +5,8 @@ import FloatingButton from '../../../shared/components/base/buttons/FloatingButt
 import GlowCard from '../../../shared/components/base/layout/GlowCard';
 import SwipePager from '../../../shared/components/base/layout/SwipePager';
 import AmbientBackground from '../../../shared/components/composite/AmbientBackground';
+import { monthTitle } from '../../../shared/i18n/format';
+import { useTranslate } from '../../../shared/i18n/translate';
 import { locate } from '../../../shared/device/locationSlice';
 import { israelIsoDate, monthAt, monthIndex } from '../../../shared/utils/date';
 import {
@@ -19,17 +21,13 @@ import MonthGrid, { WeekdayRow } from '../components/MonthGrid';
 import MonthHeader from '../components/MonthHeader';
 import MonthStatus from '../components/MonthStatus';
 import { fetchMonth, loadMonthsAround, PRELOAD } from '../store/calendarSlice';
-import {
-  hebrewTitle,
-  monthTitle,
-  openingDate,
-  placeholderDays,
-} from '../utils/calendar';
+import { hebrewTitle, openingDate, placeholderDays } from '../utils/calendar';
 
 // Times and holidays are for the device's location — the same one Home uses. The user's own
 // reminders are shown over the loaded months; the + adds one to the selected day.
 export default function CalendarScreen() {
   const dispatch = useDispatch();
+  const translate = useTranslate();
   const location = useSelector((state) => state.location);
   const months = useSelector((state) => state.calendar.months);
   const dayReminders = useSelector(selectDayReminders);
@@ -121,7 +119,7 @@ export default function CalendarScreen() {
       <ScrollView contentContainerStyle={styles.container}>
         <GlowCard style={styles.panel}>
           <MonthHeader
-            title={monthTitle(monthAt(inView))}
+            title={monthTitle(translate, monthAt(inView))}
             hebrewTitle={inViewDays ? hebrewTitle(inViewDays) : null}
             onPrevious={() => pager.current?.go(-1)}
             onNext={() => pager.current?.go(1)}

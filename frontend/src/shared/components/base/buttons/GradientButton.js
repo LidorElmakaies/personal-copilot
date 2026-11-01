@@ -9,6 +9,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
+import { usePlainInHebrew } from '../../../i18n/translate';
 import { useAppTheme } from '../../../theme/useAppTheme';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -32,6 +33,7 @@ export default function GradientButton({
   contentStyle,
 }) {
   const { isDark, colors } = useAppTheme();
+  const plain = usePlainInHebrew();
   const pressed = useSharedValue(0);
   const [width, setWidth] = useState(200);
   const isDanger = variant === 'danger';
@@ -137,7 +139,7 @@ export default function GradientButton({
         {loading ? (
           <ActivityIndicator color={tint} />
         ) : (
-          <Text style={[styles.label, { color: tint }]}>{label}</Text>
+          <Text style={[styles.label, plain, { color: tint }]}>{label}</Text>
         )}
       </Animated.View>
     </AnimatedPressable>

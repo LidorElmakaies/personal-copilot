@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { usePlainInHebrew } from '../../../i18n/translate';
 import { useAppTheme } from '../../../theme/useAppTheme';
 
 // − value + control for a bounded number. Clamps to [min, max]; a value off the step grid moves to
@@ -13,6 +14,7 @@ export default function Stepper({
   style,
 }) {
   const { colors } = useAppTheme();
+  const plain = usePlainInHebrew();
   const down = Math.max(min, Math.ceil(value / step) * step - step);
   const up = Math.min(max, Math.floor(value / step) * step + step);
 
@@ -44,7 +46,9 @@ export default function Stepper({
       {button('−', down, value <= min, 'Fewer')}
       <View style={styles.middle} accessibilityLabel={`${value} ${unit}`}>
         <Text style={[styles.value, { color: colors.text }]}>{value}</Text>
-        <Text style={[styles.unit, { color: colors.textFaint }]}>{unit}</Text>
+        <Text style={[styles.unit, plain, { color: colors.textFaint }]}>
+          {unit}
+        </Text>
       </View>
       {button('+', up, value >= max, 'More')}
     </View>

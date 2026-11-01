@@ -17,3 +17,6 @@ export const FiftyEntries = {
     ),
   },
 };
+
+// The day headings' dates in Hebrew ("25 באוק׳").
+export const Hebrew = { parameters: { language: 'he' } };

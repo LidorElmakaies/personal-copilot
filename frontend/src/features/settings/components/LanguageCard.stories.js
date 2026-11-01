@@ -11,4 +11,7 @@ const Picker = ({ initial }) => {
 
 export const English = { render: () => <Picker initial="en" /> };
 
-export const Hebrew = { render: () => <Picker initial="he" /> };
+export const Hebrew = {
+  parameters: { language: 'he' },
+  render: () => <Picker initial="he" />,
+};
