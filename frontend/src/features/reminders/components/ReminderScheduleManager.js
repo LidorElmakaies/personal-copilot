@@ -22,20 +22,18 @@ function openPage(url) {
   }
 }
 
-// Keeps the phone's reminder notifications scheduled: on start (inside PersistGate, so the saved
-// reminders are back — also the first start after an update), on return to the foreground and
-// when the location really moves (~1 km, placeOf — not GPS wobble); registers the daily background
-// run. Makes the `reminders` channel and keeps Android's notification permission known (re-read on
-// return to the foreground). A tap on a notification opens its page (`data.url`). Renders nothing.
+// Keeps the phone's reminder notifications scheduled and the permission known; renders nothing.
+// Inside PersistGate, so the saved reminders are back. Triggers: docs/specs/services.md#frontend.
 export default function ReminderScheduleManager() {
   const dispatch = useDispatch();
   const place = useSelector((state) =>
     state.location.coords ? placeOf(state.location.coords) : null,
   );
+  const language = useSelector((state) => state.language.code);
 
   useEffect(() => {
     dispatch(reconcileReminderNotifications());
-  }, [place, dispatch]);
+  }, [place, language, dispatch]);
 
   useEffect(() => {
     dispatch(registerBackgroundReconcile());

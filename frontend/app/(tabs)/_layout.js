@@ -6,36 +6,42 @@ import CustomTabBar from '../../src/shared/components/base/layout/CustomTabBar';
 import ConfirmModal from '../../src/shared/components/composite/ConfirmModal';
 import SwipeTabs from '../../src/shared/components/composite/SwipeTabs';
 import { setReopenSettings } from '../../src/shared/i18n/languageSlice';
+import { useTranslate } from '../../src/shared/i18n/translate';
 
 // One entry per tab (bar + Tabs.Screen below); icon set per DESIGN.md's "Navigation" section.
 // `requiresAuth: true` opts a tab into the guard below (a tap or a swipe onto it while signed out
 // asks to log in instead) — see .claude/agents/frontend.md. `requiresRole: 'admin'` leaves the
 // tab out of the bar and the swipe order for everyone else (the screen checks again). `hidden: true`
 // leaves it out for everyone (the route stays, reachable only by a direct link). The array's order
-// is the bar's and the swipe's.
+// is the bar's and the swipe's; `label` is a dictionary key.
 const TABS = [
-  { name: 'index', label: 'Home', icon: 'time-outline', iconActive: 'time' },
+  {
+    name: 'index',
+    label: 'tabs.home',
+    icon: 'time-outline',
+    iconActive: 'time',
+  },
   {
     name: 'calendar',
-    label: 'Calendar',
+    label: 'tabs.calendar',
     icon: 'calendar-outline',
     iconActive: 'calendar',
   },
   {
     name: 'finance',
-    label: 'Finance',
+    label: 'tabs.finance',
     icon: 'wallet-outline',
     iconActive: 'wallet',
   },
   {
     name: 'settings',
-    label: 'Settings',
+    label: 'tabs.settings',
     icon: 'settings-outline',
     iconActive: 'settings',
   },
   {
     name: 'account',
-    label: 'Account',
+    label: 'tabs.account',
     icon: 'person-circle-outline',
     iconActive: 'person-circle',
     requiresAuth: true,
@@ -43,7 +49,7 @@ const TABS = [
   },
   {
     name: 'admin',
-    label: 'Admin',
+    label: 'tabs.admin',
     icon: 'shield-checkmark-outline',
     iconActive: 'shield-checkmark',
     requiresRole: 'admin',
@@ -54,6 +60,7 @@ const TABS = [
 export default function TabsLayout() {
   const router = useRouter();
   const dispatch = useDispatch();
+  const translate = useTranslate();
   const reopenSettings = useSelector((s) => s.language.reopenSettings);
   const isAuthenticated = useSelector((s) => !!s.auth.accessToken);
   // Restarted by a language change: back to Settings, where the change was made — once the
@@ -70,12 +77,13 @@ export default function TabsLayout() {
   const isAdmin = useHasRole('admin');
   const visibleTabs = TABS.filter(
     (tab) => !tab.hidden && (tab.requiresRole !== 'admin' || isAdmin),
-  );
+  ).map((tab) => ({ ...tab, label: translate(tab.label) }));
   const canEnter = (name) =>
     isAuthenticated || !TABS.find((t) => t.name === name)?.requiresAuth;
   // Name of the requiresAuth tab tapped or swiped to while signed out — drives the prompt below.
   // Doesn't cover direct navigation (deep link/refresh); see .claude/agents/frontend.md.
   const [pendingTabName, setPendingTabName] = useState(null);
+  const pendingLabel = TABS.find((t) => t.name === pendingTabName)?.label;
 
   return (
     <>
@@ -105,9 +113,10 @@ export default function TabsLayout() {
       </SwipeTabs>
       <ConfirmModal
         visible={!!pendingTabName}
-        message={`Log in to view ${TABS.find((t) => t.name === pendingTabName)?.label ?? 'this'}?`}
-        confirmLabel="Yes"
-        cancelLabel="No"
+        message={
+          pendingLabel &&
+          translate('tabs.logInToView', { tab: translate(pendingLabel) })
+        }
         onConfirm={() => {
           setPendingTabName(null);
           router.push('/login');

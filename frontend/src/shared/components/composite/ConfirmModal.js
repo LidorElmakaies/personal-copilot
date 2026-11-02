@@ -1,6 +1,7 @@
 import { Modal, StyleSheet, Text, View } from 'react-native';
 import GlowCard from '../base/layout/GlowCard';
 import GradientButton from '../base/buttons/GradientButton';
+import { useTranslate } from '../../i18n/translate';
 import { useAppTheme } from '../../theme/useAppTheme';
 
 // Reusable Yes/No confirm overlay — in-house replacement for Alert.alert so a prompt matches this
@@ -10,12 +11,13 @@ export default function ConfirmModal({
   icon,
   title,
   message,
-  confirmLabel = 'Yes',
-  cancelLabel = 'No',
+  confirmLabel,
+  cancelLabel,
   onConfirm,
   onCancel,
 }) {
   const { colors } = useAppTheme();
+  const translate = useTranslate();
 
   return (
     <Modal
@@ -41,13 +43,13 @@ export default function ConfirmModal({
           </Text>
           <View style={styles.actions}>
             <GradientButton
-              label={confirmLabel}
+              label={confirmLabel ?? translate('common.yes')}
               onPress={onConfirm}
               style={styles.buttonFlex}
               contentStyle={styles.buttonContent}
             />
             <GradientButton
-              label={cancelLabel}
+              label={cancelLabel ?? translate('common.no')}
               onPress={onCancel}
               style={styles.buttonFlex}
               contentStyle={styles.buttonContent}

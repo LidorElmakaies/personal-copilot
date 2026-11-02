@@ -1,4 +1,7 @@
 import { configureStore } from '@reduxjs/toolkit';
+import languageReducer, {
+  setLanguage,
+} from '../../../shared/i18n/languageSlice';
 import { act, render } from '@testing-library/react-native';
 import { router } from 'expo-router';
 import { Provider } from 'react-redux';
@@ -42,6 +45,7 @@ const moved = (coords) => ({ type: 'test/moved', coords });
 const makeStore = (coords) =>
   configureStore({
     reducer: {
+      language: languageReducer,
       location: (state = { coords }, action) =>
         action.type === 'test/moved' ? { coords: action.coords } : state,
     },
@@ -83,6 +87,12 @@ describe('ReminderScheduleManager', () => {
     await act(() =>
       store.dispatch(moved({ latitude: 31.7683, longitude: 35.2137 })),
     );
+    expect(reconcileReminderNotifications).toHaveBeenCalledTimes(2);
+  });
+
+  it('a new language reconciles again (the texts are written in it)', async () => {
+    const { store } = await mount({ latitude: 32.0853, longitude: 34.7818 });
+    await act(() => store.dispatch(setLanguage('he')));
     expect(reconcileReminderNotifications).toHaveBeenCalledTimes(2);
   });
 

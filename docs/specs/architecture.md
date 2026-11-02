@@ -234,6 +234,32 @@ sequenceDiagram
     Mgr->>Mgr: router.navigate("/" or "/calendar")
 ```
 
+## Flow: changing the language
+
+On the phone only. Android applies right to left only when the app starts, so a change of
+direction restarts the app. Details: `services.md#frontend`'s Settings tab.
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant App as Frontend (SettingsScreen, LanguageCard)
+    participant Store as Redux (language, persisted)
+    participant Dir as layoutDirectionService
+    participant Mgr as ReminderScheduleManager
+
+    User->>App: English / עברית
+    App->>Store: changeLanguage(code) → setLanguage
+    Store-->>App: every screen re-renders in the new words (useTranslate)
+    Store-->>Mgr: language changed → reconcileReminderNotifications (texts re-written)
+    alt the direction changes (Hebrew ↔ English)
+        App->>Store: setReopenSettings(true), then flushState (written before the restart)
+        App->>Dir: setRTL (I18nManager.forceRTL)
+        App->>Dir: restart (reloadAppAsync)
+        Dir-->>App: app starts mirrored (or not)
+        App->>Store: tabs layout finds reopenSettings → opens Settings, clears it
+    end
+```
+
 ## Flow: Android app update
 
 No login, no Gateway. The registry is static files `apk`'s Caddy serves at `/apk/`, written by

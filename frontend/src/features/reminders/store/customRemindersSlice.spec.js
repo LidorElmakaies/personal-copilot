@@ -48,8 +48,7 @@ async function rejection(store, thunkAction) {
   return action.payload;
 }
 
-const TITLE_CHARS =
-  'English or Hebrew letters, digits and . , \' ! ? : ( ) - " & / only, single spaces';
+const TITLE_CHARS = 'reminders.titleInvalid';
 
 describe('customReminders slice', () => {
   let store;
@@ -60,8 +59,8 @@ describe('customReminders slice', () => {
 
   describe('validation', () => {
     it.each([
-      ['an empty title', { title: '' }, 'Give it a title'],
-      ['a title of spaces', { title: '   ' }, 'Give it a title'],
+      ['an empty title', { title: '' }, 'reminders.titleEmpty'],
+      ['a title of spaces', { title: '   ' }, 'reminders.titleEmpty'],
       ['a title with other characters', { title: 'Call @Mom' }, TITLE_CHARS],
       ['a title with a double space', { title: 'Call  Mom' }, TITLE_CHARS],
       ['a title with an emoji', { title: 'Call Mom \u{1F600}' }, TITLE_CHARS],
@@ -81,7 +80,7 @@ describe('customReminders slice', () => {
     it('allows at most 300 reminders', async () => {
       for (let i = 0; i < 300; i++) await add(store);
       await expect(rejection(store, createCustomReminder(valid))).resolves.toBe(
-        'At most 300 reminders',
+        'reminders.tooMany',
       );
       expect(slice(store).items).toHaveLength(300);
     });
@@ -145,7 +144,7 @@ describe('customReminders slice', () => {
           store,
           updateCustomReminder({ id: before.id, patch: { title: '   ' } }),
         ),
-      ).resolves.toBe('Give it a title');
+      ).resolves.toBe('reminders.titleEmpty');
       expect(slice(store).items).toStrictEqual([before]);
     });
   });
@@ -275,7 +274,7 @@ describe('customReminders slice', () => {
     });
 
     it.each([
-      ['   ', 'Give it a title'],
+      ['   ', 'reminders.titleEmpty'],
       ['Moved!!  now', TITLE_CHARS],
     ])('rejects the title %p and changes nothing', async (title, message) => {
       const series = await add(store);
@@ -444,7 +443,7 @@ describe('customReminders slice', () => {
   describe('error', () => {
     it('a rejection leaves its message as the error; the next change clears it', async () => {
       await store.dispatch(createCustomReminder({ ...valid, title: '' }));
-      expect(slice(store).error).toBe('Give it a title');
+      expect(slice(store).error).toBe('reminders.titleEmpty');
       const pending = store.dispatch(createCustomReminder(valid));
       expect(slice(store).error).toBeNull();
       await pending;

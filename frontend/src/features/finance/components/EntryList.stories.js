@@ -3,6 +3,7 @@ import EntryList from './EntryList';
 
 export default {
   component: EntryList,
+  parameters: { language: 'en' },
   args: { entries: OCTOBER_ENTRIES, categories: CATEGORIES, today: TODAY },
   argTypes: { onPressEntry: { action: 'entry pressed' } },
 };
@@ -17,3 +18,7 @@ export const FiftyEntries = {
     ),
   },
 };
+
+// The app's words in Hebrew (היום, אתמול, "25 באוק׳", the badges); what for and the categories are
+// the user's own, as typed.
+export const Hebrew = { parameters: { language: 'he' } };

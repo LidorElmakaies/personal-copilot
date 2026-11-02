@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useTranslate } from '../../../shared/i18n/translate';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
 import { isDone, repeatLabel, timeText } from '../utils/customReminders';
 
@@ -6,6 +7,7 @@ import { isDone, repeatLabel, timeText } from '../utils/customReminders';
 // once-reminder that's gone off (at the row's own time) is dimmed. Tapping it edits it. Shared with RemindersSheet.
 export function ReminderRow({ row, now, onPress }) {
   const { colors } = useAppTheme();
+  const translate = useTranslate();
   const done = isDone(
     { ...row.reminder, hour: row.hour, minute: row.minute },
     now,
@@ -14,7 +16,13 @@ export function ReminderRow({ row, now, onPress }) {
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`${row.title}, ${timeText(row)}${done ? ', done' : ''}`}
+      accessibilityLabel={translate(
+        done ? 'reminders.rowDone' : 'reminders.row',
+        {
+          title: row.title,
+          time: timeText(row),
+        },
+      )}
       style={({ pressed }) => [
         styles.row,
         { opacity: done ? 0.5 : pressed ? 0.7 : 1 },
@@ -31,7 +39,11 @@ export function ReminderRow({ row, now, onPress }) {
           numberOfLines={1}
           style={[styles.remRepeat, { color: colors.textFaint }]}
         >
-          {`${done ? 'Done · ' : ''}${repeatLabel(row.reminder)}`}
+          {done
+            ? translate('reminders.done', {
+                repeat: repeatLabel(translate, row.reminder),
+              })
+            : repeatLabel(translate, row.reminder)}
         </Text>
       </View>
       <Text style={[styles.time, styles.remTime, { color: colors.pending }]}>

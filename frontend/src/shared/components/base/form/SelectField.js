@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import {
+  I18nManager,
   Modal,
   Pressable,
   ScrollView,
@@ -10,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { usePlainInHebrew } from '../../../i18n/translate';
 import { useAppTheme } from '../../../theme/useAppTheme';
 
 const OPTION_HEIGHT = 48;
@@ -30,6 +32,7 @@ export default function SelectField({
   style,
 }) {
   const { colors } = useAppTheme();
+  const plain = usePlainInHebrew();
   const window = useWindowDimensions();
   const boxRef = useRef(null);
   const [anchor, setAnchor] = useState(null); // box's window rect while open, else null
@@ -57,8 +60,12 @@ export default function SelectField({
     );
     const below = anchor.y + anchor.height + GAP;
     const fitsBelow = below + listHeight <= window.height - EDGE;
+    // measureInWindow counts from the screen's left; in Hebrew `left` is the start, the right side.
+    const start = I18nManager.isRTL
+      ? window.width - anchor.x - anchor.width
+      : anchor.x;
     listStyle = {
-      left: Math.min(anchor.x, window.width - EDGE - width),
+      left: Math.min(start, window.width - EDGE - width),
       top: fitsBelow ? below : Math.max(EDGE, anchor.y - GAP - listHeight),
       width,
       maxHeight: listHeight,
@@ -68,7 +75,9 @@ export default function SelectField({
   return (
     <View style={[styles.wrapper, style]}>
       {label ? (
-        <Text style={[styles.label, { color: colors.textMuted }]}>{label}</Text>
+        <Text style={[styles.label, plain, { color: colors.textMuted }]}>
+          {label}
+        </Text>
       ) : null}
       <TouchableOpacity
         ref={boxRef}

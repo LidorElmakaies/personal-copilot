@@ -12,6 +12,10 @@ jest.mock('../../../shared/components/base/layout/BottomSheet', () => {
 jest.mock('../../../shared/theme/useAppTheme', () => ({
   useAppTheme: () => ({ colors: new Proxy({}, { get: () => '#000' }) }),
 }));
+jest.mock('../../../shared/i18n/translate', () => {
+  const { translateIn } = jest.requireActual('../../../shared/i18n/translate');
+  return { useTranslate: () => (key, vars) => translateIn('en', key, vars) };
+});
 
 const row = (id, hour, minute) => {
   const reminder = {

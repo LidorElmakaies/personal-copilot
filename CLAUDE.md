@@ -10,8 +10,9 @@ no login, no server — plus a dormant NestJS backend: Gateway and a Postgres-ba
 (login + profiles), with full OTel observability, called only by the app's hidden login/account
 screens and not started by default.
 **Current work: [`docs/plans/hebrew/plan.md`](docs/plans/hebrew/plan.md)** — the whole app in Hebrew
-(right to left) and English, with a Settings screen; the Finance plan is paused after its U2 until
-that's done. The feature work is staged in [`docs/plans/finance/plan.md`](docs/plans/finance/plan.md), its
+(right to left) and English, with a Settings screen; then
+[`docs/plans/alarms/plan.md`](docs/plans/alarms/plan.md) (a reminder that rings like an alarm clock
+until dismissed); the Finance plan is paused after its U2 until both are done. The feature work is staged in [`docs/plans/finance/plan.md`](docs/plans/finance/plan.md), its
 design in [`docs/plans/finance/README.md`](docs/plans/finance/README.md), its screens in the Claude
 design canvas linked at the top of the plan; read them before working on the feature. The current architecture is `docs/specs/`.
 Progress lives in the plan's checkboxes; "What's implemented" below is what exists now. Work a
@@ -124,7 +125,7 @@ Each service's contract is in [`docs/specs/services.md`](docs/specs/services.md)
   bell), Calendar (Jewish-calendar month; the user's own reminders, added and edited in a bottom
   sheet), Finance (being built — `docs/plans/finance/`; example entries so far) and Settings
   (language English/Hebrew — Hebrew mirrors the app right to left after a restart — and the theme,
-  kept on the phone; the words themselves are still English, `docs/plans/hebrew/`). Shabbat times and months are computed on the phone (`src/lib/jewish-calendar/`, over
+  kept on the phone; every screen is in both — `src/shared/i18n/`'s `en.js`/`he.js`, `useTranslate()` and `format.js`, `docs/plans/hebrew/`). Shabbat times and months are computed on the phone (`src/lib/jewish-calendar/`, over
   `@hebcal/core`). Both kinds of reminder need no login, are kept on the phone (persisted) and fired
   as local notifications (`ReminderScheduleManager` → `reconcileReminderNotifications`, a 30-day
   window, at most 100 scheduled; also a daily background task, `reminder-notifications`, so the

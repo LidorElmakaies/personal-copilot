@@ -11,8 +11,13 @@ import { candleFiringsPlanned } from './candleFirings';
 // (ReminderScheduleManager) and about daily in the background, so the 30-day window keeps moving
 // with the app unopened.
 
+// `b.stale`: scheduled on a channel since replaced — redone on the current one.
 const same = (a, b) =>
-  a.at === b.at && a.title === b.title && a.body === b.body && a.url === b.url;
+  !b.stale &&
+  a.at === b.at &&
+  a.title === b.title &&
+  a.body === b.body &&
+  a.url === b.url;
 
 async function reconcileOnce(dispatch, getState) {
   await localNotifications.ensureChannel();

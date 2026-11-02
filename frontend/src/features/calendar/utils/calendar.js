@@ -1,14 +1,6 @@
 import { pad2 } from '../../../shared/utils/time';
 import { monthAt, weekdayOf } from '../../../shared/utils/date';
 
-// "September 2026".
-export const monthTitle = ({ year, month }) =>
-  new Date(Date.UTC(year, month - 1, 1)).toLocaleDateString('en-US', {
-    timeZone: 'UTC',
-    month: 'long',
-    year: 'numeric',
-  });
-
 // "אלול – תשרי תשפ״ז": the Hebrew months a Gregorian month spans, and the year it ends in.
 export function hebrewTitle(days) {
   const months = [...new Set(days.map((d) => d.hebrew.month.he))];
@@ -26,15 +18,8 @@ export function dayNames(day) {
   return [];
 }
 
-const TIME_LABELS = {
-  candleLighting: 'Candle lighting',
-  havdalah: 'Havdalah',
-  fastBegins: 'Fast begins',
-  fastEnds: 'Fast ends',
-};
-
 // The card's rows, in order; a fast that begins with candle lighting (Erev Yom Kippur) is one
-// row. `candle` marks the rows shown in amber.
+// row. `label` is a dictionary key (`times.*`); `candle` marks the rows shown in amber.
 export function dayTimeRows(day) {
   const candles = day.times.find((t) => t.kind === 'candleLighting');
   return day.times
@@ -43,8 +28,8 @@ export function dayTimeRows(day) {
       label:
         t.kind === 'candleLighting' &&
         day.times.some((f) => f.kind === 'fastBegins' && f.at === t.at)
-          ? 'Candle lighting · fast begins'
-          : TIME_LABELS[t.kind],
+          ? 'times.candlesAndFast'
+          : `times.${t.kind}`,
       at: new Date(t.at),
       candle: t.kind === 'candleLighting',
     }));

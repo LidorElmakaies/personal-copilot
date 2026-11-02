@@ -6,12 +6,16 @@ import {
   oddDateNotes,
   remindersRange,
   repeatLabel,
-  shortDate,
   straightenQuotes,
   summaryLine,
   titleProblem,
 } from './customReminders';
+import { shortDate } from '../../../shared/i18n/format';
+import { translateIn } from '../../../shared/i18n/translate';
 import { monthIndex } from '../../../shared/utils/date';
+
+const en = (key, vars) => translateIn('en', key, vars);
+const he = (key, vars) => translateIn('he', key, vars);
 
 // The words the add sheet and the day card use for a user's own reminder, from its own fields.
 // 19 Oct 2026 is 8 Cheshvan 5787. A zone far from Israel's, so a local-time slip shows as a wrong day.
@@ -28,14 +32,15 @@ const reminder = (over) => ({
 
 describe('customReminders words', () => {
   it('dates: short, with a year, a day either side across a month end', () => {
-    expect(shortDate('2026-10-19')).toBe('Mon 19 Oct');
-    expect(shortDate('2026-10-19', true)).toBe('Mon 19 Oct 2026');
+    expect(shortDate(en, '2026-10-19')).toBe('Mon 19 Oct');
+    expect(shortDate(en, '2026-10-19', true)).toBe('Mon 19 Oct 2026');
     expect(addDay('2026-10-31', 1)).toBe('2026-11-01');
     expect(addDay('2027-01-01', -1)).toBe('2026-12-31');
   });
 
   it('the Hebrew date in letters', () => {
-    expect(hebrewDateText('2026-10-19')).toBe('ח׳ חשון תשפ״ז');
+    expect(hebrewDateText(en, '2026-10-19')).toBe('ח׳ חשון תשפ״ז');
+    expect(hebrewDateText(he, '2026-10-19')).toBe('ח׳ בחשון תשפ״ז');
   });
 
   it.each([
@@ -46,7 +51,18 @@ describe('customReminders words', () => {
     [{ repeat: 'yearly' }, 'Yearly · 19 October'],
     [{ repeat: 'yearly', calendar: 'hebrew' }, 'Yearly · 8 Cheshvan'],
   ])('repeatLabel %o → %s', (over, label) => {
-    expect(repeatLabel(reminder(over))).toBe(label);
+    expect(repeatLabel(en, reminder(over))).toBe(label);
+  });
+
+  it.each([
+    [{ repeat: 'once' }, 'פעם אחת · 19 באוק׳'],
+    [{ repeat: 'daily' }, 'כל יום'],
+    [{}, 'כל חודש · ב־19'],
+    [{ calendar: 'hebrew' }, 'כל חודש · ב־ח׳ (עברי)'],
+    [{ repeat: 'yearly' }, 'כל שנה · 19 באוקטובר'],
+    [{ repeat: 'yearly', calendar: 'hebrew' }, 'כל שנה · ח׳ בחשון'],
+  ])('repeatLabel in Hebrew %o → %s', (over, label) => {
+    expect(repeatLabel(he, reminder(over))).toBe(label);
   });
 
   it.each([
@@ -60,15 +76,36 @@ describe('customReminders words', () => {
       'Every year on 8 Cheshvan, 09:30',
     ],
   ])('summaryLine %o → %s', (over, line) => {
-    expect(summaryLine(reminder(over))).toBe(line);
+    expect(summaryLine(en, reminder(over))).toBe(line);
+  });
+
+  it.each([
+    [{ repeat: 'once' }, 'פעם אחת, שני, 19 באוק׳ 2026, 09:30'],
+    [{ repeat: 'daily' }, 'כל יום, החל מ־שני, 19 באוק׳, 09:30'],
+    [{}, 'כל חודש ב־19, 09:30'],
+    [{ calendar: 'hebrew' }, 'כל חודש עברי ב־ח׳, 09:30'],
+    [{ repeat: 'yearly' }, 'כל שנה ב־19 באוקטובר, 09:30'],
+    [{ repeat: 'yearly', calendar: 'hebrew' }, 'כל שנה ב־ח׳ בחשון, 09:30'],
+  ])('summaryLine in Hebrew %o → %s', (over, line) => {
+    expect(summaryLine(he, reminder(over))).toBe(line);
+  });
+
+  it('the calendar choices and a note, in Hebrew', () => {
+    expect(calendarChoices(he, reminder({ repeat: 'yearly' }))).toEqual({
+      gregorian: '19 באוקטובר',
+      hebrew: 'ח׳ בחשון',
+    });
+    expect(oddDateNotes(he, reminder({ start: '2026-01-29' }))).toEqual([
+      'בחודשים קצרים יותר: ביום האחרון.',
+    ]);
   });
 
   it('the calendar choices: monthly by day, yearly by day and month', () => {
-    expect(calendarChoices(reminder())).toEqual({
+    expect(calendarChoices(en, reminder())).toEqual({
       gregorian: 'the 19th',
       hebrew: 'the 8th',
     });
-    expect(calendarChoices(reminder({ repeat: 'yearly' }))).toEqual({
+    expect(calendarChoices(en, reminder({ repeat: 'yearly' }))).toEqual({
       gregorian: '19 October',
       hebrew: '8 Cheshvan',
     });
@@ -77,20 +114,20 @@ describe('customReminders words', () => {
   describe('oddDateNotes', () => {
     it('none for once, daily, or an ordinary day', () => {
       expect(
-        oddDateNotes(reminder({ repeat: 'once', start: '2026-01-31' })),
+        oddDateNotes(en, reminder({ repeat: 'once', start: '2026-01-31' })),
       ).toEqual([]);
       expect(
-        oddDateNotes(reminder({ repeat: 'daily', start: '2026-01-31' })),
+        oddDateNotes(en, reminder({ repeat: 'daily', start: '2026-01-31' })),
       ).toEqual([]);
-      expect(oddDateNotes(reminder())).toEqual([]);
+      expect(oddDateNotes(en, reminder())).toEqual([]);
     });
 
     it('Gregorian: the 29th–31st monthly, 29 February yearly', () => {
-      expect(oddDateNotes(reminder({ start: '2026-01-29' }))).toEqual([
+      expect(oddDateNotes(en, reminder({ start: '2026-01-29' }))).toEqual([
         'Months with fewer days: on the last day.',
       ]);
       expect(
-        oddDateNotes(reminder({ repeat: 'yearly', start: '2028-02-29' })),
+        oddDateNotes(en, reminder({ repeat: 'yearly', start: '2028-02-29' })),
       ).toEqual(['Years without 29 February: on 28 February.']);
     });
 
@@ -98,10 +135,11 @@ describe('customReminders words', () => {
       // 30 Cheshvan 5787 = 10 Nov 2026; 1 Adar 5788 (regular) = 28 Feb 2028;
       // 1 Adar I 5787 (leap) = 8 Feb 2027.
       expect(
-        oddDateNotes(reminder({ calendar: 'hebrew', start: '2026-11-10' })),
+        oddDateNotes(en, reminder({ calendar: 'hebrew', start: '2026-11-10' })),
       ).toEqual(['Hebrew months with 29 days: on the 29th.']);
       expect(
         oddDateNotes(
+          en,
           reminder({
             repeat: 'yearly',
             calendar: 'hebrew',
@@ -111,6 +149,7 @@ describe('customReminders words', () => {
       ).toEqual(['In years Cheshvan has 29 days: on the 29th.']);
       expect(
         oddDateNotes(
+          en,
           reminder({
             repeat: 'yearly',
             calendar: 'hebrew',
@@ -120,6 +159,7 @@ describe('customReminders words', () => {
       ).toEqual(['In leap years: Adar II.']);
       expect(
         oddDateNotes(
+          en,
           reminder({
             repeat: 'yearly',
             calendar: 'hebrew',

@@ -1,4 +1,5 @@
-import { formatMinutes, MAX_TOTAL, plan } from './schedulePlan';
+import { translateIn } from '../../../shared/i18n/translate';
+import { MAX_TOTAL, plan } from './schedulePlan';
 
 // The local scheduler's plan, piece by piece; the scheduler scenarios over the store are in
 // store/scheduleNotifications.scenarios.spec.js.
@@ -21,10 +22,22 @@ const reminder = (over) => ({
 const iso = (ms) => new Date(ms).toISOString();
 
 describe('schedulePlan', () => {
-  it('formats minutes as the server did', () => {
-    expect(formatMinutes(90)).toBe('1 h 30 min');
-    expect(formatMinutes(120)).toBe('2 h');
-    expect(formatMinutes(45)).toBe('45 min');
+  it('the texts in the chosen language', () => {
+    const all = plan({
+      candles: { enabled: true, offsetMinutes: 90 },
+      coords: TEL_AVIV,
+      items: [reminder({ title: 'להשקות את העציצים' })],
+      now: NOW,
+      translate: (key, vars) => translateIn('he', key, vars),
+    });
+    const own = all.find((n) => n.url === '/calendar');
+    const candles = all.find((n) => n.url === '/');
+    expect(own.title).toBe('להשקות את העציצים');
+    expect(own.body).toBe('התזכורת שלך לשעה 09:00.');
+    expect(candles.title).toBe('הדלקת נרות שבת');
+    expect(candles.body).toMatch(
+      /^הדלקת הנרות ב־\d\d:\d\d \(בעוד שעה ו־30 דק׳\)\.$/,
+    );
   });
 
   it('nothing without reminders', () => {
@@ -53,7 +66,7 @@ describe('schedulePlan', () => {
       url: '/',
     });
     expect(first.body).toMatch(
-      /^Candle lighting is at \d\d:\d\d \(in 1 h 30 min\)\.$/,
+      /^Candle lighting is at \d\d:\d\d \(in 1h 30m\)\.$/,
     );
     expect(out.every((n) => n.at > NOW)).toBe(true);
   });

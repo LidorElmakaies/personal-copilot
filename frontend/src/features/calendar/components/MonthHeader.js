@@ -1,11 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import {
-  I18nManager,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useIsRTL, useTranslate } from '../../../shared/i18n/translate';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
 
 // The Calendar tab's title row: the Gregorian month, the Hebrew months under it (once loaded),
@@ -19,6 +14,7 @@ export default function MonthHeader({
   onToday,
 }) {
   const { colors } = useAppTheme();
+  const translate = useTranslate();
   return (
     <View style={styles.head}>
       <View style={styles.titles}>
@@ -34,7 +30,7 @@ export default function MonthHeader({
           <Pressable
             onPress={onToday}
             accessibilityRole="button"
-            accessibilityLabel="Go to today"
+            accessibilityLabel={translate('calendar.goToToday')}
             style={({ pressed }) => [
               styles.today,
               {
@@ -45,18 +41,18 @@ export default function MonthHeader({
             ]}
           >
             <Text style={[styles.todayText, { color: colors.accent }]}>
-              Today
+              {translate('calendar.today')}
             </Text>
           </Pressable>
         )}
         <ArrowButton
           icon="chevron-back"
-          label="Previous month"
+          label={translate('calendar.previousMonth')}
           onPress={onPrevious}
         />
         <ArrowButton
           icon="chevron-forward"
-          label="Next month"
+          label={translate('calendar.nextMonth')}
           onPress={onNext}
         />
       </View>
@@ -66,6 +62,7 @@ export default function MonthHeader({
 
 function ArrowButton({ icon, label, onPress }) {
   const { colors } = useAppTheme();
+  const rtl = useIsRTL();
   return (
     <Pressable
       onPress={onPress}
@@ -84,7 +81,7 @@ function ArrowButton({ icon, label, onPress }) {
         name={icon}
         size={16}
         color={colors.textMuted}
-        style={styles.flip}
+        style={rtl && styles.flip}
       />
     </Pressable>
   );
@@ -108,8 +105,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   todayText: { fontSize: 12.5, fontWeight: '700' },
-  // In Hebrew the row mirrors but an icon doesn't: "previous" must point right.
-  flip: { transform: [{ scaleX: I18nManager.isRTL ? -1 : 1 }] },
+  // Right to left the row mirrors but an icon doesn't: "previous" must point right.
+  flip: { transform: [{ scaleX: -1 }] },
   arrow: {
     width: 32,
     height: 32,

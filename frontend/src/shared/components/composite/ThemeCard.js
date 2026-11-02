@@ -2,6 +2,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import GlowCard from '../base/layout/GlowCard';
 import Row from '../base/layout/Row';
 import Switch from '../base/form/Switch';
+import { useTranslate } from '../../i18n/translate';
 import { useAppTheme } from '../../theme/useAppTheme';
 import { setThemeMode } from '../../theme/themeSlice';
 
@@ -9,7 +10,8 @@ import { setThemeMode } from '../../theme/themeSlice';
 export default function ThemeCard() {
   const dispatch = useDispatch();
   const { mode } = useSelector((state) => state.theme);
-  const { isDark, colorMode } = useAppTheme();
+  const { isDark } = useAppTheme();
+  const translate = useTranslate();
 
   const toggleTheme = (nextIsDark) =>
     dispatch(setThemeMode(nextIsDark ? 'dark' : 'light'));
@@ -17,14 +19,16 @@ export default function ThemeCard() {
   return (
     <GlowCard>
       <Row
-        title="Theme"
-        subtitle={
+        title={translate('theme.title')}
+        subtitle={translate(
           mode === null
-            ? `Following system · ${colorMode}`
+            ? isDark
+              ? 'theme.systemDark'
+              : 'theme.systemLight'
             : isDark
-              ? 'Dark mode'
-              : 'Light mode'
-        }
+              ? 'theme.dark'
+              : 'theme.light',
+        )}
         right={<Switch value={isDark} onValueChange={toggleTheme} />}
         last
       />

@@ -9,6 +9,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
+import { usePlainInHebrew } from '../../../i18n/translate';
 import { useAppTheme } from '../../../theme/useAppTheme';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -19,9 +20,8 @@ function hexToRgb(hex) {
   return { r: (value >> 16) & 255, g: (value >> 8) & 255, b: value & 255 };
 }
 
-// Glass Button — see DESIGN.md's Components section. Kept the name GradientButton for import
-// stability across the design change. Outer/inner shadow+clip split and the style/contentStyle
-// padding split: see .claude/agents/frontend.md's "Bug patterns already hit".
+// Glass button (DESIGN.md's Components). The shadow/clip and style/contentStyle splits: see
+// .claude/agents/frontend.md's "Bug patterns already hit".
 export default function GradientButton({
   label,
   onPress,
@@ -30,8 +30,10 @@ export default function GradientButton({
   variant = 'primary',
   style,
   contentStyle,
+  testID,
 }) {
   const { isDark, colors } = useAppTheme();
+  const plain = usePlainInHebrew();
   const pressed = useSharedValue(0);
   const [width, setWidth] = useState(200);
   const isDanger = variant === 'danger';
@@ -92,6 +94,7 @@ export default function GradientButton({
 
   return (
     <AnimatedPressable
+      testID={testID}
       onPress={onPress}
       onPressIn={rampIn}
       onPressOut={rampOut}
@@ -137,7 +140,7 @@ export default function GradientButton({
         {loading ? (
           <ActivityIndicator color={tint} />
         ) : (
-          <Text style={[styles.label, { color: tint }]}>{label}</Text>
+          <Text style={[styles.label, plain, { color: tint }]}>{label}</Text>
         )}
       </Animated.View>
     </AnimatedPressable>

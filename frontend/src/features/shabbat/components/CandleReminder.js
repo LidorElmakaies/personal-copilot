@@ -6,6 +6,8 @@ import GradientButton from '../../../shared/components/base/buttons/GradientButt
 import PillButton from '../../../shared/components/base/buttons/PillButton';
 import Stepper from '../../../shared/components/base/form/Stepper';
 import BottomSheet from '../../../shared/components/base/layout/BottomSheet';
+import { duration } from '../../../shared/i18n/format';
+import { useTranslate } from '../../../shared/i18n/translate';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
 import {
   enableNotifications,
@@ -19,12 +21,6 @@ import { formatTime } from '../../../shared/utils/time';
 
 const PRESETS = [30, 60, 90, 120, 180];
 
-function formatOffset(minutes) {
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  return [h ? `${h}h` : '', m ? `${m}m` : ''].filter(Boolean).join(' ');
-}
-
 const bellIcon = (color) => (
   <Ionicons name="notifications-outline" size={16} color={color} />
 );
@@ -35,6 +31,7 @@ const bellIcon = (color) => (
 export default function CandleReminder({ candleLighting, now }) {
   const candles = useSelector((state) => state.reminders.candles);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const translate = useTranslate();
 
   const on = candles.enabled;
 
@@ -43,8 +40,10 @@ export default function CandleReminder({ candleLighting, now }) {
       <PillButton
         label={
           on
-            ? `Reminder · ${formatOffset(candles.offsetMinutes)} before`
-            : 'Remind me before candle lighting'
+            ? translate('candles.on', {
+                offset: duration(translate, candles.offsetMinutes),
+              })
+            : translate('candles.remindMe')
         }
         icon={bellIcon}
         tone={on ? 'pending' : 'accent'}
@@ -68,6 +67,7 @@ export default function CandleReminder({ candleLighting, now }) {
 function ReminderForm({ candles, candleLighting, now, onDone }) {
   const dispatch = useDispatch();
   const { colors } = useAppTheme();
+  const translate = useTranslate();
   const initial = candles.offsetMinutes;
   const [hours, setHours] = useState(Math.floor(initial / 60));
   const [minutes, setMinutes] = useState(initial % 60);
@@ -87,14 +87,14 @@ function ReminderForm({ candles, candleLighting, now, onDone }) {
   return (
     <View style={styles.form}>
       <Text style={[styles.title, { color: colors.text }]}>
-        Remind me before candle lighting
+        {translate('candles.remindMe')}
       </Text>
       <View style={styles.steppers}>
         <Stepper
           value={hours}
           onChange={setHours}
           max={23}
-          unit="hours"
+          unit={translate('units.hours')}
           style={styles.stepper}
         />
         <Stepper
@@ -102,7 +102,7 @@ function ReminderForm({ candles, candleLighting, now, onDone }) {
           onChange={setMinutes}
           max={55}
           step={5}
-          unit="min"
+          unit={translate('units.minutes')}
           style={styles.stepper}
         />
       </View>
@@ -110,7 +110,7 @@ function ReminderForm({ candles, candleLighting, now, onDone }) {
         {PRESETS.map((value) => (
           <PillButton
             key={value}
-            label={formatOffset(value)}
+            label={duration(translate, value)}
             tone={value === offset ? 'selected' : 'muted'}
             onPress={() => pickPreset(value)}
             style={styles.preset}
@@ -127,14 +127,14 @@ function ReminderForm({ candles, candleLighting, now, onDone }) {
       <View style={styles.actions}>
         {on ? (
           <GradientButton
-            label="Turn off"
+            label={translate('candles.turnOff')}
             onPress={() => run(turnOffCandleReminder())}
             style={styles.actionFlex}
             contentStyle={styles.actionContent}
           />
         ) : null}
         <GradientButton
-          label="Save"
+          label={translate('common.save')}
           onPress={() => run(saveCandleReminder(offset))}
           disabled={offset < 1}
           style={styles.actionFlex}
@@ -149,26 +149,26 @@ function ReminderForm({ candles, candleLighting, now, onDone }) {
 // scheduled until the phone knows where it is.
 function FiresAt({ candles, offset, candleLighting, now }) {
   const { colors } = useAppTheme();
+  const translate = useTranslate();
   const hasLocation = useSelector((state) => !!state.location.coords);
   const saved = candles.enabled && candles.offsetMinutes === offset;
-  let detail;
-  if (saved && !hasLocation) {
-    detail = "We'll schedule it once we know your location";
-  } else {
-    const fire = new Date(candleLighting.getTime() - offset * 60000);
-    detail =
-      fire > now ? (
-        <>
-          fires at <Time value={fire} /> this week
-        </>
-      ) : (
-        'first one next week'
-      );
+  const fire = new Date(candleLighting.getTime() - offset * 60000);
+  let line;
+  if (saved && !hasLocation) line = translate('candles.noLocation');
+  else if (fire <= now) line = translate('candles.nextWeek');
+  else {
+    // The time is drawn in its own style, where the words put {time}.
+    const [before, after] = translate('candles.firesAt').split('{time}');
+    line = (
+      <>
+        {before}
+        <Time value={fire} />
+        {after}
+      </>
+    );
   }
   return (
-    <Text style={[styles.fires, { color: colors.textMuted }]}>
-      Every Friday · {detail}
-    </Text>
+    <Text style={[styles.fires, { color: colors.textMuted }]}>{line}</Text>
   );
 }
 
@@ -184,21 +184,20 @@ function Time({ value }) {
 // Shown when this phone won't show the reminder; saving still keeps it (mockup N4).
 const NUDGES = {
   default: {
-    text: "Notifications are off on this phone, so the reminder won't reach you here.",
-    action: { label: 'Turn on', run: enableNotifications },
+    text: 'candles.notificationsOff',
+    action: { label: 'candles.turnOn', run: enableNotifications },
   },
   denied: {
-    text: "Notifications are blocked in Android settings, so the reminder won't reach you here.",
-    action: { label: 'Open settings', run: openNotificationSettings },
+    text: 'candles.notificationsBlocked',
+    action: { label: 'common.openSettings', run: openNotificationSettings },
   },
-  unsupported: {
-    text: "This device can't show notifications, so the reminder won't reach you here.",
-  },
+  unsupported: { text: 'candles.notificationsUnsupported' },
 };
 
 function NotificationsNudge() {
   const dispatch = useDispatch();
   const { colors } = useAppTheme();
+  const translate = useTranslate();
   const { permission, ready, busy } = useSelector(
     (state) => state.notifications,
   );
@@ -207,7 +206,9 @@ function NotificationsNudge() {
 
   return (
     <View style={[styles.nudge, { backgroundColor: colors.pendingBg }]}>
-      <Text style={[styles.nudgeText, { color: colors.pending }]}>{text}</Text>
+      <Text style={[styles.nudgeText, { color: colors.pending }]}>
+        {translate(text)}
+      </Text>
       {action ? (
         <Pressable
           onPress={() => dispatch(action.run())}
@@ -215,7 +216,7 @@ function NotificationsNudge() {
           accessibilityRole="button"
         >
           <Text style={[styles.nudgeLink, { color: colors.pending }]}>
-            {action.label}
+            {translate(action.label)}
           </Text>
         </Pressable>
       ) : null}

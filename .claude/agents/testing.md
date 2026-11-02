@@ -60,6 +60,8 @@ picks up every `*.spec.ts` under `apps/` and `libs/` and maps the `@app/*` alias
 (`frontend/jest.config.js`): every `*.spec.{ts,js}` under `src/`, colocated (`app/` stays
 out): the calendar lib's specs (`src/lib/jewish-calendar/`), the
 reminder slices, planners and scheduling, `notificationsSlice`, the background task, persistence,
+the language (`src/shared/i18n/`: both dictionaries hold the same keys, `format.js`'s dates in
+each language, `languageSlice`), Finance's formatting,
 `localNotificationsService.android.js` over a mocked expo-notifications, and component specs
 (`CandleReminder`, `NotificationsPrompt`, `ReminderRow`, `RemindersSheet`, `CustomReminderSheet`,
 `ReminderScheduleManager`, each under a Redux `<Provider>`; `TabPager`'s page geometry, Reanimated
@@ -97,7 +99,14 @@ clears data, deletes its reminder even when a flow fails, uninstalls Maestro's t
 Writing a flow: tap with `waitToSettleTimeoutMs` (the starry background never settles: a plain tap
 waits ~25 s) and `retryTapIfNoChange: false`; never `hideKeyboard` (Back closes a bottom sheet);
 match what the accessibility tree holds (`maestro hierarchy`), e.g. the reminder form's summary line
-rather than a stepper's middle label. Its pure parts are tested by `devops/maestro/smoke.test.js`.
+rather than a stepper's middle label. Find an element by its `testID` (`id:`), never by an English
+word — the app may be in Hebrew: `tab-<name>`, `add-reminder`, `reminder-title`, `hours-more` /
+`hours-fewer` / `minutes-more` (a `Stepper`'s `testID` + `-more`/`-fewer`), `reminder-summary`,
+`reminder-save`, `reminder-delete`, `reminder-delete-confirm`, `candle-lighting-time`,
+`havdalah-time`. Text only where it's the same in both: the user's own title, a time, a reminder
+row's "TITLE, HH:MM" label. A new tap gets a `testID` (`GradientButton`, `FloatingButton`,
+`InputField`, `Stepper` pass one through). Its pure parts are tested by
+`devops/maestro/smoke.test.js`.
 
 ## Clean up after yourself
 

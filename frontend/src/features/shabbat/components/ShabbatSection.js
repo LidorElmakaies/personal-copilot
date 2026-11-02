@@ -1,7 +1,13 @@
 import { StyleSheet, Text, View } from 'react-native';
 import GradientButton from '../../../shared/components/base/buttons/GradientButton';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
-import { formatDay, formatTime, pad2 } from '../../../shared/utils/time';
+import { shortDate } from '../../../shared/i18n/format';
+import {
+  useLanguage,
+  usePlainInHebrew,
+  useTranslate,
+} from '../../../shared/i18n/translate';
+import { formatTime, pad2 } from '../../../shared/utils/time';
 
 function countdownParts(from, to) {
   const totalMinutes = Math.max(0, Math.floor((to - from) / 60000));
@@ -23,6 +29,9 @@ export default function ShabbatSection({
   footer,
 }) {
   const { colors } = useAppTheme();
+  const translate = useTranslate();
+  const plain = usePlainInHebrew();
+  const language = useLanguage();
 
   if (!shabbat) {
     return (
@@ -39,55 +48,72 @@ export default function ShabbatSection({
   const candleLighting = new Date(shabbat.candleLighting);
   const havdalah = new Date(shabbat.havdalah);
   const inProgress = now >= candleLighting && now < havdalah;
-  const occasion = shabbat.holidays[0]?.en ?? shabbat.parasha?.en;
+  // hebcal names each holiday and parasha in both languages.
+  const occasion = (shabbat.holidays[0] ?? shabbat.parasha)?.[language];
   const label = inProgress
-    ? 'Shabbat Shalom'
+    ? translate('shabbat.shalom')
     : occasion
-      ? `Shabbat · ${occasion}`
-      : 'Shabbat';
+      ? translate('shabbat.titleWith', { occasion })
+      : translate('shabbat.title');
   const target = inProgress ? havdalah : candleLighting;
-  const targetName = inProgress ? 'Havdalah' : 'candle lighting';
   const { days, hours, minutes } = countdownParts(now, target);
   const usingLastKnown =
     locationStatus === 'denied' || locationStatus === 'failed';
+  const note = [
+    translate(inProgress ? 'shabbat.untilHavdalah' : 'shabbat.untilCandles'),
+    usingLastKnown && translate('shabbat.lastKnown'),
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
   return (
     <View style={[styles.section, { borderTopColor: colors.cardBorderSoft }]}>
-      <Text style={[styles.label, { color: colors.textFaint }]}>{label}</Text>
+      <Text style={[styles.label, plain, { color: colors.textFaint }]}>
+        {label}
+      </Text>
 
       <View style={styles.times}>
         <View>
           <Text style={[styles.timeCaption, { color: colors.textMuted }]}>
-            Candle lighting
+            {translate('times.candleLighting')}
           </Text>
-          <Text style={[styles.time, { color: colors.pending }]}>
+          <Text
+            testID="candle-lighting-time"
+            style={[styles.time, { color: colors.pending }]}
+          >
             {formatTime(candleLighting)}
           </Text>
           <Text style={[styles.timeCaption, { color: colors.textMuted }]}>
-            {formatDay(candleLighting)}
+            {shortDate(translate, candleLighting)}
           </Text>
         </View>
         <View style={styles.alignEnd}>
           <Text style={[styles.timeCaption, { color: colors.textMuted }]}>
-            Havdalah
+            {translate('times.havdalah')}
           </Text>
-          <Text style={[styles.time, { color: colors.text }]}>
+          <Text
+            testID="havdalah-time"
+            style={[styles.time, { color: colors.text }]}
+          >
             {formatTime(havdalah)}
           </Text>
           <Text style={[styles.timeCaption, { color: colors.textMuted }]}>
-            {formatDay(havdalah)}
+            {shortDate(translate, havdalah)}
           </Text>
         </View>
       </View>
 
       <View
         style={styles.countdown}
-        accessibilityLabel={`${days} days ${hours} hours ${minutes} minutes until ${targetName}`}
+        accessibilityLabel={translate(
+          inProgress ? 'shabbat.countdownHavdalah' : 'shabbat.countdownCandles',
+          { days, hours, minutes },
+        )}
       >
         {[
-          [days, 'days'],
-          [pad2(hours), 'hrs'],
-          [pad2(minutes), 'min'],
+          [days, translate('shabbat.days')],
+          [pad2(hours), translate('shabbat.hours')],
+          [pad2(minutes), translate('shabbat.minutes')],
         ].map(([value, unit]) => (
           <View
             key={unit}
@@ -96,16 +122,15 @@ export default function ShabbatSection({
             <Text style={[styles.countdownValue, { color: colors.accent }]}>
               {value}
             </Text>
-            <Text style={[styles.countdownUnit, { color: colors.textFaint }]}>
+            <Text
+              style={[styles.countdownUnit, plain, { color: colors.textFaint }]}
+            >
               {unit}
             </Text>
           </View>
         ))}
       </View>
-      <Text style={[styles.note, { color: colors.textFaint }]}>
-        until {targetName}
-        {usingLastKnown ? ' · using your last known location' : ''}
-      </Text>
+      <Text style={[styles.note, { color: colors.textFaint }]}>{note}</Text>
       {footer}
     </View>
   );
@@ -113,12 +138,14 @@ export default function ShabbatSection({
 
 function ShabbatStatus({ locationStatus, loadFailed, onRetry }) {
   const { colors } = useAppTheme();
-  const message =
+  const translate = useTranslate();
+  const message = translate(
     locationStatus === 'denied'
-      ? 'Location is off. Turn it on for this app to see Shabbat times where you are, then tap Retry.'
+      ? 'shabbat.locationOff'
       : locationStatus === 'failed' || loadFailed
-        ? "Couldn't load Shabbat times."
-        : 'Finding your location…';
+        ? 'shabbat.loadFailed'
+        : 'shabbat.locating',
+  );
   const canRetry =
     locationStatus === 'denied' || locationStatus === 'failed' || loadFailed;
 
@@ -129,7 +156,7 @@ function ShabbatStatus({ locationStatus, loadFailed, onRetry }) {
       </Text>
       {canRetry && (
         <GradientButton
-          label="Retry"
+          label={translate('common.retry')}
           onPress={onRetry}
           contentStyle={styles.retryContent}
         />

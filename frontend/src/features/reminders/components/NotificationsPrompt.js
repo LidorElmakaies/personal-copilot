@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, View } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import ConfirmModal from '../../../shared/components/composite/ConfirmModal';
+import { useTranslate } from '../../../shared/i18n/translate';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
 import {
   dismissNotificationsPrompt,
@@ -16,6 +17,7 @@ import {
 export default function NotificationsPrompt() {
   const dispatch = useDispatch();
   const { colors } = useAppTheme();
+  const translate = useTranslate();
   const { ready, permission, promptDismissed } = useSelector(
     (state) => state.notifications,
   );
@@ -45,10 +47,10 @@ export default function NotificationsPrompt() {
           />
         </View>
       }
-      title="Turn on notifications?"
-      message="Get your reminders on this phone, even when the app is closed."
-      confirmLabel="Turn on"
-      cancelLabel="Not now"
+      title={translate('notifications.title')}
+      message={translate('notifications.message')}
+      confirmLabel={translate('notifications.turnOn')}
+      cancelLabel={translate('notifications.notNow')}
       onConfirm={turnOn}
       onCancel={() => dispatch(dismissNotificationsPrompt())}
     />

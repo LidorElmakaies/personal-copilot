@@ -9,6 +9,10 @@ jest.mock('../../../shared/theme/useAppTheme', () => ({
     colors: { text: '#000', textFaint: '#666', pending: '#fa0' },
   }),
 }));
+jest.mock('../../../shared/i18n/translate', () => {
+  const { translateIn } = jest.requireActual('../../../shared/i18n/translate');
+  return { useTranslate: () => (key, vars) => translateIn('en', key, vars) };
+});
 
 const series = {
   id: 'r1',

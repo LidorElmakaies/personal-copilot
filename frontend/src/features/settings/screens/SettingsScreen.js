@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import AmbientBackground from '../../../shared/components/composite/AmbientBackground';
 import ThemeCard from '../../../shared/components/composite/ThemeCard';
 import { changeLanguage } from '../../../shared/i18n/languageSlice';
+import { useTranslate } from '../../../shared/i18n/translate';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
 import LanguageCard from '../components/LanguageCard';
 
@@ -11,11 +12,14 @@ export default function SettingsScreen() {
   const dispatch = useDispatch();
   const language = useSelector((state) => state.language.code);
   const { colors } = useAppTheme();
+  const translate = useTranslate();
 
   return (
     <AmbientBackground>
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={[styles.heading, { color: colors.text }]}>Settings</Text>
+        <Text style={[styles.heading, { color: colors.text }]}>
+          {translate('settings.title')}
+        </Text>
         <LanguageCard
           value={language}
           onChange={(code) => dispatch(changeLanguage(code))}

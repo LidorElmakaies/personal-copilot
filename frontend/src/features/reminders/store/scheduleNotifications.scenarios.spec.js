@@ -1,4 +1,5 @@
 import { configureStore } from '@reduxjs/toolkit';
+import languageReducer from '../../../shared/i18n/languageSlice';
 import { HDate, months } from '@hebcal/core';
 import { getCurrentLocation } from '../../../shared/device/locationService';
 import locationReducer, { locate } from '../../../shared/device/locationSlice';
@@ -81,6 +82,7 @@ let store;
 const makeStore = (coords) =>
   configureStore({
     reducer: {
+      language: languageReducer,
       location: locationReducer,
       reminders: remindersReducer,
       customReminders: customRemindersReducer,
@@ -490,6 +492,18 @@ describe("the user's own reminders", () => {
       expect(localNotifications.cancel).not.toHaveBeenCalled();
     });
 
+    it('an alarm on a replaced channel (stale) is redone; the others are left alone', async () => {
+      await add();
+      const [first, second] = scheduled();
+      alarms.set(first.id, { ...first, stale: true });
+      jest.clearAllMocks();
+      await reconcile();
+      expect(localNotifications.cancel).toHaveBeenCalledWith(first.id);
+      expect(localNotifications.schedule).toHaveBeenCalledTimes(1);
+      expect(alarms.get(first.id)).toEqual(first);
+      expect(alarms.get(second.id)).toEqual(second);
+    });
+
     it("an alarm that couldn't be scheduled is added by the next reconcile; the reminder is kept", async () => {
       const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
       localNotifications.schedule.mockRejectedValueOnce(
@@ -622,7 +636,7 @@ describe('the candle-lighting reminder', () => {
         at: candle - 90 * MIN,
         title: 'Shabbat candle lighting',
         body: expect.stringMatching(
-          /^Candle lighting is at \d\d:\d\d \(in 1 h 30 min\)\.$/,
+          /^Candle lighting is at \d\d:\d\d \(in 1h 30m\)\.$/,
         ),
         url: '/',
       })),
@@ -640,7 +654,7 @@ describe('the candle-lighting reminder', () => {
     await advanceTo(CANDLES[0] - 90 * MIN);
     expect(shown).toEqual([
       expect.objectContaining({
-        body: 'Candle lighting is at 17:55 (in 1 h 30 min).',
+        body: 'Candle lighting is at 17:55 (in 1h 30m).',
       }),
     ]);
 
@@ -675,9 +689,7 @@ describe('the candle-lighting reminder', () => {
     expect(scheduled().map((n) => n.at)).toEqual(
       CANDLES.map((c) => c - 30 * MIN),
     );
-    expect(scheduled()[0].body).toBe(
-      'Candle lighting is at 17:55 (in 30 min).',
-    );
+    expect(scheduled()[0].body).toBe('Candle lighting is at 17:55 (in 30m).');
   });
 
   it('a move (Herzliya → Jerusalem) moves the times', async () => {
@@ -686,7 +698,7 @@ describe('the candle-lighting reminder', () => {
     await store.dispatch(locate());
     await reconcile(); // ReminderScheduleManager, on the new place
     expect(scheduled()[0].body).toBe(
-      'Candle lighting is at 17:34 (in 1 h 30 min).',
+      'Candle lighting is at 17:34 (in 1h 30m).',
     );
     expect(scheduled().some((n) => n.body.includes('17:55'))).toBe(false);
     expect(alarms.size).toBe(4);
@@ -723,7 +735,7 @@ describe('the candle-lighting reminder', () => {
       await run(saveCandleReminder(30)); // 17:04 would still be ahead
       expect(scheduled()[0]).toMatchObject({
         at: Date.parse('2026-10-16T13:56:00Z'), // Jerusalem, 16 Oct: candles 17:26
-        body: 'Candle lighting is at 17:26 (in 30 min).',
+        body: 'Candle lighting is at 17:26 (in 30m).',
       });
     });
 
@@ -733,9 +745,7 @@ describe('the candle-lighting reminder', () => {
       await phoneOffUntil(CANDLES_JLM - 80 * MIN);
       await run(saveCandleReminder(30));
       expect(shown).toEqual([]);
-      expect(scheduled()[0].body).toBe(
-        'Candle lighting is at 17:26 (in 30 min).',
-      );
+      expect(scheduled()[0].body).toBe('Candle lighting is at 17:26 (in 30m).');
     });
   });
 
@@ -770,7 +780,7 @@ describe('the candle-lighting reminder', () => {
     try {
       await save(90);
       expect(scheduled()[0].body).toBe(
-        'Candle lighting is at 17:55 (in 1 h 30 min).',
+        'Candle lighting is at 17:55 (in 1h 30m).',
       );
     } finally {
       process.env.TZ = original;

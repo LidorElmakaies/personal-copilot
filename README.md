@@ -5,7 +5,8 @@ Tailscale. It shows Shabbat times (candle lighting, Havdalah, countdown) for the
 the Home screen and a Jewish-calendar month (both dates, holidays and fasts) on the Calendar tab,
 all computed on the phone. With no login needed, you can set a weekly candle-lighting reminder and
 add your own reminders on the calendar (once, daily, monthly or yearly, by the Gregorian or Hebrew
-date), kept on the phone and fired as local notifications (exact alarms, no server). A NestJS
+date), kept on the phone and fired as local notifications (exact alarms, no server). The app is in
+English or Hebrew (right to left), picked in Settings. A NestJS
 backend for optional login (Gateway + Users Service) stays in the repo, dormant.
 
 See [CLAUDE.md](CLAUDE.md) for architecture, setup, and how this repo is organized —

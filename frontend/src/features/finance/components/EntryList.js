@@ -1,6 +1,7 @@
 import { Fragment } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import GlowCard from '../../../shared/components/base/layout/GlowCard';
+import { usePlainInHebrew, useTranslate } from '../../../shared/i18n/translate';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
 import { dayLabel } from '../utils/format';
 import EntryRow from './EntryRow';
@@ -14,6 +15,8 @@ export default function EntryList({
   onPressEntry,
 }) {
   const { colors } = useAppTheme();
+  const translate = useTranslate();
+  const plain = usePlainInHebrew();
   const nameOf = Object.fromEntries(categories.map((c) => [c.id, c.name]));
   const newestFirst = [...entries].sort((a, b) =>
     b.occurredOn.localeCompare(a.occurredOn),
@@ -26,8 +29,8 @@ export default function EntryList({
         return (
           <Fragment key={entry.id}>
             {newDay && (
-              <Text style={[styles.day, { color: colors.textMuted }]}>
-                {dayLabel(entry.occurredOn, today)}
+              <Text style={[styles.day, plain, { color: colors.textMuted }]}>
+                {dayLabel(translate, entry.occurredOn, today)}
               </Text>
             )}
             {!newDay && (

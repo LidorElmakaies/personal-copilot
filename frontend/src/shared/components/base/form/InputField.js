@@ -7,6 +7,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { usePlainInHebrew } from '../../../i18n/translate';
 import { useAppTheme } from '../../../theme/useAppTheme';
 
 // Labeled text input. `isPassword` adds a show/hide toggle, `glow` a focus shadow, `maxLength` +
@@ -31,8 +32,10 @@ export default function InputField({
   style,
   inputStyle,
   onBlur,
+  testID,
 }) {
   const { colors } = useAppTheme();
+  const plain = usePlainInHebrew();
   const [focused, setFocused] = useState(false);
   const [reveal, setReveal] = useState(false);
 
@@ -47,7 +50,7 @@ export default function InputField({
       {label || showCharCount ? (
         <View style={styles.labelRow}>
           {label ? (
-            <Text style={[styles.label, { color: colors.textMuted }]}>
+            <Text style={[styles.label, plain, { color: colors.textMuted }]}>
               {label}
             </Text>
           ) : null}
@@ -71,6 +74,7 @@ export default function InputField({
       ) : null}
       <View style={styles.inputRow}>
         <TextInput
+          testID={testID}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}

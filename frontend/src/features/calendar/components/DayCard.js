@@ -1,6 +1,12 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
-import { longDate } from '../../../shared/utils/date';
+import { hebrewDate, longDate } from '../../../shared/i18n/format';
+import {
+  useLanguage,
+  usePlainInHebrew,
+  useTranslate,
+} from '../../../shared/i18n/translate';
+import { weekdayOf } from '../../../shared/utils/date';
 import { ReminderRow } from '../../reminders';
 import { dayNames, dayTimeRows } from '../utils/calendar';
 import { formatTime } from '../../../shared/utils/time';
@@ -22,47 +28,94 @@ export default function DayCard({
   onPressReminder,
 }) {
   const { colors } = useAppTheme();
+  const translate = useTranslate();
+  const plain = usePlainInHebrew();
+  // The Hebrew lines sit on the right: in English at the end, in Hebrew at the start like the rest
+  // ('right' means the end of the text's direction — frontend.md's "Bug patterns").
+  const language = useLanguage();
+  const hebrewSide = language === 'he' ? null : styles.end;
   const names = dayNames(day);
   const rows = dayTimeRows(day);
   const { hebrew } = day;
-  const date = longDate(day.date);
+  const date = longDate(translate, day.date);
 
   return (
     <GlowCard style={styles.card}>
       <View style={styles.top}>
-        <Text style={[styles.label, styles.date, { color: colors.textFaint }]}>
+        <Text
+          style={[
+            styles.label,
+            plain,
+            styles.date,
+            { color: colors.textFaint },
+          ]}
+        >
           {date}
         </Text>
         <View style={styles.chips}>
           {isToday && (
-            <Chip label="Today" color={colors.success} bg={colors.successBg} />
+            <Chip
+              label={translate('calendar.today')}
+              color={colors.success}
+              bg={colors.successBg}
+            />
           )}
           {day.events.some((e) => e.kind === 'yomTov') && (
-            <Chip label="Yom Tov" color={colors.accent} bg={colors.card} />
+            <Chip
+              label={translate('calendar.yomTov')}
+              color={colors.accent}
+              bg={colors.card}
+            />
           )}
           {day.events.some((e) => e.kind === 'fast') && (
-            <Chip label="Fast" color={colors.error} bg={colors.errorBg} />
+            <Chip
+              label={translate('calendar.fast')}
+              color={colors.error}
+              bg={colors.errorBg}
+            />
           )}
         </View>
       </View>
 
       <Text style={[styles.title, { color: colors.text }]}>
-        {names.length ? names.map((n) => n.en).join(' · ') : date.split(' ')[0]}
+        {names.length
+          ? names.map((n) => n[language]).join(' · ')
+          : translate(`weekday.${weekdayOf(day.date)}`)}
       </Text>
-      {names.length > 0 && (
-        <Text style={[styles.hebrew, styles.heName, { color: colors.accent }]}>
+      {/* In Hebrew the title is already the Hebrew name (canvas): no second line. */}
+      {names.length > 0 && language !== 'he' && (
+        <Text
+          style={[
+            styles.hebrew,
+            hebrewSide,
+            styles.heName,
+            { color: colors.accent },
+          ]}
+        >
           {names.map((n) => n.he).join(' · ')}
         </Text>
       )}
-      <Text style={[styles.hebrew, { color: colors.textMuted }]}>
-        {`${hebrew.dayHe} ${hebrew.month.he} ${hebrew.yearHe}`}
+      <Text style={[styles.hebrew, hebrewSide, { color: colors.textMuted }]}>
+        {hebrewDate(translate, hebrew)}
       </Text>
       {day.parasha && (
         <Text style={[styles.parasha, { color: colors.textMuted }]}>
-          {`${day.parasha.en} · `}
-          <Text style={{ color: colors.text, fontWeight: '600' }}>
-            {day.parasha.he}
-          </Text>
+          {language === 'he' ? (
+            // "פרשת וירא": the parasha's own name in bold (canvas).
+            <>
+              {`${day.parasha.he.split(' ')[0]} `}
+              <Text style={{ color: colors.text, fontWeight: '600' }}>
+                {day.parasha.he.split(' ').slice(1).join(' ')}
+              </Text>
+            </>
+          ) : (
+            <>
+              {`${day.parasha.en} · `}
+              <Text style={{ color: colors.text, fontWeight: '600' }}>
+                {day.parasha.he}
+              </Text>
+            </>
+          )}
         </Text>
       )}
 
@@ -71,7 +124,7 @@ export default function DayCard({
         rows.map((row) => (
           <View key={row.label} style={styles.row}>
             <Text style={[styles.rowLabel, { color: colors.text }]}>
-              {row.label}
+              {translate(row.label)}
             </Text>
             <Text
               style={[
@@ -85,7 +138,7 @@ export default function DayCard({
         ))
       ) : (
         <Text style={[styles.empty, { color: colors.textFaint }]}>
-          No candle lighting or fast times
+          {translate('calendar.noTimes')}
         </Text>
       )}
 
@@ -95,8 +148,8 @@ export default function DayCard({
             style={[styles.rule, { backgroundColor: colors.cardBorderSoft }]}
           />
           <View style={styles.remHead}>
-            <Text style={[styles.label, { color: colors.textFaint }]}>
-              Your reminders
+            <Text style={[styles.label, plain, { color: colors.textFaint }]}>
+              {translate('calendar.yourReminders')}
             </Text>
             <Chip
               label={String(reminders.length)}
@@ -125,7 +178,9 @@ export default function DayCard({
               ]}
             >
               <Text style={[styles.moreText, { color: colors.pending }]}>
-                {`+${reminders.length - PREVIEW} more · Show all`}
+                {translate('calendar.showAll', {
+                  n: reminders.length - PREVIEW,
+                })}
               </Text>
             </Pressable>
           )}
@@ -163,12 +218,8 @@ const styles = StyleSheet.create({
   chip: { borderRadius: 999, paddingHorizontal: 9, paddingVertical: 3 },
   chipText: { fontSize: 11, fontWeight: '600' },
   title: { fontSize: 17, fontWeight: '700', marginTop: 6 },
-  hebrew: {
-    fontSize: 12.5,
-    textAlign: 'right',
-    writingDirection: 'rtl',
-    marginTop: 3,
-  },
+  hebrew: { fontSize: 12.5, writingDirection: 'rtl', marginTop: 3 },
+  end: { textAlign: 'right' },
   heName: { fontSize: 13.5, fontWeight: '600' },
   parasha: { fontSize: 12.5, marginTop: 6 },
   // A hairline View, not a borderTop — see frontend.md's "Bug patterns".

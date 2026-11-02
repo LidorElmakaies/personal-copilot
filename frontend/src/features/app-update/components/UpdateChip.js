@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
+import { useTranslate } from '../../../shared/i18n/translate';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
 import { openUpdateSheet } from '../store/appUpdateSlice';
 
@@ -9,6 +10,7 @@ import { openUpdateSheet } from '../store/appUpdateSlice';
 export default function UpdateChip() {
   const dispatch = useDispatch();
   const { colors } = useAppTheme();
+  const translate = useTranslate();
   const latest = useSelector((state) => state.appUpdate.latest);
   if (!latest) return null;
 
@@ -16,7 +18,7 @@ export default function UpdateChip() {
     <Pressable
       onPress={() => dispatch(openUpdateSheet())}
       accessibilityRole="button"
-      accessibilityLabel={`Update to ${latest.version}`}
+      accessibilityLabel={translate('update.chip', { version: latest.version })}
       style={({ pressed }) => [
         styles.chip,
         { borderColor: colors.accent },

@@ -13,6 +13,12 @@ import CandleReminder from '../components/CandleReminder';
 import ShabbatSection from '../components/ShabbatSection';
 import { UpdateChip } from '../../app-update';
 import GlowCard from '../../../shared/components/base/layout/GlowCard';
+import {
+  hebrewDate,
+  hebrewLetters,
+  weekdayMonth,
+} from '../../../shared/i18n/format';
+import { useLanguage, useTranslate } from '../../../shared/i18n/translate';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
 import { fetchShabbat } from '../../calendar';
 import { locate } from '../../../shared/device/locationSlice';
@@ -26,13 +32,17 @@ function formatNumericDate(date) {
 }
 
 // @hebcal/hdate rather than Intl's 'he-u-ca-hebrew' calendar — see frontend/README.md for why.
-// render('he')'s comma is stripped to match the approved mockup's "14 Tishrei 5787" spacing.
-function formatHebrewDate(date) {
-  return new HDate(date).render('he').replace(',', '');
+// "22 Cheshvan 5787" in English, "כ״ב בחשון תשפ״ז" in Hebrew (as the canvases).
+function formatHebrewDate(date, translate, language) {
+  if (language === 'he') return hebrewDate(translate, hebrewLetters(date));
+  const hd = new HDate(date);
+  return `${hd.getDate()} ${hd.getMonthName()} ${hd.getFullYear()}`;
 }
 
 export default function HomeScreen() {
   const { colors } = useAppTheme();
+  const translate = useTranslate();
+  const language = useLanguage();
   const dispatch = useDispatch();
   const location = useSelector((state) => state.location);
   const calendar = useSelector((state) => state.calendar);
@@ -61,9 +71,7 @@ export default function HomeScreen() {
 
   const time = `${pad2(now.getHours())}:${pad2(now.getMinutes())}:${pad2(now.getSeconds())}`;
   const numericDate = formatNumericDate(now);
-  const weekday = now.toLocaleDateString('en-US', { weekday: 'long' });
-  const monthName = now.toLocaleDateString('en-US', { month: 'long' });
-  const hebrewDate = formatHebrewDate(now);
+  const hebrewDateText = formatHebrewDate(now, translate, language);
   // Eight monospace digits at 56pt need ~285px — more than a 320-wide phone's card has. Scale down
   // to the card's text width (screen minus container + card padding), capped by its maxWidth.
   const { width } = useWindowDimensions();
@@ -89,10 +97,10 @@ export default function HomeScreen() {
               {numericDate}
             </Text>
             <Text style={[styles.dateLong, { color: colors.textFaint }]}>
-              {weekday}, {monthName}
+              {weekdayMonth(translate, now)}
             </Text>
             <Text style={[styles.hebrewDate, { color: colors.accent }]}>
-              {hebrewDate}
+              {hebrewDateText}
             </Text>
           </View>
 

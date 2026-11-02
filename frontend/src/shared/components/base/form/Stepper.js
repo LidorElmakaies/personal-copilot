@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { usePlainInHebrew, useTranslate } from '../../../i18n/translate';
 import { useAppTheme } from '../../../theme/useAppTheme';
 
 // − value + control for a bounded number. Clamps to [min, max]; a value off the step grid moves to
@@ -11,13 +12,18 @@ export default function Stepper({
   step = 1,
   unit,
   style,
+  testID,
 }) {
   const { colors } = useAppTheme();
+  const plain = usePlainInHebrew();
+  const translate = useTranslate();
   const down = Math.max(min, Math.ceil(value / step) * step - step);
   const up = Math.min(max, Math.floor(value / step) * step + step);
 
-  const button = (label, next, disabled, name) => (
+  // `testID`: the buttons are `${testID}-fewer` and `${testID}-more`.
+  const button = (label, next, disabled, name, id) => (
     <Pressable
+      testID={testID && `${testID}-${id}`}
       onPress={() => onChange(next)}
       disabled={disabled}
       accessibilityRole="button"
@@ -41,12 +47,14 @@ export default function Stepper({
         style,
       ]}
     >
-      {button('−', down, value <= min, 'Fewer')}
+      {button('−', down, value <= min, translate('common.fewer'), 'fewer')}
       <View style={styles.middle} accessibilityLabel={`${value} ${unit}`}>
         <Text style={[styles.value, { color: colors.text }]}>{value}</Text>
-        <Text style={[styles.unit, { color: colors.textFaint }]}>{unit}</Text>
+        <Text style={[styles.unit, plain, { color: colors.textFaint }]}>
+          {unit}
+        </Text>
       </View>
-      {button('+', up, value >= max, 'More')}
+      {button('+', up, value >= max, translate('common.more'), 'more')}
     </View>
   );
 }

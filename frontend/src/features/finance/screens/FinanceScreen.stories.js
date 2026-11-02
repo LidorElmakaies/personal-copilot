@@ -3,11 +3,12 @@ import FinanceScreen from './FinanceScreen';
 
 export default {
   component: FinanceScreen,
-  parameters: { layout: 'fullscreen' },
+  parameters: { layout: 'fullscreen', language: 'en' },
 };
 
 // October 2026; ‹ goes to empty months.
 export const Default = {};
+export const Hebrew = { parameters: { language: 'he' } };
 
 // Screen 9 — what the tab shows logged out, once login is live (B1).
 export const LoggedOut = {

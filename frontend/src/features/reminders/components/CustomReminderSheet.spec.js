@@ -6,6 +6,7 @@ import {
   within,
 } from '@testing-library/react-native';
 import { Provider } from 'react-redux';
+import languageReducer from '../../../shared/i18n/languageSlice';
 import customRemindersReducer from '../store/customRemindersSlice';
 import CustomReminderSheet from './CustomReminderSheet';
 
@@ -73,7 +74,10 @@ let onClose;
 let onSaved;
 async function open(target, items = []) {
   const store = configureStore({
-    reducer: { customReminders: customRemindersReducer },
+    reducer: {
+      customReminders: customRemindersReducer,
+      language: languageReducer,
+    },
     preloadedState: {
       customReminders: { items, range: null, error: null },
     },

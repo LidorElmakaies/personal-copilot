@@ -4,6 +4,7 @@ import { useDispatch } from 'react-redux';
 import GlowCard from '../../../shared/components/base/layout/GlowCard';
 import GradientButton from '../../../shared/components/base/buttons/GradientButton';
 import Row from '../../../shared/components/base/layout/Row';
+import { useTranslate } from '../../../shared/i18n/translate';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
 import { logOut } from '../store/authSlice';
 
@@ -11,6 +12,7 @@ import { logOut } from '../store/authSlice';
 export default function LogoutCard() {
   const dispatch = useDispatch();
   const { colors } = useAppTheme();
+  const translate = useTranslate();
   const [confirming, setConfirming] = useState(false);
 
   const logout = () => dispatch(logOut());
@@ -20,18 +22,18 @@ export default function LogoutCard() {
       {confirming ? (
         <View style={styles.confirmGroup}>
           <Text style={[styles.confirmText, { color: colors.text }]}>
-            Log out of your account?
+            {translate('account.logOutConfirm')}
           </Text>
           <View style={styles.confirmActions}>
             <GradientButton
-              label="Log Out"
+              label={translate('account.logOutButton')}
               onPress={logout}
               variant="danger"
               style={styles.confirmButtonFlex}
               contentStyle={styles.confirmButtonContent}
             />
             <GradientButton
-              label="Cancel"
+              label={translate('common.cancel')}
               onPress={() => setConfirming(false)}
               style={styles.confirmButtonFlex}
               contentStyle={styles.confirmButtonContent}
@@ -40,11 +42,11 @@ export default function LogoutCard() {
         </View>
       ) : (
         <Row
-          title="Log out"
-          subtitle="End your session on this device"
+          title={translate('account.logOut')}
+          subtitle={translate('account.logOutHint')}
           right={
             <GradientButton
-              label="Log Out"
+              label={translate('account.logOutButton')}
               onPress={() => setConfirming(true)}
               variant="danger"
               contentStyle={styles.buttonContent}

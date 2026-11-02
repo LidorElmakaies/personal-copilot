@@ -1,4 +1,5 @@
 # Opens the app on Home and checks the Shabbat times are shown. Run by devops/maestro/smoke.js.
+# Elements are found by their testID (`id:`), so it passes with the app in English or Hebrew.
 appId: com.lidor.personalcopilot
 # Every tap waits at most 1.5 s for the screen to settle: the starry background never does.
 ---
@@ -6,12 +7,15 @@ appId: com.lidor.personalcopilot
     # An empty map leaves the app's permissions as they are (Maestro's default grants them all).
     permissions: {}
 - tapOn:
-    text: "Home"
+    id: "tab-index"
     waitToSettleTimeoutMs: 1500
     retryTapIfNoChange: false
 - extendedWaitUntil:
-    visible: "Candle lighting"
+    visible:
+      id: "candle-lighting-time"
+      text: "\\d{1,2}:\\d{2}"
     timeout: 30000
-- assertVisible: "Havdalah"
-- assertVisible: "\\d{1,2}:\\d{2}"
+- assertVisible:
+    id: "havdalah-time"
+    text: "\\d{1,2}:\\d{2}"
 - takeScreenshot: home

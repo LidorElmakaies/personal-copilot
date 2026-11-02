@@ -1,4 +1,8 @@
-import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
+import {
+  createAsyncThunk,
+  createSelector,
+  createSlice,
+} from '@reduxjs/toolkit';
 import * as authService from '../services/authService';
 import { getUserFromToken, msUntilExpiry } from '../../../shared/utils/jwt';
 
@@ -128,7 +132,8 @@ function signOut(state) {
   state.error = null;
 }
 
-const SESSION_ENDED_NOTICE = 'Your session ended — please log in again.';
+// A dictionary key: the login screen shows it in the chosen language.
+const SESSION_ENDED_NOTICE = 'auth.sessionEnded';
 
 const authSlice = createSlice({
   name: 'auth',
@@ -188,10 +193,12 @@ const authSlice = createSlice({
   },
 });
 
-// { id, email, role } | null — derived from the current access token.
-export function selectUser(state) {
-  return getUserFromToken(state.auth.accessToken);
-}
+// { id, email, role } | null — derived from the current access token; the same object until the
+// token changes.
+export const selectUser = createSelector(
+  [(state) => state.auth.accessToken],
+  getUserFromToken,
+);
 
 // Changes on sign-in/out only, not on a renewal — for effects that load the user's data.
 export function selectUserId(state) {
