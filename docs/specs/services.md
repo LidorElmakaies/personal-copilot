@@ -167,9 +167,9 @@ are laid out `direction: 'ltr'`); each screen inside is mirrored.
   saved language, `translateIn(code, key, vars)` outside React) — every tab, the reminder and update
   sheets, the tab bar and the notifications prompt — and every date is
   put together by `src/shared/i18n/format.js` in the chosen language (month and weekday names from
-  the dictionaries; times, numbers and ₪ the same in both); the dormant Account and Admin
-  screens stay English until `docs/plans/hebrew/` H6.2–H6.3 (login and register are done).
-  Error messages the Users Service sends are shown as it sends them (English).
+  the dictionaries; times, numbers and ₪ the same in both), the dormant login, Account and Admin
+  screens included. Error messages the Users Service sends, and the service names on Admin
+  (Gateway, Users), are shown as they are (English).
 
 - `(tabs)/index` (Home — the landing tab, no session required: live clock, today's Gregorian date,
   and today's Hebrew/Jewish date via `@hebcal/hdate`, chosen over `Intl`'s `'he-u-ca-hebrew'`

@@ -189,7 +189,7 @@ const NUDGES = {
   },
   denied: {
     text: 'candles.notificationsBlocked',
-    action: { label: 'candles.openSettings', run: openNotificationSettings },
+    action: { label: 'common.openSettings', run: openNotificationSettings },
   },
   unsupported: { text: 'candles.notificationsUnsupported' },
 };

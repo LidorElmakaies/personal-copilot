@@ -124,7 +124,7 @@ Each service's contract is in [`docs/specs/services.md`](docs/specs/services.md)
   bell), Calendar (Jewish-calendar month; the user's own reminders, added and edited in a bottom
   sheet), Finance (being built — `docs/plans/finance/`; example entries so far) and Settings
   (language English/Hebrew — Hebrew mirrors the app right to left after a restart — and the theme,
-  kept on the phone; all but the dormant Account and Admin screens are in Hebrew so far — `src/shared/i18n/`'s `en.js`/`he.js`, `useTranslate()` and `format.js`, `docs/plans/hebrew/`). Shabbat times and months are computed on the phone (`src/lib/jewish-calendar/`, over
+  kept on the phone; every screen is in both — `src/shared/i18n/`'s `en.js`/`he.js`, `useTranslate()` and `format.js`, `docs/plans/hebrew/`). Shabbat times and months are computed on the phone (`src/lib/jewish-calendar/`, over
   `@hebcal/core`). Both kinds of reminder need no login, are kept on the phone (persisted) and fired
   as local notifications (`ReminderScheduleManager` → `reconcileReminderNotifications`, a 30-day
   window, at most 100 scheduled; also a daily background task, `reminder-notifications`, so the

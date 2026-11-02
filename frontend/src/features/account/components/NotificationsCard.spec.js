@@ -8,6 +8,7 @@ import {
 import { Provider } from 'react-redux';
 import * as localNotifications from '../../../shared/device/localNotificationsService';
 import notificationsReducer from '../../../shared/device/notificationsSlice';
+import languageReducer from '../../../shared/i18n/languageSlice';
 import NotificationsCard from './NotificationsCard';
 
 // The Account tab's switch (N2, N4) over Android's permission: on = allowed. Not asked yet → it
@@ -44,7 +45,7 @@ jest.mock('../../../shared/device/localNotificationsService', () => ({
 async function renderWith(permission) {
   localNotifications.getPermission.mockResolvedValue(permission);
   const store = configureStore({
-    reducer: { notifications: notificationsReducer },
+    reducer: { notifications: notificationsReducer, language: languageReducer },
   });
   await render(
     <Provider store={store}>

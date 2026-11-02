@@ -228,23 +228,61 @@ is new):
   the right — now flipped), and "+972" read "972+" in the Hebrew option (an isolate). Stories:
   `LoginScreen` (English, Hebrew, session ended), `RegisterScreen`, `ProfileFields` (a phone
   error) — English and Hebrew. Seen on the phone in Storybook.
-- [ ] **H6.2** The Account tab: its screen and logged-out notice, `NotificationsCard`,
+- [x] **H6.2** The Account tab: its screen and logged-out notice, `NotificationsCard`,
   `AccountCard`, `ProfileCard`, `LogoutCard`, `DeleteAccountCard`, `VersionInfo`.
-- [ ] **H6.3** Admin: `AdminScreen` (its notices, refresh, the checked time), `SystemStatus`.
+  *Done 2026-11-02:* every word of the screen and its cards (חשבון, התראות, פרופיל, התנתקות,
+  מחיקת החשבון…); `VersionInfo`'s build time through `shortDate` + `formatTime` ("נבנתה …").
+  `common.edit` new; `candles.openSettings` → `common.openSettings` (Home's nudge and the card).
+  The phone in Profile's line is an isolate ("+972…", not "…972+"), and so is the Users Service's
+  English error in a Hebrew "… נכשלה:" line. The delete warning no longer says it deletes your
+  reminders — they're the phone's and stay (both languages). Stories: `AccountScreen` (English,
+  Hebrew, logged out), `NotificationsCard` (blocked) — English and Hebrew. Seen on the phone in
+  Storybook (every card, the edit, log-out and delete forms).
+- [x] **H6.3** Admin: `AdminScreen` (its notices, refresh, the checked time), `SystemStatus`.
+  *Done 2026-11-02:* ניהול, שירותים פעילים, כל השירותים עונים / "Users לא עונה", נבנה …, פעיל
+  2 ימים ו־4 שעות (`duration()` + `count.days`), אין תשובה / לא פעיל. Service names (Gateway,
+  Users) stay as they are, like "Android"; a Hebrew line that starts with one starts with a
+  right-to-left mark. Monospace in English only (the details line). The checked time and the
+  build times no longer use `toLocale*` (`formatTime`, `dayMonth`). `AdminScreen` refreshes on
+  each visit by `useIsFocused` instead of `useFocusEffect`, which crashes under Storybook's
+  stand-in screen. Tests: `SystemStatus.spec.js` (both languages). Stories: `AdminScreen`
+  (English, Hebrew, one down, failed, not an admin). Seen on the phone in Storybook.
 
 **Try it:** the account screens in Hebrew (they open only from a direct link).
 **Feedback:** —
 
 ## Stage H7: sweep
 
-- [ ] **H7.1** Every story in both languages; the Maestro smoke flows still pass (they find
-  elements by English text — run in English, or by accessibility label); the `docs` agent sweep;
-  test APK.
+Planned 2026-11-02, split into four (it was one task: stories, Maestro, docs, test APK):
+
+- [ ] **H7.1 Stories** — every story file has an English story that says so (`language: 'en'`;
+  found in H6.3: 32 files' English stories follow the app's saved language instead) and a
+  Hebrew one; the files without a Hebrew story (`PillButton`, `GlowCard`) get one where they
+  show words. Every story looked at on the phone in Storybook, the dev build in each language
+  in turn, and what's wrong in either fixed. (`Switch`/`SwipePager` in a story of the other
+  language follow the app's direction — a known limitation, not fixed here.)
+- [ ] **H7.2 Maestro** — the four flows (`frontend/maestro/`) find elements by English text
+  ("Calendar", "Add reminder", "Havdalah", "Once, on …"), so they fail on a phone set to
+  Hebrew. Make them pass in both languages (open question 5), then `smoke.js --quick` in
+  English and in Hebrew, and the full run once.
+- [ ] **H7.3 Test APK** — `apk.js build` and publish a `-test.N`, installed over the real app.
+  What only the real app shows: switching English ↔ Hebrew and back (the restart, the layout
+  mirroring), a reminder's notification in each language, the update sheet from the registry,
+  the build-time lines (Account's version, Admin's services — empty in a dev server). The
+  user reads the Hebrew on the phone.
+- [ ] **H7.4 Docs and sign-off** — the `docs` agent's sweep over the whole plan's changes,
+  `docs-check.js`; then the sign-off below, and the release version (ask: `0.6.0`?).
 
 **Sign-off:** Hebrew accepted (date) — the Finance plan continues after this.
 **Feedback:** —
 
 ## Open questions
+
+Open (H7.2):
+
+5. **Maestro in Hebrew:** (a) tap and check by `testID` (Maestro's `id:`) — the same flows in
+   both languages, a few `testID`s added to the app; (b) a `--lang he` flag and each text in both
+   languages in the flows; (c) English only — `smoke.js` stops if the app isn't in English.
 
 Answered 2026-10-31:
 

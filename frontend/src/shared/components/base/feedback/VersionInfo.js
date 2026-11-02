@@ -1,28 +1,30 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { VERSION } from '../../../config/version';
+import { shortDate } from '../../../i18n/format';
+import { useTranslate } from '../../../i18n/translate';
 import { useAppTheme } from '../../../theme/useAppTheme';
-
-const formatBuilt = (iso) =>
-  new Date(iso).toLocaleString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+import { formatTime } from '../../../utils/time';
 
 // This frontend's version and build time (src/shared/config/version.js) — what's deployed.
 export default function VersionInfo({ style }) {
   const { colors } = useAppTheme();
+  const translate = useTranslate();
+  const builtAt = VERSION.builtAt ? new Date(VERSION.builtAt) : null;
 
   return (
-    <View style={[styles.box, style]} accessibilityLabel="Version">
+    <View
+      style={[styles.box, style]}
+      accessibilityLabel={translate('version.label')}
+    >
       <Text style={[styles.app, { color: colors.textMuted }]}>
         Personal Copilot {VERSION.frontend ?? 'dev'}
       </Text>
-      {VERSION.builtAt ? (
+      {builtAt ? (
         <Text style={[styles.details, { color: colors.textFaint }]}>
-          built {formatBuilt(VERSION.builtAt)}
+          {translate('version.built', {
+            date: shortDate(translate, builtAt, true),
+            time: formatTime(builtAt),
+          })}
         </Text>
       ) : null}
     </View>

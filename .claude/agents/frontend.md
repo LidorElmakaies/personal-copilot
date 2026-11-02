@@ -223,9 +223,7 @@ when a component genuinely needs something no thunk/selector combination can giv
   doesn't (Hebrew may leave one out); a value each language writes its own way — an ordinal, a
   Hebrew-calendar day — is itself a key (`ordinal`, `hebrewCalendar.*`). Names that are always in
   their own language (English / עברית in `LanguageCard`) stay literals; holiday and parasha names
-  come from hebcal in both (`name[useLanguage()]`). A tab's `label` in `TABS` is a key too.
-  (Still English: the dormant Account and Admin screens — `docs/plans/hebrew/` H6.2–H6.3.)
-- **Dates through `src/shared/i18n/format.js`**, never `toLocaleDateString`: `longDate`,
+  come from hebcal in both (`name[useLanguage()]`). A tab's `label` in `TABS` is a key too.- **Dates through `src/shared/i18n/format.js`**, never `toLocaleDateString`: `longDate`,
   `shortDate`, `dayMonth`, `weekdayMonth`, `monthTitle`, `hebrewDate` — each `(translate, date)` —
   and `duration(translate, minutes)` ("1h 30m" · "שעה ו־30 דק׳"), `count(translate, key, n)`
   (`key.one`/`key.other` — "תזכורת אחת"), `hebrewLetters(date)` (a date's Hebrew date in letters,
@@ -403,6 +401,9 @@ unused native library.
   language (`LanguageOverride`) without touching the app's saved one, and lays the story out in its
   direction (`direction: 'rtl'`), so it is right to left in the English app too. (Motion flipped
   by `I18nManager.isRTL` — `Switch`, `SwipePager` — still follows the app's own direction.)
+  An English story sets `language: 'en'` too, or it follows the app's saved language.
+  `useFocusEffect` doesn't run under the stand-in screen (a crash): `useIsFocused` + an effect does
+  (`AdminScreen`).
   The calendar's example data, from the app's own maths: `calendar/mocks/` (Tel Aviv, October
   2026, "now" 27 Oct).
 - **A component that reads its state from Redux** (`UpdateSheet`, `NotificationsPrompt`) is shown

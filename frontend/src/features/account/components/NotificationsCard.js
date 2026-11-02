@@ -5,6 +5,7 @@ import Alert from '../../../shared/components/base/feedback/Alert';
 import Switch from '../../../shared/components/base/form/Switch';
 import GlowCard from '../../../shared/components/base/layout/GlowCard';
 import Row from '../../../shared/components/base/layout/Row';
+import { useTranslate } from '../../../shared/i18n/translate';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
 import {
   enableNotifications,
@@ -13,10 +14,10 @@ import {
 } from '../../../shared/device/notificationsSlice';
 
 const SUBTITLES = {
-  unsupported: "This device can't show notifications",
-  denied: 'Blocked in Android settings',
-  granted: 'Reminders reach this phone',
-  default: 'Turn on to get reminders here',
+  unsupported: 'account.notifyUnsupported',
+  denied: 'account.notifyDenied',
+  granted: 'account.notifyGranted',
+  default: 'account.notifyDefault',
 };
 
 // Composite component (GlowCard/Row/Switch/Alert) — this phone's notifications (mockups N2, N4):
@@ -25,6 +26,7 @@ const SUBTITLES = {
 export default function NotificationsCard() {
   const dispatch = useDispatch();
   const { colors } = useAppTheme();
+  const translate = useTranslate();
   const { permission, busy } = useSelector((state) => state.notifications);
 
   // Re-reads the permission, e.g. after the user allowed notifications again in the settings.
@@ -43,28 +45,27 @@ export default function NotificationsCard() {
   return (
     <GlowCard>
       <Row
-        title="Notifications"
-        subtitle={SUBTITLES[permission]}
+        title={translate('account.notifications')}
+        subtitle={translate(SUBTITLES[permission])}
         right={
           <Switch
             value={on}
             onValueChange={toggle}
             disabled={permission === 'unsupported' || busy}
-            accessibilityLabel="Notifications"
+            accessibilityLabel={translate('account.notifications')}
           />
         }
         last
       />
       {permission === 'denied' ? (
         <Alert variant="warning" style={styles.alert}>
-          Allow notifications for Personal Copilot in Android's settings, then
-          come back.{' '}
+          {translate('account.notifyAllow')}{' '}
           <Text
             style={[styles.link, { color: colors.pending }]}
             onPress={() => dispatch(openNotificationSettings())}
             accessibilityRole="link"
           >
-            Open settings
+            {translate('common.openSettings')}
           </Text>
         </Alert>
       ) : null}

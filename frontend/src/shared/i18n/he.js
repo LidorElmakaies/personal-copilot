@@ -18,6 +18,8 @@ export default {
   'common.no': 'לא',
   'common.fewer': 'פחות',
   'common.more': 'יותר',
+  'common.edit': 'עריכה',
+  'common.openSettings': 'פתיחת ההגדרות',
 
   // Durations — format.js's duration().
   'duration.hour': 'שעה',
@@ -58,7 +60,6 @@ export default {
   'candles.notificationsUnsupported':
     'המכשיר הזה לא יכול להציג התראות, ולכן התזכורת לא תגיע אליך כאן.',
   'candles.turnOn': 'הפעלה',
-  'candles.openSettings': 'פתיחת ההגדרות',
   'candles.turnOff': 'כיבוי',
 
   // Counts — format.js's count(): `.one` for 1, `.other` for the rest.
@@ -237,6 +238,64 @@ export default {
   'phone.tooShort': 'מספר הטלפון קצר מדי',
   'phone.tooLong': 'מספר הטלפון ארוך מדי',
   'phone.invalid': 'מספר הטלפון לא תקין',
+
+  // The Account tab (dormant). `{error}` is the Users Service's English, an isolate in the line.
+  'account.title': 'חשבון',
+  'account.logInToView': 'צריך להתחבר כדי לראות את החשבון.',
+  'account.notifications': 'התראות',
+  'account.notifyUnsupported': 'המכשיר הזה לא יכול להציג התראות',
+  'account.notifyDenied': 'חסומות בהגדרות של Android',
+  'account.notifyGranted': 'התזכורות מגיעות לטלפון הזה',
+  'account.notifyDefault': 'הפעילו כדי לקבל כאן תזכורות',
+  'account.notifyAllow':
+    'אפשרו התראות ל-Personal Copilot בהגדרות של Android, ואז חזרו לכאן.',
+  'account.emailRequired': 'חובה להזין אימייל',
+  'account.newPassword': 'סיסמה חדשה',
+  'account.keepPassword': 'השאירו ריק כדי לא לשנות',
+  'account.passwordTooShort': 'הזינו לפחות 8 תווים',
+  'account.currentPassword': 'הסיסמה הנוכחית',
+  'account.updated': 'החשבון עודכן.',
+  'account.updateFailed': 'העדכון נכשל: \u2068{error}\u2069',
+  'account.profile': 'פרופיל',
+  'account.loading': 'טוען…',
+  'account.loadFailed': 'הטעינה נכשלה: \u2068{error}\u2069',
+  'account.noProfile': 'עדיין אין שם או טלפון',
+  'account.saveFailed': 'השמירה נכשלה: \u2068{error}\u2069',
+  'account.logOut': 'התנתקות',
+  'account.logOutButton': 'התנתקות',
+  'account.logOutHint': 'סיום החיבור במכשיר הזה',
+  'account.logOutConfirm': 'להתנתק מהחשבון?',
+  'account.delete': 'מחיקת החשבון',
+  'account.deleteHint': 'הסרה לצמיתות של החשבון והנתונים שלכם',
+  'account.deleteButton': 'מחיקה',
+  'account.deleteWarning':
+    'החשבון והפרופיל יימחקו מיד, ואי אפשר לבטל את זה. התזכורות נשארות בטלפון הזה.',
+  'account.confirmPassword': 'הזינו את הסיסמה לאישור',
+  'account.deleteFailed': 'המחיקה נכשלה: \u2068{error}\u2069',
+  'version.label': 'גרסה',
+  'version.built': 'נבנתה {date}, {time}',
+
+  // The Admin tab (dormant). A line that starts with a service's English name starts with a
+  // right-to-left mark, or Android lays it out left to right.
+  'admin.title': 'ניהול',
+  'admin.logInToView': 'צריך להתחבר כדי לראות את הדף הזה.',
+  'admin.adminsOnly': 'הדף הזה מיועד למנהלים.',
+  'admin.refresh': 'רענון',
+  'admin.checkFailed': 'לא הצלחנו לבדוק את השירותים: \u2068{error}\u2069',
+  'admin.servicesUp': 'שירותים פעילים',
+  'admin.upOf': '{up} מתוך {total} שירותים פעילים',
+  'admin.allUp': 'כל השירותים עונים',
+  'admin.oneDown': '\u200F{name} לא עונה',
+  'admin.manyDown': '\u200F{names} לא עונים',
+  'admin.and': '{list} ו־{last}',
+  'admin.built': 'נבנה {date}, {time}',
+  'admin.uptime': 'פעיל {time}',
+  'admin.noAnswer': 'אין תשובה',
+  'admin.down': 'לא פעיל',
+  'admin.rowUp': '\u200F{name} פעיל',
+  'admin.rowDown': '\u200F{name} לא פעיל',
+  'count.days.one': 'יום',
+  'count.days.other': '{n} ימים',
 
   // Dates — src/shared/i18n/format.js puts these together.
   'date.long': 'יום {weekday}, {day} ב{month}',

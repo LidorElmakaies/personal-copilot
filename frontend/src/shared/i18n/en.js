@@ -19,6 +19,8 @@ export default {
   'common.no': 'No',
   'common.fewer': 'Fewer',
   'common.more': 'More',
+  'common.edit': 'Edit',
+  'common.openSettings': 'Open settings',
 
   // Durations — format.js's duration().
   'duration.hour': '1h',
@@ -60,7 +62,6 @@ export default {
   'candles.notificationsUnsupported':
     "This device can't show notifications, so the reminder won't reach you here.",
   'candles.turnOn': 'Turn on',
-  'candles.openSettings': 'Open settings',
   'candles.turnOff': 'Turn off',
 
   // Counts — format.js's count(): `.one` for 1, `.other` for the rest.
@@ -238,6 +239,63 @@ export default {
   'phone.tooShort': 'Phone number is too short',
   'phone.tooLong': 'Phone number is too long',
   'phone.invalid': 'Not a valid phone number',
+
+  // The Account tab (dormant).
+  'account.title': 'Account',
+  'account.logInToView': 'You need to log in to view your account.',
+  'account.notifications': 'Notifications',
+  'account.notifyUnsupported': "This device can't show notifications",
+  'account.notifyDenied': 'Blocked in Android settings',
+  'account.notifyGranted': 'Reminders reach this phone',
+  'account.notifyDefault': 'Turn on to get reminders here',
+  'account.notifyAllow':
+    "Allow notifications for Personal Copilot in Android's settings, then come back.",
+  'account.emailRequired': 'Email is required',
+  'account.newPassword': 'New password',
+  'account.keepPassword': 'Leave blank to keep it',
+  'account.passwordTooShort': 'Enter at least 8 characters',
+  'account.currentPassword': 'Current password',
+  'account.updated': 'Account updated.',
+  'account.updateFailed': 'Update failed: {error}',
+  'account.profile': 'Profile',
+  'account.loading': 'Loading…',
+  'account.loadFailed': "Couldn't load: {error}",
+  'account.noProfile': 'No name or phone yet',
+  'account.saveFailed': 'Save failed: {error}',
+  'account.logOut': 'Log out',
+  'account.logOutButton': 'Log Out',
+  'account.logOutHint': 'End your session on this device',
+  'account.logOutConfirm': 'Log out of your account?',
+  'account.delete': 'Delete account',
+  'account.deleteHint': 'Permanently remove your account and data',
+  'account.deleteButton': 'Delete',
+  'account.deleteWarning':
+    "This deletes your account and profile right away. It can't be undone. Your reminders stay on this phone.",
+  'account.confirmPassword': 'Enter your password to confirm',
+  'account.deleteFailed': 'Delete failed: {error}',
+  'version.label': 'Version',
+  'version.built': 'built {date}, {time}',
+
+  // The Admin tab (dormant). Service names (Gateway, Users) are the same in both languages.
+  'admin.title': 'Admin',
+  'admin.logInToView': 'You need to log in to view this page.',
+  'admin.adminsOnly': 'This page is for admins.',
+  'admin.refresh': 'Refresh',
+  'admin.checkFailed': "Couldn't check the services: {error}",
+  'admin.servicesUp': 'services up',
+  'admin.upOf': '{up} of {total} services up',
+  'admin.allUp': 'Every service is answering',
+  'admin.oneDown': "{name} isn't answering",
+  'admin.manyDown': "{names} aren't answering",
+  'admin.and': '{list} and {last}',
+  'admin.built': 'built {date}, {time}',
+  'admin.uptime': 'up {time}',
+  'admin.noAnswer': 'no answer',
+  'admin.down': 'down',
+  'admin.rowUp': '{name} up',
+  'admin.rowDown': '{name} down',
+  'count.days.one': '1d',
+  'count.days.other': '{n}d',
 
   // Dates — src/shared/i18n/format.js puts these together.
   'date.long': '{weekday} {day} {month}',

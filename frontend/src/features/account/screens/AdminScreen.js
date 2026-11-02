@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from 'expo-router';
-import { useCallback } from 'react';
+import { useIsFocused } from 'expo-router';
+import { useCallback, useEffect } from 'react';
 import {
   ActivityIndicator,
   RefreshControl,
@@ -16,33 +16,39 @@ import VersionInfo from '../../../shared/components/base/feedback/VersionInfo';
 import AmbientBackground from '../../../shared/components/composite/AmbientBackground';
 import RequireAuthNotice from '../components/RequireAuthNotice';
 import SystemStatus from '../components/SystemStatus';
+import { useTranslate } from '../../../shared/i18n/translate';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
+import { formatTime, pad2 } from '../../../shared/utils/time';
 import { useHasRole } from '../hooks/useHasRole';
 import { useRequireAuth } from '../hooks/useRequireAuth';
 import { fetchSystemStatus } from '../store/adminSlice';
 
-const formatTime = (iso) =>
-  new Date(iso).toLocaleTimeString('en-GB', { hour12: false });
+// "14:03:27", the same in both languages.
+const checkedTime = (iso) => {
+  const date = new Date(iso);
+  return `${formatTime(date)}:${pad2(date.getSeconds())}`;
+};
 
 // Admins only (`requiresRole: 'admin'` in _layout.js hides the tab from everyone else; this
 // screen checks again for a direct link). Refreshes on every visit, by the button and by pull.
 export default function AdminScreen() {
   const isAuthenticated = useRequireAuth();
   const isAdmin = useHasRole('admin');
+  const translate = useTranslate();
 
   if (!isAuthenticated) {
     return (
       <RequireAuthNotice
-        title="Admin"
-        message="You need to log in to view this page."
+        title={translate('admin.title')}
+        message={translate('admin.logInToView')}
       />
     );
   }
   if (!isAdmin) {
     return (
       <RequireAuthNotice
-        title="Admin"
-        message="This page is for admins."
+        title={translate('admin.title')}
+        message={translate('admin.adminsOnly')}
         showLogin={false}
       />
     );
@@ -53,12 +59,17 @@ export default function AdminScreen() {
 function AdminStatus() {
   const dispatch = useDispatch();
   const { colors } = useAppTheme();
+  const translate = useTranslate();
   const { services, checkedAt, loading, error } = useSelector((s) => s.admin);
   const refresh = useCallback(() => {
     dispatch(fetchSystemStatus());
   }, [dispatch]);
 
-  useFocusEffect(refresh);
+  // Every visit (useIsFocused, not useFocusEffect: a story's stand-in screen has only that).
+  const isFocused = useIsFocused();
+  useEffect(() => {
+    if (isFocused) refresh();
+  }, [isFocused, refresh]);
 
   return (
     <AmbientBackground>
@@ -73,18 +84,20 @@ function AdminStatus() {
         }
       >
         <View style={styles.head}>
-          <Text style={[styles.heading, { color: colors.text }]}>Admin</Text>
+          <Text style={[styles.heading, { color: colors.text }]}>
+            {translate('admin.title')}
+          </Text>
           <View style={styles.refresh}>
             {checkedAt ? (
               <Text style={[styles.checked, { color: colors.textFaint }]}>
-                {formatTime(checkedAt)}
+                {checkedTime(checkedAt)}
               </Text>
             ) : null}
             <TouchableOpacity
               onPress={refresh}
               disabled={loading}
               accessibilityRole="button"
-              accessibilityLabel="Refresh"
+              accessibilityLabel={translate('admin.refresh')}
               style={[styles.refreshBtn, { backgroundColor: colors.card }]}
             >
               {loading ? (
@@ -96,7 +109,7 @@ function AdminStatus() {
           </View>
         </View>
         {error ? (
-          <Alert>{`Couldn't check the services: ${error}`}</Alert>
+          <Alert>{translate('admin.checkFailed', { error })}</Alert>
         ) : null}
         {services ? (
           <SystemStatus services={services} checkedAt={checkedAt} />

@@ -6,6 +6,7 @@ import GlowCard from '../../../shared/components/base/layout/GlowCard';
 import GradientButton from '../../../shared/components/base/buttons/GradientButton';
 import InputField from '../../../shared/components/base/form/InputField';
 import Row from '../../../shared/components/base/layout/Row';
+import { useTranslate } from '../../../shared/i18n/translate';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
 import { deleteAccount, selectUser } from '../store/authSlice';
 
@@ -13,6 +14,7 @@ import { deleteAccount, selectUser } from '../store/authSlice';
 // confirmation in place.
 export default function DeleteAccountCard() {
   const user = useSelector(selectUser);
+  const translate = useTranslate();
   const [confirming, setConfirming] = useState(false);
 
   return (
@@ -24,11 +26,11 @@ export default function DeleteAccountCard() {
         />
       ) : (
         <Row
-          title="Delete account"
-          subtitle="Permanently remove your account and data"
+          title={translate('account.delete')}
+          subtitle={translate('account.deleteHint')}
           right={
             <GradientButton
-              label="Delete"
+              label={translate('account.deleteButton')}
               onPress={() => setConfirming(true)}
               variant="danger"
               contentStyle={styles.rowButtonContent}
@@ -46,6 +48,7 @@ export default function DeleteAccountCard() {
 function ConfirmForm({ email, onCancel }) {
   const dispatch = useDispatch();
   const { colors } = useAppTheme();
+  const translate = useTranslate();
   const [currentPassword, setCurrentPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -66,22 +69,23 @@ function ConfirmForm({ email, onCancel }) {
   return (
     <View style={styles.form}>
       <Text style={[styles.warning, { color: colors.text }]}>
-        This deletes your account, profile and reminders right away. It
-        can&apos;t be undone.
+        {translate('account.deleteWarning')}
       </Text>
       <InputField
-        label="Password"
+        label={translate('auth.password')}
         value={currentPassword}
         onChangeText={setCurrentPassword}
-        placeholder="Enter your password to confirm"
+        placeholder={translate('account.confirmPassword')}
         isPassword
       />
       {error ? (
-        <Alert variant="error">{`Delete failed: ${error}`}</Alert>
+        <Alert variant="error">
+          {translate('account.deleteFailed', { error })}
+        </Alert>
       ) : null}
       <View style={styles.actions}>
         <GradientButton
-          label="Delete"
+          label={translate('account.deleteButton')}
           onPress={handleDelete}
           loading={submitting}
           disabled={currentPassword.length === 0}
@@ -90,7 +94,7 @@ function ConfirmForm({ email, onCancel }) {
           contentStyle={styles.buttonContent}
         />
         <GradientButton
-          label="Cancel"
+          label={translate('common.cancel')}
           onPress={onCancel}
           style={styles.buttonFlex}
           contentStyle={styles.buttonContent}

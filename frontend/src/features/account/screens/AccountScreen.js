@@ -7,6 +7,7 @@ import NotificationsCard from '../components/NotificationsCard';
 import ProfileCard from '../components/ProfileCard';
 import RequireAuthNotice from '../components/RequireAuthNotice';
 import VersionInfo from '../../../shared/components/base/feedback/VersionInfo';
+import { useTranslate } from '../../../shared/i18n/translate';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
 import { useRequireAuth } from '../hooks/useRequireAuth';
 
@@ -15,12 +16,13 @@ import { useRequireAuth } from '../hooks/useRequireAuth';
 export default function AccountScreen() {
   const isAuthenticated = useRequireAuth();
   const { colors } = useAppTheme();
+  const translate = useTranslate();
 
   if (!isAuthenticated) {
     return (
       <RequireAuthNotice
-        title="Account"
-        message="You need to log in to view your account."
+        title={translate('account.title')}
+        message={translate('account.logInToView')}
       />
     );
   }
@@ -31,7 +33,9 @@ export default function AccountScreen() {
         contentContainerStyle={styles.container}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={[styles.heading, { color: colors.text }]}>Account</Text>
+        <Text style={[styles.heading, { color: colors.text }]}>
+          {translate('account.title')}
+        </Text>
         <NotificationsCard />
         <AccountCard />
         <ProfileCard />

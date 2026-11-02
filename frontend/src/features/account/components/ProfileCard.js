@@ -7,6 +7,7 @@ import GradientButton from '../../../shared/components/base/buttons/GradientButt
 import FormActions from '../../../shared/components/composite/FormActions';
 import ProfileFields from './ProfileFields';
 import Row from '../../../shared/components/base/layout/Row';
+import { useTranslate } from '../../../shared/i18n/translate';
 import { fetchProfile, updateProfile } from '../store/profileSlice';
 import { fromE164, phoneError, toE164 } from '../utils/phone';
 
@@ -15,6 +16,7 @@ import { fromE164, phoneError, toE164 } from '../utils/phone';
 export default function ProfileCard() {
   const dispatch = useDispatch();
   const { profile, status, error } = useSelector((state) => state.profile);
+  const translate = useTranslate();
   const [editing, setEditing] = useState(false);
 
   useEffect(() => {
@@ -27,18 +29,18 @@ export default function ProfileCard() {
         <EditForm profile={profile} onDone={() => setEditing(false)} />
       ) : (
         <Row
-          title="Profile"
-          subtitle={profileSubtitle(profile, status, error)}
+          title={translate('account.profile')}
+          subtitle={profileSubtitle(translate, profile, status, error)}
           right={
             status === 'failed' ? (
               <GradientButton
-                label="Retry"
+                label={translate('common.retry')}
                 onPress={() => dispatch(fetchProfile())}
                 contentStyle={styles.rowButtonContent}
               />
             ) : (
               <GradientButton
-                label="Edit"
+                label={translate('common.edit')}
                 onPress={() => setEditing(true)}
                 disabled={!profile}
                 contentStyle={styles.rowButtonContent}
@@ -56,6 +58,7 @@ export default function ProfileCard() {
 // which clears it — see docs/specs/services.md#users.
 function EditForm({ profile, onDone }) {
   const dispatch = useDispatch();
+  const translate = useTranslate();
   const [initial] = useState(() => {
     const { country, local } = fromE164(profile?.phone);
     return {
@@ -94,7 +97,11 @@ function EditForm({ profile, onDone }) {
   return (
     <View style={styles.form}>
       <ProfileFields value={details} onChange={setDetails} />
-      {error ? <Alert variant="error">{`Save failed: ${error}`}</Alert> : null}
+      {error ? (
+        <Alert variant="error">
+          {translate('account.saveFailed', { error })}
+        </Alert>
+      ) : null}
       <FormActions
         onSave={handleSubmit}
         onCancel={onDone}
@@ -105,13 +112,17 @@ function EditForm({ profile, onDone }) {
   );
 }
 
-function profileSubtitle(profile, status, error) {
+// The phone is an isolate: in a Hebrew line "+972…" would read "…972+".
+function profileSubtitle(translate, profile, status, error) {
   if (!profile) {
-    return status === 'failed' ? `Couldn't load: ${error}` : 'Loading…';
+    return status === 'failed'
+      ? translate('account.loadFailed', { error })
+      : translate('account.loading');
   }
   const name = [profile.firstName, profile.lastName].filter(Boolean).join(' ');
-  const parts = [name, profile.phone].filter(Boolean);
-  return parts.length > 0 ? parts.join(' · ') : 'No name or phone yet';
+  const phone = profile.phone ? `\u2066${profile.phone}\u2069` : null;
+  const parts = [name, phone].filter(Boolean);
+  return parts.length > 0 ? parts.join(' · ') : translate('account.noProfile');
 }
 
 const styles = StyleSheet.create({

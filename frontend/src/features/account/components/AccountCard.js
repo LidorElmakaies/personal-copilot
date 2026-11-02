@@ -15,6 +15,7 @@ import { isValidEmail } from '../../../shared/utils/validation';
 // opens the email/password form in place.
 export default function AccountCard() {
   const user = useSelector(selectUser);
+  const translate = useTranslate();
   const [editing, setEditing] = useState(false);
 
   return (
@@ -23,11 +24,11 @@ export default function AccountCard() {
         <EditForm email={user?.email} onDone={() => setEditing(false)} />
       ) : (
         <Row
-          title="Account"
+          title={translate('account.title')}
           subtitle={user?.email ?? '—'}
           right={
             <GradientButton
-              label="Edit"
+              label={translate('common.edit')}
               onPress={() => setEditing(true)}
               contentStyle={styles.rowButtonContent}
             />
@@ -57,13 +58,13 @@ function EditForm({ email: originalEmail, onDone }) {
 
   const emailFieldError =
     emailChanged && trimmedEmail.length === 0
-      ? 'Email is required'
+      ? translate('account.emailRequired')
       : trimmedEmail.length > 0 && !isValidEmail(trimmedEmail)
-        ? 'Enter a valid email address'
+        ? translate('auth.invalidEmail')
         : null;
   const passwordFieldError =
     passwordChanged && newPassword.length < 8
-      ? 'Enter at least 8 characters'
+      ? translate('account.passwordTooShort')
       : null;
 
   const canSubmit =
@@ -98,7 +99,7 @@ function EditForm({ email: originalEmail, onDone }) {
   return (
     <View style={styles.form}>
       <InputField
-        label="Email"
+        label={translate('auth.email')}
         value={emailInput}
         onChangeText={setEmailInput}
         placeholder="you@example.com"
@@ -106,16 +107,16 @@ function EditForm({ email: originalEmail, onDone }) {
         error={emailFieldError}
       />
       <InputField
-        label="New password"
+        label={translate('account.newPassword')}
         value={newPassword}
         onChangeText={setNewPassword}
-        placeholder="Leave blank to keep it"
+        placeholder={translate('account.keepPassword')}
         hint={translate('auth.passwordHint')}
         error={passwordFieldError}
         isPassword
       />
       <InputField
-        label="Current password"
+        label={translate('account.currentPassword')}
         value={currentPassword}
         onChangeText={setCurrentPassword}
         placeholder="••••••••"
@@ -124,8 +125,8 @@ function EditForm({ email: originalEmail, onDone }) {
       {result ? (
         <Alert variant={result.success ? 'success' : 'error'}>
           {result.success
-            ? 'Account updated.'
-            : `Update failed: ${result.error}`}
+            ? translate('account.updated')
+            : translate('account.updateFailed', { error: result.error })}
         </Alert>
       ) : null}
       <FormActions
