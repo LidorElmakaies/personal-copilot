@@ -39,7 +39,7 @@ const All = () => (
   </View>
 );
 
-export default { component: ReminderRow };
+export default { component: ReminderRow, parameters: { language: 'en' } };
 
 export const EveryRepeat = { render: () => <All /> };
 

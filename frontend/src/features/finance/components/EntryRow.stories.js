@@ -6,6 +6,7 @@ const groceries = today.find((e) => e.description === 'Weekly groceries');
 
 export default {
   component: EntryRow,
+  parameters: { language: 'en' },
   args: { entry: groceries, category: 'Groceries' },
   argTypes: { onPress: { action: 'pressed' } },
 };
@@ -30,6 +31,20 @@ export const LongText = {
       ...groceries,
       description: 'Groceries and cleaning stuff for the week', // 40 characters
     },
+  },
+};
+// The user's text in either language or both, whatever the app's: each in its own direction.
+export const MixedInEnglish = {
+  args: {
+    entry: { ...groceries, description: 'Shelves לחדר העבודה' },
+    category: 'מתנות',
+  },
+};
+export const MixedInHebrew = {
+  parameters: { language: 'he' },
+  args: {
+    entry: { ...groceries, description: 'Coffee וכריך' },
+    category: 'Eating out',
   },
 };
 export const Hebrew = {

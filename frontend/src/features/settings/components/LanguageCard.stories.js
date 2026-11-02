@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import LanguageCard from './LanguageCard';
 
-export default { component: LanguageCard };
+export default { component: LanguageCard, parameters: { language: 'en' } };
 
 // A tap moves the pick here only — the app's language stays as it is.
 const Picker = ({ initial }) => {

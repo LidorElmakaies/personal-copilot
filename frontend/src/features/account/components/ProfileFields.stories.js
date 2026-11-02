@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import ProfileFields from './ProfileFields';
 
-export default { component: ProfileFields };
+export default { component: ProfileFields, parameters: { language: 'en' } };
 
 // Typing changes it here only. `phone` starts too short, so its error shows.
 const Fields = () => {

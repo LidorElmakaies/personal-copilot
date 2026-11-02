@@ -5,7 +5,7 @@ const LATEST = {
   version: '0.7.0',
   notes: ['The whole app in Hebrew', 'A Settings tab'],
 };
-const step = (download, language) => ({
+const step = (download, language = 'en') => ({
   language,
   state: {
     appUpdate: {
@@ -19,7 +19,7 @@ const DOWNLOADING = { status: 'downloading', written: 18e6, total: 42e6 };
 const READY = { status: 'ready', written: 42e6, total: 42e6 };
 const FAILED = { status: 'failed' };
 
-export default { component: UpdateSheet };
+export default { component: UpdateSheet, parameters: { language: 'en' } };
 
 export const Available = { parameters: step() };
 export const Downloading = { parameters: step(DOWNLOADING) };

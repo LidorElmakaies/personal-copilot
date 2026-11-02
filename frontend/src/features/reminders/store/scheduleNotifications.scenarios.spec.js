@@ -492,6 +492,18 @@ describe("the user's own reminders", () => {
       expect(localNotifications.cancel).not.toHaveBeenCalled();
     });
 
+    it('an alarm on a replaced channel (stale) is redone; the others are left alone', async () => {
+      await add();
+      const [first, second] = scheduled();
+      alarms.set(first.id, { ...first, stale: true });
+      jest.clearAllMocks();
+      await reconcile();
+      expect(localNotifications.cancel).toHaveBeenCalledWith(first.id);
+      expect(localNotifications.schedule).toHaveBeenCalledTimes(1);
+      expect(alarms.get(first.id)).toEqual(first);
+      expect(alarms.get(second.id)).toEqual(second);
+    });
+
     it("an alarm that couldn't be scheduled is added by the next reconcile; the reminder is kept", async () => {
       const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
       localNotifications.schedule.mockRejectedValueOnce(

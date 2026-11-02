@@ -199,7 +199,10 @@ words):
   it now starts with a right-to-left mark (`finance.details`), and `••4821` is an isolate;
   Android's `monospace` has no Hebrew letters (the update sheet's subtitle) — English only
   (frontend.md "Bug patterns"). Category names and what-for are the user's data, kept as typed
-  (the example data stays English). `VersionInfo` (Account only) moves to H6. Storybook:
+  (the example data stays English — changed 2026-11-02: the user's text is in either language or
+  both, so the example data is a mix, and `entryDetails` puts the category in an isolate in both
+  languages; `finance.details` starts with a left-to-right mark in English. Stories
+  `EntryRow` MixedInEnglish / MixedInHebrew. Rule: the Finance plan, before U4b). `VersionInfo` (Account only) moves to H6. Storybook:
   `parameters: { state }` (`OwnState`, read-only) shows a Redux-reading component in a state of
   its own. Stories, with Hebrew ones: `UpdateSheet` (available, downloading, ready, failed),
   `UpdateChip`, `NotificationsPrompt`, `ConfirmModal`, `FormActions`, `FinanceEmpty`,
@@ -255,21 +258,46 @@ is new):
 
 Planned 2026-11-02, split into four (it was one task: stories, Maestro, docs, test APK):
 
-- [ ] **H7.1 Stories** — every story file has an English story that says so (`language: 'en'`;
+- [x] **H7.1 Stories** — every story file has an English story that says so (`language: 'en'`;
   found in H6.3: 32 files' English stories follow the app's saved language instead) and a
   Hebrew one; the files without a Hebrew story (`PillButton`, `GlowCard`) get one where they
   show words. Every story looked at on the phone in Storybook, the dev build in each language
   in turn, and what's wrong in either fixed. (`Switch`/`SwipePager` in a story of the other
   language follow the app's direction — a known limitation, not fixed here.)
-- [ ] **H7.2 Maestro** — the four flows (`frontend/maestro/`) find elements by English text
+  *Done 2026-11-02:* every file's default export sets `language: 'en'`; Hebrew stories for
+  `PillButton` and `GlowCard`. All 120 stories seen on the phone (dev build in Hebrew): no render
+  errors; the Hebrew ones right. Found and fixed, at the user's pick: the English stories'
+  `Switch` knob off its track and month arrows reversed — `useIsRTL()` (the story's direction in
+  Storybook, Android's in the app) now flips `Switch` and both headers' arrows, so one pass in
+  either language is enough (`SwipePager` and `SelectField`'s list still follow Android's, as
+  they place by `left`; `TabPager` is in no story); Home's Hebrew date in English read "22 חֶשְׁוָן 5787" — now
+  "22 Cheshvan 5787", as the approved mockup; `selectUser` memoized (`createSelector`: React
+  warned it made a new object each call).
+- [x] **H7.2 Maestro** — the four flows (`frontend/maestro/`) find elements by English text
   ("Calendar", "Add reminder", "Havdalah", "Once, on …"), so they fail on a phone set to
   Hebrew. Make them pass in both languages (open question 5), then `smoke.js --quick` in
   English and in Hebrew, and the full run once.
-- [ ] **H7.3 Test APK** — `apk.js build` and publish a `-test.N`, installed over the real app.
+  *Done 2026-11-02:* (a) picked — the flows find every element by `testID` (`id:`): the
+  tab bar's `tab-<name>`, Calendar's `add-reminder`, the reminder sheet's `reminder-title`,
+  `hours-more`/`-fewer`, `minutes-more`, `reminder-summary`, `-save`, `-delete`,
+  `-delete-confirm`, Home's `candle-lighting-time`/`havdalah-time`; text only where both
+  languages agree (the title, a time, a row's "TITLE, HH:MM"). `GradientButton`,
+  `FloatingButton`, `InputField`, `Stepper` take a `testID`. On 0.6.0-test.23 over Tailscale
+  (`adb tcpip`, `--device`; back to `adb usb` after): `--quick` passed in Hebrew and in English,
+  the full run passed once (in English). Found on the full run: `dumpsys notification` on the
+  phone passed spawnSync's 1 MB buffer and the error printed the whole dump (other apps'
+  notifications) — `smoke.js` now reads up to 64 MB and an adb failure names only its cause.
+- [x] **H7.3 Test APK** — `apk.js build` and publish a `-test.N`, installed over the real app.
   What only the real app shows: switching English ↔ Hebrew and back (the restart, the layout
   mirroring), a reminder's notification in each language, the update sheet from the registry,
   the build-time lines (Account's version, Admin's services — empty in a dev server). The
   user reads the Hebrew on the phone.
+  *Done 2026-11-02:* `0.6.0-test.23` built, published, installed over USB (`adb install -r`:
+  `latest.json` never offers a `-test.N`, so the app shows no update for one — the update sheet
+  is checked with the release, H7.4). The user on the phone: the language switch both ways,
+  Home's "22 Cheshvan 5787", a reminder's notification in each language, Finance's mixed
+  entries, the Hebrew read through — "all good". Account and Admin need the dormant backend:
+  their build-time lines were seen only as far as Storybook shows them.
 - [ ] **H7.4 Docs and sign-off** — the `docs` agent's sweep over the whole plan's changes,
   `docs-check.js`; then the sign-off below, and the release version (ask: `0.6.0`?).
 
@@ -278,7 +306,7 @@ Planned 2026-11-02, split into four (it was one task: stories, Maestro, docs, te
 
 ## Open questions
 
-Open (H7.2):
+Answered 2026-11-02 (H7.2): (a).
 
 5. **Maestro in Hebrew:** (a) tap and check by `testID` (Maestro's `id:`) — the same flows in
    both languages, a few `testID`s added to the app; (b) a `--lang he` flag and each text in both

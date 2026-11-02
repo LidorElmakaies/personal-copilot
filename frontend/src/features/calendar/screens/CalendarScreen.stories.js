@@ -2,7 +2,7 @@ import CalendarScreen from './CalendarScreen';
 
 export default {
   component: CalendarScreen,
-  parameters: { layout: 'fullscreen' },
+  parameters: { layout: 'fullscreen', language: 'en' },
 };
 
 // The app's real state (location, saved reminders), as on its tab.

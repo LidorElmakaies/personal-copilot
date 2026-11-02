@@ -24,6 +24,7 @@ export default function CustomTabBar({ tabs, activeName, onPress }) {
         return (
           <TouchableOpacity
             key={tab.name}
+            testID={`tab-${tab.name}`}
             onPress={() => onPress(tab)}
             style={styles.tab}
             activeOpacity={0.7}

@@ -1,9 +1,11 @@
-// The Android local-notifications service over expo-notifications: an exact date alarm in the
-// `reminders` channel with the time kept in data, only our (`rem:`) requests listed back, the
-// permission's three states, and taps on a notification carrying a url.
+// The Android local-notifications service over expo-notifications: the vibrating
+// `reminder-alerts` channel (the old `reminders` one deleted), an exact date alarm in it with the
+// time and channel kept in data, only our (`rem:`) requests listed back (one from an old channel
+// `stale`), the permission's three states, and taps on a notification carrying a url.
 import * as Notifications from 'expo-notifications';
 import {
   cancel,
+  ensureChannel,
   getPermission,
   listScheduled,
   requestPermission,
@@ -16,6 +18,7 @@ jest.mock('expo-notifications', () => ({
   AndroidImportance: { HIGH: 4 },
   SchedulableTriggerInputTypes: { DATE: 'date' },
   setNotificationChannelAsync: jest.fn(async () => {}),
+  deleteNotificationChannelAsync: jest.fn(async () => {}),
   scheduleNotificationAsync: jest.fn(async () => 'id'),
   cancelScheduledNotificationAsync: jest.fn(async () => {}),
   getAllScheduledNotificationsAsync: jest.fn(async () => []),
@@ -34,6 +37,17 @@ const tap = (data) => ({ notification: { request: { content: { data } } } });
 describe('localNotificationsService (Android)', () => {
   beforeEach(() => jest.clearAllMocks());
 
+  it('makes the vibrating channel and deletes the old one', async () => {
+    await ensureChannel();
+    expect(Notifications.setNotificationChannelAsync).toHaveBeenCalledWith(
+      'reminder-alerts',
+      expect.objectContaining({ importance: 4, enableVibrate: true }),
+    );
+    expect(Notifications.deleteNotificationChannelAsync).toHaveBeenCalledWith(
+      'reminders',
+    );
+  });
+
   it('schedules an exact date alarm in the reminders channel, under our id', async () => {
     await schedule({
       id: 'rem:c:r1:2026-10-22',
@@ -47,9 +61,9 @@ describe('localNotificationsService (Android)', () => {
       content: {
         title: 'Call Grandma',
         body: 'Your reminder for 08:00.',
-        data: { url: '/calendar', at: AT },
+        data: { url: '/calendar', at: AT, channel: 'reminder-alerts' },
       },
-      trigger: { type: 'date', date: AT, channelId: 'reminders' },
+      trigger: { type: 'date', date: AT, channelId: 'reminder-alerts' },
     });
     await cancel('rem:c:r1:2026-10-22');
     expect(Notifications.cancelScheduledNotificationAsync).toHaveBeenCalledWith(
@@ -61,19 +75,31 @@ describe('localNotificationsService (Android)', () => {
     Notifications.getAllScheduledNotificationsAsync.mockResolvedValueOnce([
       {
         identifier: 'rem:candles:1',
-        content: { title: 'T', body: 'B', data: { url: '/', at: AT } },
+        content: {
+          title: 'T',
+          body: 'B',
+          data: { url: '/', at: AT, channel: 'reminder-alerts' },
+        },
       },
       { identifier: 'someone-else', content: { title: 'X', data: {} } },
       { identifier: 'rem:c:r1:2026-10-22', content: {} }, // no data: unknown time
     ]);
     expect(await listScheduled()).toEqual([
-      { id: 'rem:candles:1', at: AT, title: 'T', body: 'B', url: '/' },
+      {
+        id: 'rem:candles:1',
+        at: AT,
+        title: 'T',
+        body: 'B',
+        url: '/',
+        stale: false,
+      },
       {
         id: 'rem:c:r1:2026-10-22',
         at: null,
         title: null,
         body: null,
         url: null,
+        stale: true, // scheduled before the channel changed
       },
     ]);
   });

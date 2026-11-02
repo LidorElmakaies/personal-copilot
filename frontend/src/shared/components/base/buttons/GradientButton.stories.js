@@ -2,6 +2,7 @@ import GradientButton from './GradientButton';
 
 export default {
   component: GradientButton,
+  parameters: { language: 'en' },
   args: { label: 'Save' },
   argTypes: { onPress: { action: 'pressed' } },
 };

@@ -3,7 +3,7 @@ import LoginScreen from './LoginScreen';
 // Logging in here would call Gateway, as in the app.
 export default {
   component: LoginScreen,
-  parameters: { layout: 'fullscreen' },
+  parameters: { layout: 'fullscreen', language: 'en' },
 };
 
 export const English = {};

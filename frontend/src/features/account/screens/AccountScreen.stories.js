@@ -16,11 +16,11 @@ const signedIn = (firstName, lastName) => ({
 
 export default {
   component: AccountScreen,
-  parameters: { layout: 'fullscreen' },
+  parameters: { layout: 'fullscreen', language: 'en' },
 };
 
 export const English = {
-  parameters: { language: 'en', state: signedIn('Dana', 'Cohen') },
+  parameters: { state: signedIn('Dana', 'Cohen') },
 };
 export const Hebrew = {
   parameters: { language: 'he', state: signedIn('דנה', 'כהן') },

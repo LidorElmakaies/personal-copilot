@@ -204,7 +204,8 @@ export default {
   'finance.yesterday': 'Yesterday',
   'finance.notSent': 'not sent',
   'finance.matched': 'matched',
-  'finance.details': '{details}',
+  // A left-to-right mark first: the line stays an English one when a category is typed in Hebrew.
+  'finance.details': '\u200E{details}',
   'count.photos.one': '1 photo',
   'count.photos.other': '{n} photos',
   'paidWith.card': 'Card ••{last4}',

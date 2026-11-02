@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import Stepper from './Stepper';
 
-export default { component: Stepper };
+export default { component: Stepper, parameters: { language: 'en' } };
 
 // − and + change it here only.
 const Counter = ({ unit }) => {

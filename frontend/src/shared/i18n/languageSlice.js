@@ -1,9 +1,7 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import * as layoutDirection from '../device/layoutDirectionService';
 
-// Settings' pick: saved first (the restart would drop an unwritten state — `extra.flushState` is
-// the store's), then Hebrew mirrors the app, which Android applies only on a restart — after which
-// the tabs open on Settings again (`reopenSettings`, cleared by the tabs layout).
+// Flushed before the restart, which drops an unwritten state — docs/specs/services.md#frontend.
 export const changeLanguage = createAsyncThunk(
   'language/change',
   async (code, { dispatch, extra }) => {

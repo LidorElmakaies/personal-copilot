@@ -20,9 +20,8 @@ function hexToRgb(hex) {
   return { r: (value >> 16) & 255, g: (value >> 8) & 255, b: value & 255 };
 }
 
-// Glass Button — see DESIGN.md's Components section. Kept the name GradientButton for import
-// stability across the design change. Outer/inner shadow+clip split and the style/contentStyle
-// padding split: see .claude/agents/frontend.md's "Bug patterns already hit".
+// Glass button (DESIGN.md's Components). The shadow/clip and style/contentStyle splits: see
+// .claude/agents/frontend.md's "Bug patterns already hit".
 export default function GradientButton({
   label,
   onPress,
@@ -31,6 +30,7 @@ export default function GradientButton({
   variant = 'primary',
   style,
   contentStyle,
+  testID,
 }) {
   const { isDark, colors } = useAppTheme();
   const plain = usePlainInHebrew();
@@ -94,6 +94,7 @@ export default function GradientButton({
 
   return (
     <AnimatedPressable
+      testID={testID}
       onPress={onPress}
       onPressIn={rampIn}
       onPressOut={rampOut}

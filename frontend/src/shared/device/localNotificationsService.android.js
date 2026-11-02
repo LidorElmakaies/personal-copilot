@@ -7,19 +7,28 @@ import { Linking } from 'react-native';
 //
 // Ours are told apart from anything else scheduled by their id's prefix (ID_PREFIX — schedulePlan
 // builds the ids with it); their time is kept in data (`at`).
-export const CHANNEL_ID = 'reminders';
+// Android fixes a channel's sound and vibration when it's made: a change is a new id, the old one
+// deleted (OLD_CHANNEL_IDS) and what was scheduled on it marked `stale`, so the reconcile redoes it.
+export const CHANNEL_ID = 'reminder-alerts';
+const OLD_CHANNEL_IDS = ['reminders'];
 export const ID_PREFIX = 'rem:';
 
 export function isSupported() {
   return true;
 }
 
-// The channel every reminder is shown in (Android settings lists it). Safe to repeat.
+// The channel every reminder is shown in (Android settings lists it): the phone's notification
+// sound, and a vibration — which the phone's ringer mode still decides (none when silent). Safe to
+// repeat.
 export async function ensureChannel() {
   await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
     name: 'Reminders',
     importance: Notifications.AndroidImportance.HIGH,
+    enableVibrate: true,
+    vibrationPattern: [0, 400, 250, 400],
   });
+  for (const id of OLD_CHANNEL_IDS)
+    await Notifications.deleteNotificationChannelAsync(id);
 }
 
 // 'default' | 'granted' | 'denied' — 'denied' only once Android won't ask again (Android 13+
@@ -44,7 +53,7 @@ export function openSettings() {
 export async function schedule({ id, at, title, body, url }) {
   await Notifications.scheduleNotificationAsync({
     identifier: id,
-    content: { title, body, data: { url, at } },
+    content: { title, body, data: { url, at, channel: CHANNEL_ID } },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.DATE,
       date: at,
@@ -57,7 +66,7 @@ export async function cancel(id) {
   await Notifications.cancelScheduledNotificationAsync(id);
 }
 
-// Ours still pending: [{ id, at, title, body, url }].
+// Ours still pending: [{ id, at, title, body, url, stale }] — `stale`: on an old channel.
 export async function listScheduled() {
   const requests = await Notifications.getAllScheduledNotificationsAsync();
   return requests
@@ -68,6 +77,7 @@ export async function listScheduled() {
       title: r.content.title ?? null,
       body: r.content.body ?? null,
       url: r.content.data?.url ?? null,
+      stale: r.content.data?.channel !== CHANNEL_ID,
     }));
 }
 

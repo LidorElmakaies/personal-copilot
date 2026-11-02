@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import InputField from './InputField';
 
-export default { component: InputField };
+export default { component: InputField, parameters: { language: 'en' } };
 
 // Typing changes it here only.
 const Field = (props) => {

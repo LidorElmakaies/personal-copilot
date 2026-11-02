@@ -1,10 +1,6 @@
 import { useEffect, useRef } from 'react';
-import {
-  Animated,
-  I18nManager,
-  StyleSheet,
-  TouchableOpacity,
-} from 'react-native';
+import { Animated, StyleSheet, TouchableOpacity } from 'react-native';
+import { useIsRTL } from '../../../i18n/translate';
 import { useAppTheme } from '../../../theme/useAppTheme';
 
 // Reusable boolean toggle — track + sliding knob, knob picks up the accent color + glow when on.
@@ -28,7 +24,7 @@ export default function Switch({
   }, [value, anim]);
 
   // Android mirrors the layout in Hebrew but not a transform: the knob slides the other way.
-  const side = I18nManager.isRTL ? -1 : 1;
+  const side = useIsRTL() ? -1 : 1;
   const knobTranslate = anim.interpolate({
     inputRange: [0, 1],
     outputRange: [2 * side, 22 * side],

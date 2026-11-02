@@ -5,7 +5,10 @@ const state = {
   notifications: { permission: 'denied', ready: true, busy: false },
 };
 
-export default { component: NotificationsCard, parameters: { state } };
+export default {
+  component: NotificationsCard,
+  parameters: { state, language: 'en' },
+};
 
 export const Blocked = {};
 export const BlockedHebrew = { parameters: { state, language: 'he' } };

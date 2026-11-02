@@ -11,6 +11,7 @@ const { candleLighting } = new ShabbatCalendar().current(
 
 export default {
   component: CandleReminder,
+  parameters: { language: 'en' },
   args: { candleLighting: new Date(candleLighting), now: NOW },
 };
 

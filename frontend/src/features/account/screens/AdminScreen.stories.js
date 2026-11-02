@@ -32,11 +32,11 @@ const admin = (services, error = null) => ({
 
 export default {
   component: AdminScreen,
-  parameters: { layout: 'fullscreen' },
+  parameters: { layout: 'fullscreen', language: 'en' },
 };
 
 export const English = {
-  parameters: { language: 'en', state: admin([gateway, users]) },
+  parameters: { state: admin([gateway, users]) },
 };
 export const Hebrew = {
   parameters: { language: 'he', state: admin([gateway, users]) },

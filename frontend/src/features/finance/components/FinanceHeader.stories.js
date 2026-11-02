@@ -2,6 +2,7 @@ import FinanceHeader from './FinanceHeader';
 
 export default {
   component: FinanceHeader,
+  parameters: { language: 'en' },
   args: { month: { year: 2026, month: 10 } },
   argTypes: {
     onPrevious: { action: 'previous' },

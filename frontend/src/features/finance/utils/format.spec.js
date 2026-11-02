@@ -34,28 +34,35 @@ describe('entryDetails', () => {
     attachmentIds: Array.from({ length: photos }, (_, i) => `a${i}`),
   });
 
+  // The category is the user's, in an isolate (\u2068…\u2069): its own direction in either line.
   it('joins the category, how it was paid and the photos', () => {
     expect(entryDetails(en, entry('card', 2), 'Groceries')).toBe(
-      'Groceries · Card ••4821 · 2 photos',
+      '\u200E\u2068Groceries\u2069 · Card ••4821 · 2 photos',
     );
     expect(entryDetails(en, entry('paybox', 1), 'Gifts')).toBe(
-      'Gifts · PayBox · 1 photo',
+      '\u200E\u2068Gifts\u2069 · PayBox · 1 photo',
     );
     expect(entryDetails(en, entry('cash'), 'Groceries')).toBe(
-      'Groceries · Cash',
+      '\u200E\u2068Groceries\u2069 · Cash',
+    );
+  });
+
+  it('a Hebrew category in the English line: still an English line', () => {
+    expect(entryDetails(en, entry('bit'), 'מתנות')).toBe(
+      '\u200E\u2068מתנות\u2069 · Bit',
     );
   });
 
   it('in Hebrew keeps the card digits left to right', () => {
     expect(entryDetails(he, entry('card', 1), 'סופר')).toBe(
-      '\u200Fסופר · כרטיס \u2066••4821\u2069 · תמונה אחת',
+      '\u200F\u2068סופר\u2069 · כרטיס \u2066••4821\u2069 · תמונה אחת',
     );
     expect(entryDetails(he, entry('bit'), 'אוכל בחוץ')).toBe(
-      '\u200Fאוכל בחוץ · ביט',
+      '\u200F\u2068אוכל בחוץ\u2069 · ביט',
     );
     // An English category: still a Hebrew line, starting on the right.
     expect(entryDetails(he, entry('cash'), 'Groceries')).toBe(
-      '\u200FGroceries · מזומן',
+      '\u200F\u2068Groceries\u2069 · מזומן',
     );
   });
 });

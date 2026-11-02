@@ -14,6 +14,8 @@ appId: com.lidor.personalcopilot
     text: ${TITLE}
     waitToSettleTimeoutMs: 1500
     retryTapIfNoChange: false
+# The app is open: its tab bar (by testID, in either language).
 - extendedWaitUntil:
-    visible: "Calendar"
+    visible:
+      id: "tab-calendar"
     timeout: 10000

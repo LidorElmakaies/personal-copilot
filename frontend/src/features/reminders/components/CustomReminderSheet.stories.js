@@ -16,6 +16,7 @@ const MONTHLY_HEBREW = {
 
 export default {
   component: CustomReminderSheet,
+  parameters: { language: 'en' },
   args: { target: { reminder: null, date: '2026-10-30' } },
   argTypes: {
     onClose: { action: 'closed' },

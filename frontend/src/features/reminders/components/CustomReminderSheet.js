@@ -220,6 +220,7 @@ function ReminderForm({ target, onClose, onSaved }) {
         value={draft.title}
         onChangeText={(title) => set({ title: straightenQuotes(title) })}
         placeholder={translate('sheet.titlePlaceholder')}
+        testID="reminder-title"
         autoCapitalize="sentences"
         maxLength={TITLE_MAX_LENGTH}
         showCharCount
@@ -266,6 +267,7 @@ function ReminderForm({ target, onClose, onSaved }) {
             onChange={(hour) => set({ hour })}
             max={23}
             unit={translate('units.hours')}
+            testID="hours"
             style={styles.flex}
           />
           <Stepper
@@ -274,6 +276,7 @@ function ReminderForm({ target, onClose, onSaved }) {
             max={55}
             step={5}
             unit={translate('units.minutes')}
+            testID="minutes"
             style={styles.flex}
           />
         </View>
@@ -334,6 +337,7 @@ function ReminderForm({ target, onClose, onSaved }) {
             <GradientButton
               label={translate('sheet.delete')}
               variant="danger"
+              testID="reminder-delete-confirm"
               onPress={() => finish(deleteCustomReminder(original.id), null)}
               style={styles.flex}
               contentStyle={styles.actionContent}
@@ -346,6 +350,7 @@ function ReminderForm({ target, onClose, onSaved }) {
             <GradientButton
               label={translate('sheet.delete')}
               variant="danger"
+              testID="reminder-delete"
               onPress={remove}
               style={styles.flex}
               contentStyle={styles.actionContent}
@@ -360,6 +365,7 @@ function ReminderForm({ target, onClose, onSaved }) {
           )}
           <GradientButton
             label={translate('common.save')}
+            testID="reminder-save"
             onPress={save}
             disabled={!!problem}
             style={styles.flex}
@@ -385,7 +391,10 @@ function Summary({ draft, next }) {
       ]}
       accessibilityLabel={translate('sheet.nextDates')}
     >
-      <Text style={[styles.summaryLine, { color: colors.text }]}>
+      <Text
+        testID="reminder-summary"
+        style={[styles.summaryLine, { color: colors.text }]}
+      >
         {summaryLine(translate, draft)}
       </Text>
       {body ? (

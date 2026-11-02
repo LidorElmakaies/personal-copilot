@@ -3,6 +3,7 @@ import EntryList from './EntryList';
 
 export default {
   component: EntryList,
+  parameters: { language: 'en' },
   args: { entries: OCTOBER_ENTRIES, categories: CATEGORIES, today: TODAY },
   argTypes: { onPressEntry: { action: 'entry pressed' } },
 };

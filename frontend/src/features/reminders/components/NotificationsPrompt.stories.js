@@ -7,7 +7,10 @@ const state = {
   reminders: { candles: { enabled: true } },
 };
 
-export default { component: NotificationsPrompt, parameters: { state } };
+export default {
+  component: NotificationsPrompt,
+  parameters: { state, language: 'en' },
+};
 
 export const English = {};
 export const Hebrew = { parameters: { state, language: 'he' } };

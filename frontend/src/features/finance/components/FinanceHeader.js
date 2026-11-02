@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-import { I18nManager, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import PillButton from '../../../shared/components/base/buttons/PillButton';
 import { monthTitle } from '../../../shared/i18n/format';
-import { useTranslate } from '../../../shared/i18n/translate';
+import { useIsRTL, useTranslate } from '../../../shared/i18n/translate';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
 
 // The Finance tab's title row (screen 1): "Finance", ‹ month › under it, the Monthly check pill.
@@ -15,6 +15,7 @@ export default function FinanceHeader({
 }) {
   const { colors } = useAppTheme();
   const translate = useTranslate();
+  const rtl = useIsRTL();
   const title = monthTitle(translate, month);
   const arrow = (icon, label, onPress) => (
     <Pressable
@@ -29,7 +30,7 @@ export default function FinanceHeader({
         name={icon}
         size={16}
         color={colors.textMuted}
-        style={styles.flip}
+        style={rtl && styles.flip}
       />
     </Pressable>
   );
@@ -71,6 +72,6 @@ const styles = StyleSheet.create({
   title: { fontSize: 28, fontWeight: '600' },
   month: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   monthText: { fontSize: 13 },
-  // In Hebrew the row mirrors but an icon doesn't: "previous" must point right.
-  flip: { transform: [{ scaleX: I18nManager.isRTL ? -1 : 1 }] },
+  // Right to left the row mirrors but an icon doesn't: "previous" must point right.
+  flip: { transform: [{ scaleX: -1 }] },
 });

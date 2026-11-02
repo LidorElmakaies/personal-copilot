@@ -2,6 +2,7 @@ import MonthHeader from './MonthHeader';
 
 export default {
   component: MonthHeader,
+  parameters: { language: 'en' },
   args: { title: 'October 2026', hebrewTitle: 'תשרי – חשון תשפ״ז' },
   argTypes: {
     onPrevious: { action: 'previous' },

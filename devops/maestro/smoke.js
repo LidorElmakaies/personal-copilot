@@ -136,11 +136,16 @@ function startContainer(device) {
     IMAGE, 'sh', '-c', 'adb start-server && sleep infinity',
   ], { stdio: ['ignore', 'ignore', 'inherit'] });
 
+  // `dumpsys notification` on a phone with many apps runs past spawnSync's 1 MB default.
   const exec = (args, opts = {}) =>
-    spawnSync('docker', ['exec', name, ...args], { encoding: 'utf8', ...opts });
+    spawnSync('docker', ['exec', name, ...args], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, ...opts });
+  // A failure names the cause, never the output: a dumpsys holds other apps' notifications.
   const adb = (...args) => {
     const r = exec(['adb', ...args]);
-    if (r.status !== 0) throw new Refusal(`adb ${args.join(' ')} failed: ${(r.stderr || r.stdout).trim()}`);
+    if (r.status !== 0) {
+      const why = r.error?.message || (r.stderr || '').trim().split('\n')[0] || `exit ${r.status}`;
+      throw new Refusal(`adb ${args.join(' ')} failed: ${why}`);
+    }
     return r.stdout;
   };
   return { name, exec, adb, stop: () => spawnSync('docker', ['rm', '-f', name], { stdio: 'ignore' }) };
@@ -238,7 +243,7 @@ async function smoke({ device, quick }) {
     title = `Smoke test ${slot.time.replace(':', '')}`;
     const env = {
       TITLE: title, TIME: slot.time,
-      HOUR_BUTTON: slot.hour >= FORM_HOUR ? 'More hours' : 'Fewer hours',
+      HOUR_BUTTON: slot.hour >= FORM_HOUR ? 'hours-more' : 'hours-fewer',
       HOUR_TAPS: Math.abs(slot.hour - FORM_HOUR), MINUTE_TAPS: slot.minute / 5,
     };
     // The phone's clock against the PC's: the waits below use the PC's.

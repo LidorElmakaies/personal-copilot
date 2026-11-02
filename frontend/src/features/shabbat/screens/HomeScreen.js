@@ -32,11 +32,11 @@ function formatNumericDate(date) {
 }
 
 // @hebcal/hdate rather than Intl's 'he-u-ca-hebrew' calendar — see frontend/README.md for why.
-// English: render('he')'s comma stripped, as the approved mockup's "14 Tishrei 5787". Hebrew: in
-// letters, as the Hebrew canvas — "כ״א בחשון תשפ״ז".
+// "22 Cheshvan 5787" in English, "כ״ב בחשון תשפ״ז" in Hebrew (as the canvases).
 function formatHebrewDate(date, translate, language) {
-  if (language !== 'he') return new HDate(date).render('he').replace(',', '');
-  return hebrewDate(translate, hebrewLetters(date));
+  if (language === 'he') return hebrewDate(translate, hebrewLetters(date));
+  const hd = new HDate(date);
+  return `${hd.getDate()} ${hd.getMonthName()} ${hd.getFullYear()}`;
 }
 
 export default function HomeScreen() {

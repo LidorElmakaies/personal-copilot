@@ -2,6 +2,7 @@ import FormActions from './FormActions';
 
 export default {
   component: FormActions,
+  parameters: { language: 'en' },
   args: { canSave: true },
   argTypes: { onSave: { action: 'saved' }, onCancel: { action: 'cancelled' } },
 };

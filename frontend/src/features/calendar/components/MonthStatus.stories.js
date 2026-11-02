@@ -2,6 +2,7 @@ import MonthStatus from './MonthStatus';
 
 export default {
   component: MonthStatus,
+  parameters: { language: 'en' },
   argTypes: { onRetry: { action: 'retry' } },
 };
 

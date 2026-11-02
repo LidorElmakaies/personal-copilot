@@ -21,11 +21,12 @@ export function dayLabel(translate, date, today) {
 const paidWithLabel = (translate, { paidWith, cardLast4 }) =>
   translate(`paidWith.${paidWith}`, { last4: cardLast4 });
 
-// An entry's line under what it was for: "Groceries · Card ••4821 · 2 photos".
+// An entry's line under what it was for: "Groceries · Card ••4821 · 2 photos". The category, in
+// either language, is a first-strong isolate — see frontend.md's "A line takes its direction…".
 export function entryDetails(translate, entry, category) {
   const photos = entry.attachmentIds.length;
   const parts = [
-    category,
+    category && `\u2068${category}\u2069`,
     paidWithLabel(translate, entry),
     photos && count(translate, 'count.photos', photos),
   ];

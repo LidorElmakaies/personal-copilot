@@ -2,7 +2,7 @@ import HomeScreen from './HomeScreen';
 
 export default {
   component: HomeScreen,
-  parameters: { layout: 'fullscreen' },
+  parameters: { layout: 'fullscreen', language: 'en' },
 };
 
 // The app's real state (location, saved reminders), as on its tab.

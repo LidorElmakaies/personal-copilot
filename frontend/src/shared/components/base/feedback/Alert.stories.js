@@ -2,6 +2,7 @@ import Alert from './Alert';
 
 export default {
   component: Alert,
+  parameters: { language: 'en' },
   args: { children: "Couldn't reach your PC — you can still add." },
 };
 

@@ -171,6 +171,7 @@ export default function CalendarScreen() {
       </ScrollView>
       <FloatingButton
         accessibilityLabel={translate('calendar.addReminder')}
+        testID="add-reminder"
         onPress={add}
         style={styles.fab}
       />

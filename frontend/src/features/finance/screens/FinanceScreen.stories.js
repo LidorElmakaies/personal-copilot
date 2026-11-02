@@ -3,7 +3,7 @@ import FinanceScreen from './FinanceScreen';
 
 export default {
   component: FinanceScreen,
-  parameters: { layout: 'fullscreen' },
+  parameters: { layout: 'fullscreen', language: 'en' },
 };
 
 // October 2026; ‹ goes to empty months.

@@ -162,17 +162,19 @@ are laid out `direction: 'ltr'`); each screen inside is mirrored.
   direction changes, `layoutDirectionService` sets Android's `I18nManager.forceRTL` and restarts the
   app with `expo`'s `reloadAppAsync()` — Android applies right-to-left only at start. Before the
   restart it saves `reopenSettings`; the tabs layout, finding it at start, opens Settings and clears
-  it, so the restart lands back where the change was made. The words
-  come from `src/shared/i18n/` (`en.js`, `he.js` — the same keys; `useTranslate()` → `translate(key, vars)` in the
-  saved language, `translateIn(code, key, vars)` outside React) — every tab, the reminder and update
-  sheets, the tab bar and the notifications prompt — and every date is
-  put together by `src/shared/i18n/format.js` in the chosen language (month and weekday names from
-  the dictionaries; times, numbers and ₪ the same in both), the dormant login, Account and Admin
-  screens included. Error messages the Users Service sends, and the service names on Admin
-  (Gateway, Users), are shown as they are (English).
+  it, so the restart lands back where the change was made. Every screen — the dormant login,
+  Account and Admin included — and the notifications take their words from `src/shared/i18n/`
+  (`en.js`, `he.js` — the same keys; `useTranslate()` → `translate(key, vars)` in the saved
+  language, `translateIn(code, key, vars)` outside React), and every date is put together by
+  `src/shared/i18n/format.js` in the chosen language (month and weekday names from the
+  dictionaries; times, numbers and ₪ the same in both). Error messages the Users Service sends,
+  and the service names on Admin (Gateway, Users), are shown as they are (English); text the user
+  types may be in either language or both. Bidi rules (marks, isolates) and what Android doesn't
+  mirror: `.claude/agents/frontend.md`.
 
 - `(tabs)/index` (Home — the landing tab, no session required: live clock, today's Gregorian date,
-  and today's Hebrew/Jewish date via `@hebcal/hdate`, chosen over `Intl`'s `'he-u-ca-hebrew'`
+  and today's Hebrew/Jewish date ("22 Cheshvan 5787"; in Hebrew in letters, "כ״ב בחשון תשפ״ז")
+  via `@hebcal/hdate`, chosen over `Intl`'s `'he-u-ca-hebrew'`
   calendar extension because Hermes's bundled ICU data isn't guaranteed to include non-Gregorian
   calendar tables on-device — see `frontend/README.md`). Under the clock, `ShabbatSection` shows the current/next Shabbat for
   the device's location: a label (holiday or parasha, or "Shabbat Shalom" while it's in progress),
@@ -358,7 +360,10 @@ are laid out `direction: 'ltr'`); each screen inside is mirrored.
 - **Reminder notifications** (Android only — the plain `localNotificationsService.js`, which Jest's
   default platform resolves, does nothing). Both kinds of reminder fire as exact local alarms the phone schedules
   itself (`src/shared/device/localNotificationsService.android.js` over expo-notifications: a date
-  trigger in the "Reminders" channel, which it also creates — `ensureChannel`). `reminders/utils/schedulePlan.js` is the pure planner: each reminder's
+  trigger in the "Reminders" channel, `reminder-alerts`, which it also creates — `ensureChannel`:
+  high importance, the phone's notification sound and a vibration, the ringer mode deciding; it
+  deletes the older `reminders` channel, and the reconcile redoes what was scheduled on it, marked
+  `stale`). `reminders/utils/schedulePlan.js` is the pure planner: each reminder's
   firings from now to 30 days ahead (`WINDOW_DAYS`) plus its very next one even when further, at
   most 100 in all (`MAX_TOTAL` — every reminder's next firing first, then the earliest of the rest).
   Each reminder's firings come from a generator, worked out only as far as they're kept (a merge

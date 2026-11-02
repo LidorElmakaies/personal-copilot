@@ -32,6 +32,7 @@ export default function InputField({
   style,
   inputStyle,
   onBlur,
+  testID,
 }) {
   const { colors } = useAppTheme();
   const plain = usePlainInHebrew();
@@ -73,6 +74,7 @@ export default function InputField({
       ) : null}
       <View style={styles.inputRow}>
         <TextInput
+          testID={testID}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}

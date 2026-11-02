@@ -21,9 +21,9 @@ npm test                # Jest: the *.spec.{ts,js} under src/ (jest-expo, React 
 
 `maestro/` holds the phone smoke-test flows (Maestro YAML), run against the installed APK by
 `node devops/maestro/smoke.js` from the repo root — an opt-in release check, never part of
-`npm test`; see `.claude/agents/testing.md`'s "On the phone". They find elements by text and
-accessibility label, so renaming "Add reminder", "Candle lighting", a stepper's "More min" or the
-reminder form's summary line means updating them.
+`npm test`; see `.claude/agents/testing.md`'s "On the phone". They find elements by `testID`
+(Maestro's `id:`), so they pass with the app in English or Hebrew; removing or renaming one of
+those `testID`s (listed there) means updating them.
 
 On your phone over Tailscale: the dev build ("Personal Copilot Dev", `apk.js build --dev`) loads the
 code from `npx expo start` on `:8082` — see `docs/frontend/environment.md`. Expo Go can't run this

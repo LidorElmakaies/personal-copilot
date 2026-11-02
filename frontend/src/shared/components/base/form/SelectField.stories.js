@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import SelectField from './SelectField';
 
-export default { component: SelectField };
+export default { component: SelectField, parameters: { language: 'en' } };
 
 // A pick changes it here only.
 const Select = ({ label, options }) => {

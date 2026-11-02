@@ -3,6 +3,7 @@ import DayCard from './DayCard';
 
 export default {
   component: DayCard,
+  parameters: { language: 'en' },
   args: { day: EREV_SHABBAT, now: NOW },
   argTypes: {
     onShowAll: { action: 'show all' },

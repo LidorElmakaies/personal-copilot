@@ -9,10 +9,12 @@ export default function FloatingButton({
   onPress,
   accessibilityLabel,
   style,
+  testID,
 }) {
   const { colors } = useAppTheme();
   return (
     <Pressable
+      testID={testID}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}

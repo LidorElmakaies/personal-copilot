@@ -77,7 +77,10 @@ export default function ShabbatSection({
           <Text style={[styles.timeCaption, { color: colors.textMuted }]}>
             {translate('times.candleLighting')}
           </Text>
-          <Text style={[styles.time, { color: colors.pending }]}>
+          <Text
+            testID="candle-lighting-time"
+            style={[styles.time, { color: colors.pending }]}
+          >
             {formatTime(candleLighting)}
           </Text>
           <Text style={[styles.timeCaption, { color: colors.textMuted }]}>
@@ -88,7 +91,10 @@ export default function ShabbatSection({
           <Text style={[styles.timeCaption, { color: colors.textMuted }]}>
             {translate('times.havdalah')}
           </Text>
-          <Text style={[styles.time, { color: colors.text }]}>
+          <Text
+            testID="havdalah-time"
+            style={[styles.time, { color: colors.text }]}
+          >
             {formatTime(havdalah)}
           </Text>
           <Text style={[styles.timeCaption, { color: colors.textMuted }]}>

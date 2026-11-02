@@ -21,6 +21,7 @@ const row = (id, title, hour, minute) => ({
 
 export default {
   component: RemindersSheet,
+  parameters: { language: 'en' },
   args: {
     date: '2026-10-30',
     reminders: [

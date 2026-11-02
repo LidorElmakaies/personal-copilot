@@ -47,8 +47,8 @@ cleared cache (an `EXPO_PUBLIC_*` value is baked into the cached bundle):
 `EXPO_PUBLIC_STORYBOOK=true APP_VARIANT=dev EXPO_NO_TYPESCRIPT_SETUP=1 REACT_NATIVE_PACKAGER_HOSTNAME=<pc-tailnet-ip> npx expo start --dev-client --port 8082 --clear`
 
 then open it in the dev build as above: the story list instead of the app, in the phone's own light or dark
-(Storybook clears a theme the dev build saved), in the app's saved language except for a Hebrew story,
-which is always in Hebrew, right to left. To open one story directly (the story list's edge sits
+(Storybook clears a theme the dev build saved), each story in its own language — English, or Hebrew
+right to left for a Hebrew story — whatever the app's saved one. To open one story directly (the story list's edge sits
 under Samsung's Edge panel handle): `adb shell am start -a android.intent.action.VIEW -d
 "'personalcopilotdev://story?STORYBOOK_STORY_ID=<id>'" com.lidor.personalcopilot.dev` while
 Storybook is running — the id is the file's path and the story's name, lower-case with dashes

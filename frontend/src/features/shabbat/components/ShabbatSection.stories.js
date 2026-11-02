@@ -15,6 +15,7 @@ const SHABBAT = JSON.parse(
 
 export default {
   component: ShabbatSection,
+  parameters: { language: 'en' },
   args: { shabbat: SHABBAT, now: NOW },
   argTypes: { onRetry: { action: 'retry' } },
 };

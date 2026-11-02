@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext } from 'react';
 import { useSelector } from 'react-redux';
+import { isRTL } from '../device/layoutDirectionService';
 import en from './en';
 import he from './he';
 
@@ -22,6 +23,13 @@ export const LanguageOverride = createContext(null);
 export function useLanguage() {
   const saved = useSelector((state) => state.language.code);
   return useContext(LanguageOverride) ?? saved;
+}
+
+// Whether the screen is laid out right to left, for what Android doesn't mirror (a transform, a
+// drag, a measured position): Android's direction in the app, the story's language under StoryFrame.
+export function useIsRTL() {
+  const override = useContext(LanguageOverride);
+  return override ? override === 'he' : isRTL();
 }
 
 // translate(key, vars) in that language.

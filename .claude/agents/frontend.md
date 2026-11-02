@@ -29,8 +29,7 @@ loaded months worked out by `selectDayReminders` (`customRemindersSlice`, over `
 (`ReminderScheduleManager` → `reconcileReminderNotifications`, planned by
 `reminders/utils/schedulePlan.js`, scheduled via `shared/device/localNotificationsService.android.js`; re-run ~daily in the
 background by the `reminder-notifications` task, `shared/device/backgroundTaskService.android.js`,
-defined in `src/store/backgroundTasks.js`) + an auth-gated,
-Settings tab (language, theme) + an auth-gated,
+defined in `src/store/backgroundTasks.js`) + a Settings tab (language, theme) + an auth-gated,
 hidden Account tab (notifications, email/password, profile, logout, delete account — one card
 component each — then `VersionInfo`) + Android's notification permission
 (`notificationsSlice` over `localNotificationsService`, kept current by `ReminderScheduleManager`;
@@ -64,7 +63,7 @@ Only a refresh the server refuses signs out with `authSlice.notice` set (`SESSIO
 a dictionary key); the login screen shows it in the chosen language. The hook is
 `setUnauthorizedHandler`, registered in `src/store/index.js` so the service stays Redux-free. Don't
 hand-roll a bearer `fetch` that skips it. `selectUser(state)` → `{ id, email, role }` from the
-token, for anything role-dependent; an effect that loads the user's data keys on
+token (memoized: the same object until the token changes), for anything role-dependent; an effect that loads the user's data keys on
 `selectUserId`, not `accessToken`, which changes on every renewal.
 
 ## Theme system — two layers, no Gluestack
@@ -101,6 +100,7 @@ feature's `components/` (listed under `composite/` below with its feature):
   primitives). Props worth knowing: `AuthLinks`' `prompt`/`linkLabel`/`href` (login's and
   register's link to the other screen, plus "Continue without logging in"); `FloatingButton`'s `icon` (Ionicons name, default `add`) — the
   caller positions it via `style` (`position: 'absolute'` and its corner);
+  `testID` on `GradientButton`, `FloatingButton`, `InputField` and `Stepper` (its buttons get `<testID>-fewer`/`-more`), and each `CustomTabBar` tab is `tab-<name>` — what the Maestro flows find;
   `Alert`'s `variant` (`error` default, `warning`, `success`); `Switch`'s `disabled` and
   `accessibilityLabel` (rendered with role `switch`); `GlowCard` always draws an opaque panel
   (`colors.panel`) under its tint; `PillButton`'s `tone` (`accent`
@@ -223,7 +223,8 @@ when a component genuinely needs something no thunk/selector combination can giv
   doesn't (Hebrew may leave one out); a value each language writes its own way — an ordinal, a
   Hebrew-calendar day — is itself a key (`ordinal`, `hebrewCalendar.*`). Names that are always in
   their own language (English / עברית in `LanguageCard`) stay literals; holiday and parasha names
-  come from hebcal in both (`name[useLanguage()]`). A tab's `label` in `TABS` is a key too.- **Dates through `src/shared/i18n/format.js`**, never `toLocaleDateString`: `longDate`,
+  come from hebcal in both (`name[useLanguage()]`). A tab's `label` in `TABS` is a key too.
+- **Dates through `src/shared/i18n/format.js`**, never `toLocaleDateString`: `longDate`,
   `shortDate`, `dayMonth`, `weekdayMonth`, `monthTitle`, `hebrewDate` — each `(translate, date)` —
   and `duration(translate, minutes)` ("1h 30m" · "שעה ו־30 דק׳"), `count(translate, key, n)`
   (`key.one`/`key.other` — "תזכורת אחת"), `hebrewLetters(date)` (a date's Hebrew date in letters,
@@ -349,19 +350,25 @@ hit" below).
   out right to left and swaps `left`/`right`, but a `translateX`, a gesture's `translationX` and an
   Ionicons chevron and a position measured on screen (`measureInWindow`, from the left) stay as they are: the tab pager slid away from every tab but Home, the
   `Switch` knob slid off its track, "previous month" pointed left, `SelectField`'s list opened under the wrong field. Flip them with
-  `I18nManager.isRTL ? -1 : 1` (`SwipePager`'s `DIR`, `Switch`, the headers' `flip`, `SelectField`'s `start`). Text arrows
+  `useIsRTL()` where the flip follows the row's direction (`Switch`, the headers' `flip`) and
+  `I18nManager.isRTL` where it follows Android's swapped `left` (`SwipePager`'s `DIR`,
+  `SelectField`'s `start`, in a `Modal` of its own). Text arrows
   (‹ › ) mirror by themselves. Something that must not mirror gets `direction: 'ltr'` — the tab bar
   and `TabPager` keep the English order (the user's call), each page set back to the app's direction.
 - **`textAlign: 'right'` is the end of the line, not the right side.** Measured on the phone (H2.3):
   in the mirrored app unset and `'left'` both start on the right and `'right'` lands on the left,
   for English, Hebrew and digits alike; inside a `direction: 'ltr'` view they follow that view.
-  DayCard's Hebrew lines (`'right'` in English) jumped to the left in Hebrew — they now drop it
-  there. `writingDirection` doesn't move a line at all.
+  So DayCard's Hebrew lines set `'right'` in English only — in Hebrew it would put them on the
+  left. `writingDirection` doesn't move a line at all.
 - **A line takes its direction from its first letter.** Finance's "Groceries · כרטיס ••4821 · 2
   תמונות" (a category typed in English) read left to right and scrambled the Hebrew; Android
-  ignores `writingDirection`. A Hebrew line that may start with the user's text begins with a
-  right-to-left mark in the dictionary (`'\u200F{details}'`); a left-to-right piece inside Hebrew
-  (`••4821`, a dial code "+972") is an isolate (`\u2066…\u2069`). Write them as escapes — the characters are invisible.
+  ignores `writingDirection`. A line that may start with the user's text or a name begins with
+  its language's mark in the dictionary: right-to-left `'\u200F{details}'` in `he.js`,
+  left-to-right `'\u200E{details}'` in `en.js`. A left-to-right piece inside Hebrew (`••4821`,
+  a dial code "+972") is an isolate (`\u2066…\u2069`); a piece that may be in either
+  language (the user's own text, as Finance's category in `entryDetails`; a server's error) is a
+  first-strong isolate (`\u2068…\u2069`), laid out by its own first letter. Write them as
+  escapes — the characters are invisible.
 - **Android's `monospace` has no Hebrew letters**: the fallback spaced Hebrew words apart
   (`UpdateSheet`'s subtitle). Monospace for English and digits only.
 - **Toggle a style prop's value, not its presence, on Android.** A `borderWidth` added after mount
@@ -399,9 +406,12 @@ unused native library.
   with `name: 'Error'`.
 - **A Hebrew story** sets `parameters: { language: 'he' }`: `StoryFrame` hands `useTranslate()` that
   language (`LanguageOverride`) without touching the app's saved one, and lays the story out in its
-  direction (`direction: 'rtl'`), so it is right to left in the English app too. (Motion flipped
-  by `I18nManager.isRTL` — `Switch`, `SwipePager` — still follows the app's own direction.)
-  An English story sets `language: 'en'` too, or it follows the app's saved language.
+  direction (`direction: 'rtl'`), so it is right to left in the English app too. `useIsRTL()`
+  (`translate.js`) is the story's direction under `StoryFrame` and Android's in the app, so the
+  `Switch` and the month arrows are right in a story of either language; what places by `left`
+  (`SwipePager`, `SelectField`'s list) still follows the dev build's language.
+  Every story file's default export sets `language: 'en'` (a story's own `language` overrides
+  it), or its stories follow the app's saved language.
   `useFocusEffect` doesn't run under the stand-in screen (a crash): `useIsFocused` + an effect does
   (`AdminScreen`).
   The calendar's example data, from the app's own maths: `calendar/mocks/` (Tel Aviv, October

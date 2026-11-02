@@ -374,6 +374,14 @@ the + never covers the last row's amount.
 **Paused until the Hebrew plan (`docs/plans/hebrew/plan.md`) is done** — every stage after U2
 starts after it, in both languages.
 
+**The user's own text is in either language, or both** (asked 2026-11-02): "what for", category
+names, shop names, notes — typed in English, Hebrew or a mix ("Coffee וכריך"), whatever the
+app's language. Every field takes both (`project_english_hebrew_only`: A–Z and א–ת); each
+piece is shown in its own direction — a whole line by its first letter, a piece inside a line of
+the app's words as an isolate (`\u2068…\u2069`, as `entryDetails`' category). Search (U4b)
+matches in both. The example data is a mix too (`finance/mocks/`). Every stage's stories show a
+mixed entry in each language.
+
 - [ ] **U4b.1 Design** — on the canvas first: a search field (by name — "what for" and the shop)
   and filters by category and by price range (from–to ₪) over the month's list; how they show
   when on, and how to clear them.

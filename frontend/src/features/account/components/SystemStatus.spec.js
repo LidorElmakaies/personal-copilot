@@ -62,7 +62,7 @@ describe('SystemStatus', () => {
   it('down: named in the summary, starting right to left in Hebrew', async () => {
     await renderIn('he', [down('gateway'), down('users')]);
     expect(screen.getByText('0/2')).toBeTruthy();
-    expect(screen.getByText('‏Gateway ו־Users לא עונים')).toBeTruthy();
+    expect(screen.getByText('\u200FGateway ו־Users לא עונים')).toBeTruthy();
     expect(screen.getAllByText('לא פעיל')).toHaveLength(2);
     expect(screen.getAllByText('אין תשובה')).toHaveLength(2);
   });
