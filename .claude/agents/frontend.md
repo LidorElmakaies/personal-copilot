@@ -139,7 +139,11 @@ feature's `components/` (listed under `composite/` below with its feature):
   `SpentCard`, `EntryList`, the + — and the banner opens `StatementReviewScreen` (screen 6, the root
   Stack's `app/finance-review.js`, `router.push` — the imperative `router`, so Storybook renders the
   screen without a navigator; only a back arrow and title until U11); `finance/utils/statement.js`'s
-  `statementSummary(lines)` gives the banner's to answer / already reported / month; `finance/utils/format.js` holds
+  `statementSummary(lines)` gives the banner's to answer / already reported / month; `finance/utils/filter.js`
+  holds the list's search, filters and sort (U4b): `filterEntries(entries, filter)` (`NO_FILTER`'s
+  shape: `query` in "what for" or the shop, either language, `categoryIds`, `minAgorot`/`maxAgorot`,
+  `paidWith`), `sortEntries(entries, sort)` (`newest` | `oldest` | `highest` | `lowest`), `isByAmount`,
+  `isFiltering`; `finance/utils/format.js` holds
   `formatShekels` (whole agorot → "₪284.90", the same in both languages), `dayLabel(translate, …)` and `entryDetails(translate, entry, category)` (the row's second line); account: `ProfileFields`, `RequireAuthNotice`, `SystemStatus` and
   the Account tab's cards but `ThemeCard`. Each: `AmbientBackground` (from `Meteors`, `Stars`), `SwipeTabs` (from
   `TabPager` — the `(tabs)` navigator: Expo Router's `withLayoutContext` + `TabRouter`, the screens

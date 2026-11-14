@@ -448,10 +448,14 @@ mixed entry in each language.
   - **Nothing matches:** the summary line says what was asked ("challah" in Eating out ·
     nothing), a short line under an icon, and "Search all categories" when a category is on.
   - **Scope:** the month on screen; filters reset when you leave the tab or change month.
-- [ ] **U4b.2 Filtering logic** — `utils/filter.js`: `filterEntries(entries, { query, categoryIds,
+- [x] **U4b.2 Filtering logic** — `utils/filter.js`: `filterEntries(entries, { query, categoryIds,
   minAgorot, maxAgorot, paidWith })` (search matches "what for" and the shop, either language,
   case-insensitive) and `sortEntries(entries, sort)` (`newest` | `oldest` | `highest` | `lowest`;
   ties by date), with a spec of every filter and their combinations.
+  *Done 2026-11-14:* `utils/filter.js` — also `NO_FILTER`, `isByAmount(sort)` (the list drops its day
+  headings) and `isFiltering(filter, sort)` (the summary line shows); amounts inclusive, equal
+  amounts newest first, same-day entries keep their order. `filter.spec.js`, 12 tests over October
+  ("challah", "חלה", a shop, a mixed "what for", categories, ₪150–₪300, Bit/cash, all combined).
 - [ ] **U4b.3 `ListToolbar` and `CategoryFilterChips`** — over `EntryList` in its card; the chips
   filter at once; stories in both languages (a long category list, a Hebrew one).
 - [ ] **U4b.4 Sort by amount and `FilterSummary`** — `EntryList` gets a flat mode (no day headings,
