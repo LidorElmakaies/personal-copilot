@@ -1,5 +1,10 @@
 import { CATEGORIES, OCTOBER_ENTRIES } from '../mocks';
-import { barShare, categoryTotals, totalAgorot } from './spending';
+import {
+  barShare,
+  categoriesBySpending,
+  categoryTotals,
+  totalAgorot,
+} from './spending';
 
 describe('barShare', () => {
   it.each([
@@ -52,5 +57,32 @@ describe('categoryTotals', () => {
   it('is empty for a month with no entries', () => {
     expect(categoryTotals([], CATEGORIES)).toEqual([]);
     expect(totalAgorot([])).toBe(0);
+  });
+});
+
+describe('categoriesBySpending', () => {
+  it('puts the month’s spending first, biggest first, then the rest in order', () => {
+    const totals = categoryTotals(OCTOBER_ENTRIES, CATEGORIES);
+    expect(categoriesBySpending(CATEGORIES, totals).map((c) => c.id)).toEqual([
+      'cat-housing',
+      'cat-groceries',
+      'cat-eating-out',
+      'cat-transport',
+      'cat-bills',
+      'cat-shopping',
+      'cat-subscriptions',
+      'cat-gifts',
+      'cat-health',
+      'cat-other',
+    ]);
+  });
+
+  it('leaves out archived categories', () => {
+    const archived = CATEGORIES.map((c) =>
+      c.id === 'cat-gifts' ? { ...c, archivedAt: '2026-10-01' } : c,
+    );
+    expect(categoriesBySpending(archived, []).map((c) => c.id)).not.toContain(
+      'cat-gifts',
+    );
   });
 });

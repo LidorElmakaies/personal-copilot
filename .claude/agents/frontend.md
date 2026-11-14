@@ -134,7 +134,13 @@ feature's `components/` (listed under `composite/` below with its feature):
   `pendingBorder`), `ConnectionNotice` (from `Alert`, warning — "Can't reach your PC — you can still
   add" while `reachable` is false, else "N entries waiting for your PC" while `waiting` > 0, else
   nothing), `QuickAddSheet` (from `BottomSheet` — screen 2, the + opens it; only its "New entry"
-  title until U5; `visible`, `onClose`); `FinanceScreen` is screen 1 in the canvas's order — header,
+  title until U5; `visible`, `onClose`), `ListToolbar` (the entries card's search field — its own
+  `TextInput` with a search icon, `start`/`paddingStart` so it mirrors — plus sort and all-filters
+  buttons shown only with `onSort`/`onFilters`, lit by `sortActive`/`filtersActive`),
+  `CategoryFilterChips` (All · each category · "+ New" with `onNewCategory`, one sideways-scrolling
+  row; outlined, an accent tint when chosen — the canvas's chip, not `PillButton`'s solid
+  `selected`; `categories`, `selectedIds`, `onChange(ids)`); `EntryList` takes a `header` (the
+  toolbar and chips) inside its card; `FinanceScreen` is screen 1 in the canvas's order — header,
   `ReviewBanner` (only on the month the statement covers, while it has lines to answer), `ConnectionNotice`,
   `SpentCard`, `EntryList`, the + — and the banner opens `StatementReviewScreen` (screen 6, the root
   Stack's `app/finance-review.js`, `router.push` — the imperative `router`, so Storybook renders the

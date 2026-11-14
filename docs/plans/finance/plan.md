@@ -456,8 +456,15 @@ mixed entry in each language.
   headings) and `isFiltering(filter, sort)` (the summary line shows); amounts inclusive, equal
   amounts newest first, same-day entries keep their order. `filter.spec.js`, 12 tests over October
   ("challah", "חלה", a shop, a mixed "what for", categories, ₪150–₪300, Bit/cash, all combined).
-- [ ] **U4b.3 `ListToolbar` and `CategoryFilterChips`** — over `EntryList` in its card; the chips
+- [x] **U4b.3 `ListToolbar` and `CategoryFilterChips`** — over `EntryList` in its card; the chips
   filter at once; stories in both languages (a long category list, a Hebrew one).
+  *Done 2026-11-14:* both components + stories; `EntryList`'s `header` prop puts them inside its
+  card; `FinanceScreen` keeps the filter (`NO_FILTER`), clears it on another month or leaving the tab
+  (`useIsFocused`); the chips list every category, the month's spending first
+  (`spending.js`'s `categoriesBySpending`, tested; archived ones left out). The sort and filters
+  buttons and "+ New" appear once U4b.4–U4b.6 give them handlers. 416 tests.
+  In the dev build (Hebrew): the field and chips mirror (the chips start on the right), Groceries
+  leaves only groceries and lights up, "challah" leaves "Challah and pastries"; no JS errors.
 - [ ] **U4b.4 Sort by amount and `FilterSummary`** — `EntryList` gets a flat mode (no day headings,
   the date on each row); the summary line with its count, total and Clear.
 - [ ] **U4b.5 `FilterSheet`** — every option at once, "Show N entries" counting live; stories for

@@ -7,12 +7,14 @@ import { dayLabel } from '../utils/format';
 import EntryRow from './EntryRow';
 
 // A month's entries in a panel card (screen 1), newest first, under day headings (TODAY,
-// YESTERDAY, OCT 25 — relative to `today`, YYYY-MM-DD). `onPressEntry(entry)`.
+// YESTERDAY, OCT 25 — relative to `today`, YYYY-MM-DD). `onPressEntry(entry)`; `header` sits on top
+// inside the card (the toolbar and chips, U4b).
 export default function EntryList({
   entries,
   categories,
   today,
   onPressEntry,
+  header,
 }) {
   const { colors } = useAppTheme();
   const translate = useTranslate();
@@ -24,6 +26,7 @@ export default function EntryList({
 
   return (
     <GlowCard>
+      {header}
       {newestFirst.map((entry, i) => {
         const newDay = entry.occurredOn !== newestFirst[i - 1]?.occurredOn;
         return (

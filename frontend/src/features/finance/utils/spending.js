@@ -18,3 +18,18 @@ export function categoryTotals(entries, categories) {
 
 export const totalAgorot = (totals) =>
   totals.reduce((sum, t) => sum + t.amountAgorot, 0);
+
+// Every category for the list's chips: those spent on this month first, biggest first, then the rest
+// in the categories' own order. Archived ones are left out.
+export function categoriesBySpending(categories, totals) {
+  const rank = new Map(totals.map((t, i) => [t.id, i]));
+  return categories
+    .filter((c) => !c.archivedAt)
+    .map((c, i) => ({ c, i }))
+    .sort(
+      (a, b) =>
+        (rank.get(a.c.id) ?? totals.length + a.i) -
+        (rank.get(b.c.id) ?? totals.length + b.i),
+    )
+    .map(({ c }) => c);
+}
