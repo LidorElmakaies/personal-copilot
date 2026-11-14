@@ -298,10 +298,12 @@ Planned 2026-11-02, split into four (it was one task: stories, Maestro, docs, te
   Home's "22 Cheshvan 5787", a reminder's notification in each language, Finance's mixed
   entries, the Hebrew read through — "all good". Account and Admin need the dormant backend:
   their build-time lines were seen only as far as Storybook shows them.
-- [ ] **H7.4 Docs and sign-off** — the `docs` agent's sweep over the whole plan's changes,
+- [x] **H7.4 Docs and sign-off** — the `docs` agent's sweep over the whole plan's changes,
   `docs-check.js`; then the sign-off below, and the release version (ask: `0.6.0`?).
+  *Done 2026-11-14:* the sweep went in with PR #2 (merged into `feature/finance-monthly-check`, no
+  review comments); `docs-check.js` passes. The release version (`0.6.0`) waits for the user.
 
-**Sign-off:** Hebrew accepted (date) — the Finance plan continues after this.
+**Sign-off:** Hebrew accepted 2026-11-14 — the Finance plan continues; Alarms after it.
 **Feedback:** —
 
 ## Open questions

@@ -123,7 +123,12 @@ feature's `components/` (listed under `composite/` below with its feature):
   `onMonthlyCheck`), `FinanceEmpty` (from `GlowCard` — a month with no entries), `EntryRow` (one
   entry: what for, "category · paid with · N photos", the "not sent"/"matched" badges, the amount;
   `entry`, `category`, `onPress`), `EntryList` (from `GlowCard`, `EntryRow` — newest first under
-  day headings; `entries`, `categories`, `today`, `onPressEntry`); `finance/utils/format.js` holds
+  day headings; `entries`, `categories`, `today`, `onPressEntry`), `CategoryBar` (one category in
+  `SpentCard`: name, amount, a bar scaled to the biggest — at least a dot for any spending;
+  `name`, `amountAgorot`, `biggestAgorot`; the share from `finance/utils/spending.js`'s `barShare`),
+  `SpentCard` (from `GlowCard`, `CategoryBar` — "Spent this month", the total, the top 3, "+ N more
+  categories" / "Show less" animated with Reanimated layout transitions; `totals` from `spending.js`'s
+  `categoryTotals(entries, categories)`, biggest first, only categories with spending); `finance/utils/format.js` holds
   `formatShekels` (whole agorot → "₪284.90", the same in both languages), `dayLabel(translate, …)` and `entryDetails(translate, entry, category)` (the row's second line); account: `ProfileFields`, `RequireAuthNotice`, `SystemStatus` and
   the Account tab's cards but `ThemeCard`. Each: `AmbientBackground` (from `Meteors`, `Stars`), `SwipeTabs` (from
   `TabPager` — the `(tabs)` navigator: Expo Router's `withLayoutContext` + `TabRouter`, the screens

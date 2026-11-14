@@ -3,9 +3,8 @@
 Asked 2026-11-02. A reminder today is a notification: the phone's notification sound once (and,
 since 2026-11-02, a vibration), silent when the phone is muted. This plan lets any reminder be an
 **alarm** instead: at its time a full screen comes up, over the lock screen too, and its sound
-loops — even with the phone muted — until **Dismiss** (or **Snooze**). Starts after the Hebrew
-plan's sign-off (`docs/plans/hebrew/plan.md`), before the Finance plan continues; in both
-languages from the start.
+loops — even with the phone muted — until **Dismiss** (or **Snooze**). Moved 2026-11-14:
+starts after the Finance plan (`docs/plans/finance/plan.md`); in both languages from the start.
 
 ## Decisions (2026-11-02)
 
@@ -61,7 +60,7 @@ Every component touched gets English and Hebrew stories.
   ringing itself is checked by hand: muted, locked, Dismiss and Snooze); the `docs` agent sweep;
   a test APK; the user tries it for a day.
 
-**Sign-off:** Alarms accepted (date) — the Finance plan continues after this.
+**Sign-off:** Alarms accepted (date).
 **Feedback:** —
 
 ## Open questions

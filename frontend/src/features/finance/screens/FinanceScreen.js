@@ -5,7 +5,9 @@ import { monthAt, monthIndex } from '../../../shared/utils/date';
 import EntryList from '../components/EntryList';
 import FinanceEmpty from '../components/FinanceEmpty';
 import FinanceHeader from '../components/FinanceHeader';
+import SpentCard from '../components/SpentCard';
 import { CATEGORIES, CURRENT_MONTH, entriesOfMonth, TODAY } from '../mocks';
+import { categoryTotals } from '../utils/spending';
 
 // The Finance tab (Phase U: example data from mocks/). Not behind `requiresAuth`: logged out, the
 // tab will show its own notice (B1). No months after the current one.
@@ -29,7 +31,14 @@ export default function FinanceScreen() {
         {entries.length === 0 ? (
           <FinanceEmpty />
         ) : (
-          <EntryList entries={entries} categories={CATEGORIES} today={TODAY} />
+          <>
+            <SpentCard totals={categoryTotals(entries, CATEGORIES)} />
+            <EntryList
+              entries={entries}
+              categories={CATEGORIES}
+              today={TODAY}
+            />
+          </>
         )}
       </ScrollView>
     </AmbientBackground>

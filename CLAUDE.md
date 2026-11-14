@@ -9,12 +9,12 @@ times and the Jewish calendar on the phone and keeps its reminders there as loca
 no login, no server — plus a dormant NestJS backend: Gateway and a Postgres-backed Users Service
 (login + profiles), with full OTel observability, called only by the app's hidden login/account
 screens and not started by default.
-**Current work: [`docs/plans/hebrew/plan.md`](docs/plans/hebrew/plan.md)** — the whole app in Hebrew
-(right to left) and English, with a Settings screen; then
-[`docs/plans/alarms/plan.md`](docs/plans/alarms/plan.md) (a reminder that rings like an alarm clock
-until dismissed); the Finance plan is paused after its U2 until both are done. The feature work is staged in [`docs/plans/finance/plan.md`](docs/plans/finance/plan.md), its
+**Current work: the Finance plan, from U3** — staged in [`docs/plans/finance/plan.md`](docs/plans/finance/plan.md), its
 design in [`docs/plans/finance/README.md`](docs/plans/finance/README.md), its screens in the Claude
-design canvas linked at the top of the plan; read them before working on the feature. The current architecture is `docs/specs/`.
+design canvas linked at the top of the plan; read them before working on the feature. The Hebrew plan
+([`docs/plans/hebrew/plan.md`](docs/plans/hebrew/plan.md)) is done (signed off 2026-11-14), so every
+new screen is built in English and Hebrew; [`docs/plans/alarms/plan.md`](docs/plans/alarms/plan.md)
+(a reminder that rings like an alarm clock until dismissed) comes after Finance. The current architecture is `docs/specs/`.
 Progress lives in the plan's checkboxes; "What's implemented" below is what exists now. Work a
 plan one task at a time and stop for review after each. **Docs are updated in the same stage as
 the code they describe** (each stage's "Docs" line; the `docs` agent sweeps at the end of each

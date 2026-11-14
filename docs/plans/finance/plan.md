@@ -340,11 +340,25 @@ overlap the amount; tap a row → screen 3 opens.
 
 ## Stage U3: the `SpentCard` panel card (screen 1)
 
-- [ ] **U3.1 `CategoryBar`** — name, amount, a bar scaled to the biggest category.
-- [ ] **U3.2 `SpentCard`** — a `GlowCard` panel: "SPENT THIS MONTH", the big total, the top 3
+- [x] **U3.1 `CategoryBar`** — name, amount, a bar scaled to the biggest category.
+  *Done 2026-11-14:* `components/CategoryBar.js` (as on the canvas: a 13 px line, a 7 px bar; any
+  spending shows at least a dot), `utils/spending.js`'s `barShare` + `spending.spec.js`; 10 stories
+  (biggest, part, small, tiny, nothing, a long name, a huge amount, names in either language, the
+  app in Hebrew). On the phone in Storybook: all as expected, the bar fills from the right in
+  Hebrew, no JS errors.
+- [x] **U3.2 `SpentCard`** — a `GlowCard` panel: "SPENT THIS MONTH", the big total, the top 3
   `CategoryBar`s, "+ N more" expanding to all of them (animated).
-- [ ] **U3.3 Stories** — 0 categories (card hidden or "₪0"?), 1, 3, 10; a total over
+  *Done 2026-11-14:* `components/SpentCard.js`; `spending.js`'s `categoryTotals` (biggest first,
+  only categories with spending, income left out) and `totalAgorot`, tested (October: ₪7,840, 7
+  categories); "+ N more categories" / "Show less" (`count.moreCategories`, `finance.showLess`), the
+  extra rows fading in and the card resizing (Reanimated `LinearTransition`). On the Finance tab
+  above `EntryList` — a month with no entries still shows only `FinanceEmpty`, so the card never
+  shows ₪0 there. On the phone in Storybook: as on the canvas in both languages, opens and closes,
+  no JS errors.
+- [x] **U3.3 Stories** — 0 categories (card hidden or "₪0"?), 1, 3, 10; a total over
   ₪100,000 still fits.
+  *Done 2026-11-14:* `SpentCard.stories.js`: October, 0 (on its own "₪0"; the tab shows
+  `FinanceEmpty` instead), 1, 3, 4 ("+ 1 more category"), 10, ₪124,900.90, Hebrew (7 and 4).
 
 **Try it:** expand and collapse "+ N more"; huge and tiny totals; both themes.
 **Docs:** `frontend.md` (`CategoryBar`, `SpentCard`).
@@ -371,8 +385,8 @@ the + never covers the last row's amount.
 
 ## Stage U4b: search and filters (screen 1) *(added 2026-10-29)*
 
-**Paused until the Hebrew plan (`docs/plans/hebrew/plan.md`) is done** — every stage after U2
-starts after it, in both languages.
+**Paused after U2 for the Hebrew plan (`docs/plans/hebrew/plan.md`), signed off 2026-11-14** —
+every stage from U3 on is built in both languages.
 
 **The user's own text is in either language, or both** (asked 2026-11-02): "what for", category
 names, shop names, notes — typed in English, Hebrew or a mix ("Coffee וכריך"), whatever the
