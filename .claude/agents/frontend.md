@@ -128,7 +128,10 @@ feature's `components/` (listed under `composite/` below with its feature):
   `name`, `amountAgorot`, `biggestAgorot`; the share from `finance/utils/spending.js`'s `barShare`),
   `SpentCard` (from `GlowCard`, `CategoryBar` — "Spent this month", the total, the top 3, "+ N more
   categories" / "Show less" animated with Reanimated layout transitions; `totals` from `spending.js`'s
-  `categoryTotals(entries, categories)`, biggest first, only categories with spending); `finance/utils/format.js` holds
+  `categoryTotals(entries, categories)`, biggest first, only categories with spending), `ReviewBanner`
+  (the amber "October statement: 6 to answer" / "MAX ••4821 · 36 already reported" banner, pressable;
+  `month`, `toAnswer`, `issuer`, `cardLast4`, `reported`, `onPress`; colors `pending`/`pendingBg`/
+  `pendingBorder`); `finance/utils/format.js` holds
   `formatShekels` (whole agorot → "₪284.90", the same in both languages), `dayLabel(translate, …)` and `entryDetails(translate, entry, category)` (the row's second line); account: `ProfileFields`, `RequireAuthNotice`, `SystemStatus` and
   the Account tab's cards but `ThemeCard`. Each: `AmbientBackground` (from `Meteors`, `Stars`), `SwipeTabs` (from
   `TabPager` — the `(tabs)` navigator: Expo Router's `withLayoutContext` + `TabRouter`, the screens

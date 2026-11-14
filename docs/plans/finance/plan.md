@@ -368,8 +368,12 @@ spending (e.g. vs last month)?
 
 ## Stage U4: banner, notices, the + button (screen 1)
 
-- [ ] **U4.1 `ReviewBanner`** — amber, "October statement: 6 to answer · MAX ••4821 · 36 already
+- [x] **U4.1 `ReviewBanner`** — amber, "October statement: 6 to answer · MAX ••4821 · 36 already
   reported", pressable (goes to screen 6, empty for now).
+  *Done 2026-11-14:* `components/ReviewBanner.js` + stories (October, 1, September with 3-digit
+  counts, Hebrew 6 and 1); a new `pendingBorder` color in both palettes; Hebrew "פירוט אוקטובר: 6
+  חיובים ממתינים לתשובה" / "MAX ••4821 · 36 כבר דווחו" (the card an isolate). `onPress` is a prop —
+  the tab wires it to screen 6 in U4.4. On the phone in Storybook: as on the canvas, no JS errors.
 - [ ] **U4.2 `ConnectionNotice`** — two variants: "Can't reach your PC — you can still add" and "2
   entries waiting for your PC".
 - [ ] **U4.3 The + button** — the existing `FloatingButton`, above the tab bar, opens screen 2
