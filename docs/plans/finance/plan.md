@@ -374,8 +374,12 @@ spending (e.g. vs last month)?
   counts, Hebrew 6 and 1); a new `pendingBorder` color in both palettes; Hebrew "פירוט אוקטובר: 6
   חיובים ממתינים לתשובה" / "MAX ••4821 · 36 כבר דווחו" (the card an isolate). `onPress` is a prop —
   the tab wires it to screen 6 in U4.4. On the phone in Storybook: as on the canvas, no JS errors.
-- [ ] **U4.2 `ConnectionNotice`** — two variants: "Can't reach your PC — you can still add" and "2
+- [x] **U4.2 `ConnectionNotice`** — two variants: "Can't reach your PC — you can still add" and "2
   entries waiting for your PC".
+  *Done 2026-11-14:* `components/ConnectionNotice.js` (an `Alert`, warning) + `ConnectionNotice.spec.js`
+  + stories. `reachable` and `waiting` pick the variant: unreachable wins (the "not sent" badges show
+  what waits), nothing when all is sent. Hebrew "אין חיבור למחשב — אפשר להמשיך להוסיף" / "2 רשומות
+  ממתינות למחשב". On the phone in Storybook: both variants in both languages, no JS errors.
 - [ ] **U4.3 The + button** — the existing `FloatingButton`, above the tab bar, opens screen 2
   (empty sheet for now).
 - [ ] **U4.4 Screen 1 assembled** — header, banner, notice, `SpentCard`, `EntryList`, + — in that
