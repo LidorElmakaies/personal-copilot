@@ -133,7 +133,8 @@ feature's `components/` (listed under `composite/` below with its feature):
   `month`, `toAnswer`, `issuer`, `cardLast4`, `reported`, `onPress`; colors `pending`/`pendingBg`/
   `pendingBorder`), `ConnectionNotice` (from `Alert`, warning — "Can't reach your PC — you can still
   add" while `reachable` is false, else "N entries waiting for your PC" while `waiting` > 0, else
-  nothing); `finance/utils/format.js` holds
+  nothing), `QuickAddSheet` (from `BottomSheet` — screen 2, the + opens it; only its "New entry"
+  title until U5; `visible`, `onClose`); `finance/utils/format.js` holds
   `formatShekels` (whole agorot → "₪284.90", the same in both languages), `dayLabel(translate, …)` and `entryDetails(translate, entry, category)` (the row's second line); account: `ProfileFields`, `RequireAuthNotice`, `SystemStatus` and
   the Account tab's cards but `ThemeCard`. Each: `AmbientBackground` (from `Meteors`, `Stars`), `SwipeTabs` (from
   `TabPager` — the `(tabs)` navigator: Expo Router's `withLayoutContext` + `TabRouter`, the screens

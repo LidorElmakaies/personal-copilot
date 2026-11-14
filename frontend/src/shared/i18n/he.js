@@ -206,6 +206,8 @@ export default {
   'finance.toAnswer.one': 'פירוט {month}: חיוב אחד ממתין לתשובה',
   'finance.toAnswer.other': 'פירוט {month}: {n} חיובים ממתינים לתשובה',
   'finance.statementDetails': '\u200F\u2066{card}\u2069 · {reported}',
+  'finance.addEntry': 'הוספת רשומה',
+  'finance.newEntry': 'רשומה חדשה',
   'finance.unreachable': 'אין חיבור למחשב — אפשר להמשיך להוסיף',
   'count.waitingForPC.one': 'רשומה אחת ממתינה למחשב',
   'count.waitingForPC.other': '{n} רשומות ממתינות למחשב',

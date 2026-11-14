@@ -209,6 +209,8 @@ export default {
   'finance.toAnswer.one': '{month} statement: 1 to answer',
   'finance.toAnswer.other': '{month} statement: {n} to answer',
   'finance.statementDetails': '\u200E{card} · {reported}',
+  'finance.addEntry': 'Add an entry',
+  'finance.newEntry': 'New entry',
   'finance.unreachable': "Can't reach your PC — you can still add",
   'count.waitingForPC.one': '1 entry waiting for your PC',
   'count.waitingForPC.other': '{n} entries waiting for your PC',

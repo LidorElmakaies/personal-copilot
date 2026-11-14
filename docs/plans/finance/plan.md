@@ -5,7 +5,8 @@ The design (diagrams, services, tables, API, storage and LLM choices) is
 [`README.md`](README.md); this file is the work, stage by stage. Section numbers (§) point there.
 **Screens: https://claude.ai/artifact/2vuaYsXsUddipMJ5A1Gfe9** — the Claude design canvas
 "Finance — screens". "Screen N" below means its artboard N. Changes go to this same canvas
-(`.claude/agents/frontend.md`).
+(`.claude/agents/frontend.md`). Artboards 11–15 (filter and sort the list, U4b) signed off
+2026-11-14.
 
 ## How we work through this plan
 
@@ -131,6 +132,12 @@ existing kit (`frontend.md`'s "Build for reuse").
 | `SpentCard` | The "Spent this month" panel card | `GlowCard`, `CategoryBar` | U3 |
 | `ReviewBanner` | "October statement: 6 to answer" | — | U4 |
 | `ConnectionNotice` | "Can't reach your PC" / "2 entries waiting for your PC" | `Alert` | U4 |
+| `ListToolbar` | Search field, sort button, all-filters button over the entries | `InputField` | U4b |
+| `CategoryFilterChips` | All · each category · "+ New", one row, scrolls sideways | `PillButton` | U4b |
+| `FilterSummary` | "Eating out · 8 entries · ₪640", the sort, Clear | — | U4b |
+| `FilterSheet` | Screen 13: sort, categories, amount from–to, paid with, "Show N entries" | `BottomSheet`, `PillButton`, `InputField`, `GradientButton` | U4b |
+| `NewCategorySheet` | Screen 14: name and icon; reused by `CategoryEditor` for rename | `BottomSheet`, `InputField`, `GradientButton` | U4b |
+| `NoMatch` | Screen 15: "Nothing matches", search all categories | — | U4b |
 | `AmountInput` | The big ₪ amount field | — | U5 |
 | `CategoryChips` | Category choice, one marked "suggested" | `PillButton` | U5 |
 | `QuickAddSheet` | Screen 2 — the add / edit / answer sheet | `BottomSheet`, the rows below, `GradientButton`, `Alert` | U5–U7 |
@@ -165,6 +172,7 @@ only render them.
 | U2 | `EntryRow`, `EntryList` with example entries | 1 |
 | U3 | The `SpentCard` panel card and its `CategoryBar`s | 1 |
 | U4 | `ReviewBanner`, `ConnectionNotice`, the + button | 1 |
+| U4b | Search, sort and filter the list; add a category | 11–15 |
 | U5 | `QuickAddSheet`: amount, what for, `CategoryChips` | 2 |
 | U6 | `QuickAddSheet`: `PaidWithPicker`, `CardDigitsField`, `DateField`, messages | 2 |
 | U7 | `PhotoStrip` in the sheet | 2 |
@@ -380,8 +388,12 @@ spending (e.g. vs last month)?
   + stories. `reachable` and `waiting` pick the variant: unreachable wins (the "not sent" badges show
   what waits), nothing when all is sent. Hebrew "אין חיבור למחשב — אפשר להמשיך להוסיף" / "2 רשומות
   ממתינות למחשב". On the phone in Storybook: both variants in both languages, no JS errors.
-- [ ] **U4.3 The + button** — the existing `FloatingButton`, above the tab bar, opens screen 2
+- [x] **U4.3 The + button** — the existing `FloatingButton`, above the tab bar, opens screen 2
   (empty sheet for now).
+  *Done 2026-11-14:* on `FinanceScreen` as on the Calendar tab (bottom 20, the side's 20 — the left
+  corner in Hebrew; `testID` `add-entry`, label "Add an entry"); `components/QuickAddSheet.js`, a
+  `BottomSheet` with only its "New entry" title, + stories. The list's bottom padding (96) keeps the
+  last row's amount clear of it. On the phone in Storybook: opens and closes, both languages.
 - [ ] **U4.4 Screen 1 assembled** — header, banner, notice, `SpentCard`, `EntryList`, + — in that
   order, as on the canvas.
 
@@ -404,15 +416,55 @@ the app's words as an isolate (`\u2068…\u2069`, as `entryDetails`' category). 
 matches in both. The example data is a mix too (`finance/mocks/`). Every stage's stories show a
 mixed entry in each language.
 
-- [ ] **U4b.1 Design** — on the canvas first: a search field (by name — "what for" and the shop)
+- [x] **U4b.1 Design** — on the canvas first: a search field (by name — "what for" and the shop)
   and filters by category and by price range (from–to ₪) over the month's list; how they show
-  when on, and how to clear them.
-- [ ] **U4b.2 Build** — after sign-off; the list filters as you type; stories for each filter and
-  "nothing matches".
+  when on, and how to clear them. *Widened 2026-11-14 (asked):* sort by day or by amount, filter
+  by category ("types"), and add a category from the list itself — saved in the database
+  (`categories`, README §5; `POST /finance/categories`, §6), so it's on every phone and in Quick
+  add's chips. *Signed off 2026-11-14* ("looks perfect"): artboards 11–15, "Filter and sort the
+  list". As drawn:
+  - **The toolbar** sits on top of the entries card: the search field ("what for" or the shop, in
+    either language), a sort button and an all-filters button; under it one row of category chips
+    — All, each category (biggest first), "+ New" — that scrolls sideways. The chips are always
+    there; one tap shows only that category, tapping it again (or All) clears it.
+  - **Sort:** by day (newest first, the day headings as now) or by amount (one flat list, biggest
+    first, the date moved into each row's second line: "Oct 14 · Bit"). The sort button is lit
+    while it isn't the default.
+  - **While anything is on**, a line over the rows says what's shown and its total — "Eating out ·
+    8 entries · ₪640", the sort under it — with Clear (everything back to the default).
+  - **The filter sheet** (all-filters button): sort (newest / oldest / highest ₪ / lowest ₪),
+    categories (pick any number), amount from–to, paid with; "Clear all"; the button counts what
+    it will show ("Show 12 entries").
+  - **New category** (the chips' "+ New" and the sheet's "+ New category"): name (English or
+    Hebrew, unique, the existing name rules) and an icon from a grid; a note that it's saved to the
+    account. The new category is selected in the filter it was added from.
+  - **Nothing matches:** the summary line says what was asked ("challah" in Eating out ·
+    nothing), a short line under an icon, and "Search all categories" when a category is on.
+  - **Scope:** the month on screen; filters reset when you leave the tab or change month.
+- [ ] **U4b.2 Filtering logic** — `utils/filter.js`: `filterEntries(entries, { query, categoryIds,
+  minAgorot, maxAgorot, paidWith })` (search matches "what for" and the shop, either language,
+  case-insensitive) and `sortEntries(entries, sort)` (`newest` | `oldest` | `highest` | `lowest`;
+  ties by date), with a spec of every filter and their combinations.
+- [ ] **U4b.3 `ListToolbar` and `CategoryFilterChips`** — over `EntryList` in its card; the chips
+  filter at once; stories in both languages (a long category list, a Hebrew one).
+- [ ] **U4b.4 Sort by amount and `FilterSummary`** — `EntryList` gets a flat mode (no day headings,
+  the date on each row); the summary line with its count, total and Clear.
+- [ ] **U4b.5 `FilterSheet`** — every option at once, "Show N entries" counting live; stories for
+  each section.
+- [ ] **U4b.6 `NewCategorySheet`** — name and icon, from the chips and from the sheet; Phase U adds
+  it to the example categories in memory (L2.5 and B2 save it through the API); `CategoryEditor`
+  (U13.2) reuses it to rename.
+- [ ] **U4b.7 `NoMatch`** and the whole flow on the phone: search, a chip, the sheet, a new
+  category, sorting, clearing — in both languages; a test APK.
 
-**Try it:** search "challah"; filter Groceries; ₪50–₪300; combine them; clear.
-**Feedback questions:** Search only the month on screen, or every month?
-**Feedback:** —
+**Try it:** search "challah"; filter Groceries; ₪50–₪300; combine them; sort by amount; add
+"Coffee" and see it in the chips and in Quick add; clear.
+**Docs:** `frontend.md` (`ListToolbar`, `CategoryFilterChips`, `FilterSummary`, `FilterSheet`,
+`NewCategorySheet`, `NoMatch`, `utils/filter.js`).
+**Feedback questions:** Search only the month on screen, or every month (answered for now: the
+month on screen)? Does the full `SpentCard` stay above the toolbar, or shrink to artboard 11's
+one-line total?
+**Feedback:** 2026-11-14 — the design "looks perfect".
 
 ## Stage U5: `QuickAddSheet` — amount, what for, categories (screen 2)
 
@@ -582,6 +634,9 @@ shows the error with Retry.
 - [ ] **L2.2 Create** — Save calls the API with a `client_id`; the list and `SpentCard` update.
 - [ ] **L2.3 Remembered card** — the last card's digits kept on the phone.
 - [ ] **L2.4 Suggested category** — from the API's suggest route once "what for" is typed.
+- [ ] **L2.5 New category** — `NewCategorySheet` (U4b.6) saves through the fake API's
+  `POST /finance/categories` (§6): the name rules checked, the new category in the chips, the filter
+  sheet and Quick add at once.
 
 **Try it:** add entries and watch the total; double-tap Save → one entry; the card digits come
 back next time; type a "what for" used before → its category is suggested.
