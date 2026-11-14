@@ -208,6 +208,8 @@ export default {
   'finance.statementDetails': '\u200F\u2066{card}\u2069 · {reported}',
   'finance.addEntry': 'הוספת רשומה',
   'finance.newEntry': 'רשומה חדשה',
+  'finance.back': 'חזרה',
+  'finance.reviewTitle': 'בדיקת הפירוט',
   'finance.unreachable': 'אין חיבור למחשב — אפשר להמשיך להוסיף',
   'count.waitingForPC.one': 'רשומה אחת ממתינה למחשב',
   'count.waitingForPC.other': '{n} רשומות ממתינות למחשב',

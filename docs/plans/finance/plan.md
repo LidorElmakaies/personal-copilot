@@ -394,8 +394,15 @@ spending (e.g. vs last month)?
   corner in Hebrew; `testID` `add-entry`, label "Add an entry"); `components/QuickAddSheet.js`, a
   `BottomSheet` with only its "New entry" title, + stories. The list's bottom padding (96) keeps the
   last row's amount clear of it. On the phone in Storybook: opens and closes, both languages.
-- [ ] **U4.4 Screen 1 assembled** — header, banner, notice, `SpentCard`, `EntryList`, + — in that
+- [x] **U4.4 Screen 1 assembled** — header, banner, notice, `SpentCard`, `EntryList`, + — in that
   order, as on the canvas.
+  *Done 2026-11-14:* `FinanceScreen` in that order. The banner shows on the month the statement
+  covers while it has lines to answer (`utils/statement.js`'s `statementSummary`, tested: October 6
+  / 36) and opens `StatementReviewScreen` — screen 6, `app/finance-review.js` on the root Stack, a
+  back arrow and a title until U11. The notice counts the "not sent" entries (1 in the example data)
+  on every month; `reachable` is a prop until L4 (stories `Unreachable`, Hebrew). In the dev build
+  (Hebrew): the whole screen as on the canvas, the banner opens screen 6, Android back returns, no
+  banner on September; no JS errors. 402 tests.
 
 **Try it:** the full screen 1 with example data; the banner and both notices in their stories;
 the + never covers the last row's amount.

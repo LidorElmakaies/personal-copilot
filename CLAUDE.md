@@ -123,7 +123,8 @@ Each service's contract is in [`docs/specs/services.md`](docs/specs/services.md)
 - **frontend** (`frontend/`) — Expo Router app, built as an Android APK; login optional. Swipeable
   tabs: Home (clock, Hebrew date, Shabbat times for the GPS location, the candle-lighting reminder
   bell), Calendar (Jewish-calendar month; the user's own reminders, added and edited in a bottom
-  sheet), Finance (being built — `docs/plans/finance/`; example entries so far) and Settings
+  sheet), Finance (being built — `docs/plans/finance/`; screen 1 with example data: the statement banner,
+  the PC notice, "Spent this month", the entries, the + and its empty add sheet) and Settings
   (language English/Hebrew — Hebrew mirrors the app right to left after a restart — and the theme,
   kept on the phone; every screen is in both — `src/shared/i18n/`'s `en.js`/`he.js`, `useTranslate()` and `format.js`, `docs/plans/hebrew/`). Shabbat times and months are computed on the phone (`src/lib/jewish-calendar/`, over
   `@hebcal/core`). Both kinds of reminder need no login, are kept on the phone (persisted) and fired
