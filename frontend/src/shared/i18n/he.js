@@ -258,6 +258,13 @@ export default {
   'categoryIcon.flash-outline': 'ברק',
   'categoryIcon.musical-notes-outline': 'מוזיקה',
   'categoryIcon.ellipsis-horizontal': 'אחר',
+  'finance.nothing': 'אין תוצאות',
+  'finance.noMatch': 'אין התאמות',
+  'finance.noMatchQueryIn':
+    'אין רשומה מ{month} ב־{categories} שמזכירה "{query}".',
+  'finance.noMatchQuery': 'אין רשומה מ{month} שמזכירה "{query}".',
+  'finance.noMatchFilters': 'אין רשומה מ{month} שמתאימה למסננים.',
+  'finance.searchAllCategories': 'חיפוש בכל הקטגוריות',
   'finance.clear': 'ניקוי',
   'finance.clearFilters': 'ניקוי החיפוש, המסננים והמיון',
   'finance.summaryQuery': '"{query}"',

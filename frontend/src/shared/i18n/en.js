@@ -261,6 +261,13 @@ export default {
   'categoryIcon.flash-outline': 'Bolt',
   'categoryIcon.musical-notes-outline': 'Music',
   'categoryIcon.ellipsis-horizontal': 'More',
+  'finance.nothing': 'nothing',
+  'finance.noMatch': 'Nothing matches',
+  'finance.noMatchQueryIn':
+    'No {month} entry in {categories} mentions “{query}”.',
+  'finance.noMatchQuery': 'No {month} entry mentions “{query}”.',
+  'finance.noMatchFilters': 'No {month} entry matches these filters.',
+  'finance.searchAllCategories': 'Search all categories',
   'finance.clear': 'Clear',
   'finance.clearFilters': 'Clear search, filters and sort',
   'finance.summaryQuery': '“{query}”',

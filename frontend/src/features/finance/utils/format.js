@@ -62,19 +62,23 @@ export function entryDetails(translate, entry, category, day) {
 
 const isolate = (text) => `⁨${text}⁩`;
 
+// Chosen categories by name up to two ("Groceries, תחבורה"), else counted ("3 categories").
+function categoryNames(translate, ids, categories) {
+  if (ids.length > 2) return count(translate, 'count.categories', ids.length);
+  const nameOf = Object.fromEntries(categories.map((c) => [c.id, c.name]));
+  return ids.map((id) => isolate(nameOf[id])).join(', ');
+}
+
 // What the filter asks for, piece by piece: "challah", the categories (by name up to two, else "3
 // categories"), the amount range, how it was paid.
 function filterParts(translate, filter, categories) {
   const { query, categoryIds, minAgorot, maxAgorot, paidWith } = filter;
-  const nameOf = Object.fromEntries(categories.map((c) => [c.id, c.name]));
   const min = minAgorot != null && formatShekels(minAgorot);
   const max = maxAgorot != null && formatShekels(maxAgorot);
   return [
     query.trim() &&
       translate('finance.summaryQuery', { query: isolate(query.trim()) }),
-    categoryIds.length > 2
-      ? count(translate, 'count.categories', categoryIds.length)
-      : categoryIds.map((id) => isolate(nameOf[id])).join(', '),
+    categoryNames(translate, categoryIds, categories),
     min && max
       ? translate('finance.amountRange', { min, max })
       : min
@@ -88,14 +92,22 @@ function filterParts(translate, filter, categories) {
 
 // The line over a filtered or re-sorted list (screen 12): `title` — what's asked, how many and their
 // total ("Eating out · 8 entries · ₪640") — and `sort` ("Highest amount first"). `entries` are the
-// ones shown.
+// ones shown; none → what was asked and "nothing", no sort (screen 15).
 export function filterSummary(
   translate,
   { filter, sort, entries, categories },
 ) {
+  const asked = filterParts(translate, filter, categories);
+  if (entries.length === 0) {
+    const parts = [...asked, translate('finance.nothing')];
+    return {
+      title: translate('finance.details', { details: parts.join(' · ') }),
+      sort: null,
+    };
+  }
   const total = entries.reduce((sum, e) => sum + e.amountAgorot, 0);
   const parts = [
-    ...filterParts(translate, filter, categories),
+    ...asked,
     count(translate, 'count.entries', entries.length),
     formatShekels(total),
   ];
@@ -103,4 +115,22 @@ export function filterSummary(
     title: translate('finance.details', { details: parts.join(' · ') }),
     sort: translate(`finance.sortBy.${sort ?? DEFAULT_SORT}`),
   };
+}
+
+// "Nothing matches"' line (screen 15), from what was searched and which categories: "No October entry in
+// Eating out mentions “challah”." — without either, the filters as a whole. `month` `{ year, month }`.
+export function noMatchLine(translate, { filter, month, categories }) {
+  const query = filter.query.trim();
+  const vars = {
+    month: translate(`month.${month.month}`),
+    categories: categoryNames(translate, filter.categoryIds, categories),
+    query: isolate(query),
+  };
+  const key =
+    query && filter.categoryIds.length
+      ? 'finance.noMatchQueryIn'
+      : query
+        ? 'finance.noMatchQuery'
+        : 'finance.noMatchFilters';
+  return translate(key, vars);
 }

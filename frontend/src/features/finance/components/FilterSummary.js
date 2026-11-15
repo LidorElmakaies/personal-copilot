@@ -4,8 +4,8 @@ import { useAppTheme } from '../../../shared/theme/useAppTheme';
 import { filterSummary } from '../utils/format';
 
 // The line over a filtered or re-sorted list (screen 12): what's shown, how many and their total
-// ("Eating out · 8 entries · ₪640"), the sort under it, and Clear (`onClear`: everything back to the
-// default). `filter`, `sort`, `entries` (the ones shown), `categories`.
+// ("Eating out · 8 entries · ₪640"), the sort under it — not when nothing's left ("… · nothing",
+// screen 15) — and Clear (`onClear`: everything back to the default). `filter`, `sort`, `entries` (the ones shown), `categories`.
 export default function FilterSummary({
   filter,
   sort,
@@ -30,9 +30,11 @@ export default function FilterSummary({
     >
       <View style={styles.text}>
         <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
-        <Text style={[styles.sort, { color: colors.textMuted }]}>
-          {sortLabel}
-        </Text>
+        {sortLabel && (
+          <Text style={[styles.sort, { color: colors.textMuted }]}>
+            {sortLabel}
+          </Text>
+        )}
       </View>
       <Pressable
         onPress={onClear}

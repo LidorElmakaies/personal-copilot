@@ -10,7 +10,8 @@ import EntryRow from './EntryRow';
 // A month's entries in a panel card (screen 1) in `sort`'s order (filter.js's SORTS, newest first by
 // default). By day, under day headings (TODAY, YESTERDAY, OCT 25 — relative to `today`, YYYY-MM-DD);
 // by amount, one flat list with the day leading each row's second line (screen 12).
-// `onPressEntry(entry)`; `header` sits on top inside the card (the toolbar, chips and summary, U4b).
+// `onPressEntry(entry)`; `header` sits on top inside the card (the toolbar, chips and summary, U4b),
+// `empty` in place of the rows when there are none (`NoMatch`).
 export default function EntryList({
   entries,
   categories,
@@ -18,6 +19,7 @@ export default function EntryList({
   sort = DEFAULT_SORT,
   onPressEntry,
   header,
+  empty,
 }) {
   const { colors } = useAppTheme();
   const translate = useTranslate();
@@ -29,6 +31,7 @@ export default function EntryList({
   return (
     <GlowCard>
       {header}
+      {sorted.length === 0 && empty}
       {sorted.map((entry, i) => {
         const heading = !flat && entry.occurredOn !== sorted[i - 1]?.occurredOn;
         return (

@@ -155,9 +155,14 @@ feature's `components/` (listed under `composite/` below with its feature):
   name) and one of `CATEGORY_ICONS`; Add off while `categoryNameProblem`; its body scrolls so Add stays
   above the keyboard; `visible`, `onClose`, `categories`, `onAdd({ name, icon })`; U13.2 reuses it to
   rename), `FilterSummary` (the tinted line over a
-  filtered or re-sorted list: "Eating out · 8 entries · ₪640", the sort under it, Clear; `filter`,
+  filtered or re-sorted list: "Eating out · 8 entries · ₪640", the sort under it, Clear — nothing left:
+  "“challah” · Eating out · nothing", no sort; `filter`,
   `sort`, `entries` (shown), `categories`, `onClear`; text from `format.js`'s `filterSummary`);
-  `EntryList` takes a `header` (the toolbar, chips and summary) inside its card; `FinanceScreen` is screen 1 in the canvas's order — header,
+  `NoMatch` (screen 15: an icon, "Nothing matches", `format.js`'s `noMatchLine` — "No October entry in
+  Eating out mentions “challah”." — and "Search all categories" while a category is on; `filter`,
+  `month`, `categories`, `onSearchAllCategories`);
+  `EntryList` takes a `header` (the toolbar, chips and summary) inside its card and `empty` (`NoMatch`)
+  in place of no rows; `FinanceScreen` is screen 1 in the canvas's order — header,
   `ReviewBanner` (only on the month the statement covers, while it has lines to answer), `ConnectionNotice`,
   `SpentCard`, `EntryList`, the + — and the banner opens `StatementReviewScreen` (screen 6, the root
   Stack's `app/finance-review.js`, `router.push` — the imperative `router`, so Storybook renders the
@@ -172,6 +177,7 @@ feature's `components/` (listed under `composite/` below with its feature):
   `addCategory(categories, { name, icon })` (a local `cat-new-N` id until L2.5); `finance/utils/format.js` holds
   `formatShekels` (whole agorot → "₪284.90", the same in both languages), `dayLabel(translate, …)`, `entryDetails(translate, entry, category, day)` (the row's second line; with `day`, a card is only "••4821") and
   `filterSummary(translate, { filter, sort, entries, categories })` (`FilterSummary`'s `title`, `sort`),
+  `noMatchLine(translate, { filter, month, categories })` (`NoMatch`'s line),
   `parseShekels(text)`/`shekelsText(agorot)` (an amount field's text ↔ whole agorot); account: `ProfileFields`, `RequireAuthNotice`, `SystemStatus` and
   the Account tab's cards but `ThemeCard`. Each: `AmbientBackground` (from `Meteors`, `Stars`), `SwipeTabs` (from
   `TabPager` — the `(tabs)` navigator: Expo Router's `withLayoutContext` + `TabRouter`, the screens

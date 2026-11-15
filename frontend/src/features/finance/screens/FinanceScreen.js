@@ -14,6 +14,7 @@ import FinanceEmpty from '../components/FinanceEmpty';
 import FinanceHeader from '../components/FinanceHeader';
 import ListToolbar from '../components/ListToolbar';
 import NewCategorySheet from '../components/NewCategorySheet';
+import NoMatch from '../components/NoMatch';
 import QuickAddSheet from '../components/QuickAddSheet';
 import ReviewBanner from '../components/ReviewBanner';
 import SpentCard from '../components/SpentCard';
@@ -120,6 +121,14 @@ export default function FinanceScreen({ reachable = true }) {
               categories={categories}
               today={TODAY}
               sort={sort}
+              empty={
+                <NoMatch
+                  filter={filter}
+                  month={month}
+                  categories={categories}
+                  onSearchAllCategories={() => set({ categoryIds: [] })}
+                />
+              }
               header={
                 <View style={styles.listHeader}>
                   <ListToolbar

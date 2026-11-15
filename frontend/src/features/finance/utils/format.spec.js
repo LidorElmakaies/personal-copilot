@@ -5,6 +5,7 @@ import {
   entryDetails,
   filterSummary,
   formatShekels,
+  noMatchLine,
   parseShekels,
   shekelsText,
 } from './format';
@@ -188,11 +189,55 @@ describe('filterSummary', () => {
         he,
         { query: 'חלה', maxAgorot: 30000, paidWith: ['card'] },
         'lowest',
-        [],
+        entries.slice(1),
       ),
     ).toEqual({
-      title: '‏"⁨חלה⁩" · עד ₪300 · כרטיס · 0 רשומות · ₪0',
+      title: '‏"⁨חלה⁩" · עד ₪300 · כרטיס · רשומה אחת · ₪49.90',
       sort: 'הסכום הנמוך קודם',
     });
+  });
+
+  // Screen 15: what was asked, then "nothing" — no count, total or sort.
+  it('nothing left', () => {
+    expect(
+      summary(en, { query: 'challah', categoryIds: ['e'] }, 'highest', []),
+    ).toEqual({
+      title: '‎“⁨challah⁩” · ⁨Eating out⁩ · nothing',
+      sort: null,
+    });
+    expect(summary(he, { categoryIds: ['t'] }, 'newest', []).title).toBe(
+      '‏⁨תחבורה⁩ · אין תוצאות',
+    );
+  });
+});
+
+describe('noMatchLine', () => {
+  const categories = [
+    { id: 'e', name: 'Eating out' },
+    { id: 't', name: 'תחבורה' },
+  ];
+  const line = (translate, filter) =>
+    noMatchLine(translate, {
+      filter: { ...NO_FILTER, ...filter },
+      month: { year: 2026, month: 10 },
+      categories,
+    });
+
+  it('says what was searched, and where', () => {
+    expect(line(en, { query: ' challah ', categoryIds: ['e'] })).toBe(
+      'No October entry in ⁨Eating out⁩ mentions “⁨challah⁩”.',
+    );
+    expect(line(en, { query: 'challah' })).toBe(
+      'No October entry mentions “⁨challah⁩”.',
+    );
+    expect(line(en, { categoryIds: ['e'], minAgorot: 100000 })).toBe(
+      'No October entry matches these filters.',
+    );
+  });
+
+  it('in Hebrew', () => {
+    expect(line(he, { query: 'חלה', categoryIds: ['t'] })).toBe(
+      'אין רשומה מאוקטובר ב־⁨תחבורה⁩ שמזכירה "⁨חלה⁩".',
+    );
   });
 });

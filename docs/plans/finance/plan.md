@@ -505,8 +505,15 @@ mixed entry in each language.
   "Housing" taken, "Coffee" added and filtered ("Coffee · 0 entries · ₪0"), "Pets" with the paw from
   the sheet, chosen there. Found there: Add sat under the keyboard — the sheet's body now scrolls and
   shrinks. Quick add's chips show it once U5.3 exists. 448 tests.
-- [ ] **U4b.7 `NoMatch`** and the whole flow on the phone: search, a chip, the sheet, a new
+- [x] **U4b.7 `NoMatch`** and the whole flow on the phone: search, a chip, the sheet, a new
   category, sorting, clearing — in both languages; a test APK.
+  *Done 2026-11-15:* `NoMatch` (screen 15) under the summary, which then reads
+  "“pizza” · Groceries · nothing" with no sort line; its line says what was asked ("No October entry
+  in Groceries mentions “pizza”.", or the filters as a whole), "Search all categories" drops the
+  categories (`format.js`'s `noMatchLine`, tested). The whole flow in the dev build, Hebrew then
+  English: a search with nothing → Search all categories found it; sort by amount + a chip ("Groceries
+  · 19 entries · ₪1,860", rows "Oct 6 · Groceries · ••4821"); the sheet; "Coffee" added from it and
+  chosen there; Clear back to the default. 451 tests. Test APK 0.6.0-test.26 published.
 
 **Try it:** search "challah"; filter Groceries; ₪50–₪300; combine them; sort by amount; add
 "Coffee" and see it in the chips and in Quick add; clear.
