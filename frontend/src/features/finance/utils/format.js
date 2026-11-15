@@ -17,6 +17,18 @@ export function parseShekels(text) {
   return Math.round(Number(clean) * 100);
 }
 
+// What an amount field keeps as it's typed: digits and one decimal point ("," from the keypad
+// becomes "."), at most 2 decimals and 7 whole digits, no leading zeros ("007" → "7", "." → "0.").
+export function typedShekels(text) {
+  const [whole, ...rest] = (text ?? '')
+    .replace(/,/g, '.')
+    .replace(/[^\d.]/g, '')
+    .split('.');
+  const digits = whole.replace(/^0+(?=\d)/, '').slice(0, 7);
+  if (rest.length === 0) return digits;
+  return `${digits || '0'}.${rest.join('').slice(0, 2)}`;
+}
+
 // Whole agorot → an amount field's text: "50", "284.90"; null → "".
 export const shekelsText = (agorot) =>
   agorot == null

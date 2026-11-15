@@ -8,6 +8,7 @@ import {
   noMatchLine,
   parseShekels,
   shekelsText,
+  typedShekels,
 } from './format';
 
 const en = (key, vars) => translateIn('en', key, vars);
@@ -22,6 +23,29 @@ describe('formatShekels', () => {
     [0, '₪0'],
   ])('%i agorot → %s', (agorot, text) => {
     expect(formatShekels(agorot)).toBe(text);
+  });
+});
+
+describe('typedShekels', () => {
+  it.each([
+    ['150', '150'],
+    ['12,5', '12.5'],
+    ['12.567', '12.56'],
+    ['1.2.3', '1.23'],
+    ['007', '7'],
+    ['0', '0'],
+    ['0.5', '0.5'],
+    ['.', '0.'],
+    ['₪ 1-5a', '15'],
+    ['123456789', '1234567'],
+    ['', ''],
+    [null, ''],
+  ])('%p → %p', (text, kept) => {
+    expect(typedShekels(text)).toBe(kept);
+  });
+
+  it('keeps what parseShekels reads', () => {
+    expect(parseShekels(typedShekels('284,90'))).toBe(28490);
   });
 });
 

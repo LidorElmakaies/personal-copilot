@@ -530,8 +530,13 @@ onto several rows, in place, until ⌃ is pressed (picking a chip or Clear leave
 
 ## Stage U5: `QuickAddSheet` — amount, what for, categories (screen 2)
 
-- [ ] **U5.1 `AmountInput`** — big "₪ 150", number keyboard opens on its own, decimals allowed
+- [x] **U5.1 `AmountInput`** — big "₪ 150", number keyboard opens on its own, decimals allowed
   (agorot), nothing but digits and one dot.
+  *Done 2026-11-15:* `AmountInput` (₪ left in Hebrew too, as `formatShekels` writes it), already in
+  the `QuickAddSheet` under its title so it can be tried from the +; what it keeps is `format.js`'s
+  `typedShekels` ("," from the keypad → ".", 2 decimals, 7 whole digits, "007" → "7"; tested).
+  It focuses itself 250 ms after opening (Android can drop `autoFocus` in a Modal still sliding in). In the dev
+  build, Hebrew: the keyboard opened with the sheet; "0012,567" kept as "12.56". 464 tests.
 - [ ] **U5.2 "What was it for?"** — the existing `InputField`.
 - [ ] **U5.3 `CategoryChips`** — all categories as pills, one selected, one marked "· suggested",
   "More…" when they don't fit two lines.

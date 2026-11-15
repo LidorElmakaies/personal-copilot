@@ -134,8 +134,11 @@ feature's `components/` (listed under `composite/` below with its feature):
   `month`, `toAnswer`, `issuer`, `cardLast4`, `reported`, `onPress`; colors `pending`/`pendingBg`/
   `pendingBorder`), `ConnectionNotice` (from `Alert`, warning — "Can't reach your PC — you can still
   add" while `reachable` is false, else "N entries waiting for your PC" while `waiting` > 0, else
-  nothing), `QuickAddSheet` (from `BottomSheet` — screen 2, the + opens it; only its "New entry"
-  title until U5; `visible`, `onClose`), `ListToolbar` (the entries card's search field — its own
+  nothing), `QuickAddSheet` (from `BottomSheet` — screen 2, the + opens it; its "New entry"
+  title and `AmountInput` so far, empty each time it opens; `visible`, `onClose`), `AmountInput` (the
+  big centred "₪ 150": its own `TextInput`, decimal pad, focused 250 ms after mounting since a sliding
+  Modal drops `autoFocus`; text kept through `typedShekels`; the row is `direction: 'ltr'` so ₪ stays
+  left in Hebrew; `value`, `onChangeText`, `autoFocus`), `ListToolbar` (the entries card's search field — its own
   `TextInput` with a search icon, `start`/`paddingStart` so it mirrors — plus sort and all-filters
   buttons shown only with `onSort`/`onFilters`; sort lit while `sort` isn't `newest`, with a "₪" by
   amount, filters lit by `filtersActive`),
@@ -178,7 +181,9 @@ feature's `components/` (listed under `composite/` below with its feature):
   `formatShekels` (whole agorot → "₪284.90", the same in both languages), `dayLabel(translate, …)`, `entryDetails(translate, entry, category, day)` (the row's second line; with `day`, a card is only "••4821") and
   `filterSummary(translate, { filter, sort, entries, categories })` (`FilterSummary`'s `title`, `sort`),
   `noMatchLine(translate, { filter, month, categories })` (`NoMatch`'s line),
-  `parseShekels(text)`/`shekelsText(agorot)` (an amount field's text ↔ whole agorot); account: `ProfileFields`, `RequireAuthNotice`, `SystemStatus` and
+  `parseShekels(text)`/`shekelsText(agorot)` (an amount field's text ↔ whole agorot),
+  `typedShekels(text)` (what an amount field keeps while typed: digits, one point — "," becomes it —
+  2 decimals, 7 whole digits, no leading zeros); account: `ProfileFields`, `RequireAuthNotice`, `SystemStatus` and
   the Account tab's cards but `ThemeCard`. Each: `AmbientBackground` (from `Meteors`, `Stars`), `SwipeTabs` (from
   `TabPager` — the `(tabs)` navigator: Expo Router's `withLayoutContext` + `TabRouter`, the screens
   side by side; `order`, `canEnter`, `onBlocked`, `tabBar({ navigation, activeName })`), `ConfirmModal` (from
