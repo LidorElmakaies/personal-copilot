@@ -465,8 +465,16 @@ mixed entry in each language.
   buttons and "+ New" appear once U4b.4–U4b.6 give them handlers. 416 tests.
   In the dev build (Hebrew): the field and chips mirror (the chips start on the right), Groceries
   leaves only groceries and lights up, "challah" leaves "Challah and pastries"; no JS errors.
-- [ ] **U4b.4 Sort by amount and `FilterSummary`** — `EntryList` gets a flat mode (no day headings,
+- [x] **U4b.4 Sort by amount and `FilterSummary`** — `EntryList` gets a flat mode (no day headings,
   the date on each row); the summary line with its count, total and Clear.
+  *Done 2026-11-15:* `EntryList` takes `sort` (by day: headings, newest or oldest; by amount: flat,
+  `EntryRow`'s `day` leads the second line — "Oct 14 · Eating out · Bit", the category kept since
+  more than one can be shown); the toolbar's sort button flips by day ↔ highest first (the sheet,
+  U4b.5, has all four), lit while not newest, with a "₪" by amount. `FilterSummary` shows while
+  `isFiltering`: what's asked ("challah", one or two category names else "3 categories", ₪50–₪300,
+  how it was paid) · N entries · total, the sort under it, Clear (filters and sort back to the
+  default; also on another month or leaving the tab). `format.js`'s `filterSummary`, tested in both
+  languages; stories for the summary, the toolbar's sort and the list's sorts. 421 tests.
 - [ ] **U4b.5 `FilterSheet`** — every option at once, "Show N entries" counting live; stories for
   each section.
 - [ ] **U4b.6 `NewCategorySheet`** — name and icon, from the chips and from the sheet; Phase U adds

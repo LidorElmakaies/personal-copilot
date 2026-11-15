@@ -4,8 +4,9 @@ import { useAppTheme } from '../../../shared/theme/useAppTheme';
 import { entryDetails, formatShekels } from '../utils/format';
 
 // One entry (screen 1): what for (one line, cut with …), "category · paid with · N photos" under
-// it, then its badges — "not sent", "matched" (a statement line) — and the amount.
-export default function EntryRow({ entry, category, onPress }) {
+// it — led by `day` when set ("Oct 14 · …", the list sorted by amount) — then its badges — "not
+// sent", "matched" (a statement line) — and the amount.
+export default function EntryRow({ entry, category, day, onPress }) {
   const { colors } = useAppTheme();
   const translate = useTranslate();
   const badge = (label, color, bg) => (
@@ -26,7 +27,7 @@ export default function EntryRow({ entry, category, onPress }) {
           numberOfLines={1}
           style={[styles.details, { color: colors.textMuted }]}
         >
-          {entryDetails(translate, entry, category)}
+          {entryDetails(translate, entry, category, day)}
         </Text>
       </View>
       {entry.notSent &&

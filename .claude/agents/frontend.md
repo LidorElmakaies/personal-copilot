@@ -121,9 +121,10 @@ feature's `components/` (listed under `composite/` below with its feature):
   the restart note; `value` `'en' | 'he'`, `onChange(code)`); finance: `FinanceHeader` (from `PillButton` — "Finance", ‹ month ›
   and the Monthly check pill; `month` `{ year, month }`, `onPrevious`, `onNext` (none dims ›),
   `onMonthlyCheck`), `FinanceEmpty` (from `GlowCard` — a month with no entries), `EntryRow` (one
-  entry: what for, "category · paid with · N photos", the "not sent"/"matched" badges, the amount;
-  `entry`, `category`, `onPress`), `EntryList` (from `GlowCard`, `EntryRow` — newest first under
-  day headings; `entries`, `categories`, `today`, `onPressEntry`), `CategoryBar` (one category in
+  entry: what for, "category · paid with · N photos" — led by `day` when set — the "not sent"/"matched"
+  badges, the amount; `entry`, `category`, `day`, `onPress`), `EntryList` (from `GlowCard`, `EntryRow` —
+  in `sort`'s order: by day under day headings, by amount one flat list with the day on each row;
+  `entries`, `categories`, `today`, `sort`, `onPressEntry`), `CategoryBar` (one category in
   `SpentCard`: name, amount, a bar scaled to the biggest — at least a dot for any spending;
   `name`, `amountAgorot`, `biggestAgorot`; the share from `finance/utils/spending.js`'s `barShare`),
   `SpentCard` (from `GlowCard`, `CategoryBar` — "Spent this month", the total, the top 3, "+ N more
@@ -136,11 +137,14 @@ feature's `components/` (listed under `composite/` below with its feature):
   nothing), `QuickAddSheet` (from `BottomSheet` — screen 2, the + opens it; only its "New entry"
   title until U5; `visible`, `onClose`), `ListToolbar` (the entries card's search field — its own
   `TextInput` with a search icon, `start`/`paddingStart` so it mirrors — plus sort and all-filters
-  buttons shown only with `onSort`/`onFilters`, lit by `sortActive`/`filtersActive`),
+  buttons shown only with `onSort`/`onFilters`; sort lit while `sort` isn't `newest`, with a "₪" by
+  amount, filters lit by `filtersActive`),
   `CategoryFilterChips` (All · each category · "+ New" with `onNewCategory`, one sideways-scrolling
   row; outlined, an accent tint when chosen — the canvas's chip, not `PillButton`'s solid
-  `selected`; `categories`, `selectedIds`, `onChange(ids)`); `EntryList` takes a `header` (the
-  toolbar and chips) inside its card; `FinanceScreen` is screen 1 in the canvas's order — header,
+  `selected`; `categories`, `selectedIds`, `onChange(ids)`), `FilterSummary` (the tinted line over a
+  filtered or re-sorted list: "Eating out · 8 entries · ₪640", the sort under it, Clear; `filter`,
+  `sort`, `entries` (shown), `categories`, `onClear`; text from `format.js`'s `filterSummary`);
+  `EntryList` takes a `header` (the toolbar, chips and summary) inside its card; `FinanceScreen` is screen 1 in the canvas's order — header,
   `ReviewBanner` (only on the month the statement covers, while it has lines to answer), `ConnectionNotice`,
   `SpentCard`, `EntryList`, the + — and the banner opens `StatementReviewScreen` (screen 6, the root
   Stack's `app/finance-review.js`, `router.push` — the imperative `router`, so Storybook renders the
@@ -150,7 +154,8 @@ feature's `components/` (listed under `composite/` below with its feature):
   shape: `query` in "what for" or the shop, either language, `categoryIds`, `minAgorot`/`maxAgorot`,
   `paidWith`), `sortEntries(entries, sort)` (`newest` | `oldest` | `highest` | `lowest`), `isByAmount`,
   `isFiltering`; `finance/utils/format.js` holds
-  `formatShekels` (whole agorot → "₪284.90", the same in both languages), `dayLabel(translate, …)` and `entryDetails(translate, entry, category)` (the row's second line); account: `ProfileFields`, `RequireAuthNotice`, `SystemStatus` and
+  `formatShekels` (whole agorot → "₪284.90", the same in both languages), `dayLabel(translate, …)`, `entryDetails(translate, entry, category, day)` (the row's second line) and
+  `filterSummary(translate, { filter, sort, entries, categories })` (`FilterSummary`'s `title`, `sort`); account: `ProfileFields`, `RequireAuthNotice`, `SystemStatus` and
   the Account tab's cards but `ThemeCard`. Each: `AmbientBackground` (from `Meteors`, `Stars`), `SwipeTabs` (from
   `TabPager` — the `(tabs)` navigator: Expo Router's `withLayoutContext` + `TabRouter`, the screens
   side by side; `order`, `canEnter`, `onBlocked`, `tabBar({ navigation, activeName })`), `ConfirmModal` (from

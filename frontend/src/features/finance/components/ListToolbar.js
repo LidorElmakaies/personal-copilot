@@ -1,24 +1,26 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useTranslate } from '../../../shared/i18n/translate';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
+import { DEFAULT_SORT, isByAmount } from '../utils/filter';
 
 // The entries card's top row (screen 11): the search field ("what for" or the shop), and — when
-// their handlers are set — the sort button (lit while `sortActive`) and the all-filters button
-// (lit while `filtersActive`). `query`, `onChangeQuery`, `onSort`, `onFilters`.
+// their handlers are set — the sort button (lit while `sort` isn't the default, with a ₪ while it's by
+// amount) and the all-filters button (lit while `filtersActive`). `query`, `onChangeQuery`, `onSort`,
+// `onFilters`.
 export default function ListToolbar({
   query,
   onChangeQuery,
   onSort,
-  sortActive,
+  sort = DEFAULT_SORT,
   onFilters,
   filtersActive,
 }) {
   const { colors } = useAppTheme();
   const translate = useTranslate();
   const [focused, setFocused] = useState(false);
-  const button = (icon, label, onPress, on) => (
+  const button = (icon, label, onPress, on, text) => (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
@@ -38,6 +40,11 @@ export default function ListToolbar({
         size={18}
         color={on ? colors.accent : colors.text}
       />
+      {text && (
+        <Text style={[styles.buttonText, { color: colors.accent }]}>
+          {text}
+        </Text>
+      )}
     </Pressable>
   );
 
@@ -74,7 +81,15 @@ export default function ListToolbar({
         />
       </View>
       {onSort &&
-        button('swap-vertical', translate('finance.sort'), onSort, sortActive)}
+        button(
+          'swap-vertical',
+          translate('finance.sortButton', {
+            sort: translate(`finance.sortBy.${sort}`),
+          }),
+          onSort,
+          sort !== DEFAULT_SORT,
+          isByAmount(sort) && '₪',
+        )}
       {onFilters &&
         button(
           'options-outline',
@@ -103,8 +118,12 @@ const styles = StyleSheet.create({
     minHeight: 44,
     borderRadius: 12,
     borderWidth: 1,
+    flexDirection: 'row',
+    gap: 4,
+    paddingHorizontal: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  buttonText: { fontSize: 13 },
   pressed: { opacity: 0.7 },
 });

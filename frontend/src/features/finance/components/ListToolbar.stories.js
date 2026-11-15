@@ -13,11 +13,17 @@ export default {
 
 export const Empty = {};
 export const Searching = { args: { query: 'challah' } };
-// Sort and filters on (their buttons lit) — wired in U4b.4–U4b.5.
-export const SortAndFiltersOn = {
-  args: { sortActive: true, filtersActive: true },
+// Sorted by amount: the sort button lit, with a ₪.
+export const ByAmount = { args: { sort: 'highest' } };
+// Oldest first: lit, no ₪. The filters button lit too (wired in U4b.5).
+export const OldestAndFiltersOn = {
+  args: { sort: 'oldest', filtersActive: true },
 };
 export const Hebrew = { parameters: { language: 'he' } };
+export const HebrewByAmount = {
+  parameters: { language: 'he' },
+  args: { sort: 'highest' },
+};
 export const HebrewSearching = {
   parameters: { language: 'he' },
   args: { query: 'חלה' },

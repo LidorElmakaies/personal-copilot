@@ -22,3 +22,13 @@ export const FiftyEntries = {
 // The app's words in Hebrew (היום, אתמול, "25 באוק׳", the badges); what for and the categories are
 // the user's own, as typed.
 export const Hebrew = { parameters: { language: 'he' } };
+
+// Screen 12: biggest first, one flat list, the day leading each row's second line.
+export const ByAmount = { args: { sort: 'highest' } };
+export const LowestFirst = { args: { sort: 'lowest' } };
+// By day, oldest first: the headings run Oct 1 → today.
+export const OldestFirst = { args: { sort: 'oldest' } };
+export const HebrewByAmount = {
+  parameters: { language: 'he' },
+  args: { sort: 'highest' },
+};

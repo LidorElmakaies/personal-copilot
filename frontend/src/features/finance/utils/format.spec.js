@@ -1,5 +1,6 @@
 import { translateIn } from '../../../shared/i18n/translate';
-import { dayLabel, entryDetails, formatShekels } from './format';
+import { NO_FILTER } from './filter';
+import { dayLabel, entryDetails, filterSummary, formatShekels } from './format';
 
 const en = (key, vars) => translateIn('en', key, vars);
 const he = (key, vars) => translateIn('he', key, vars);
@@ -47,6 +48,15 @@ describe('entryDetails', () => {
     );
   });
 
+  it('led by the day when the list is sorted by amount', () => {
+    expect(entryDetails(en, entry('bit'), 'Eating out', 'Oct 14')).toBe(
+      '‎Oct 14 · ⁨Eating out⁩ · Bit',
+    );
+    expect(entryDetails(he, entry('cash'), 'Groceries', '14 באוק׳')).toBe(
+      '‏14 באוק׳ · ⁨Groceries⁩ · מזומן',
+    );
+  });
+
   it('a Hebrew category in the English line: still an English line', () => {
     expect(entryDetails(en, entry('bit'), 'מתנות')).toBe(
       '\u200E\u2068מתנות\u2069 · Bit',
@@ -64,5 +74,80 @@ describe('entryDetails', () => {
     expect(entryDetails(he, entry('cash'), 'Groceries')).toBe(
       '\u200F\u2068Groceries\u2069 · מזומן',
     );
+  });
+});
+
+describe('filterSummary', () => {
+  const categories = [
+    { id: 'g', name: 'Groceries' },
+    { id: 'e', name: 'Eating out' },
+    { id: 't', name: 'תחבורה' },
+  ];
+  const entries = [{ amountAgorot: 15000 }, { amountAgorot: 4990 }];
+  const summary = (translate, filter, sort, shown = entries) =>
+    filterSummary(translate, {
+      filter: { ...NO_FILTER, ...filter },
+      sort,
+      entries: shown,
+      categories,
+    });
+
+  it('only the sort changed: the count and total, and the sort', () => {
+    expect(summary(en, {}, 'highest')).toEqual({
+      title: '‎2 entries · ₪199.90',
+      sort: 'Highest amount first',
+    });
+    expect(summary(he, {}, 'oldest')).toEqual({
+      title: '‏2 רשומות · ₪199.90',
+      sort: 'הישנות קודם',
+    });
+  });
+
+  it('names one or two categories, counts more', () => {
+    expect(summary(en, { categoryIds: ['e'] }, 'newest').title).toBe(
+      '‎⁨Eating out⁩ · 2 entries · ₪199.90',
+    );
+    expect(summary(en, { categoryIds: ['g', 't'] }).title).toBe(
+      '‎⁨Groceries⁩, ⁨תחבורה⁩ · 2 entries · ₪199.90',
+    );
+    expect(summary(en, { categoryIds: ['g', 'e', 't'] }).title).toBe(
+      '‎3 categories · 2 entries · ₪199.90',
+    );
+  });
+
+  it('the search, the amount range and how it was paid', () => {
+    expect(
+      summary(
+        en,
+        {
+          query: '  challah ',
+          minAgorot: 5000,
+          maxAgorot: 30000,
+          paidWith: ['card', 'bit'],
+        },
+        'newest',
+        entries.slice(0, 1),
+      ).title,
+    ).toBe('‎“⁨challah⁩” · ₪50–₪300 · Card, Bit · 1 entry · ₪150');
+    expect(summary(en, { minAgorot: 5000 }).title).toBe(
+      '‎₪50 and up · 2 entries · ₪199.90',
+    );
+    expect(summary(en, { maxAgorot: 30000 }).title).toBe(
+      '‎up to ₪300 · 2 entries · ₪199.90',
+    );
+  });
+
+  it('in Hebrew', () => {
+    expect(
+      summary(
+        he,
+        { query: 'חלה', maxAgorot: 30000, paidWith: ['card'] },
+        'lowest',
+        [],
+      ),
+    ).toEqual({
+      title: '‏"⁨חלה⁩" · עד ₪300 · כרטיס · 0 רשומות · ₪0',
+      sort: 'הסכום הנמוך קודם',
+    });
   });
 });

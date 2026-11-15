@@ -8,6 +8,7 @@ import { monthAt, monthIndex } from '../../../shared/utils/date';
 import CategoryFilterChips from '../components/CategoryFilterChips';
 import ConnectionNotice from '../components/ConnectionNotice';
 import EntryList from '../components/EntryList';
+import FilterSummary from '../components/FilterSummary';
 import FinanceEmpty from '../components/FinanceEmpty';
 import FinanceHeader from '../components/FinanceHeader';
 import ListToolbar from '../components/ListToolbar';
@@ -24,7 +25,13 @@ import {
   STATEMENT_LINES,
   TODAY,
 } from '../mocks';
-import { filterEntries, NO_FILTER } from '../utils/filter';
+import {
+  DEFAULT_SORT,
+  filterEntries,
+  isByAmount,
+  isFiltering,
+  NO_FILTER,
+} from '../utils/filter';
 import { categoriesBySpending, categoryTotals } from '../utils/spending';
 import { statementSummary } from '../utils/statement';
 
@@ -38,7 +45,8 @@ const waiting = OCTOBER_ENTRIES.filter((e) => e.notSent).length;
 // (on the month it covers, while it has lines to answer), the PC notice, `SpentCard`, the entries,
 // the +. Not behind `requiresAuth`: logged out, the tab will show its own notice (B1). No months
 // after the current one. `reachable` stands in for the PC link until the outbox (L4). The list's
-// search and filters (U4b) are for the month on screen: they clear on another month or leaving the tab.
+// search, filters and sort (U4b) are for the month on screen: they clear on another month or leaving
+// the tab. The sort button flips between by day and by amount (the filter sheet has all four).
 export default function FinanceScreen({ reachable = true }) {
   const [index, setIndex] = useState(monthIndex(CURRENT_MONTH));
   const month = monthAt(index);
@@ -46,13 +54,18 @@ export default function FinanceScreen({ reachable = true }) {
   const translate = useTranslate();
   const [adding, setAdding] = useState(false);
   const [filter, setFilter] = useState(NO_FILTER);
+  const [sort, setSort] = useState(DEFAULT_SORT);
+  const clear = () => {
+    setFilter(NO_FILTER);
+    setSort(DEFAULT_SORT);
+  };
   const focused = useIsFocused();
   useEffect(() => {
-    if (!focused) setFilter(NO_FILTER);
+    if (!focused) clear();
   }, [focused]);
   const goTo = (i) => {
     setIndex(i);
-    setFilter(NO_FILTER);
+    clear();
   };
   const set = (part) => setFilter({ ...filter, ...part });
   const totals = categoryTotals(entries, CATEGORIES);
@@ -90,17 +103,31 @@ export default function FinanceScreen({ reachable = true }) {
               entries={shown}
               categories={CATEGORIES}
               today={TODAY}
+              sort={sort}
               header={
                 <View style={styles.listHeader}>
                   <ListToolbar
                     query={filter.query}
                     onChangeQuery={(query) => set({ query })}
+                    sort={sort}
+                    onSort={() =>
+                      setSort(isByAmount(sort) ? DEFAULT_SORT : 'highest')
+                    }
                   />
                   <CategoryFilterChips
                     categories={categoriesBySpending(CATEGORIES, totals)}
                     selectedIds={filter.categoryIds}
                     onChange={(categoryIds) => set({ categoryIds })}
                   />
+                  {isFiltering(filter, sort) && (
+                    <FilterSummary
+                      filter={filter}
+                      sort={sort}
+                      entries={shown}
+                      categories={CATEGORIES}
+                      onClear={clear}
+                    />
+                  )}
                 </View>
               }
             />
