@@ -36,3 +36,12 @@ export const Hebrew = {
   parameters: { language: 'he' },
   args: { selectedIds: ['cat-bills'] },
 };
+
+// Screen 16: opened with ⌄ — every chip wrapped, ⌃ at the end.
+export const Opened = {
+  args: { defaultOpen: true, selectedIds: ['cat-eating-out'] },
+};
+export const HebrewOpened = {
+  parameters: { language: 'he' },
+  args: { defaultOpen: true, onNewCategory: undefined },
+};

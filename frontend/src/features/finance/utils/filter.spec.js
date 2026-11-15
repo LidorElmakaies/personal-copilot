@@ -4,6 +4,7 @@ import {
   isByAmount,
   isFiltering,
   NO_FILTER,
+  sheetFiltering,
   sortEntries,
 } from './filter';
 
@@ -122,5 +123,19 @@ describe('isByAmount and isFiltering', () => {
     );
     expect(isFiltering({ ...NO_FILTER, maxAgorot: 0 })).toBe(true);
     expect(isFiltering({ ...NO_FILTER, paidWith: ['cash'] })).toBe(true);
+  });
+});
+
+describe('sheetFiltering', () => {
+  it('only what the toolbar does not show lights the filters button', () => {
+    expect(sheetFiltering(NO_FILTER)).toBe(false);
+    expect(sheetFiltering({ ...NO_FILTER, query: 'fuel' })).toBe(false);
+    expect(sheetFiltering({ ...NO_FILTER, categoryIds: ['a'] })).toBe(false);
+    expect(sheetFiltering({ ...NO_FILTER, categoryIds: ['a', 'b'] })).toBe(
+      true,
+    );
+    expect(sheetFiltering({ ...NO_FILTER, minAgorot: 0 })).toBe(true);
+    expect(sheetFiltering({ ...NO_FILTER, maxAgorot: 30000 })).toBe(true);
+    expect(sheetFiltering({ ...NO_FILTER, paidWith: ['bit'] })).toBe(true);
   });
 });

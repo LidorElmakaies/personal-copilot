@@ -107,7 +107,7 @@ feature's `components/` (listed under `composite/` below with its feature):
   default, `muted`, `pending` — amber, something is set, `selected` — the chosen option in a group)
   and `icon` (a render function given the text color); `Stepper`'s `min`/`max`/`step`/`unit` (− value
   +, clamped; an off-grid value moves to the next grid point); `BottomSheet`'s `visible`/`onClose`
-  (a `Modal` whose backdrop fades while the panel slides up; drag the panel down — from anywhere on it, past ~⅓ of its height or a quick flick — or tap the backdrop to slide it away and close. Gestures are `react-native-gesture-handler`'s `Pan`/`Tap` with Reanimated, inside the Modal's own `GestureHandlerRootView` — `PanResponder` never received the drag or the backdrop tap in an Android Modal; `dragFromHandle` puts the drag on the grab bar only, for a sheet whose content scrolls); `SwipePager`'s `index`/`renderPage(i)`/`onMove`/`onSettle` and `ref.current.go(by)`/`goTo(index)` (endless sideways pages — the Calendar tab's months; see its file for why the gesture is memoized and the starting page kept mounted; inside a `TabPager` its pan blocks the tab pan via `TabPagerGesture`); `TabPager`'s `index`/`count`/`renderPage(i)`/`mounted`/`onMove`/`onSwipe`/`canEnter`/`onBlocked`/`enabled` (a fixed row of pages — the tabs, under `SwipeTabs`: one page per drag, stretches past the ends, ignores drags from within 20 dp of a side; its strip is as wide as all its pages, so the page in view stays in the accessibility tree that TalkBack and the Maestro flows read). `SelectField` renders its
+  (a `Modal` whose backdrop fades while the panel slides up; drag the panel down — from anywhere on it, past ~⅓ of its height or a quick flick — or tap the backdrop to slide it away and close. Gestures are `react-native-gesture-handler`'s `Pan`/`Tap` with Reanimated, inside the Modal's own `GestureHandlerRootView` — `PanResponder` never received the drag or the backdrop tap in an Android Modal; `dragFromHandle` puts the drag on the grab bar only, for a sheet whose content scrolls; while the keyboard is up the panel lifts above it and is capped to the room left, so a body that may not fit is a `ScrollView` with `flexShrink: 1`); `SwipePager`'s `index`/`renderPage(i)`/`onMove`/`onSettle` and `ref.current.go(by)`/`goTo(index)` (endless sideways pages — the Calendar tab's months; see its file for why the gesture is memoized and the starting page kept mounted; inside a `TabPager` its pan blocks the tab pan via `TabPagerGesture`); `TabPager`'s `index`/`count`/`renderPage(i)`/`mounted`/`onMove`/`onSwipe`/`canEnter`/`onBlocked`/`enabled` (a fixed row of pages — the tabs, under `SwipeTabs`: one page per drag, stretches past the ends, ignores drags from within 20 dp of a side; its strip is as wide as all its pages, so the page in view stays in the accessibility tree that TalkBack and the Maestro flows read). `SelectField` renders its
   option list in a transparent `Modal` at the box's measured window position (below it, or above
   if there's no room; scrolls past 4 options) — inline, any `overflow:'hidden'` ancestor such as
   `GlowCard` would clip it and later siblings would draw over it.
@@ -139,9 +139,17 @@ feature's `components/` (listed under `composite/` below with its feature):
   `TextInput` with a search icon, `start`/`paddingStart` so it mirrors — plus sort and all-filters
   buttons shown only with `onSort`/`onFilters`; sort lit while `sort` isn't `newest`, with a "₪" by
   amount, filters lit by `filtersActive`),
-  `CategoryFilterChips` (All · each category · "+ New" with `onNewCategory`, one sideways-scrolling
-  row; outlined, an accent tint when chosen — the canvas's chip, not `PillButton`'s solid
-  `selected`; `categories`, `selectedIds`, `onChange(ids)`), `FilterSummary` (the tinted line over a
+  `FilterChip` (the canvas's filter chip — outlined, an accent tint while `on`, not `PillButton`'s
+  solid `selected`; `dashed` for "+ New"; `label`, `icon` (Ionicons), `on`, `onPress`),
+  `CategoryFilterChips` (from `FilterChip` — All · each category · "+ New" with `onNewCategory`, one
+  sideways-scrolling row with a ⌄ pinned at its end that wraps every chip onto several rows until its
+  ⌃ is pressed (screen 16; picking a chip leaves it open); `categories`, `selectedIds`, `onChange(ids)`,
+  `defaultOpen`), `FilterSheet` (from
+  `BottomSheet` with `dragFromHandle`, `FilterChip`, `GradientButton` — screen 13: sort, categories
+  (any number, with icons), ₪ from–to, paid with, "Clear all"; edits a draft, "Show N entries" counts
+  the month live and applies through `onApply({ filter, sort })`, closing otherwise drops it; the
+  toolbar's search is kept and counted; `visible`, `onClose`, `filter`, `sort`, `entries`,
+  `categories`, `onNewCategory`), `FilterSummary` (the tinted line over a
   filtered or re-sorted list: "Eating out · 8 entries · ₪640", the sort under it, Clear; `filter`,
   `sort`, `entries` (shown), `categories`, `onClear`; text from `format.js`'s `filterSummary`);
   `EntryList` takes a `header` (the toolbar, chips and summary) inside its card; `FinanceScreen` is screen 1 in the canvas's order — header,
@@ -153,9 +161,11 @@ feature's `components/` (listed under `composite/` below with its feature):
   holds the list's search, filters and sort (U4b): `filterEntries(entries, filter)` (`NO_FILTER`'s
   shape: `query` in "what for" or the shop, either language, `categoryIds`, `minAgorot`/`maxAgorot`,
   `paidWith`), `sortEntries(entries, sort)` (`newest` | `oldest` | `highest` | `lowest`), `isByAmount`,
-  `isFiltering`; `finance/utils/format.js` holds
-  `formatShekels` (whole agorot → "₪284.90", the same in both languages), `dayLabel(translate, …)`, `entryDetails(translate, entry, category, day)` (the row's second line) and
-  `filterSummary(translate, { filter, sort, entries, categories })` (`FilterSummary`'s `title`, `sort`); account: `ProfileFields`, `RequireAuthNotice`, `SystemStatus` and
+  `isFiltering`, `sheetFiltering` (the all-filters button lit: more than one category, an amount, paid
+  with), `PAID_WITH`; `finance/utils/format.js` holds
+  `formatShekels` (whole agorot → "₪284.90", the same in both languages), `dayLabel(translate, …)`, `entryDetails(translate, entry, category, day)` (the row's second line; with `day`, a card is only "••4821") and
+  `filterSummary(translate, { filter, sort, entries, categories })` (`FilterSummary`'s `title`, `sort`),
+  `parseShekels(text)`/`shekelsText(agorot)` (an amount field's text ↔ whole agorot); account: `ProfileFields`, `RequireAuthNotice`, `SystemStatus` and
   the Account tab's cards but `ThemeCard`. Each: `AmbientBackground` (from `Meteors`, `Stars`), `SwipeTabs` (from
   `TabPager` — the `(tabs)` navigator: Expo Router's `withLayoutContext` + `TabRouter`, the screens
   side by side; `order`, `canEnter`, `onBlocked`, `tabBar({ navigation, activeName })`), `ConfirmModal` (from
@@ -339,6 +349,12 @@ hit" below).
 
 ### Bug patterns already hit — recognize these fast if they recur
 
+- **An Android `Modal`'s window isn't resized for the keyboard** — a field low in a `BottomSheet`
+  sat under it with the sheet's button (`FilterSheet`, 2026-11-15). `BottomSheet` now lifts itself on
+  `Keyboard`'s `keyboardDidShow`/`Hide`; a field near a scrolling body's end scrolls itself back
+  into view from the body's `onLayout` (`FilterSheet`). Check a new sheet's lowest field with the
+  keyboard open, and Back with a real edge swipe — `adb shell input keyevent KEYCODE_BACK` skips the
+  keyboard and closes the sheet too, which a person's Back doesn't.
 - **Padding must never land on only the outer (shadow-casting) box** of a two-box shadow-wrapper/
   inner-clip component (`GradientButton.js`'s and `GlowCard.js`'s shared pattern: an outer box
   casts the shadow, an inner one holds the actual border/fill because it needs

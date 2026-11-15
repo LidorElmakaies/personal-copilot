@@ -475,8 +475,24 @@ mixed entry in each language.
   how it was paid) · N entries · total, the sort under it, Clear (filters and sort back to the
   default; also on another month or leaving the tab). `format.js`'s `filterSummary`, tested in both
   languages; stories for the summary, the toolbar's sort and the list's sorts. 421 tests.
-- [ ] **U4b.5 `FilterSheet`** — every option at once, "Show N entries" counting live; stories for
+- [x] **U4b.5 `FilterSheet`** — every option at once, "Show N entries" counting live; stories for
   each section.
+  *Done 2026-11-15:* `FilterSheet` (screen 13) from `BottomSheet` (dragged by its handle; the body
+  scrolls, up to 60% of the screen): sort as a 2×2 grid, categories with their icons (any number, the
+  chips' order), ₪ from–to (decimal keyboard; text that isn't an amount filters nothing —
+  `format.js`'s `parseShekels`/`shekelsText`, tested), paid with, "Clear all" (the sheet's options;
+  the toolbar's search stays). It edits a draft: "Show N entries" counts the month live, search
+  included, and applies; closing any other way drops it. The toolbar's filters button opens it, lit
+  by `filter.js`'s `sheetFiltering` (one category is the chips', so it doesn't light it). The chip
+  is now `FilterChip`, shared by the chips row and the sheet. "+ New category" shows once U4b.6
+  gives it a handler. Stories: the sheet as drawn, paid with + search, nothing matching, Hebrew; the
+  chip. In the dev build (Hebrew, 2026-11-15): the keyboard covered the amount fields and the button
+  — an Android Modal isn't resized for it — so `BottomSheet` now lifts itself above the keyboard
+  (shared: every sheet) and the sheet scrolls back to a field being typed in; the keypad's "," is a
+  decimal point ("12,5"). Then: sort, two categories, ≤ ₪300 counted live ("Show 38 entries"), a
+  back swipe closes only the keyboard, Show applied it — the summary "Groceries, Eating out · 25
+  entries · ₪2,500", highest first. Seen there: by amount, a row with a badge cuts its card digits
+  (day · category · card is long). 440 tests.
 - [ ] **U4b.6 `NewCategorySheet`** — name and icon, from the chips and from the sheet; Phase U adds
   it to the example categories in memory (L2.5 and B2 save it through the API); `CategoryEditor`
   (U13.2) reuses it to rename.
@@ -490,7 +506,11 @@ mixed entry in each language.
 **Feedback questions:** Search only the month on screen, or every month (answered for now: the
 month on screen)? Does the full `SpentCard` stay above the toolbar, or shrink to artboard 11's
 one-line total?
-**Feedback:** 2026-11-14 — the design "looks perfect".
+**Feedback:** 2026-11-14 — the design "looks perfect". 2026-11-15 — by amount, a row with a badge cut its card digits: there
+the card is only "••4821" ("Today · Groceries · ••4821"; the day list keeps "Card ••4821"). 2026-11-15 — a way to see every category at once: drawn on the canvas first
+(artboard 16, a ⌄ on 11 and 12), signed off — the ⌄ at the end of the chips row wraps every chip
+onto several rows, in place, until ⌃ is pressed (picking a chip or Clear leaves it open). Built in
+`CategoryFilterChips`, tested, tried in the dev build (Hebrew: the ⌄ on the left end).
 
 ## Stage U5: `QuickAddSheet` — amount, what for, categories (screen 2)
 

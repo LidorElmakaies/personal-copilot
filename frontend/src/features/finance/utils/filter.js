@@ -34,6 +34,9 @@ export function filterEntries(entries, filter) {
   );
 }
 
+// How an entry can be paid, in the filter sheet's order.
+export const PAID_WITH = ['card', 'bit', 'paybox', 'cash', 'transfer'];
+
 export const SORTS = ['newest', 'oldest', 'highest', 'lowest'];
 export const DEFAULT_SORT = 'newest';
 
@@ -59,6 +62,14 @@ export const isFiltering = (filter, sort = DEFAULT_SORT) =>
   sort !== DEFAULT_SORT ||
   normalize(filter.query) !== '' ||
   filter.categoryIds.length > 0 ||
+  filter.minAgorot != null ||
+  filter.maxAgorot != null ||
+  filter.paidWith.length > 0;
+
+// Whether the filter sheet holds something the toolbar doesn't show — more than one category, an
+// amount, how it was paid: the all-filters button is lit then (one category is the chips').
+export const sheetFiltering = (filter) =>
+  filter.categoryIds.length > 1 ||
   filter.minAgorot != null ||
   filter.maxAgorot != null ||
   filter.paidWith.length > 0;

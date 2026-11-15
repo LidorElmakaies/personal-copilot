@@ -1,5 +1,11 @@
-import { useCallback, useEffect } from 'react';
-import { Modal, StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import {
+  Keyboard,
+  Modal,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import {
   Gesture,
   GestureDetector,
@@ -19,6 +25,8 @@ import { useAppTheme } from '../../../theme/useAppTheme';
 const CLOSE_FRACTION = 0.3;
 const CLOSE_MAX_PX = 120;
 const CLOSE_VELOCITY = 800; // px/s
+// Room kept above the panel while the keyboard is up.
+const KEYBOARD_TOP_GAP = 48;
 
 // Panel that slides up from the bottom over a dimmed backdrop. Drag it down (from anywhere on it —
 // a tap still reaches its buttons, the drag starts only once the pointer moves down) or tap the
@@ -28,6 +36,9 @@ const CLOSE_VELOCITY = 800; // px/s
 // saw the backdrop tap or the drag. A Modal is its own window, so it needs its own
 // GestureHandlerRootView. `dragFromHandle`: only the grab bar drags it, for a sheet whose content
 // scrolls (a pull down on the list must scroll it, not close the sheet).
+// The keyboard: an Android Modal's window isn't resized for it, so the panel lifts itself above it
+// and is capped to the room left — a sheet whose body can't fit gives that body `flexShrink: 1`
+// (a ScrollView), so it shrinks instead of the button under it being cut off.
 export default function BottomSheet({
   visible,
   onClose,
@@ -38,6 +49,21 @@ export default function BottomSheet({
   const translate = useTranslate();
   const offset = useSharedValue(400);
   const height = useSharedValue(400);
+  const window = useWindowDimensions();
+  const [keyboard, setKeyboard] = useState(0);
+
+  useEffect(() => {
+    if (!visible) return undefined;
+    const show = Keyboard.addListener('keyboardDidShow', (e) =>
+      setKeyboard(e.endCoordinates.height),
+    );
+    const hide = Keyboard.addListener('keyboardDidHide', () => setKeyboard(0));
+    return () => {
+      show.remove();
+      hide.remove();
+      setKeyboard(0);
+    };
+  }, [visible]);
 
   useEffect(() => {
     if (!visible) return;
@@ -100,6 +126,10 @@ export default function BottomSheet({
             style={[
               styles.panel,
               { backgroundColor: colors.panel, borderColor: colors.cardBorder },
+              keyboard > 0 && {
+                marginBottom: keyboard,
+                maxHeight: window.height - keyboard - KEYBOARD_TOP_GAP,
+              },
               panelStyle,
             ]}
           >

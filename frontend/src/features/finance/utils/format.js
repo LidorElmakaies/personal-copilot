@@ -9,6 +9,22 @@ export const formatShekels = (agorot) =>
     maximumFractionDigits: 2,
   })}`;
 
+// An amount field's text → whole agorot: "50", "284.9", "12,5" (a comma is the decimal point — the
+// phone's decimal keypad has both keys); blank or not a number (more than two decimals too) → null.
+export function parseShekels(text) {
+  const clean = (text ?? '').replace(/[\s₪]/g, '').replace(',', '.');
+  if (!/^\d+(\.\d{0,2})?$|^\.\d{1,2}$/.test(clean)) return null;
+  return Math.round(Number(clean) * 100);
+}
+
+// Whole agorot → an amount field's text: "50", "284.90"; null → "".
+export const shekelsText = (agorot) =>
+  agorot == null
+    ? ''
+    : agorot % 100
+      ? (agorot / 100).toFixed(2)
+      : String(agorot / 100);
+
 // A list's day heading for a YYYY-MM-DD date: "Today", "Yesterday", else "Oct 25" (dayMonth, in
 // `translate`'s language).
 export function dayLabel(translate, date, today) {
@@ -18,19 +34,25 @@ export function dayLabel(translate, date, today) {
   return dayMonth(translate, date);
 }
 
-// "Card ••4821", "Bit"… · "כרטיס ••4821", "ביט"…
-const paidWithLabel = (translate, { paidWith, cardLast4 }) =>
-  translate(`paidWith.${paidWith}`, { last4: cardLast4 });
+// "Card ••4821", "Bit"… · "כרטיס ••4821", "ביט"…; `short`: a card is only "••4821".
+const paidWithLabel = (translate, { paidWith, cardLast4 }, short) =>
+  translate(
+    short && paidWith === 'card'
+      ? 'paidWith.cardShort'
+      : `paidWith.${paidWith}`,
+    { last4: cardLast4 },
+  );
 
 // An entry's line under what it was for: "Groceries · Card ••4821 · 2 photos"; `day` (a dayLabel, for
-// the list sorted by amount) leads it: "Oct 14 · Groceries · Bit". The category, in either language, is
+// the list sorted by amount) leads it and shortens a card to its digits, so the line fits beside a badge:
+// "Oct 14 · Groceries · ••4821". The category, in either language, is
 // a first-strong isolate — see frontend.md's "A line takes its direction…".
 export function entryDetails(translate, entry, category, day) {
   const photos = entry.attachmentIds.length;
   const parts = [
     day,
     category && `\u2068${category}\u2069`,
-    paidWithLabel(translate, entry),
+    paidWithLabel(translate, entry, !!day),
     photos && count(translate, 'count.photos', photos),
   ];
   return translate('finance.details', {

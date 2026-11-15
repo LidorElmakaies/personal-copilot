@@ -1,6 +1,13 @@
 import { translateIn } from '../../../shared/i18n/translate';
 import { NO_FILTER } from './filter';
-import { dayLabel, entryDetails, filterSummary, formatShekels } from './format';
+import {
+  dayLabel,
+  entryDetails,
+  filterSummary,
+  formatShekels,
+  parseShekels,
+  shekelsText,
+} from './format';
 
 const en = (key, vars) => translateIn('en', key, vars);
 const he = (key, vars) => translateIn('he', key, vars);
@@ -14,6 +21,37 @@ describe('formatShekels', () => {
     [0, '₪0'],
   ])('%i agorot → %s', (agorot, text) => {
     expect(formatShekels(agorot)).toBe(text);
+  });
+});
+
+describe('parseShekels and shekelsText', () => {
+  it.each([
+    ['50', 5000],
+    ['284.9', 28490],
+    ['284.90', 28490],
+    ['12,5', 1250],
+    ['12,50', 1250],
+    [' ₪ 300 ', 30000],
+    ['0', 0],
+    ['.5', 50],
+    ['7.', 700],
+  ])('%p → %p agorot', (text, agorot) => {
+    expect(parseShekels(text)).toBe(agorot);
+  });
+
+  it.each(['', '  ', 'abc', '1.234', '-5', '1.2.3', '1,200.50', null])(
+    '%p → null',
+    (text) => {
+      expect(parseShekels(text)).toBeNull();
+    },
+  );
+
+  it('writes agorot back as a field would show them', () => {
+    expect(shekelsText(5000)).toBe('50');
+    expect(shekelsText(28490)).toBe('284.90');
+    expect(shekelsText(0)).toBe('0');
+    expect(shekelsText(null)).toBe('');
+    expect(parseShekels(shekelsText(120050))).toBe(120050);
   });
 });
 
@@ -51,6 +89,13 @@ describe('entryDetails', () => {
   it('led by the day when the list is sorted by amount', () => {
     expect(entryDetails(en, entry('bit'), 'Eating out', 'Oct 14')).toBe(
       '‎Oct 14 · ⁨Eating out⁩ · Bit',
+    );
+    // A card is only its digits there, to fit beside a badge.
+    expect(entryDetails(en, entry('card', 2), 'Groceries', 'Today')).toBe(
+      '‎Today · ⁨Groceries⁩ · ••4821 · 2 photos',
+    );
+    expect(entryDetails(he, entry('card'), 'סופר', 'היום')).toBe(
+      '‏היום · ⁨סופר⁩ · ⁦••4821⁩',
     );
     expect(entryDetails(he, entry('cash'), 'Groceries', '14 באוק׳')).toBe(
       '‏14 באוק׳ · ⁨Groceries⁩ · מזומן',

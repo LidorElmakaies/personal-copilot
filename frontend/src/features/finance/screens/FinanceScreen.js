@@ -8,6 +8,7 @@ import { monthAt, monthIndex } from '../../../shared/utils/date';
 import CategoryFilterChips from '../components/CategoryFilterChips';
 import ConnectionNotice from '../components/ConnectionNotice';
 import EntryList from '../components/EntryList';
+import FilterSheet from '../components/FilterSheet';
 import FilterSummary from '../components/FilterSummary';
 import FinanceEmpty from '../components/FinanceEmpty';
 import FinanceHeader from '../components/FinanceHeader';
@@ -31,6 +32,7 @@ import {
   isByAmount,
   isFiltering,
   NO_FILTER,
+  sheetFiltering,
 } from '../utils/filter';
 import { categoriesBySpending, categoryTotals } from '../utils/spending';
 import { statementSummary } from '../utils/statement';
@@ -46,13 +48,14 @@ const waiting = OCTOBER_ENTRIES.filter((e) => e.notSent).length;
 // the +. Not behind `requiresAuth`: logged out, the tab will show its own notice (B1). No months
 // after the current one. `reachable` stands in for the PC link until the outbox (L4). The list's
 // search, filters and sort (U4b) are for the month on screen: they clear on another month or leaving
-// the tab. The sort button flips between by day and by amount (the filter sheet has all four).
+// the tab. The sort button flips between by day and by amount; the filter sheet has every option.
 export default function FinanceScreen({ reachable = true }) {
   const [index, setIndex] = useState(monthIndex(CURRENT_MONTH));
   const month = monthAt(index);
   const entries = entriesOfMonth(month);
   const translate = useTranslate();
   const [adding, setAdding] = useState(false);
+  const [filtering, setFiltering] = useState(false);
   const [filter, setFilter] = useState(NO_FILTER);
   const [sort, setSort] = useState(DEFAULT_SORT);
   const clear = () => {
@@ -70,6 +73,7 @@ export default function FinanceScreen({ reachable = true }) {
   const set = (part) => setFilter({ ...filter, ...part });
   const totals = categoryTotals(entries, CATEGORIES);
   const shown = filterEntries(entries, filter);
+  const ordered = categoriesBySpending(CATEGORIES, totals);
 
   return (
     <AmbientBackground>
@@ -113,9 +117,11 @@ export default function FinanceScreen({ reachable = true }) {
                     onSort={() =>
                       setSort(isByAmount(sort) ? DEFAULT_SORT : 'highest')
                     }
+                    onFilters={() => setFiltering(true)}
+                    filtersActive={sheetFiltering(filter)}
                   />
                   <CategoryFilterChips
-                    categories={categoriesBySpending(CATEGORIES, totals)}
+                    categories={ordered}
                     selectedIds={filter.categoryIds}
                     onChange={(categoryIds) => set({ categoryIds })}
                   />
@@ -141,6 +147,19 @@ export default function FinanceScreen({ reachable = true }) {
         style={styles.fab}
       />
       <QuickAddSheet visible={adding} onClose={() => setAdding(false)} />
+      <FilterSheet
+        visible={filtering}
+        onClose={() => setFiltering(false)}
+        filter={filter}
+        sort={sort}
+        entries={entries}
+        categories={ordered}
+        onApply={(chosen) => {
+          setFilter(chosen.filter);
+          setSort(chosen.sort);
+          setFiltering(false);
+        }}
+      />
     </AmbientBackground>
   );
 }
