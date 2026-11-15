@@ -7,6 +7,6 @@ export default {
   argTypes: { onClose: { action: 'closed' } },
 };
 
-// The title and the amount (the keyboard opens) until U5.4.
+// The title, the amount (the keyboard opens) and what it was for until U5.4.
 export const Empty = {};
 export const Hebrew = { parameters: { language: 'he' } };

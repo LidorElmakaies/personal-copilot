@@ -208,6 +208,8 @@ export default {
   'finance.statementDetails': '\u200F\u2066{card}\u2069 · {reported}',
   'finance.addEntry': 'הוספת רשומה',
   'finance.newEntry': 'רשומה חדשה',
+  'finance.whatFor': 'על מה זה היה?',
+  'finance.whatForHint': 'ארוחת ערב עם דנה',
   'finance.back': 'חזרה',
   'finance.reviewTitle': 'בדיקת הפירוט',
   'finance.all': 'הכול',

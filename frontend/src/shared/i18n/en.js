@@ -211,6 +211,8 @@ export default {
   'finance.statementDetails': '\u200E{card} · {reported}',
   'finance.addEntry': 'Add an entry',
   'finance.newEntry': 'New entry',
+  'finance.whatFor': 'What was it for?',
+  'finance.whatForHint': 'Dinner with Dana',
   'finance.back': 'Back',
   'finance.reviewTitle': 'Statement review',
   'finance.all': 'All',

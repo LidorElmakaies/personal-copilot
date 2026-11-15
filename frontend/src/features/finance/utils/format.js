@@ -29,6 +29,18 @@ export function typedShekels(text) {
   return `${digits || '0'}.${rest.join('').slice(0, 2)}`;
 }
 
+// "What was it for?" as it's typed: English and Hebrew letters as everywhere (`sanitizeName`), and
+// here also digits and "-" ("2 coffees", "Super-Pharm" — the user's call, 2026-11-15); single
+// spaces, at most DESCRIPTION_MAX. The Finance service (B2) checks the same.
+export const DESCRIPTION_MAX = 100;
+const NOT_DESCRIPTION_CHAR = /[^A-Za-zא-ת0-9\- ]/g;
+export const typedDescription = (text) =>
+  (text ?? '')
+    .replace(NOT_DESCRIPTION_CHAR, '')
+    .replace(/ {2,}/g, ' ')
+    .replace(/^ /, '')
+    .slice(0, DESCRIPTION_MAX);
+
 // Whole agorot → an amount field's text: "50", "284.90"; null → "".
 export const shekelsText = (agorot) =>
   agorot == null

@@ -537,7 +537,11 @@ onto several rows, in place, until ⌃ is pressed (picking a chip or Clear leave
   `typedShekels` ("," from the keypad → ".", 2 decimals, 7 whole digits, "007" → "7"; tested).
   It focuses itself 250 ms after opening (Android can drop `autoFocus` in a Modal still sliding in). In the dev
   build, Hebrew: the keyboard opened with the sheet; "0012,567" kept as "12.56". 464 tests.
-- [ ] **U5.2 "What was it for?"** — the existing `InputField`.
+- [x] **U5.2 "What was it for?"** — the existing `InputField`.
+  *Done 2026-11-15:* under the amount, hint "Dinner with Dana"; kept through `format.js`'s
+  `typedDescription` (tested): English and Hebrew letters plus digits and "-" (see Feedback), single
+  spaces, 100 at most. In the dev build, Hebrew: it fits under the amount with the keyboard up;
+  "Super-Pharm  2 'coffees'!" kept as "Super-Pharm 2 coffees". 466 tests.
 - [ ] **U5.3 `CategoryChips`** — all categories as pills, one selected, one marked "· suggested",
   "More…" when they don't fit two lines.
 - [ ] **U5.4 The sheet** — `BottomSheet` with the three above and Save (closes it).
@@ -546,7 +550,8 @@ onto several rows, in place, until ⌃ is pressed (picking a chip or Clear leave
 sheet down to close.
 **Docs:** `frontend.md` (`AmountInput`, `CategoryChips`, `QuickAddSheet`).
 **Feedback questions:** Is the order of fields right for the checkout line?
-**Feedback:** —
+**Feedback:** 2026-11-15 — the description also takes digits and "-" ("2 coffees", "Super-Pharm"),
+an exception to the letters-only rule for typed text; other punctuation is still dropped.
 
 ## Stage U6: `QuickAddSheet` — paid with, card digits, date, messages (screen 2)
 

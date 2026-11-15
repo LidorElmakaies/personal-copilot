@@ -8,7 +8,9 @@ import {
   noMatchLine,
   parseShekels,
   shekelsText,
+  typedDescription,
   typedShekels,
+  DESCRIPTION_MAX,
 } from './format';
 
 const en = (key, vars) => translateIn('en', key, vars);
@@ -46,6 +48,21 @@ describe('typedShekels', () => {
 
   it('keeps what parseShekels reads', () => {
     expect(parseShekels(typedShekels('284,90'))).toBe(28490);
+  });
+});
+
+describe('typedDescription', () => {
+  it('keeps English and Hebrew letters, digits, "-" and single spaces', () => {
+    expect(typedDescription('Dinner  with Dana')).toBe('Dinner with Dana');
+    expect(typedDescription(' ארוחה עם דנה!')).toBe('ארוחה עם דנה');
+    expect(typedDescription('2 coffees, café')).toBe('2 coffees caf');
+    expect(typedDescription('Super-Pharm #12')).toBe('Super-Pharm 12');
+    expect(typedDescription('קפה_ומאפה.')).toBe('קפהומאפה');
+    expect(typedDescription(null)).toBe('');
+  });
+
+  it('stops at DESCRIPTION_MAX', () => {
+    expect(typedDescription('a'.repeat(150))).toHaveLength(DESCRIPTION_MAX);
   });
 });
 
