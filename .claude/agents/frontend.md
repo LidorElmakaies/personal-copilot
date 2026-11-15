@@ -149,7 +149,12 @@ feature's `components/` (listed under `composite/` below with its feature):
   (any number, with icons), ₪ from–to, paid with, "Clear all"; edits a draft, "Show N entries" counts
   the month live and applies through `onApply({ filter, sort })`, closing otherwise drops it; the
   toolbar's search is kept and counted; `visible`, `onClose`, `filter`, `sort`, `entries`,
-  `categories`, `onNewCategory`), `FilterSummary` (the tinted line over a
+  `categories`, `onNewCategory(select)` — `select(id)` picks the category just added in the sheet),
+  `NewCategorySheet` (from `BottomSheet`, `InputField`, `GradientButton` — screen 14: a name
+  (`categories.js`'s `typedCategoryName`: English and Hebrew letters, ≤ 30; not an active category's
+  name) and one of `CATEGORY_ICONS`; Add off while `categoryNameProblem`; its body scrolls so Add stays
+  above the keyboard; `visible`, `onClose`, `categories`, `onAdd({ name, icon })`; U13.2 reuses it to
+  rename), `FilterSummary` (the tinted line over a
   filtered or re-sorted list: "Eating out · 8 entries · ₪640", the sort under it, Clear; `filter`,
   `sort`, `entries` (shown), `categories`, `onClear`; text from `format.js`'s `filterSummary`);
   `EntryList` takes a `header` (the toolbar, chips and summary) inside its card; `FinanceScreen` is screen 1 in the canvas's order — header,
@@ -162,7 +167,9 @@ feature's `components/` (listed under `composite/` below with its feature):
   shape: `query` in "what for" or the shop, either language, `categoryIds`, `minAgorot`/`maxAgorot`,
   `paidWith`), `sortEntries(entries, sort)` (`newest` | `oldest` | `highest` | `lowest`), `isByAmount`,
   `isFiltering`, `sheetFiltering` (the all-filters button lit: more than one category, an amount, paid
-  with), `PAID_WITH`; `finance/utils/format.js` holds
+  with), `PAID_WITH`; `finance/utils/categories.js` holds a new category's rules — `CATEGORY_NAME_MAX`, `CATEGORY_ICONS`,
+  `typedCategoryName`, `categoryNameProblem(name, categories)` (a dictionary key or null),
+  `addCategory(categories, { name, icon })` (a local `cat-new-N` id until L2.5); `finance/utils/format.js` holds
   `formatShekels` (whole agorot → "₪284.90", the same in both languages), `dayLabel(translate, …)`, `entryDetails(translate, entry, category, day)` (the row's second line; with `day`, a card is only "••4821") and
   `filterSummary(translate, { filter, sort, entries, categories })` (`FilterSummary`'s `title`, `sort`),
   `parseShekels(text)`/`shekelsText(agorot)` (an amount field's text ↔ whole agorot); account: `ProfileFields`, `RequireAuthNotice`, `SystemStatus` and
@@ -349,6 +356,9 @@ hit" below).
 
 ### Bug patterns already hit — recognize these fast if they recur
 
+- **Two "r"s typed fast reload the dev build** — a `Modal` forwards keys to React Native's dev
+  shortcuts, and `adb shell input text "groceries"` is fast enough for "RR". Dev only (no dev
+  shortcuts in an APK); in phone checks, type words without two "r"s.
 - **An Android `Modal`'s window isn't resized for the keyboard** — a field low in a `BottomSheet`
   sat under it with the sheet's button (`FilterSheet`, 2026-11-15). `BottomSheet` now lifts itself on
   `Keyboard`'s `keyboardDidShow`/`Hide`; a field near a scrolling body's end scrolls itself back

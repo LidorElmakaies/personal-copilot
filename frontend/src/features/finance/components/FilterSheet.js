@@ -21,7 +21,8 @@ import FilterChip from './FilterChip';
 // "Clear all"; "Show N entries" counts the month's `entries` live and applies — `onApply({ filter,
 // sort })` — while closing it any other way drops the changes. The toolbar's search is kept and
 // counted. `visible`, `onClose`, `filter`, `sort`, `categories` (in the chips' order),
-// `onNewCategory` ("+ New category", when set).
+// `onNewCategory(select)` ("+ New category", when set: call `select(id)` with the category added, and
+// it's chosen in the sheet — the filter it was added from).
 export default function FilterSheet({
   visible,
   onClose,
@@ -204,7 +205,9 @@ function FilterForm({
               <FilterChip
                 label={translate('finance.newCategory')}
                 dashed
-                onPress={onNewCategory}
+                onPress={() =>
+                  onNewCategory((id) => setCategoryIds((ids) => [...ids, id]))
+                }
               />
             )}
           </View>,

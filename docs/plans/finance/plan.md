@@ -493,9 +493,18 @@ mixed entry in each language.
   back swipe closes only the keyboard, Show applied it — the summary "Groceries, Eating out · 25
   entries · ₪2,500", highest first. Seen there: by amount, a row with a badge cuts its card digits
   (day · category · card is long). 440 tests.
-- [ ] **U4b.6 `NewCategorySheet`** — name and icon, from the chips and from the sheet; Phase U adds
+- [x] **U4b.6 `NewCategorySheet`** — name and icon, from the chips and from the sheet; Phase U adds
   it to the example categories in memory (L2.5 and B2 save it through the API); `CategoryEditor`
   (U13.2) reuses it to rename.
+  *Done 2026-11-15:* `NewCategorySheet` (screen 14): the name takes English and Hebrew letters only,
+  ≤ 30 (`utils/categories.js`, tested: blank keeps Add off, an active category's name in any case
+  says "There's already a category called …", an archived one's is free); 12 icons, six to a row,
+  the cup first; the "saved to your account" note. `FinanceScreen` keeps the categories in state
+  (L2.5 saves them): the chips' "+ New" adds and filters to it, the filter sheet's "+ New category"
+  opens it over the sheet and picks it there (`onNewCategory(select)`). In the dev build (Hebrew):
+  "Housing" taken, "Coffee" added and filtered ("Coffee · 0 entries · ₪0"), "Pets" with the paw from
+  the sheet, chosen there. Found there: Add sat under the keyboard — the sheet's body now scrolls and
+  shrinks. Quick add's chips show it once U5.3 exists. 448 tests.
 - [ ] **U4b.7 `NoMatch`** and the whole flow on the phone: search, a chip, the sheet, a new
   category, sorting, clearing — in both languages; a test APK.
 

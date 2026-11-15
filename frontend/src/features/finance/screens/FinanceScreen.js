@@ -1,5 +1,5 @@
 import { router, useIsFocused } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import FloatingButton from '../../../shared/components/base/buttons/FloatingButton';
 import AmbientBackground from '../../../shared/components/composite/AmbientBackground';
@@ -13,6 +13,7 @@ import FilterSummary from '../components/FilterSummary';
 import FinanceEmpty from '../components/FinanceEmpty';
 import FinanceHeader from '../components/FinanceHeader';
 import ListToolbar from '../components/ListToolbar';
+import NewCategorySheet from '../components/NewCategorySheet';
 import QuickAddSheet from '../components/QuickAddSheet';
 import ReviewBanner from '../components/ReviewBanner';
 import SpentCard from '../components/SpentCard';
@@ -26,6 +27,7 @@ import {
   STATEMENT_LINES,
   TODAY,
 } from '../mocks';
+import { addCategory } from '../utils/categories';
 import {
   DEFAULT_SORT,
   filterEntries,
@@ -49,6 +51,8 @@ const waiting = OCTOBER_ENTRIES.filter((e) => e.notSent).length;
 // after the current one. `reachable` stands in for the PC link until the outbox (L4). The list's
 // search, filters and sort (U4b) are for the month on screen: they clear on another month or leaving
 // the tab. The sort button flips between by day and by amount; the filter sheet has every option.
+// A new category (U4b.6) joins the list in memory (L2.5 saves it) and is chosen in the filter it was
+// added from: the chips' "+ New" filters to it, the sheet's "+ New category" picks it in the sheet.
 export default function FinanceScreen({ reachable = true }) {
   const [index, setIndex] = useState(monthIndex(CURRENT_MONTH));
   const month = monthAt(index);
@@ -56,6 +60,14 @@ export default function FinanceScreen({ reachable = true }) {
   const translate = useTranslate();
   const [adding, setAdding] = useState(false);
   const [filtering, setFiltering] = useState(false);
+  const [categories, setCategories] = useState(CATEGORIES);
+  const [naming, setNaming] = useState(false);
+  // Who opened the new-category sheet: chooses the category once added.
+  const selectNew = useRef(null);
+  const newCategory = (select) => {
+    selectNew.current = select;
+    setNaming(true);
+  };
   const [filter, setFilter] = useState(NO_FILTER);
   const [sort, setSort] = useState(DEFAULT_SORT);
   const clear = () => {
@@ -71,9 +83,9 @@ export default function FinanceScreen({ reachable = true }) {
     clear();
   };
   const set = (part) => setFilter({ ...filter, ...part });
-  const totals = categoryTotals(entries, CATEGORIES);
+  const totals = categoryTotals(entries, categories);
   const shown = filterEntries(entries, filter);
-  const ordered = categoriesBySpending(CATEGORIES, totals);
+  const ordered = categoriesBySpending(categories, totals);
 
   return (
     <AmbientBackground>
@@ -105,7 +117,7 @@ export default function FinanceScreen({ reachable = true }) {
             <SpentCard totals={totals} />
             <EntryList
               entries={shown}
-              categories={CATEGORIES}
+              categories={categories}
               today={TODAY}
               sort={sort}
               header={
@@ -124,13 +136,16 @@ export default function FinanceScreen({ reachable = true }) {
                     categories={ordered}
                     selectedIds={filter.categoryIds}
                     onChange={(categoryIds) => set({ categoryIds })}
+                    onNewCategory={() =>
+                      newCategory((id) => set({ categoryIds: [id] }))
+                    }
                   />
                   {isFiltering(filter, sort) && (
                     <FilterSummary
                       filter={filter}
                       sort={sort}
                       entries={shown}
-                      categories={CATEGORIES}
+                      categories={categories}
                       onClear={clear}
                     />
                   )}
@@ -154,10 +169,22 @@ export default function FinanceScreen({ reachable = true }) {
         sort={sort}
         entries={entries}
         categories={ordered}
+        onNewCategory={newCategory}
         onApply={(chosen) => {
           setFilter(chosen.filter);
           setSort(chosen.sort);
           setFiltering(false);
+        }}
+      />
+      <NewCategorySheet
+        visible={naming}
+        onClose={() => setNaming(false)}
+        categories={categories}
+        onAdd={(fields) => {
+          const added = addCategory(categories, fields);
+          setCategories(added.categories);
+          selectNew.current?.(added.category.id);
+          setNaming(false);
         }}
       />
     </AmbientBackground>
