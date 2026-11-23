@@ -30,7 +30,8 @@ const KEYBOARD_TOP_GAP = 48;
 
 // Panel that slides up from the bottom over a dimmed backdrop. Drag it down (from anywhere on it —
 // a tap still reaches its buttons, the drag starts only once the pointer moves down) or tap the
-// backdrop to close: it slides away, then onClose. The backdrop fades (Modal) while the panel
+// backdrop to close: it slides away, then onClose. While the keyboard is up, a backdrop tap only hides it, so
+// tapping away never loses what's typed. The backdrop fades (Modal) while the panel
 // slides, so the dim doesn't slide with it.
 // Gestures are gesture-handler's, not PanResponder: inside an Android Modal the JS responder never
 // saw the backdrop tap or the drag. A Modal is its own window, so it needs its own
@@ -93,7 +94,11 @@ export default function BottomSheet({
       }
     });
 
-  const tap = Gesture.Tap().onEnd(() => runOnJS(close)());
+  const tapBackdrop = () => {
+    if (keyboard > 0) Keyboard.dismiss();
+    else close();
+  };
+  const tap = Gesture.Tap().onEnd(() => runOnJS(tapBackdrop)());
 
   const panelStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: offset.value }],

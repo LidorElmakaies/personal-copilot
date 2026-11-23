@@ -1,6 +1,5 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { fireEvent, render, screen } from '@testing-library/react-native';
-import { Keyboard } from 'react-native';
 import { Provider } from 'react-redux';
 import languageReducer, {
   setLanguage,
@@ -62,16 +61,6 @@ describe('CategoryChips', () => {
     expect(names()).toHaveLength(7);
     await fireEvent.press(screen.getByText('Less'));
     expect(names()).toHaveLength(5);
-  });
-
-  it('"More…" hides the keyboard; "Less" leaves it', async () => {
-    const dismiss = jest.spyOn(Keyboard, 'dismiss');
-    await renderChips();
-    await fireEvent.press(screen.getByText('More…'));
-    expect(dismiss).toHaveBeenCalledTimes(1);
-    await fireEvent.press(screen.getByText('Less'));
-    expect(dismiss).toHaveBeenCalledTimes(1);
-    dismiss.mockRestore();
   });
 
   it('a selected one behind "More…" still shows', async () => {

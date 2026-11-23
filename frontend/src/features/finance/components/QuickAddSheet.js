@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import {
+  Keyboard,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -14,10 +16,13 @@ import { useAppTheme } from '../../../shared/theme/useAppTheme';
 import { typedDescription } from '../utils/format';
 import AmountInput from './AmountInput';
 import CategoryChips from './CategoryChips';
+import PaidWithPicker from './PaidWithPicker';
 
-// Screen 2, the add sheet the + opens: the title, the amount, what it was for, its categories and Save —
-// the other fields come in U6–U7. Save only closes it (U6 checks the fields, L2 adds the entry). Starts empty each time it opens. `categories` (in the chips' order),
-// any number picked; `visible`, `onClose`.
+// Screen 2, the add sheet the + opens: the title, the amount, what it was for, its categories, how it was
+// paid (Card to start) and Save — the other fields come later in U6–U7. Save only closes it (U6.4 checks
+// the fields, L2 adds the entry). Starts empty each time it opens. `categories` (in the chips' order), any
+// number picked; `visible`, `onClose`. Nothing closes the keyboard but a tap on an empty spot (the title,
+// the body, the backdrop) or Back.
 export default function QuickAddSheet({ visible, onClose, categories }) {
   return (
     <BottomSheet visible={visible} onClose={onClose} dragFromHandle>
@@ -34,11 +39,14 @@ function QuickAddForm({ categories, onSave }) {
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [categoryIds, setCategoryIds] = useState([]);
+  const [paidWith, setPaidWith] = useState('card');
   return (
     <>
-      <Text style={[styles.title, { color: colors.text }]}>
-        {translate('finance.newEntry')}
-      </Text>
+      <Pressable onPress={Keyboard.dismiss} accessible={false}>
+        <Text style={[styles.title, { color: colors.text }]}>
+          {translate('finance.newEntry')}
+        </Text>
+      </Pressable>
       {/* Scrolls: under the keyboard (BottomSheet shrinks it) and past 60% of the screen. */}
       <ScrollView
         style={[styles.body, { maxHeight: height * 0.6 }]}
@@ -63,6 +71,12 @@ function QuickAddForm({ categories, onSave }) {
             selectedIds={categoryIds}
             onChange={setCategoryIds}
           />
+        </View>
+        <View style={styles.section}>
+          <Text style={[styles.label, plain, { color: colors.textMuted }]}>
+            {translate('finance.paidWithTitle')}
+          </Text>
+          <PaidWithPicker value={paidWith} onChange={setPaidWith} />
         </View>
       </ScrollView>
       <GradientButton

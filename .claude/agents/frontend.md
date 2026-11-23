@@ -107,7 +107,7 @@ feature's `components/` (listed under `composite/` below with its feature):
   default, `muted`, `pending` — amber, something is set, `selected` — the chosen option in a group)
   and `icon` (a render function given the text color); `Stepper`'s `min`/`max`/`step`/`unit` (− value
   +, clamped; an off-grid value moves to the next grid point); `BottomSheet`'s `visible`/`onClose`
-  (a `Modal` whose backdrop fades while the panel slides up; drag the panel down — from anywhere on it, past ~⅓ of its height or a quick flick — or tap the backdrop to slide it away and close. Gestures are `react-native-gesture-handler`'s `Pan`/`Tap` with Reanimated, inside the Modal's own `GestureHandlerRootView` — `PanResponder` never received the drag or the backdrop tap in an Android Modal; `dragFromHandle` puts the drag on the grab bar only, for a sheet whose content scrolls; while the keyboard is up the panel lifts above it and is capped to the room left, so a body that may not fit is a `ScrollView` with `flexShrink: 1`); `SwipePager`'s `index`/`renderPage(i)`/`onMove`/`onSettle` and `ref.current.go(by)`/`goTo(index)` (endless sideways pages — the Calendar tab's months; see its file for why the gesture is memoized and the starting page kept mounted; inside a `TabPager` its pan blocks the tab pan via `TabPagerGesture`); `TabPager`'s `index`/`count`/`renderPage(i)`/`mounted`/`onMove`/`onSwipe`/`canEnter`/`onBlocked`/`enabled` (a fixed row of pages — the tabs, under `SwipeTabs`: one page per drag, stretches past the ends, ignores drags from within 20 dp of a side; its strip is as wide as all its pages, so the page in view stays in the accessibility tree that TalkBack and the Maestro flows read). `SelectField` renders its
+  (a `Modal` whose backdrop fades while the panel slides up; drag the panel down — from anywhere on it, past ~⅓ of its height or a quick flick — or tap the backdrop (while the keyboard is up, a tap only hides it) to slide it away and close. Gestures are `react-native-gesture-handler`'s `Pan`/`Tap` with Reanimated, inside the Modal's own `GestureHandlerRootView` — `PanResponder` never received the drag or the backdrop tap in an Android Modal; `dragFromHandle` puts the drag on the grab bar only, for a sheet whose content scrolls; while the keyboard is up the panel lifts above it and is capped to the room left, so a body that may not fit is a `ScrollView` with `flexShrink: 1`); `SwipePager`'s `index`/`renderPage(i)`/`onMove`/`onSettle` and `ref.current.go(by)`/`goTo(index)` (endless sideways pages — the Calendar tab's months; see its file for why the gesture is memoized and the starting page kept mounted; inside a `TabPager` its pan blocks the tab pan via `TabPagerGesture`); `TabPager`'s `index`/`count`/`renderPage(i)`/`mounted`/`onMove`/`onSwipe`/`canEnter`/`onBlocked`/`enabled` (a fixed row of pages — the tabs, under `SwipeTabs`: one page per drag, stretches past the ends, ignores drags from within 20 dp of a side; its strip is as wide as all its pages, so the page in view stays in the accessibility tree that TalkBack and the Maestro flows read). `SelectField` renders its
   option list in a transparent `Modal` at the box's measured window position (below it, or above
   if there's no room; scrolls past 4 options) — inline, any `overflow:'hidden'` ancestor such as
   `GlowCard` would clip it and later siblings would draw over it.
@@ -136,12 +136,13 @@ feature's `components/` (listed under `composite/` below with its feature):
   `pendingBorder`), `ConnectionNotice` (from `Alert`, warning — "Can't reach your PC — you can still
   add" while `reachable` is false, else "N entries waiting for your PC" while `waiting` > 0, else
   nothing), `QuickAddSheet` (from `BottomSheet` with `dragFromHandle` — screen 2, the + opens it; its "New entry"
-  title, `AmountInput`, "What was it for?" (`InputField`, `typedDescription`), `CategoryChips` and
-  Save (`GradientButton`, under the scrolling body; only closes it until L2) so far,
-  its body scrolling under the keyboard and past 60% of the screen, empty each time it opens; any number of
-  categories; `visible`, `onClose`, `categories`),
-  `CategoryChips` (from `FilterChip` — the sheet's categories, any number selected; past two lines
-  "More…" (hides the keyboard) / "Less", which ones fit measured by `chips.js`'s `chipsThatFit`, the
+  title, `AmountInput`, "What was it for?" (`InputField`, `typedDescription`), `CategoryChips`,
+  `PaidWithPicker` (Card to start) and Save (`GradientButton`, under the scrolling body; only closes it until L2) so far,
+  its body scrolling under the keyboard and past 60% of the screen, empty each time it opens; only a tap on an empty
+  spot or Back closes the keyboard; any number of categories; `visible`, `onClose`, `categories`),
+  `PaidWithPicker` (the sheet's Card / Bit / PayBox / Cash / Transfer, one row of radios; names from
+  `format.js`'s `paidWithName`; `value`, `onChange`), `CategoryChips` (from `FilterChip` — the sheet's categories, any number selected; past two lines
+  "More…" / "Less", which ones fit measured by `chips.js`'s `chipsThatFit`, the
   selected ones always showing; `categories`, `selectedIds`, `onChange(ids)`,
   `defaultOpen`), `AmountInput` (the
   big centred "₪ 150": its own `TextInput`, decimal pad, focused 250 ms after mounting since a sliding

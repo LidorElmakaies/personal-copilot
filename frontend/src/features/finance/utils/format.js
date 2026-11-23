@@ -67,6 +67,10 @@ const paidWithLabel = (translate, { paidWith, cardLast4 }, short) =>
     { last4: cardLast4 },
   );
 
+// A way to pay by its name alone: "Card", "Bit".
+export const paidWithName = (translate, paidWith) =>
+  translate(paidWith === 'card' ? 'finance.card' : `paidWith.${paidWith}`);
+
 // An entry's line under what it was for: "Groceries · Card ••4821 · 2 photos"; `day` (a dayLabel, for
 // the list sorted by amount) leads it and shortens a card to its digits, so the line fits beside a badge:
 // "Oct 14 · Groceries · ••4821". Its `categories` (names) as `namesLine`; each, in either language, is

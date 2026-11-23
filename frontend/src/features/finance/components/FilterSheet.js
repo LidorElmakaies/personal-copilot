@@ -14,7 +14,7 @@ import { count } from '../../../shared/i18n/format';
 import { usePlainInHebrew, useTranslate } from '../../../shared/i18n/translate';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
 import { filterEntries, NO_FILTER, PAID_WITH, SORTS } from '../utils/filter';
-import { parseShekels, shekelsText } from '../utils/format';
+import { paidWithName, parseShekels, shekelsText } from '../utils/format';
 import FilterChip from './FilterChip';
 
 // The all-filters sheet (screen 13): sort, categories (any number), amount from–to, paid with;
@@ -238,9 +238,7 @@ function FilterForm({
             {PAID_WITH.map((p) => (
               <FilterChip
                 key={p}
-                label={translate(
-                  p === 'card' ? 'finance.card' : `paidWith.${p}`,
-                )}
+                label={paidWithName(translate, p)}
                 on={paidWith.includes(p)}
                 onPress={() => toggle(paidWith, setPaidWith, p)}
               />

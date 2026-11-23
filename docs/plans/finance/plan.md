@@ -142,7 +142,7 @@ existing kit (`frontend.md`'s "Build for reuse").
 | `AmountInput` | The big ₪ amount field | — | U5 |
 | `CategoryChips` | The entry's categories, any number | `FilterChip` | U5 |
 | `QuickAddSheet` | Screen 2 — the add / edit / answer sheet | `BottomSheet`, the rows below, `GradientButton`, `Alert` | U5–U7 |
-| `PaidWithPicker` | Card / Bit / PayBox / Cash / Transfer | `PillButton` | U6 |
+| `PaidWithPicker` | Card / Bit / PayBox / Cash / Transfer | — | U6 |
 | `CardDigitsField` | The card's last 4 digits, remembered | `InputField` | U6 |
 | `DateField` | Today / pick a day | `PillButton` | U6 |
 | `PhotoStrip` *(shared)* | Thumbnails + an add tile | — | U7 |
@@ -550,7 +550,7 @@ onto several rows, in place, until ⌃ is pressed (picking a chip or Clear leave
   tested); selected ones show even when past "More…"; opened, it ends with "Less". The sheet's body
   now scrolls under the keyboard and only its handle drags it. A category added in U4b.6's sheet is
   listed too. In the dev build, Hebrew: two lines and the last chip fit above the keyboard; three
-  picked, two from the opened list, all still showed after Less; More hid the keyboard; dragging the
+  picked, two from the opened list, all still showed after Less; dragging the
   handle closed the sheet, and it reopened empty. 480 tests.
 - [x] **U5.4 The sheet** — `BottomSheet` with the three above and Save (closes it).
   *Done 2026-11-23:* Save (`GradientButton`) sits under the scrolling body, so it's always in reach;
@@ -564,8 +564,9 @@ sheet down to close.
 **Feedback questions:** Is the order of fields right for the checkout line?
 **Feedback:** 2026-11-15 — the description also takes digits and "-" ("2 coffees", "Super-Pharm"),
 an exception to the letters-only rule for typed text; other punctuation is still dropped.
-2026-11-23 — "More…" hides the keyboard, so every category (and Save, U5.4) has room; the sheet's
-body still scrolls, with or without the keyboard (at most 60% of the screen).
+2026-11-23 — nothing in the sheet closes the keyboard by itself ("More…" did, for a while; scrolling
+was considered): the user taps an empty spot. A backdrop tap with the keyboard up only hides it
+(`BottomSheet`, every sheet). The body scrolls, with or without it (at most 60% of the screen).
 2026-11-23 — no category suggestions anywhere, for now (maybe something like it later); the monthly
 check still asks which entry a charge is. An entry can have several categories. It counts in full in each
 (the total counts it once), a category's filter finds it, and its row names two, else "3 categories":
@@ -573,7 +574,10 @@ check still asks which entry a charge is. An entry can have several categories. 
 
 ## Stage U6: `QuickAddSheet` — paid with, card digits, date, messages (screen 2)
 
-- [ ] **U6.1 `PaidWithPicker`** — Card / Bit / PayBox / Cash / Transfer, one row.
+- [x] **U6.1 `PaidWithPicker`** — Card / Bit / PayBox / Cash / Transfer, one row.
+  *Done 2026-11-23:* screen 2's outlined buttons (44 dp), one row of radios; Card to start, the most
+  common. In the sheet under the categories; stories, tested (482 tests). In the dev build, Hebrew: the
+  five fit one row, uncut; a tap moves the choice; with the keyboard up it's a scroll below the chips.
 - [ ] **U6.2 `CardDigitsField`** — appears only for Card; 4 digits; shows the last card used as a
   pill to tap.
 - [ ] **U6.3 `DateField`** — "Today" pill, tap to pick another day (none in the future).

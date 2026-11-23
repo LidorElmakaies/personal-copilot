@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Keyboard, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useTranslate } from '../../../shared/i18n/translate';
 import { chipsThatFit } from '../utils/chips';
 import FilterChip from './FilterChip';
@@ -8,9 +8,8 @@ const GAP = 6;
 const MORE = 'more';
 
 // The add sheet's category pills (screen 2): any number selected — a tap adds one, another drops it.
-// Past two lines the rest wait behind "More…" (selected ones always show) until "Less"; "More…" hides
-// the keyboard, so they all have room. Which ones fit is measured: every chip is laid out once,
-// unseen, first. `categories` `[{ id, name }]`, `selectedIds`, `onChange(ids)`; `defaultOpen`.
+// Past two lines the rest wait behind "More…" (selected ones always show) until "Less". Which
+// ones fit is measured: every chip is laid out once, unseen, first. `categories` `[{ id, name }]`, `selectedIds`, `onChange(ids)`; `defaultOpen`.
 export default function CategoryChips({
   categories,
   selectedIds,
@@ -48,10 +47,6 @@ export default function CategoryChips({
         ? selectedIds.filter((s) => s !== id)
         : [...selectedIds, id],
     );
-  const toggleOpen = () => {
-    if (!open) Keyboard.dismiss();
-    setOpen(!open);
-  };
 
   return (
     <View
@@ -84,7 +79,7 @@ export default function CategoryChips({
             accessibilityLabel={translate(
               less ? 'finance.fewerCategories' : 'finance.allCategories',
             )}
-            onPress={toggleOpen}
+            onPress={() => setOpen(!open)}
           />
         </View>
       )}
