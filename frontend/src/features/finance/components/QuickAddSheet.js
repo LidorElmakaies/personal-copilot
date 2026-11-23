@@ -8,33 +8,51 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
+import Alert from '../../../shared/components/base/feedback/Alert';
 import GradientButton from '../../../shared/components/base/buttons/GradientButton';
 import BottomSheet from '../../../shared/components/base/layout/BottomSheet';
 import InputField from '../../../shared/components/base/form/InputField';
 import { usePlainInHebrew, useTranslate } from '../../../shared/i18n/translate';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
+import { entryProblem, RECEIVED_WITH } from '../utils/entry';
 import { typedDescription } from '../utils/format';
 import AmountInput from './AmountInput';
 import CardDigitsField from './CardDigitsField';
 import CategoryChips from './CategoryChips';
+import DateField from './DateField';
+import DayPicker from './DayPicker';
+import DirectionPicker from './DirectionPicker';
 import PaidWithPicker from './PaidWithPicker';
 
-// Screen 2, the add sheet the + opens: the title, the amount, what it was for, its categories, how it was
-// paid (Card to start, with the card's digits) and Save — the other fields come later in U6–U7. Save only closes it (U6.4 checks
-// the fields, L2 adds the entry). Starts empty each time it opens. `categories` (in the chips' order), any
-// number picked; `cards` (those used, the last one first); `visible`, `onClose`. Nothing closes the keyboard but a tap on an empty spot (the title,
+// Screen 2, the add sheet the + opens: the title and the day (today to start), spent or received, the
+// amount, what it was for, its categories, how it was paid (Card to start, with the card's digits) and Save — the photos come
+// in U7. Save closes it (L2 adds the entry), or says what's missing
+// (`entryProblem`). Money received has no card. Starts empty each time it opens.
+// `categories` (in the chips' order), any number picked; `cards` (those used, the last one first), `today`
+// (YYYY-MM-DD); `visible`, `onClose`. Nothing closes the keyboard but a tap on an empty spot (the title,
 // the body, the backdrop) or Back.
-export default function QuickAddSheet({ visible, onClose, categories, cards }) {
+export default function QuickAddSheet({
+  visible,
+  onClose,
+  categories,
+  cards,
+  today,
+}) {
   return (
     <BottomSheet visible={visible} onClose={onClose} dragFromHandle>
       {visible && (
-        <QuickAddForm categories={categories} cards={cards} onSave={onClose} />
+        <QuickAddForm
+          categories={categories}
+          cards={cards}
+          today={today}
+          onSave={onClose}
+        />
       )}
     </BottomSheet>
   );
 }
 
-function QuickAddForm({ categories, cards, onSave }) {
+function QuickAddForm({ categories, cards, today, onSave }) {
   const { colors } = useAppTheme();
   const translate = useTranslate();
   const plain = usePlainInHebrew();
@@ -42,17 +60,39 @@ function QuickAddForm({ categories, cards, onSave }) {
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [categoryIds, setCategoryIds] = useState([]);
+  const [direction, setDirection] = useState('expense');
   const [paidWith, setPaidWith] = useState('card');
+  const [receivedWith, setReceivedWith] = useState(RECEIVED_WITH[0]);
+  const [date, setDate] = useState(today);
+  const [pickingDay, setPickingDay] = useState(false);
   const [cardDigits, setCardDigits] = useState('');
+  // The message shows once Save was pressed, and follows the fields until nothing's missing.
+  const [tried, setTried] = useState(false);
+  const received = direction === 'income';
+  const problem = entryProblem({
+    amount,
+    paidWith: received ? receivedWith : paidWith,
+    cardDigits,
+  });
+  const save = () => (problem ? setTried(true) : onSave());
   // The keyboard shrinks the body (BottomSheet): the card field, at its end, is scrolled back into view.
   const scroll = useRef(null);
   const typingCard = useRef(false);
+  const toggleDays = () => {
+    setPickingDay(!pickingDay);
+    scroll.current?.scrollTo({ y: 0 });
+  };
   return (
     <>
-      <Pressable onPress={Keyboard.dismiss} accessible={false}>
+      <Pressable
+        onPress={Keyboard.dismiss}
+        accessible={false}
+        style={styles.header}
+      >
         <Text style={[styles.title, { color: colors.text }]}>
           {translate('finance.newEntry')}
         </Text>
+        <DateField value={date} today={today} onPress={toggleDays} />
       </Pressable>
       {/* Scrolls: under the keyboard (BottomSheet shrinks it) and past 60% of the screen. */}
       <ScrollView
@@ -64,12 +104,29 @@ function QuickAddForm({ categories, cards, onSave }) {
         contentContainerStyle={styles.bodyContent}
         keyboardShouldPersistTaps="handled"
       >
-        <AmountInput value={amount} onChangeText={setAmount} />
+        {pickingDay && (
+          <DayPicker
+            value={date}
+            today={today}
+            onChange={(day) => {
+              setDate(day);
+              setPickingDay(false);
+            }}
+          />
+        )}
+        <DirectionPicker value={direction} onChange={setDirection} />
+        <AmountInput
+          value={amount}
+          onChangeText={setAmount}
+          received={received}
+        />
         <InputField
           label={translate('finance.whatFor')}
           value={description}
           onChangeText={(text) => setDescription(typedDescription(text))}
-          placeholder={translate('finance.whatForHint')}
+          placeholder={translate(
+            received ? 'finance.receivedHint' : 'finance.whatForHint',
+          )}
           autoCapitalize="sentences"
           testID="quick-add-description"
         />
@@ -85,11 +142,21 @@ function QuickAddForm({ categories, cards, onSave }) {
         </View>
         <View style={styles.section}>
           <Text style={[styles.label, plain, { color: colors.textMuted }]}>
-            {translate('finance.paidWithTitle')}
+            {translate(
+              received ? 'finance.receivedWithTitle' : 'finance.paidWithTitle',
+            )}
           </Text>
-          <PaidWithPicker value={paidWith} onChange={setPaidWith} />
+          {received ? (
+            <PaidWithPicker
+              value={receivedWith}
+              onChange={setReceivedWith}
+              options={RECEIVED_WITH}
+            />
+          ) : (
+            <PaidWithPicker value={paidWith} onChange={setPaidWith} />
+          )}
         </View>
-        {paidWith === 'card' && (
+        {!received && paidWith === 'card' && (
           <CardDigitsField
             value={cardDigits}
             onChange={setCardDigits}
@@ -103,9 +170,14 @@ function QuickAddForm({ categories, cards, onSave }) {
           />
         )}
       </ScrollView>
+      {tried && problem && (
+        <View accessibilityLiveRegion="polite">
+          <Alert>{translate(problem)}</Alert>
+        </View>
+      )}
       <GradientButton
         label={translate('common.save')}
-        onPress={onSave}
+        onPress={save}
         testID="quick-add-save"
       />
     </>
@@ -113,6 +185,12 @@ function QuickAddForm({ categories, cards, onSave }) {
 }
 
 const styles = StyleSheet.create({
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    minHeight: 44,
+  },
   title: { fontSize: 18, fontWeight: '600' },
   body: { flexShrink: 1 },
   bodyContent: { gap: 14 },

@@ -5,10 +5,11 @@ import { entryDetails, formatShekels } from '../utils/format';
 
 // One entry (screen 1): what for (one line, cut with …), "categories · paid with · N photos" under
 // it — led by `day` when set ("Oct 14 · …", the list sorted by amount) — then its badges — "not
-// sent", "matched" (a statement line) — and the amount. `categories` are its categories' names.
+// sent", "matched" (a statement line) — and the amount, "+₪150" in green for money received. `categories` are its categories' names.
 export default function EntryRow({ entry, categories, day, onPress }) {
   const { colors } = useAppTheme();
   const translate = useTranslate();
+  const received = entry.direction === 'income';
   const badge = (label, color, bg) => (
     <Text style={[styles.badge, { color, backgroundColor: bg }]}>{label}</Text>
   );
@@ -34,7 +35,13 @@ export default function EntryRow({ entry, categories, day, onPress }) {
         badge(translate('finance.notSent'), colors.pending, colors.pendingBg)}
       {entry.statementLine &&
         badge(translate('finance.matched'), colors.success, colors.successBg)}
-      <Text style={[styles.amount, { color: colors.text }]}>
+      <Text
+        style={[
+          styles.amount,
+          { color: received ? colors.success : colors.text },
+        ]}
+      >
+        {received && '+'}
         {formatShekels(entry.amountAgorot)}
       </Text>
     </Pressable>

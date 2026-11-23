@@ -136,12 +136,20 @@ feature's `components/` (listed under `composite/` below with its feature):
   `pendingBorder`), `ConnectionNotice` (from `Alert`, warning — "Can't reach your PC — you can still
   add" while `reachable` is false, else "N entries waiting for your PC" while `waiting` > 0, else
   nothing), `QuickAddSheet` (from `BottomSheet` with `dragFromHandle` — screen 2, the + opens it; its "New entry"
-  title, `AmountInput`, "What was it for?" (`InputField`, `typedDescription`), `CategoryChips`,
-  `PaidWithPicker` (Card to start), `CardDigitsField` (only for Card) and Save (`GradientButton`, under the scrolling body; only closes it until L2) so far,
+  title with `DateField` beside it (its `DayPicker` opens on top of the body), `DirectionPicker`, `AmountInput`, "What was it for?" (`InputField`, `typedDescription`), `CategoryChips`,
+  `PaidWithPicker` (Card to start), `CardDigitsField` (only for Card) and Save (`GradientButton`, under the scrolling body; closes it — L2 adds the entry — or shows
+  `finance/utils/entry.js`'s `entryProblem` in an `Alert` over it; money received has no card, `RECEIVED_WITH`)
+  so far,
   its body scrolling under the keyboard and past 60% of the screen, empty each time it opens; only a tap on an empty
-  spot or Back closes the keyboard; any number of categories; `visible`, `onClose`, `categories`, `cards`),
-  `PaidWithPicker` (the sheet's Card / Bit / PayBox / Cash / Transfer, one row of radios; names from
-  `format.js`'s `paidWithName`; `value`, `onChange`), `CardDigitsField` (from `InputField`, `PillButton`
+  spot or Back closes the keyboard; any number of categories; `visible`, `onClose`, `categories`, `cards`, `today`),
+  `DateField` (from `PillButton` — "Today" / "Yesterday" / "Oct 25"; `value`, `today`, `onPress`),
+  `DayPicker` (from `MonthSwitcher` — a month grid to pick a day from, none after `today`; `value`, `today`,
+  `onChange(date)`; its weeks from `finance/utils/days.js`'s `monthWeeks`), `MonthSwitcher` (‹ month ›, also
+  `FinanceHeader`'s; `month`, `onPrevious`, `onNext`),
+  `SegmentRow` (one row of equal buttons, one chosen; `options` `[{ value, label }]`, `value`, `onChange`,
+  `testID`), `DirectionPicker` (from `SegmentRow` — "I spent" / "I received"; `value` `expense`/`income`,
+  `onChange`), `PaidWithPicker` (from `SegmentRow` — Card / Bit / PayBox / Cash / Transfer; names from
+  `format.js`'s `paidWithName`; `value`, `onChange`, `options`), `CardDigitsField` (from `InputField`, `PillButton`
   — the card's last 4 digits, kept through `typedCardDigits`, and the cards used as pills that fill them in,
   the last one first, one row scrolling sideways; `value`, `onChange`, `cards`, `onFocus`, `onBlur`), `CategoryChips` (from `FilterChip` — the sheet's categories, any number selected; past two lines
   "More…" / "Less", which ones fit measured by `chips.js`'s `chipsThatFit`, the

@@ -33,6 +33,20 @@ export const LongText = {
     },
   },
 };
+export const Received = {
+  args: {
+    entry: {
+      ...groceries,
+      description: 'Sold a bookshelf',
+      direction: 'income',
+      paidWith: 'bit',
+      cardLast4: null,
+      attachmentIds: [],
+      statementLine: null,
+    },
+    categories: [],
+  },
+};
 export const TwoCategories = {
   args: { categories: ['Groceries', 'מתנות'] },
 };

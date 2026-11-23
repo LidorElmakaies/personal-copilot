@@ -1,4 +1,4 @@
-import { CARDS, CATEGORIES } from '../mocks';
+import { CARDS, CATEGORIES, TODAY } from '../mocks';
 import QuickAddSheet from './QuickAddSheet';
 
 export default {
@@ -8,6 +8,7 @@ export default {
     visible: true,
     categories: CATEGORIES,
     cards: CARDS,
+    today: TODAY,
   },
   argTypes: { onClose: { action: 'closed' } },
 };

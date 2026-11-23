@@ -14,6 +14,7 @@ export const Empty = { render: () => <Amount /> };
 export const Typed = { render: () => <Amount value="150" /> };
 export const WithAgorot = { render: () => <Amount value="284.90" /> };
 export const Largest = { render: () => <Amount value="1234567.89" /> };
+export const Received = { render: () => <Amount value="150" received /> };
 export const NoKeyboard = {
   render: () => <Amount value="150" autoFocus={false} />,
 };

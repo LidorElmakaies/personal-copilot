@@ -180,6 +180,7 @@ export default function FinanceScreen({ reachable = true }) {
         onClose={() => setAdding(false)}
         categories={ordered}
         cards={CARDS}
+        today={TODAY}
       />
       <FilterSheet
         visible={filtering}

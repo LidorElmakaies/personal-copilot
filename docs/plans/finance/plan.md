@@ -142,9 +142,13 @@ existing kit (`frontend.md`'s "Build for reuse").
 | `AmountInput` | The big ₪ amount field | — | U5 |
 | `CategoryChips` | The entry's categories, any number | `FilterChip` | U5 |
 | `QuickAddSheet` | Screen 2 — the add / edit / answer sheet | `BottomSheet`, the rows below, `GradientButton`, `Alert` | U5–U7 |
-| `PaidWithPicker` | Card / Bit / PayBox / Cash / Transfer | — | U6 |
+| `SegmentRow` | One row of buttons, one chosen | — | U6 |
+| `DirectionPicker` | I spent / I received | `SegmentRow` | U6 |
+| `PaidWithPicker` | Card / Bit / PayBox / Cash / Transfer | `SegmentRow` | U6 |
 | `CardDigitsField` | The card's last 4 digits, remembered | `InputField`, `PillButton` | U6 |
 | `DateField` | Today / pick a day | `PillButton` | U6 |
+| `DayPicker` | A month's days, none in the future | `MonthSwitcher` | U6 |
+| `MonthSwitcher` | ‹ month › | — | U6 |
 | `PhotoStrip` *(shared)* | Thumbnails + an add tile | — | U7 |
 | `PhotoViewer` *(shared)* | Full-screen photos, swipe, pinch to zoom, delete | — | U8 |
 | `EntryDetails` | Screen 3 | `GlowCard`, `Row`, `PhotoStrip`, `ConfirmModal` | U8 |
@@ -586,11 +590,24 @@ check still asks which entry a charge is. An entry can have several categories. 
   field when the keyboard opens. In the dev build, Hebrew: all of it, and the cursor (it sat left of the
   digits; the input is now left to right). 490 tests.
 - [ ] **U6.3 `DateField`** — "Today" pill, tap to pick another day (none in the future).
-- [ ] **U6.4 Messages** — `Alert` in the sheet for: no amount, a future date, 3 card digits.
+  *Done 2026-11-23:* the pill beside the title opens `DayPicker`, a month grid on top of the sheet's body
+  (no native picker: it would need a new dev build); days and months after today are off; picking a day
+  closes it. ‹ month › is now `MonthSwitcher`, shared with `FinanceHeader`. In the dev build,
+  Hebrew: found there, 100/7% cells wrapped the 7th day (now rows of 7); a future day ignores the tap,
+  the arrows, yesterday picked. 501 tests.
+- [x] **U6.4 Messages** — `Alert` in the sheet for: no amount, 3 card digits (a future date can't be
+  picked: U6.3).
+  *Done 2026-11-23:* over Save, once it's pressed, following the fields until nothing's missing
+  (`utils/entry.js`'s `entryProblem`, tested); a card needs all 4 digits. In the dev build, Hebrew.
+- [x] **U6.5 `DirectionPicker`** *(asked 2026-11-23)* — "I spent" / "I received" over the amount: money
+  someone sent (an item sold on Facebook, paid in Bit).
+  *Done 2026-11-23:* received → the amount in green, "Received with" without Card (Bit to start), its own
+  hint; switching back keeps how it was paid. `EntryRow` shows "+₪150" in green. `SegmentRow`, shared with
+  `PaidWithPicker`. In the dev build, Hebrew: both sides. 514 tests.
 
 **Try it:** every payment kind; the card field appears and goes; pick yesterday; trigger each
 message.
-**Docs:** `frontend.md` (`PaidWithPicker`, `CardDigitsField`, `DateField`).
+**Docs:** `frontend.md` (`PaidWithPicker`, `CardDigitsField`, `DateField`, `DirectionPicker`).
 **Feedback questions:** Anything to remove from the sheet to make it faster?
 **Feedback:** 2026-11-23 — with six cards, one pill for the last card isn't enough: a pill for every card
 used (tried on the phone, "looks good").

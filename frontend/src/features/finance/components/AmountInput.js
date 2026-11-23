@@ -6,16 +6,19 @@ import { typedShekels } from '../utils/format';
 
 // The add sheet's big "₪ 150" (screen 2): opens the number keyboard by itself (`autoFocus`, on by
 // default) and keeps only what `typedShekels` allows — digits, one point, agorot. ₪ stays on the
-// left in Hebrew too, as `formatShekels` writes it. `value` is the text; `onChangeText(text)`.
+// left in Hebrew too, as `formatShekels` writes it. `value` is the text; `onChangeText(text)`;
+// `received` colors it as money received.
 export default function AmountInput({
   value,
   onChangeText,
+  received = false,
   autoFocus = true,
   testID = 'amount-input',
 }) {
   const { colors } = useAppTheme();
   const translate = useTranslate();
   const input = useRef(null);
+  const color = received ? colors.success : colors.text;
 
   // A Modal still sliding in drops `autoFocus`'s keyboard on Android, so focus once it's up.
   useEffect(() => {
@@ -30,7 +33,7 @@ export default function AmountInput({
       accessible={false}
       style={styles.row}
     >
-      <Text style={[styles.text, { color: colors.text }]}>₪</Text>
+      <Text style={[styles.text, { color }]}>₪</Text>
       <TextInput
         ref={input}
         value={value}
@@ -41,7 +44,7 @@ export default function AmountInput({
         selectionColor={colors.accent}
         accessibilityLabel={translate('finance.amountTitle')}
         testID={testID}
-        style={[styles.text, styles.input, { color: colors.text }]}
+        style={[styles.text, styles.input, { color }]}
       />
     </Pressable>
   );

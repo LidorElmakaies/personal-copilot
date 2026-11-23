@@ -1,3 +1,4 @@
+import { monthOf } from '../utils/days';
 import { ENTRIES, TODAY } from './entries';
 import { STATEMENT, STATEMENT_LINES } from './statement';
 
@@ -26,10 +27,7 @@ const lineOf = new Map(
 );
 
 // The month TODAY is in, `{ year, month }`, and a month's entries — only October has any.
-export const CURRENT_MONTH = {
-  year: Number(TODAY.slice(0, 4)),
-  month: Number(TODAY.slice(5, 7)),
-};
+export const CURRENT_MONTH = monthOf(TODAY);
 export const entriesOfMonth = ({ year, month }) =>
   OCTOBER_ENTRIES.filter((e) =>
     e.occurredOn.startsWith(`${year}-${String(month).padStart(2, '0')}`),
