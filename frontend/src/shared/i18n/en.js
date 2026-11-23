@@ -215,6 +215,7 @@ export default {
   'finance.whatForHint': 'Dinner with Dana',
   'finance.more': 'More…',
   'finance.less': 'Less',
+  'finance.cardDigits': "Card's last 4 digits",
   'finance.back': 'Back',
   'finance.reviewTitle': 'Statement review',
   'finance.all': 'All',

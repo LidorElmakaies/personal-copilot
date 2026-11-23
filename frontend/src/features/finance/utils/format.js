@@ -29,6 +29,10 @@ export function typedShekels(text) {
   return `${digits || '0'}.${rest.join('').slice(0, 2)}`;
 }
 
+// A card's last digits as they're typed: digits only, 4 at most.
+export const typedCardDigits = (text) =>
+  (text ?? '').replace(/\D/g, '').slice(0, 4);
+
 // "What was it for?" as it's typed: English and Hebrew letters as everywhere (`sanitizeName`), and
 // here also digits and "-" ("2 coffees", "Super-Pharm" — the user's call, 2026-11-15); single
 // spaces, at most DESCRIPTION_MAX. The Finance service (B2) checks the same.

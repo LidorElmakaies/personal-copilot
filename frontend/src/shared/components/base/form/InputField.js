@@ -31,6 +31,7 @@ export default function InputField({
   glow,
   style,
   inputStyle,
+  onFocus,
   onBlur,
   testID,
 }) {
@@ -85,7 +86,10 @@ export default function InputField({
           autoCorrect={autoCorrect}
           multiline={multiline}
           maxLength={maxLength}
-          onFocus={() => setFocused(true)}
+          onFocus={() => {
+            setFocused(true);
+            onFocus?.();
+          }}
           onBlur={() => {
             setFocused(false);
             onBlur?.();

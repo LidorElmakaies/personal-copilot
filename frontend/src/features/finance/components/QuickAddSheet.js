@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   Keyboard,
   Pressable,
@@ -15,23 +15,26 @@ import { usePlainInHebrew, useTranslate } from '../../../shared/i18n/translate';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
 import { typedDescription } from '../utils/format';
 import AmountInput from './AmountInput';
+import CardDigitsField from './CardDigitsField';
 import CategoryChips from './CategoryChips';
 import PaidWithPicker from './PaidWithPicker';
 
 // Screen 2, the add sheet the + opens: the title, the amount, what it was for, its categories, how it was
-// paid (Card to start) and Save — the other fields come later in U6–U7. Save only closes it (U6.4 checks
+// paid (Card to start, with the card's digits) and Save — the other fields come later in U6–U7. Save only closes it (U6.4 checks
 // the fields, L2 adds the entry). Starts empty each time it opens. `categories` (in the chips' order), any
-// number picked; `visible`, `onClose`. Nothing closes the keyboard but a tap on an empty spot (the title,
+// number picked; `cards` (those used, the last one first); `visible`, `onClose`. Nothing closes the keyboard but a tap on an empty spot (the title,
 // the body, the backdrop) or Back.
-export default function QuickAddSheet({ visible, onClose, categories }) {
+export default function QuickAddSheet({ visible, onClose, categories, cards }) {
   return (
     <BottomSheet visible={visible} onClose={onClose} dragFromHandle>
-      {visible && <QuickAddForm categories={categories} onSave={onClose} />}
+      {visible && (
+        <QuickAddForm categories={categories} cards={cards} onSave={onClose} />
+      )}
     </BottomSheet>
   );
 }
 
-function QuickAddForm({ categories, onSave }) {
+function QuickAddForm({ categories, cards, onSave }) {
   const { colors } = useAppTheme();
   const translate = useTranslate();
   const plain = usePlainInHebrew();
@@ -40,6 +43,10 @@ function QuickAddForm({ categories, onSave }) {
   const [description, setDescription] = useState('');
   const [categoryIds, setCategoryIds] = useState([]);
   const [paidWith, setPaidWith] = useState('card');
+  const [cardDigits, setCardDigits] = useState('');
+  // The keyboard shrinks the body (BottomSheet): the card field, at its end, is scrolled back into view.
+  const scroll = useRef(null);
+  const typingCard = useRef(false);
   return (
     <>
       <Pressable onPress={Keyboard.dismiss} accessible={false}>
@@ -49,6 +56,10 @@ function QuickAddForm({ categories, onSave }) {
       </Pressable>
       {/* Scrolls: under the keyboard (BottomSheet shrinks it) and past 60% of the screen. */}
       <ScrollView
+        ref={scroll}
+        onLayout={() => {
+          if (typingCard.current) scroll.current?.scrollToEnd();
+        }}
         style={[styles.body, { maxHeight: height * 0.6 }]}
         contentContainerStyle={styles.bodyContent}
         keyboardShouldPersistTaps="handled"
@@ -78,6 +89,19 @@ function QuickAddForm({ categories, onSave }) {
           </Text>
           <PaidWithPicker value={paidWith} onChange={setPaidWith} />
         </View>
+        {paidWith === 'card' && (
+          <CardDigitsField
+            value={cardDigits}
+            onChange={setCardDigits}
+            cards={cards}
+            onFocus={() => {
+              typingCard.current = true;
+            }}
+            onBlur={() => {
+              typingCard.current = false;
+            }}
+          />
+        )}
       </ScrollView>
       <GradientButton
         label={translate('common.save')}

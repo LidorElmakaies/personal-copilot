@@ -137,11 +137,13 @@ feature's `components/` (listed under `composite/` below with its feature):
   add" while `reachable` is false, else "N entries waiting for your PC" while `waiting` > 0, else
   nothing), `QuickAddSheet` (from `BottomSheet` with `dragFromHandle` — screen 2, the + opens it; its "New entry"
   title, `AmountInput`, "What was it for?" (`InputField`, `typedDescription`), `CategoryChips`,
-  `PaidWithPicker` (Card to start) and Save (`GradientButton`, under the scrolling body; only closes it until L2) so far,
+  `PaidWithPicker` (Card to start), `CardDigitsField` (only for Card) and Save (`GradientButton`, under the scrolling body; only closes it until L2) so far,
   its body scrolling under the keyboard and past 60% of the screen, empty each time it opens; only a tap on an empty
-  spot or Back closes the keyboard; any number of categories; `visible`, `onClose`, `categories`),
+  spot or Back closes the keyboard; any number of categories; `visible`, `onClose`, `categories`, `cards`),
   `PaidWithPicker` (the sheet's Card / Bit / PayBox / Cash / Transfer, one row of radios; names from
-  `format.js`'s `paidWithName`; `value`, `onChange`), `CategoryChips` (from `FilterChip` — the sheet's categories, any number selected; past two lines
+  `format.js`'s `paidWithName`; `value`, `onChange`), `CardDigitsField` (from `InputField`, `PillButton`
+  — the card's last 4 digits, kept through `typedCardDigits`, and the cards used as pills that fill them in,
+  the last one first, one row scrolling sideways; `value`, `onChange`, `cards`, `onFocus`, `onBlur`), `CategoryChips` (from `FilterChip` — the sheet's categories, any number selected; past two lines
   "More…" / "Less", which ones fit measured by `chips.js`'s `chipsThatFit`, the
   selected ones always showing; `categories`, `selectedIds`, `onChange(ids)`,
   `defaultOpen`), `AmountInput` (the

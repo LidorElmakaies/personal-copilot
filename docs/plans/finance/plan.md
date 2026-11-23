@@ -143,7 +143,7 @@ existing kit (`frontend.md`'s "Build for reuse").
 | `CategoryChips` | The entry's categories, any number | `FilterChip` | U5 |
 | `QuickAddSheet` | Screen 2 — the add / edit / answer sheet | `BottomSheet`, the rows below, `GradientButton`, `Alert` | U5–U7 |
 | `PaidWithPicker` | Card / Bit / PayBox / Cash / Transfer | — | U6 |
-| `CardDigitsField` | The card's last 4 digits, remembered | `InputField` | U6 |
+| `CardDigitsField` | The card's last 4 digits, remembered | `InputField`, `PillButton` | U6 |
 | `DateField` | Today / pick a day | `PillButton` | U6 |
 | `PhotoStrip` *(shared)* | Thumbnails + an add tile | — | U7 |
 | `PhotoViewer` *(shared)* | Full-screen photos, swipe, pinch to zoom, delete | — | U8 |
@@ -578,8 +578,13 @@ check still asks which entry a charge is. An entry can have several categories. 
   *Done 2026-11-23:* screen 2's outlined buttons (44 dp), one row of radios; Card to start, the most
   common. In the sheet under the categories; stories, tested (482 tests). In the dev build, Hebrew: the
   five fit one row, uncut; a tap moves the choice; with the keyboard up it's a scroll below the chips.
-- [ ] **U6.2 `CardDigitsField`** — appears only for Card; 4 digits; shows the last card used as a
-  pill to tap.
+- [ ] **U6.2 `CardDigitsField`** — appears only for Card; 4 digits; the cards used as pills to tap,
+  the last one first, one row that scrolls sideways.
+  *Done 2026-11-23:* under the paid-with row; digits only, 4 at most (`typedCardDigits`, tested); a pill
+  fills them in and lights while they match (six example `CARDS`; L2.3 keeps the real ones). The digits
+  survive switching to Bit and back. `InputField` gets `onFocus`, so the sheet scrolls back to the
+  field when the keyboard opens. In the dev build, Hebrew: all of it, and the cursor (it sat left of the
+  digits; the input is now left to right). 490 tests.
 - [ ] **U6.3 `DateField`** — "Today" pill, tap to pick another day (none in the future).
 - [ ] **U6.4 Messages** — `Alert` in the sheet for: no amount, a future date, 3 card digits.
 
@@ -587,7 +592,8 @@ check still asks which entry a charge is. An entry can have several categories. 
 message.
 **Docs:** `frontend.md` (`PaidWithPicker`, `CardDigitsField`, `DateField`).
 **Feedback questions:** Anything to remove from the sheet to make it faster?
-**Feedback:** —
+**Feedback:** 2026-11-23 — with six cards, one pill for the last card isn't enough: a pill for every card
+used (tried on the phone, "looks good").
 
 ## Stage U7: `PhotoStrip` (screen 2)
 
@@ -725,7 +731,7 @@ shows the error with Retry.
 - [ ] **L2.1 Validation** — the U6 messages from real rules (`utils/`, tested): amount > 0, no
   future date, 4 card digits.
 - [ ] **L2.2 Create** — Save calls the API with a `client_id`; the list and `SpentCard` update.
-- [ ] **L2.3 Remembered card** — the last card's digits kept on the phone.
+- [ ] **L2.3 Remembered cards** — the digits of the cards used, the last one first, kept on the phone.
 - [ ] **L2.5 New category** — `NewCategorySheet` (U4b.6) saves through the fake API's
   `POST /finance/categories` (§6): the name rules checked, the new category in the chips, the filter
   sheet and Quick add at once.

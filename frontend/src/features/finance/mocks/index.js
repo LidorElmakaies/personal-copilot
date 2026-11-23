@@ -18,6 +18,9 @@ export const FINANCE_SETTINGS = {
   eveningReminder: { enabled: true, hour: 21, minute: 0 },
 };
 
+// The cards used, the last one first (L2.3 keeps them on the phone).
+export const CARDS = ['4821', '5520', '1177', '9034', '2468', '7715'];
+
 const lineOf = new Map(
   STATEMENT_LINES.filter((l) => l.entryId).map((l) => [l.entryId, l]),
 );

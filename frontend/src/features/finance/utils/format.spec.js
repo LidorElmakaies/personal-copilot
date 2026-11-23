@@ -8,6 +8,7 @@ import {
   noMatchLine,
   parseShekels,
   shekelsText,
+  typedCardDigits,
   typedDescription,
   typedShekels,
   DESCRIPTION_MAX,
@@ -48,6 +49,18 @@ describe('typedShekels', () => {
 
   it('keeps what parseShekels reads', () => {
     expect(parseShekels(typedShekels('284,90'))).toBe(28490);
+  });
+});
+
+describe('typedCardDigits', () => {
+  it.each([
+    ['4821', '4821'],
+    ['48 21-9', '4821'],
+    ['0012', '0012'],
+    ['abc', ''],
+    [null, ''],
+  ])('%s → "%s"', (text, kept) => {
+    expect(typedCardDigits(text)).toBe(kept);
   });
 });
 

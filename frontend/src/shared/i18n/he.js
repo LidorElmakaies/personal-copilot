@@ -212,6 +212,7 @@ export default {
   'finance.whatForHint': 'ארוחת ערב עם דנה',
   'finance.more': 'עוד…',
   'finance.less': 'פחות',
+  'finance.cardDigits': '4 ספרות אחרונות של הכרטיס',
   'finance.back': 'חזרה',
   'finance.reviewTitle': 'בדיקת הפירוט',
   'finance.all': 'הכול',

@@ -19,6 +19,7 @@ import QuickAddSheet from '../components/QuickAddSheet';
 import ReviewBanner from '../components/ReviewBanner';
 import SpentCard from '../components/SpentCard';
 import {
+  CARDS,
   CATEGORIES,
   CURRENT_MONTH,
   entriesOfMonth,
@@ -178,6 +179,7 @@ export default function FinanceScreen({ reachable = true }) {
         visible={adding}
         onClose={() => setAdding(false)}
         categories={ordered}
+        cards={CARDS}
       />
       <FilterSheet
         visible={filtering}
