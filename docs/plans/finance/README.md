@@ -7,14 +7,14 @@ the design canvas linked at the top of the plan.
 ## Goal
 
 1. **Daily quick add.** The day something happens — a Bit transfer, cash, a grocery run — register
-   it: amount, what it was for, category, how it was paid, and **any number of photos** (receipts).
+   it: amount, what it was for, its categories, how it was paid, and **any number of photos** (receipts).
 2. **The monthly check.** A reminder on statement day → paste or upload the month's card statement
    → the server matches it against what was already reported → **a list of only the charges not yet
    reported**, each answered with what it was for (+ photos). Empty list = month closed.
 3. **Saved forever.** All finance data lives on the server, so it survives reinstalling the app or
    changing phones. Nothing goes to the cloud. No backups (decided 2026-10-27).
-4. **A local LLM (via FreeToken)** helps read pasted statements and suggests matches and
-   categories. It never decides on its own that a charge was already reported.
+4. **A local LLM (via FreeToken)** helps read pasted statements and suggests matches. It never
+   decides on its own that a charge was already reported.
 
 Out of scope for now: card notifications, budgets, savings/debts, pension, Excel export (the
 earlier mockup's other screens) — each can be a later plan.
@@ -147,13 +147,13 @@ sequenceDiagram
   F->>DB: statement_lines
   F->>F: match lines ↔ your entries (rules, §4)
   opt lines with several possible matches
-    F->>L: rank candidates, suggest categories
+    F->>L: rank candidates
   end
   F->>DB: match results (status: needs_review)
   App->>GW: GET /finance/statements/{id}/to-review
-  GW-->>App: only the not-reported lines + suggestions
+  GW-->>App: only the not-reported lines + likely matches
   loop each line
-    U->>App: what it was for · category · photos
+    U->>App: what it was for · categories · photos
     App->>GW: POST /finance/statement-lines/{id}/answer
   end
   F->>DB: status: closed
@@ -187,7 +187,6 @@ flowchart TD
   B -- "exactly one" --> AUTO["auto_matched ✓<br/>(not asked)"]
   B -- "two or more" --> LLM["LLM ranks candidates<br/>by description vs merchant"]
   LLM --> SUG["suggested → on your list<br/>as 'Is this Dinner with Dana?'<br/>one tap to confirm"]
-  ASK --> CAT["LLM / history suggests a category"]
 ```
 
 - **Kind** comes from the line: `BIT` / `ביט` → Bit, `PAYBOX` → PayBox, otherwise card. A card
@@ -214,7 +213,8 @@ writes only its own schema (CLAUDE.md).
 
 ```mermaid
 erDiagram
-  categories ||--o{ entries : "classifies"
+  categories ||--o{ entry_categories : "classifies"
+  entries ||--|{ entry_categories : "is in"
   statements ||--|{ statement_lines : "contains"
   entries ||--o{ attachments : "photos"
   entries |o--o{ statement_lines : "matched by"
@@ -235,16 +235,18 @@ erDiagram
     date occurred_on
     int amount_agorot
     text direction "expense | income | refund"
-    uuid category_id FK
     text paid_with "card | bit | paybox | cash | transfer"
     text card_last4 "only when paid_with = card"
     text description "what it was for"
     text merchant
-    text merchant_key "normalised: lowercase, no branch numbers"
     text source "manual | statement"
     timestamptz created_at
     timestamptz updated_at
     timestamptz deleted_at
+  }
+  entry_categories {
+    uuid entry_id PK, FK
+    uuid category_id PK, FK
   }
   attachments {
     uuid id PK
@@ -277,15 +279,14 @@ erDiagram
     int installments_total
     text match_status "unmatched | auto_matched | suggested | confirmed | answered | ignored"
     uuid entry_id FK "set once matched or answered"
-    jsonb suggestion "LLM: candidate ids, category, reason"
+    jsonb suggestion "LLM: candidate ids, reason"
   }
 ```
 
+- **An entry is in one or more categories** (`entry_categories`; the API's `category_ids`). It counts
+  in full in each category's total and once in the month's, so the categories can add up to more.
 - **Answering a not-reported line creates an entry** (`source = 'statement'`) and links it, so after
   a month is closed every line points to exactly one entry, and every entry is "what it was for".
-- **Category suggestions without the LLM:** the category of your latest entry with the same
-  `merchant_key` (one indexed query on `entries`). No separate rules table — it can't drift from
-  your entries, and changing a category is picked up next time automatically.
 - **`attachments`** holds only which photos belong to which entry. Size, type and checksum come
   from S3 itself (`HEAD` on the object). The object's key is built from the ids —
   `<user_id>/<entry_id>/<attachment_id>.jpg` — so no key column is needed. The row is kept (instead
@@ -317,7 +318,7 @@ erDiagram
 | `GET` | `/finance/statements/:id/to-review` | **The not-reported list** |
 | `POST` | `/finance/statement-lines/:id/answer` | What it was for → creates an entry |
 | `POST` | `/finance/statement-lines/:id/confirm` | "Yes, that's my entry X" |
-| `GET` | `/finance/summary?month=2026-10` | Totals per category for the tab's header |
+| `GET` | `/finance/summary?month=2026-10` | The month's total (each entry once) and per category (in full in each) |
 
 ## 7. Receipt storage — the options
 
@@ -379,7 +380,7 @@ What that means for this plan:
      `127.0.0.1` only — never on all interfaces.
   3. RAM: an MoE model this size needs a lot of system RAM; check what the PC has.
 
-It's used only for: pasted text → rows, ranking candidate matches, suggesting categories. Prompts
+It's used only for: pasted text → rows, ranking candidate matches. Prompts
 include only the statement and your entry descriptions — no names, card numbers or ids beyond
 what's needed. Because of §4's checks, a weak answer makes the check ask more questions, not lose
 data.
@@ -388,7 +389,7 @@ data.
 
 - **Finance tab** (login required for this tab only): this month's total by category, a
   "N to review" banner when a statement is waiting, a + button for quick add.
-- **Quick add sheet:** amount, what for, category (suggested from history), payment method, date
+- **Quick add sheet:** amount, what for, categories (any number), payment method, date
   (default today), photos (camera or gallery, several).
 - **Monthly check:** paste box or file picker → "Reading your statement…" → the not-reported list.
 - **Outbox:** a persisted queue (entries + photo files in the app's own storage) so quick add works

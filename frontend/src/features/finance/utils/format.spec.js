@@ -117,49 +117,58 @@ describe('entryDetails', () => {
 
   // The category is the user's, in an isolate (\u2068…\u2069): its own direction in either line.
   it('joins the category, how it was paid and the photos', () => {
-    expect(entryDetails(en, entry('card', 2), 'Groceries')).toBe(
+    expect(entryDetails(en, entry('card', 2), ['Groceries'])).toBe(
       '\u200E\u2068Groceries\u2069 · Card ••4821 · 2 photos',
     );
-    expect(entryDetails(en, entry('paybox', 1), 'Gifts')).toBe(
+    expect(entryDetails(en, entry('paybox', 1), ['Gifts'])).toBe(
       '\u200E\u2068Gifts\u2069 · PayBox · 1 photo',
     );
-    expect(entryDetails(en, entry('cash'), 'Groceries')).toBe(
+    expect(entryDetails(en, entry('cash'), ['Groceries'])).toBe(
       '\u200E\u2068Groceries\u2069 · Cash',
     );
   });
 
   it('led by the day when the list is sorted by amount', () => {
-    expect(entryDetails(en, entry('bit'), 'Eating out', 'Oct 14')).toBe(
+    expect(entryDetails(en, entry('bit'), ['Eating out'], 'Oct 14')).toBe(
       '‎Oct 14 · ⁨Eating out⁩ · Bit',
     );
     // A card is only its digits there, to fit beside a badge.
-    expect(entryDetails(en, entry('card', 2), 'Groceries', 'Today')).toBe(
+    expect(entryDetails(en, entry('card', 2), ['Groceries'], 'Today')).toBe(
       '‎Today · ⁨Groceries⁩ · ••4821 · 2 photos',
     );
-    expect(entryDetails(he, entry('card'), 'סופר', 'היום')).toBe(
+    expect(entryDetails(he, entry('card'), ['סופר'], 'היום')).toBe(
       '‏היום · ⁨סופר⁩ · ⁦••4821⁩',
     );
-    expect(entryDetails(he, entry('cash'), 'Groceries', '14 באוק׳')).toBe(
+    expect(entryDetails(he, entry('cash'), ['Groceries'], '14 באוק׳')).toBe(
       '‏14 באוק׳ · ⁨Groceries⁩ · מזומן',
     );
   });
 
   it('a Hebrew category in the English line: still an English line', () => {
-    expect(entryDetails(en, entry('bit'), 'מתנות')).toBe(
+    expect(entryDetails(en, entry('bit'), ['מתנות'])).toBe(
       '\u200E\u2068מתנות\u2069 · Bit',
     );
   });
 
   it('in Hebrew keeps the card digits left to right', () => {
-    expect(entryDetails(he, entry('card', 1), 'סופר')).toBe(
+    expect(entryDetails(he, entry('card', 1), ['סופר'])).toBe(
       '\u200F\u2068סופר\u2069 · כרטיס \u2066••4821\u2069 · תמונה אחת',
     );
-    expect(entryDetails(he, entry('bit'), 'אוכל בחוץ')).toBe(
+    expect(entryDetails(he, entry('bit'), ['אוכל בחוץ'])).toBe(
       '\u200F\u2068אוכל בחוץ\u2069 · ביט',
     );
     // An English category: still a Hebrew line, starting on the right.
-    expect(entryDetails(he, entry('cash'), 'Groceries')).toBe(
+    expect(entryDetails(he, entry('cash'), ['Groceries'])).toBe(
       '\u200F\u2068Groceries\u2069 · מזומן',
+    );
+  });
+
+  it('names two categories, and counts more', () => {
+    expect(entryDetails(en, entry('bit'), ['Groceries', 'מתנות'])).toContain(
+      '\u2068Groceries\u2069, \u2068מתנות\u2069 · ',
+    );
+    expect(entryDetails(en, entry('bit'), ['A', 'B', 'C'])).toContain(
+      '3 categories · ',
     );
   });
 });

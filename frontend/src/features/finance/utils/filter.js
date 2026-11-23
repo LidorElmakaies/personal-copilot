@@ -14,7 +14,7 @@ const normalize = (text) =>
   (text ?? '').toLocaleLowerCase().replace(/\s+/g, ' ').trim();
 
 // Entries matching every filter that's on: `query` in "what for" or the shop (either language,
-// case and extra spaces ignored), any of `categoryIds`, `minAgorot`–`maxAgorot` (inclusive; null = no
+// case and extra spaces ignored), in any of `categoryIds`, `minAgorot`–`maxAgorot` (inclusive; null = no
 // bound), any of `paidWith`. An empty list or a blank query filters nothing.
 export function filterEntries(entries, filter) {
   const { query, categoryIds, minAgorot, maxAgorot, paidWith } = {
@@ -27,7 +27,8 @@ export function filterEntries(entries, filter) {
       (!q ||
         normalize(e.description).includes(q) ||
         normalize(e.merchant).includes(q)) &&
-      (categoryIds.length === 0 || categoryIds.includes(e.categoryId)) &&
+      (categoryIds.length === 0 ||
+        e.categoryIds.some((id) => categoryIds.includes(id))) &&
       (minAgorot == null || e.amountAgorot >= minAgorot) &&
       (maxAgorot == null || e.amountAgorot <= maxAgorot) &&
       (paidWith.length === 0 || paidWith.includes(e.paidWith)),

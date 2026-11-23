@@ -72,6 +72,15 @@ describe('filterEntries', () => {
       filter({ query: 'challah', categoryIds: ['cat-eating-out'] }),
     ).toEqual([]);
   });
+
+  it('an entry in several categories matches any of them', () => {
+    const entries = [{ categoryIds: ['a', 'b'] }, { categoryIds: ['c'] }];
+    const inCategories = (...categoryIds) =>
+      filterEntries(entries, { categoryIds });
+    expect(inCategories('b')).toEqual([entries[0]]);
+    expect(inCategories('a', 'b')).toEqual([entries[0]]);
+    expect(inCategories('b', 'c')).toEqual(entries);
+  });
 });
 
 describe('sortEntries', () => {

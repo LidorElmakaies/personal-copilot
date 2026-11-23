@@ -10,7 +10,6 @@ import { count } from '../../../shared/i18n/format';
 import { usePlainInHebrew, useTranslate } from '../../../shared/i18n/translate';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
 import { formatShekels } from '../utils/format';
-import { totalAgorot } from '../utils/spending';
 import CategoryBar from './CategoryBar';
 
 const TOP = 3;
@@ -19,8 +18,9 @@ const fadeIn = FadeIn.duration(220);
 const fadeOut = FadeOut.duration(150);
 
 // "Spent this month" (screen 1): the month's total, its top 3 categories, "+ N more categories"
-// opening the rest (and "Show less"). `totals` from `categoryTotals` — biggest first.
-export default function SpentCard({ totals }) {
+// opening the rest (and "Show less"). `spent` from `spentAgorot`; `totals` from
+// `categoryTotals` — biggest first.
+export default function SpentCard({ spent, totals }) {
   const { colors } = useAppTheme();
   const translate = useTranslate();
   const plain = usePlainInHebrew();
@@ -36,7 +36,7 @@ export default function SpentCard({ totals }) {
           {translate('finance.spentThisMonth')}
         </Text>
         <Text style={[styles.total, { color: colors.text }]}>
-          {formatShekels(totalAgorot(totals))}
+          {formatShekels(spent)}
         </Text>
         {shown.map((t, i) => (
           <Animated.View

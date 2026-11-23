@@ -3,13 +3,14 @@ import { Pressable, StyleSheet, Text } from 'react-native';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
 
 // The canvas's filter chip (screens 11, 13): outlined, an accent tint while `on`; `dashed` for "+ New".
-// `label`, `icon` (an Ionicons name, optional), `onPress`, `testID`.
+// `label`, `icon` (an Ionicons name, optional), `accessibilityLabel`, `onPress`, `testID`.
 export default function FilterChip({
   label,
   icon,
   on,
   dashed,
   onPress,
+  accessibilityLabel,
   testID,
 }) {
   const { colors } = useAppTheme();
@@ -18,6 +19,7 @@ export default function FilterChip({
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
       accessibilityState={{ selected: !!on }}
       testID={testID}
       style={({ pressed }) => [

@@ -69,13 +69,13 @@ const paidWithLabel = (translate, { paidWith, cardLast4 }, short) =>
 
 // An entry's line under what it was for: "Groceries · Card ••4821 · 2 photos"; `day` (a dayLabel, for
 // the list sorted by amount) leads it and shortens a card to its digits, so the line fits beside a badge:
-// "Oct 14 · Groceries · ••4821". The category, in either language, is
+// "Oct 14 · Groceries · ••4821". Its `categories` (names) as `namesLine`; each, in either language, is
 // a first-strong isolate — see frontend.md's "A line takes its direction…".
-export function entryDetails(translate, entry, category, day) {
+export function entryDetails(translate, entry, categories, day) {
   const photos = entry.attachmentIds.length;
   const parts = [
     day,
-    category && `\u2068${category}\u2069`,
+    namesLine(translate, categories),
     paidWithLabel(translate, entry, !!day),
     photos && count(translate, 'count.photos', photos),
   ];
@@ -84,13 +84,20 @@ export function entryDetails(translate, entry, category, day) {
   });
 }
 
-const isolate = (text) => `⁨${text}⁩`;
+const isolate = (text) => `\u2068${text}\u2069`;
 
-// Chosen categories by name up to two ("Groceries, תחבורה"), else counted ("3 categories").
+// Category names: up to two ("Groceries, תחבורה"), else counted ("3 categories").
+const namesLine = (translate, names) =>
+  names.length > 2
+    ? count(translate, 'count.categories', names.length)
+    : names.map(isolate).join(', ');
+
 function categoryNames(translate, ids, categories) {
-  if (ids.length > 2) return count(translate, 'count.categories', ids.length);
   const nameOf = Object.fromEntries(categories.map((c) => [c.id, c.name]));
-  return ids.map((id) => isolate(nameOf[id])).join(', ');
+  return namesLine(
+    translate,
+    ids.map((id) => nameOf[id]),
+  );
 }
 
 // What the filter asks for, piece by piece: "challah", the categories (by name up to two, else "3

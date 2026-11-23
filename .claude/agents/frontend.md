@@ -122,20 +122,27 @@ feature's `components/` (listed under `composite/` below with its feature):
   and the Monthly check pill; `month` `{ year, month }`, `onPrevious`, `onNext` (none dims ›),
   `onMonthlyCheck`), `FinanceEmpty` (from `GlowCard` — a month with no entries), `EntryRow` (one
   entry: what for, "category · paid with · N photos" — led by `day` when set — the "not sent"/"matched"
-  badges, the amount; `entry`, `category`, `day`, `onPress`), `EntryList` (from `GlowCard`, `EntryRow` —
+  badges, the amount; `entry`, `categories` (names), `day`, `onPress`), `EntryList` (from `GlowCard`, `EntryRow` —
   in `sort`'s order: by day under day headings, by amount one flat list with the day on each row;
   `entries`, `categories`, `today`, `sort`, `onPressEntry`), `CategoryBar` (one category in
   `SpentCard`: name, amount, a bar scaled to the biggest — at least a dot for any spending;
   `name`, `amountAgorot`, `biggestAgorot`; the share from `finance/utils/spending.js`'s `barShare`),
   `SpentCard` (from `GlowCard`, `CategoryBar` — "Spent this month", the total, the top 3, "+ N more
-  categories" / "Show less" animated with Reanimated layout transitions; `totals` from `spending.js`'s
+  categories" / "Show less" animated with Reanimated layout transitions; `spent` from `spending.js`'s
+  `spentAgorot(entries)` — each entry once; an entry in several categories counts in full in each — and `totals` from its
   `categoryTotals(entries, categories)`, biggest first, only categories with spending), `ReviewBanner`
   (the amber "October statement: 6 to answer" / "MAX ••4821 · 36 already reported" banner, pressable;
   `month`, `toAnswer`, `issuer`, `cardLast4`, `reported`, `onPress`; colors `pending`/`pendingBg`/
   `pendingBorder`), `ConnectionNotice` (from `Alert`, warning — "Can't reach your PC — you can still
   add" while `reachable` is false, else "N entries waiting for your PC" while `waiting` > 0, else
-  nothing), `QuickAddSheet` (from `BottomSheet` — screen 2, the + opens it; its "New entry"
-  title, `AmountInput` and "What was it for?" (`InputField`, `typedDescription`) so far, empty each time it opens; `visible`, `onClose`), `AmountInput` (the
+  nothing), `QuickAddSheet` (from `BottomSheet` with `dragFromHandle` — screen 2, the + opens it; its "New entry"
+  title, `AmountInput`, "What was it for?" (`InputField`, `typedDescription`) and `CategoryChips` so far,
+  its body scrolling under the keyboard and past 60% of the screen, empty each time it opens; any number of
+  categories; `visible`, `onClose`, `categories`),
+  `CategoryChips` (from `FilterChip` — the sheet's categories, any number selected; past two lines
+  "More…" (hides the keyboard) / "Less", which ones fit measured by `chips.js`'s `chipsThatFit`, the
+  selected ones always showing; `categories`, `selectedIds`, `onChange(ids)`,
+  `defaultOpen`), `AmountInput` (the
   big centred "₪ 150": its own `TextInput`, decimal pad, focused 250 ms after mounting since a sliding
   Modal drops `autoFocus`; text kept through `typedShekels`; the row is `direction: 'ltr'` so ₪ stays
   left in Hebrew; `value`, `onChangeText`, `autoFocus`), `ListToolbar` (the entries card's search field — its own
@@ -143,7 +150,8 @@ feature's `components/` (listed under `composite/` below with its feature):
   buttons shown only with `onSort`/`onFilters`; sort lit while `sort` isn't `newest`, with a "₪" by
   amount, filters lit by `filtersActive`),
   `FilterChip` (the canvas's filter chip — outlined, an accent tint while `on`, not `PillButton`'s
-  solid `selected`; `dashed` for "+ New"; `label`, `icon` (Ionicons), `on`, `onPress`),
+  solid `selected`; `dashed` for "+ New"; `label`, `icon` (Ionicons), `on`, `accessibilityLabel`,
+  `onPress`),
   `CategoryFilterChips` (from `FilterChip` — All · each category · "+ New" with `onNewCategory`, one
   sideways-scrolling row with a ⌄ pinned at its end that wraps every chip onto several rows until its
   ⌃ is pressed (screen 16; picking a chip leaves it open); `categories`, `selectedIds`, `onChange(ids)`,
@@ -178,7 +186,8 @@ feature's `components/` (listed under `composite/` below with its feature):
   with), `PAID_WITH`; `finance/utils/categories.js` holds a new category's rules — `CATEGORY_NAME_MAX`, `CATEGORY_ICONS`,
   `typedCategoryName`, `categoryNameProblem(name, categories)` (a dictionary key or null),
   `addCategory(categories, { name, icon })` (a local `cat-new-N` id until L2.5); `finance/utils/format.js` holds
-  `formatShekels` (whole agorot → "₪284.90", the same in both languages), `dayLabel(translate, …)`, `entryDetails(translate, entry, category, day)` (the row's second line; with `day`, a card is only "••4821") and
+  `formatShekels` (whole agorot → "₪284.90", the same in both languages), `dayLabel(translate, …)`, `entryDetails(translate, entry, categories, day)` (the row's second line — two categories named, more
+  counted; with `day`, a card is only "••4821") and
   `filterSummary(translate, { filter, sort, entries, categories })` (`FilterSummary`'s `title`, `sort`),
   `noMatchLine(translate, { filter, month, categories })` (`NoMatch`'s line),
   `parseShekels(text)`/`shekelsText(agorot)` (an amount field's text ↔ whole agorot),

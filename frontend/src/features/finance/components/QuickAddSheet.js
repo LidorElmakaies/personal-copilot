@@ -1,45 +1,83 @@
 import { useState } from 'react';
-import { StyleSheet, Text } from 'react-native';
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import BottomSheet from '../../../shared/components/base/layout/BottomSheet';
 import InputField from '../../../shared/components/base/form/InputField';
-import { useTranslate } from '../../../shared/i18n/translate';
+import { usePlainInHebrew, useTranslate } from '../../../shared/i18n/translate';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
 import { typedDescription } from '../utils/format';
 import AmountInput from './AmountInput';
+import CategoryChips from './CategoryChips';
 
-// Screen 2, the add sheet the + opens: the title, the amount and what it was for so far — the other fields come in
-// U5–U7. Starts empty each time it opens. `visible`, `onClose`.
-export default function QuickAddSheet({ visible, onClose }) {
+// Screen 2, the add sheet the + opens: the title, the amount, what it was for and its categories so far —
+// the other fields come in U5–U7. Starts empty each time it opens. `categories` (in the chips' order),
+// any number picked; `visible`, `onClose`.
+export default function QuickAddSheet({ visible, onClose, categories }) {
   return (
-    <BottomSheet visible={visible} onClose={onClose}>
-      {visible && <QuickAddForm />}
+    <BottomSheet visible={visible} onClose={onClose} dragFromHandle>
+      {visible && <QuickAddForm categories={categories} />}
     </BottomSheet>
   );
 }
 
-function QuickAddForm() {
+function QuickAddForm({ categories }) {
   const { colors } = useAppTheme();
   const translate = useTranslate();
+  const plain = usePlainInHebrew();
+  const { height } = useWindowDimensions();
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
+  const [categoryIds, setCategoryIds] = useState([]);
   return (
     <>
       <Text style={[styles.title, { color: colors.text }]}>
         {translate('finance.newEntry')}
       </Text>
-      <AmountInput value={amount} onChangeText={setAmount} />
-      <InputField
-        label={translate('finance.whatFor')}
-        value={description}
-        onChangeText={(text) => setDescription(typedDescription(text))}
-        placeholder={translate('finance.whatForHint')}
-        autoCapitalize="sentences"
-        testID="quick-add-description"
-      />
+      {/* Scrolls: under the keyboard (BottomSheet shrinks it) and past 60% of the screen. */}
+      <ScrollView
+        style={[styles.body, { maxHeight: height * 0.6 }]}
+        contentContainerStyle={styles.bodyContent}
+        keyboardShouldPersistTaps="handled"
+      >
+        <AmountInput value={amount} onChangeText={setAmount} />
+        <InputField
+          label={translate('finance.whatFor')}
+          value={description}
+          onChangeText={(text) => setDescription(typedDescription(text))}
+          placeholder={translate('finance.whatForHint')}
+          autoCapitalize="sentences"
+          testID="quick-add-description"
+        />
+        <View style={styles.section}>
+          <Text style={[styles.label, plain, { color: colors.textMuted }]}>
+            {translate('finance.categoriesTitle')}
+          </Text>
+          <CategoryChips
+            categories={categories}
+            selectedIds={categoryIds}
+            onChange={setCategoryIds}
+          />
+        </View>
+      </ScrollView>
     </>
   );
 }
 
 const styles = StyleSheet.create({
   title: { fontSize: 18, fontWeight: '600' },
+  body: { flexShrink: 1 },
+  bodyContent: { gap: 14 },
+  section: { gap: 6 },
+  // As InputField's label.
+  label: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
 });

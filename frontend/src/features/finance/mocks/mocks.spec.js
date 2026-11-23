@@ -16,8 +16,9 @@ describe('October 2026 example data', () => {
     expect(sum(OCTOBER_ENTRIES)).toBe(784000);
     const byCategory = {};
     for (const e of OCTOBER_ENTRIES) {
-      const name = nameOf(e.categoryId);
-      byCategory[name] = (byCategory[name] ?? 0) + e.amountAgorot;
+      for (const name of e.categoryIds.map(nameOf)) {
+        byCategory[name] = (byCategory[name] ?? 0) + e.amountAgorot;
+      }
     }
     const ranked = Object.entries(byCategory).sort((a, b) => b[1] - a[1]);
     expect(ranked).toHaveLength(7);
@@ -86,14 +87,13 @@ describe('October 2026 example data', () => {
       l.occurredOn.slice(-2),
       l.merchantRaw,
       l.amountAgorot,
-      l.suggestion ? nameOf(l.suggestion.categoryId) : null,
     ]);
     expect(rows).toEqual([
-      ['03', 'שופרסל דיל', 41230, 'Groceries'],
-      ['09', 'BIT', 8000, null],
-      ['11', 'NETFLIX.COM', 4990, 'Subscriptions'],
-      ['17', 'KSP', 30000, null],
-      ['22', 'AMAZON', 9310, 'Shopping'],
+      ['03', 'שופרסל דיל', 41230],
+      ['09', 'BIT', 8000],
+      ['11', 'NETFLIX.COM', 4990],
+      ['17', 'KSP', 30000],
+      ['22', 'AMAZON', 9310],
     ]);
     const ksp = STATEMENT_LINES.find((l) => l.merchantRaw === 'KSP');
     expect([ksp.installmentNo, ksp.installmentsTotal]).toEqual([1, 12]);
@@ -106,7 +106,8 @@ describe('October 2026 example data', () => {
     for (const e of OCTOBER_ENTRIES) {
       expect(e.occurredOn >= '2026-10-01' && e.occurredOn <= TODAY).toBe(true);
       expect(new Date(`${e.occurredOn}T12:00:00Z`).getUTCDay()).not.toBe(6);
-      expect(ids.has(e.categoryId)).toBe(true);
+      expect(e.categoryIds.length).toBeGreaterThan(0);
+      expect(e.categoryIds.every((id) => ids.has(id))).toBe(true);
     }
   });
 });

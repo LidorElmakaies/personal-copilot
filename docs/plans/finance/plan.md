@@ -92,7 +92,7 @@ preview screen inside the app, U0.2, dropped 2026-10-29.)
 2. **The monthly check** — a reminder on statement day → upload or paste the statement → a list of
    **only the charges not reported yet**, each answered with what it was for (+ photos).
 3. **Saved on the server** so it survives reinstalling the app.
-4. **A local LLM** helps read pasted statements and suggests matches and categories — it never
+4. **A local LLM** helps read pasted statements and suggests matches — it never
    decides alone that a charge was already reported.
 
 ## Decisions (2026-10-27)
@@ -106,9 +106,10 @@ preview screen inside the app, U0.2, dropped 2026-10-29.)
 - Receipt photos and uploaded statements in a **local S3: Garage**, no published port.
   `attachments` stores only ids — size and type come from S3.
 - The LLM runs on **FreeToken** (an MoE model, not Llama 3), behind an OpenAI-compatible adapter.
-- **5 tables:** `categories`, `entries`, `attachments`, `statements`, `statement_lines`. Dropped:
-  `payment_methods` (→ `paid_with` + `card_last4` fields), `merchant_rules` (→ a query on
-  `entries.merchant_key`), `llm_calls` (→ logs and traces).
+- **6 tables:** `categories`, `entries`, `entry_categories` (2026-11-23: an entry can be in several),
+  `attachments`, `statements`, `statement_lines`. Dropped:
+  `payment_methods` (→ `paid_with` + `card_last4` fields), `merchant_rules` (no category
+  suggestions for now), `llm_calls` (→ logs and traces).
 - **Background jobs: pg-boss** with **3 automatic retries**; when all fail, the statement is
   `failed` and the app shows the error. A content error (totals don't add up) fails at once.
 - Matching is **code, not the LLM**: when unsure, the charge goes on the list (§4).
@@ -139,7 +140,7 @@ existing kit (`frontend.md`'s "Build for reuse").
 | `NewCategorySheet` | Screen 14: name and icon; reused by `CategoryEditor` for rename | `BottomSheet`, `InputField`, `GradientButton` | U4b |
 | `NoMatch` | Screen 15: "Nothing matches", search all categories | — | U4b |
 | `AmountInput` | The big ₪ amount field | — | U5 |
-| `CategoryChips` | Category choice, one marked "suggested" | `PillButton` | U5 |
+| `CategoryChips` | The entry's categories, any number | `FilterChip` | U5 |
 | `QuickAddSheet` | Screen 2 — the add / edit / answer sheet | `BottomSheet`, the rows below, `GradientButton`, `Alert` | U5–U7 |
 | `PaidWithPicker` | Card / Bit / PayBox / Cash / Transfer | `PillButton` | U6 |
 | `CardDigitsField` | The card's last 4 digits, remembered | `InputField` | U6 |
@@ -152,7 +153,7 @@ existing kit (`frontend.md`'s "Build for reuse").
 | `StatementProgress` | "Reading your statement…" and its steps | `GlowCard` | U10 |
 | `StatementError` | One error, in plain words, with what to do | `Alert` | U10 |
 | `MatchQuestion` | "Is this yours?" with Yes / The other one / Neither | `GlowCard`, `GradientButton` | U11 |
-| `UnreportedRow` | A charge not reported yet, with its suggested category | `Row` | U11 |
+| `UnreportedRow` | A charge not reported yet | `Row` | U11 |
 | `ChargeSummary` | The statement line on top of the answer sheet | `GlowCard` | U12 |
 | `MonthClosed` | Screen 8 | `GradientButton` | U12 |
 | `FinanceSettings` | Screen 10's settings: billing days, evening reminder, categories | `GlowCard`, `Row`, `Stepper`, `Switch` | U13 |
@@ -185,7 +186,7 @@ only render them.
 | U14 | The whole flow, polished — **UI sign-off** | all |
 | **Phase L — logic on the phone** | | |
 | L1 | The fake API; the tab shows its data through Redux | 1 |
-| L2 | Adding an entry really adds it; suggestions | 1, 2 |
+| L2 | Adding an entry really adds it | 1, 2 |
 | L3 | Edit and delete | 3 |
 | L4 | The outbox — adding while "offline" | 1, 2 |
 | L5 | Photos: pick, shrink, strip GPS, queue | 2, 3 |
@@ -195,7 +196,7 @@ only render them.
 | B0 | Server groundwork (nothing new on the phone) | — |
 | B1 | Real login for the Finance tab | 9 |
 | B2 | Categories and entries on the server | 1, 2, 3 |
-| B3 | Totals and suggestions from the server | 1, 2 |
+| B3 | Totals from the server | 1 |
 | B4 | Photo storage (server only) | — |
 | B5 | Photos on the server | 2, 3 |
 | B6 | Real statement upload and reading | 4, 5 |
@@ -203,7 +204,7 @@ only render them.
 | B8 | Answering and closing on the server | 7, 8, 1 |
 | B9 | FreeToken on this PC (server only) | — |
 | B10 | Pasted statements | 4, 5 |
-| B11 | LLM suggestions | 6, 7 |
+| B11 | The LLM ranks unclear matches | 6 |
 | B12 | Clean-up: fake API out of the app | — |
 
 ---
@@ -542,8 +543,15 @@ onto several rows, in place, until ⌃ is pressed (picking a chip or Clear leave
   `typedDescription` (tested): English and Hebrew letters plus digits and "-" (see Feedback), single
   spaces, 100 at most. In the dev build, Hebrew: it fits under the amount with the keyboard up;
   "Super-Pharm  2 'coffees'!" kept as "Super-Pharm 2 coffees". 466 tests.
-- [ ] **U5.3 `CategoryChips`** — all categories as pills, one selected, one marked "· suggested",
-  "More…" when they don't fit two lines.
+- [x] **U5.3 `CategoryChips`** — all categories as pills, any number selected, "More…" when they don't
+  fit two lines.
+  *Done 2026-11-23:* from `FilterChip` (screen 2's chips are outlined, not `PillButton`'s solid), in the
+  month's spending order as the list's chips. What fits is measured (`utils/chips.js`'s `chipsThatFit`,
+  tested); selected ones show even when past "More…"; opened, it ends with "Less". The sheet's body
+  now scrolls under the keyboard and only its handle drags it. A category added in U4b.6's sheet is
+  listed too. In the dev build, Hebrew: two lines and the last chip fit above the keyboard; three
+  picked, two from the opened list, all still showed after Less; More hid the keyboard; dragging the
+  handle closed the sheet, and it reopened empty. 480 tests.
 - [ ] **U5.4 The sheet** — `BottomSheet` with the three above and Save (closes it).
 
 **Try it:** open from +; type an amount; the keyboard never hides Save; pick categories; drag the
@@ -552,6 +560,12 @@ sheet down to close.
 **Feedback questions:** Is the order of fields right for the checkout line?
 **Feedback:** 2026-11-15 — the description also takes digits and "-" ("2 coffees", "Super-Pharm"),
 an exception to the letters-only rule for typed text; other punctuation is still dropped.
+2026-11-23 — "More…" hides the keyboard, so every category (and Save, U5.4) has room; the sheet's
+body still scrolls, with or without the keyboard (at most 60% of the screen).
+2026-11-23 — no category suggestions anywhere, for now (maybe something like it later); the monthly
+check still asks which entry a charge is. An entry can have several categories. It counts in full in each
+(the total counts it once), a category's filter finds it, and its row names two, else "3 categories":
+`categoryIds` in the example data, list, filters and totals; §5's `entry_categories`.
 
 ## Stage U6: `QuickAddSheet` — paid with, card digits, date, messages (screen 2)
 
@@ -624,8 +638,7 @@ never hides Check statement.
 
 - [ ] **U11.1 `MatchQuestion`** — the charge, "Two of your entries match. Most likely: …", Yes /
   The other one / Neither ("The other one" shows the second entry).
-- [ ] **U11.2 `UnreportedRow`** — shop (Hebrew right-to-left), date, "Groceries?" suggestion or "no
-  suggestion", installment "payment 1 of 12", foreign amount "$24.99", the amount.
+- [ ] **U11.2 `UnreportedRow`** — shop (Hebrew right-to-left), date, installment "payment 1 of 12", foreign amount "$24.99", the amount.
 - [ ] **U11.3 Screen 6** — header "October · MAX ••4821 · 42 lines · 36 already reported ✓", the
   question cards, the "Not reported" list; answering a question removes its card (animated).
 
@@ -699,19 +712,18 @@ shows the error with Retry.
 **Docs:** `frontend.md` (the finance slice, the API contract, the fake), `frontend/README.md`.
 **Feedback:** —
 
-## Stage L2: adding an entry, suggestions
+## Stage L2: adding an entry
 
 - [ ] **L2.1 Validation** — the U6 messages from real rules (`utils/`, tested): amount > 0, no
   future date, 4 card digits.
 - [ ] **L2.2 Create** — Save calls the API with a `client_id`; the list and `SpentCard` update.
 - [ ] **L2.3 Remembered card** — the last card's digits kept on the phone.
-- [ ] **L2.4 Suggested category** — from the API's suggest route once "what for" is typed.
 - [ ] **L2.5 New category** — `NewCategorySheet` (U4b.6) saves through the fake API's
   `POST /finance/categories` (§6): the name rules checked, the new category in the chips, the filter
   sheet and Quick add at once.
 
 **Try it:** add entries and watch the total; double-tap Save → one entry; the card digits come
-back next time; type a "what for" used before → its category is suggested.
+back next time.
 **Docs:** `frontend.md`.
 **Feedback:** —
 
@@ -813,7 +825,7 @@ Home and Calendar never ask to log in.
 
 - [ ] **B2.1** `categories` (seeded per user on first use) and `entries` tables + migrations; the
   category and entry routes of §6 (`client_id` idempotent, owner-only, soft delete, month in Israel
-  time, `merchant_key` normalisation). Tests.
+  time). Tests.
 - [ ] **B2.2** Switch the app's categories and entries to the real API; the outbox now sends to the
   PC.
 
@@ -822,12 +834,11 @@ start it → entries arrive once (Claude checks Postgres); reinstall the app →
 **Docs:** `docs/specs/services.md` (the routes), `docs/finance/environment.md`.
 **Feedback:** —
 
-## Stage B3: totals and suggestions from the server
+## Stage B3: totals from the server
 
-- [ ] **B3.1** `GET /finance/summary` and the suggest query (latest entry with the same
-  `merchant_key`). Tests. Switch the app over.
+- [ ] **B3.1** `GET /finance/summary`. Tests. Switch the app over.
 
-**Try it:** the `SpentCard` matches the entries; suggestions come back after a reinstall.
+**Try it:** the `SpentCard` matches the entries, also after a reinstall.
 **Docs:** `docs/specs/services.md`.
 **Feedback:** —
 
@@ -917,12 +928,12 @@ stop FreeToken → after 3 tries, "Couldn't reach the LLM".
 **Feedback questions:** Paste or file — which will you actually use?
 **Feedback:** —
 
-## Stage B11: LLM suggestions
+## Stage B11: the LLM ranks unclear matches
 
-- [ ] **B11.1** The LLM ranks unclear matches and suggests categories for new shops; never turns a
-  line `auto_matched`; a down LLM means no suggestion, never a failed statement.
+- [ ] **B11.1** The LLM ranks unclear matches; never turns a line `auto_matched`; a down LLM means
+  unranked candidates, never a failed statement.
 
-**Try it:** a month with two equal Bit transfers and new shops → are the guesses right?
+**Try it:** a month with two equal Bit transfers → is the likely one first?
 **Docs:** `docs/specs/services.md`, `backend/apps/finance/README.md`.
 **Feedback questions:** Keep the LLM's guesses, or are they noise?
 **Feedback:** —

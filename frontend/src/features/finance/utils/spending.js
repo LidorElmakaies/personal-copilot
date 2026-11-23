@@ -3,12 +3,15 @@ export const barShare = (agorot, biggestAgorot) =>
   biggestAgorot > 0 ? Math.min(Math.max(agorot / biggestAgorot, 0), 1) : 0;
 
 // A month's spending by category, biggest first (ties by the categories' order), only those with
-// any: `[{ id, name, amountAgorot }]`. Income entries don't count.
+// any: `[{ id, name, amountAgorot }]`. An entry in several counts in full in each, so together they can
+// be more than `spentAgorot`. Income entries don't count.
 export function categoryTotals(entries, categories) {
   const sums = new Map();
   for (const e of entries) {
     if (e.direction !== 'expense') continue;
-    sums.set(e.categoryId, (sums.get(e.categoryId) ?? 0) + e.amountAgorot);
+    for (const id of e.categoryIds) {
+      sums.set(id, (sums.get(id) ?? 0) + e.amountAgorot);
+    }
   }
   return categories
     .filter((c) => sums.get(c.id) > 0)
@@ -16,8 +19,11 @@ export function categoryTotals(entries, categories) {
     .sort((a, b) => b.amountAgorot - a.amountAgorot);
 }
 
-export const totalAgorot = (totals) =>
-  totals.reduce((sum, t) => sum + t.amountAgorot, 0);
+// The month's spending: each expense once, however many categories it's in.
+export const spentAgorot = (entries) =>
+  entries
+    .filter((e) => e.direction === 'expense')
+    .reduce((sum, e) => sum + e.amountAgorot, 0);
 
 // Every category for the list's chips: those spent on this month first, biggest first, then the rest
 // in the categories' own order. Archived ones are left out.

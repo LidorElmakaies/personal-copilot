@@ -51,7 +51,7 @@ export default function EntryList({
             )}
             <EntryRow
               entry={entry}
-              category={nameOf[entry.categoryId]}
+              categories={entry.categoryIds.map((id) => nameOf[id])}
               day={
                 flat ? dayLabel(translate, entry.occurredOn, today) : undefined
               }

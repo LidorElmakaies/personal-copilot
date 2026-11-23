@@ -213,6 +213,8 @@ export default {
   'finance.newEntry': 'New entry',
   'finance.whatFor': 'What was it for?',
   'finance.whatForHint': 'Dinner with Dana',
+  'finance.more': 'More…',
+  'finance.less': 'Less',
   'finance.back': 'Back',
   'finance.reviewTitle': 'Statement review',
   'finance.all': 'All',

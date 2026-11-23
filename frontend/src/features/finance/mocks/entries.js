@@ -1,7 +1,8 @@
 // October 2026's example entries, in the API's shape (README §5; money in whole agorot). Screen 1 of
 // the canvas: today (TODAY) "Dinner with Dana" (Bit, not sent) and "Weekly groceries" (card, 2
 // photos), "Fuel" on Oct 25; per category Housing ₪3,200, Groceries ₪1,860, Eating out ₪640 and 4
-// more, ₪7,840 in all. `merchant` is set on the 36 entries the statement matched (statement.js
+// more, ₪7,840 in all. "Toothpaste and
+// shampoo" is in two, counted in full in each. `merchant` is set on the 36 entries the statement matched (statement.js
 // builds those lines from it). No entry falls on a Saturday. What for is in either language or both, as
 // a user would type it.
 export const TODAY = '2026-10-27';
@@ -18,7 +19,7 @@ const entry = (occurredOn, shekels, category, paidWith, description, own = {}) =
     occurredOn: `2026-10-${String(occurredOn).padStart(2, '0')}`,
     amountAgorot: agorot(shekels),
     direction: 'expense',
-    categoryId: `cat-${category}`,
+    categoryIds: [category].flat().map((c) => `cat-${c}`),
     paidWith,
     cardLast4: paidWith === 'card' ? '4821' : null,
     description,
@@ -51,7 +52,7 @@ export const ENTRIES = [
   card(8, 290, 'transport', 'Fuel', 'פז תחנת דלק'),
   card(18, 20, 'transport', 'Parking', 'חניון אחוזת בית'),
   card(25, 310, 'transport', 'Fuel', 'פז תחנת דלק'),
-  // Shopping ₪520
+  // Shopping ₪520, and the ₪54.70 under Groceries that's in both
   card(7, 189.9, 'shopping', 'Sunglasses', 'אופטיקנה'),
   card(19, 234.1, 'shopping', 'Shelves לחדר העבודה', 'IKEA'),
   card(26, 96, 'shopping', 'שני ספרים', 'סטימצקי'),
@@ -67,7 +68,7 @@ export const ENTRIES = [
   card(2, 42.5, 'groceries', 'Challah and pastries', "מאפיית אנג'ל"),
   card(4, 38.9, 'groceries', 'Milk and eggs', 'AM:PM'),
   card(6, 268.4, 'groceries', 'Weekly groceries', 'שופרסל דיל'),
-  card(7, 54.7, 'groceries', 'Toothpaste and shampoo', 'סופר-פארם'),
+  card(7, 54.7, ['groceries', 'shopping'], 'Toothpaste and shampoo', 'סופר-פארם'),
   card(9, 27.8, 'groceries', 'Snacks', 'AM:PM'),
   card(9, 24, 'groceries', 'חלה', "מאפיית אנג'ל"),
   card(11, 96.3, 'groceries', 'Cheese and wine', 'טיב טעם'),

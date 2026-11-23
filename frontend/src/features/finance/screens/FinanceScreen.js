@@ -37,7 +37,11 @@ import {
   NO_FILTER,
   sheetFiltering,
 } from '../utils/filter';
-import { categoriesBySpending, categoryTotals } from '../utils/spending';
+import {
+  categoriesBySpending,
+  categoryTotals,
+  spentAgorot,
+} from '../utils/spending';
 import { statementSummary } from '../utils/statement';
 
 const statement = statementSummary(STATEMENT_LINES);
@@ -115,7 +119,7 @@ export default function FinanceScreen({ reachable = true }) {
           <FinanceEmpty />
         ) : (
           <>
-            <SpentCard totals={totals} />
+            <SpentCard spent={spentAgorot(entries)} totals={totals} />
             <EntryList
               entries={shown}
               categories={categories}
@@ -170,7 +174,11 @@ export default function FinanceScreen({ reachable = true }) {
         onPress={() => setAdding(true)}
         style={styles.fab}
       />
-      <QuickAddSheet visible={adding} onClose={() => setAdding(false)} />
+      <QuickAddSheet
+        visible={adding}
+        onClose={() => setAdding(false)}
+        categories={ordered}
+      />
       <FilterSheet
         visible={filtering}
         onClose={() => setFiltering(false)}

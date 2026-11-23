@@ -3,7 +3,7 @@ import {
   barShare,
   categoriesBySpending,
   categoryTotals,
-  totalAgorot,
+  spentAgorot,
 } from './spending';
 
 describe('barShare', () => {
@@ -27,7 +27,7 @@ describe('barShare', () => {
 describe('categoryTotals', () => {
   it('gives October as on the canvas: ₪7,840, Housing, Groceries, Eating out first, 7 in all', () => {
     const totals = categoryTotals(OCTOBER_ENTRIES, CATEGORIES);
-    expect(totalAgorot(totals)).toBe(784000);
+    expect(spentAgorot(OCTOBER_ENTRIES)).toBe(784000);
     expect(totals.slice(0, 3)).toEqual([
       { id: 'cat-housing', name: 'Housing', amountAgorot: 320000 },
       { id: 'cat-groceries', name: 'Groceries', amountAgorot: 186000 },
@@ -36,8 +36,8 @@ describe('categoryTotals', () => {
     expect(totals).toHaveLength(7);
   });
 
-  const e = (categoryId, amountAgorot, direction = 'expense') => ({
-    categoryId,
+  const e = (categories, amountAgorot, direction = 'expense') => ({
+    categoryIds: [categories].flat(),
     amountAgorot,
     direction,
   });
@@ -54,9 +54,24 @@ describe('categoryTotals', () => {
     expect(totals.map((t) => t.id)).toEqual(['cat-groceries', 'cat-gifts']);
   });
 
+  it('counts an entry in several in full in each, and once in the total', () => {
+    const entries = [
+      e(['cat-eating-out', 'cat-gifts'], 15000),
+      e('cat-gifts', 2000),
+      e('cat-other', 9999, 'income'),
+    ];
+    expect(
+      categoryTotals(entries, CATEGORIES).map((t) => [t.id, t.amountAgorot]),
+    ).toEqual([
+      ['cat-gifts', 17000],
+      ['cat-eating-out', 15000],
+    ]);
+    expect(spentAgorot(entries)).toBe(17000);
+  });
+
   it('is empty for a month with no entries', () => {
     expect(categoryTotals([], CATEGORIES)).toEqual([]);
-    expect(totalAgorot([])).toBe(0);
+    expect(spentAgorot([])).toBe(0);
   });
 });
 

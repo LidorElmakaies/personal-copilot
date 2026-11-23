@@ -210,6 +210,8 @@ export default {
   'finance.newEntry': 'רשומה חדשה',
   'finance.whatFor': 'על מה זה היה?',
   'finance.whatForHint': 'ארוחת ערב עם דנה',
+  'finance.more': 'עוד…',
+  'finance.less': 'פחות',
   'finance.back': 'חזרה',
   'finance.reviewTitle': 'בדיקת הפירוט',
   'finance.all': 'הכול',

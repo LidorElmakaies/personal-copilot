@@ -39,22 +39,16 @@ const toAnswer = [
         byDescription('Dinner with Dana', '2026-10-12'),
         byDescription('Pizza with the team', '2026-10-14'),
       ],
-      categoryId: null,
       reason: 'Two Bit entries of ₪150 within 3 days',
     },
   }),
-  line('2026-10-03', 'שופרסל דיל', 41230, {
-    suggestion: { candidateEntryIds: [], categoryId: 'cat-groceries', reason: 'history' },
-  }),
+  line('2026-10-03', 'שופרסל דיל', 41230),
   line('2026-10-09', 'BIT', 8000),
-  line('2026-10-11', 'NETFLIX.COM', 4990, {
-    suggestion: { candidateEntryIds: [], categoryId: 'cat-subscriptions', reason: 'llm' },
-  }),
+  line('2026-10-11', 'NETFLIX.COM', 4990),
   line('2026-10-17', 'KSP', 30000, { installmentNo: 1, installmentsTotal: 12 }),
   line('2026-10-22', 'AMAZON', 9310, {
     originalCurrency: 'USD',
     originalAmount: 2499,
-    suggestion: { candidateEntryIds: [], categoryId: 'cat-shopping', reason: 'llm' },
   }),
 ];
 
