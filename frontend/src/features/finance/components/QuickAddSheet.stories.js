@@ -11,7 +11,7 @@ export default {
   argTypes: { onClose: { action: 'closed' } },
 };
 
-// The title, the amount (the keyboard opens), what it was for and the categories until U5.4.
+// The amount (the keyboard opens), what it was for, the categories and Save, above the keyboard.
 export const Empty = {};
 // More than fits once "More…" is opened: the body scrolls.
 export const ManyCategories = {

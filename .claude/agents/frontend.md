@@ -136,7 +136,8 @@ feature's `components/` (listed under `composite/` below with its feature):
   `pendingBorder`), `ConnectionNotice` (from `Alert`, warning — "Can't reach your PC — you can still
   add" while `reachable` is false, else "N entries waiting for your PC" while `waiting` > 0, else
   nothing), `QuickAddSheet` (from `BottomSheet` with `dragFromHandle` — screen 2, the + opens it; its "New entry"
-  title, `AmountInput`, "What was it for?" (`InputField`, `typedDescription`) and `CategoryChips` so far,
+  title, `AmountInput`, "What was it for?" (`InputField`, `typedDescription`), `CategoryChips` and
+  Save (`GradientButton`, under the scrolling body; only closes it until L2) so far,
   its body scrolling under the keyboard and past 60% of the screen, empty each time it opens; any number of
   categories; `visible`, `onClose`, `categories`),
   `CategoryChips` (from `FilterChip` — the sheet's categories, any number selected; past two lines

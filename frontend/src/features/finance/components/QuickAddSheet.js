@@ -6,6 +6,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
+import GradientButton from '../../../shared/components/base/buttons/GradientButton';
 import BottomSheet from '../../../shared/components/base/layout/BottomSheet';
 import InputField from '../../../shared/components/base/form/InputField';
 import { usePlainInHebrew, useTranslate } from '../../../shared/i18n/translate';
@@ -14,18 +15,18 @@ import { typedDescription } from '../utils/format';
 import AmountInput from './AmountInput';
 import CategoryChips from './CategoryChips';
 
-// Screen 2, the add sheet the + opens: the title, the amount, what it was for and its categories so far —
-// the other fields come in U5–U7. Starts empty each time it opens. `categories` (in the chips' order),
+// Screen 2, the add sheet the + opens: the title, the amount, what it was for, its categories and Save —
+// the other fields come in U6–U7. Save only closes it (U6 checks the fields, L2 adds the entry). Starts empty each time it opens. `categories` (in the chips' order),
 // any number picked; `visible`, `onClose`.
 export default function QuickAddSheet({ visible, onClose, categories }) {
   return (
     <BottomSheet visible={visible} onClose={onClose} dragFromHandle>
-      {visible && <QuickAddForm categories={categories} />}
+      {visible && <QuickAddForm categories={categories} onSave={onClose} />}
     </BottomSheet>
   );
 }
 
-function QuickAddForm({ categories }) {
+function QuickAddForm({ categories, onSave }) {
   const { colors } = useAppTheme();
   const translate = useTranslate();
   const plain = usePlainInHebrew();
@@ -64,6 +65,11 @@ function QuickAddForm({ categories }) {
           />
         </View>
       </ScrollView>
+      <GradientButton
+        label={translate('common.save')}
+        onPress={onSave}
+        testID="quick-add-save"
+      />
     </>
   );
 }

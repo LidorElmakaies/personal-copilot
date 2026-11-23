@@ -552,7 +552,11 @@ onto several rows, in place, until ⌃ is pressed (picking a chip or Clear leave
   listed too. In the dev build, Hebrew: two lines and the last chip fit above the keyboard; three
   picked, two from the opened list, all still showed after Less; More hid the keyboard; dragging the
   handle closed the sheet, and it reopened empty. 480 tests.
-- [ ] **U5.4 The sheet** — `BottomSheet` with the three above and Save (closes it).
+- [x] **U5.4 The sheet** — `BottomSheet` with the three above and Save (closes it).
+  *Done 2026-11-23:* Save (`GradientButton`) sits under the scrolling body, so it's always in reach;
+  always on (U6.4 adds the messages). In the dev build, Hebrew: above the keyboard with two lines of
+  chips; under every category after More; Save closed the sheet. 480 tests. Test APK
+  0.6.0-test.27 published.
 
 **Try it:** open from +; type an amount; the keyboard never hides Save; pick categories; drag the
 sheet down to close.
