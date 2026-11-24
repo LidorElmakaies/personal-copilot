@@ -682,13 +682,15 @@ what an entry was matched by removes the match (`editedEntry`, tested; README §
   keeps both sides; Choose file… is a handler until L6. In Storybook on the phone, English and Hebrew: each pasted
   line takes its own direction; found there, a keyboard already open as it mounts sends no event (measured too).
   564 tests.
-- [ ] **U9.3 Screen 4 assembled**, reached from the Monthly check pill.
+- [x] **U9.3 Screen 4 assembled**, reached from the Monthly check pill.
+  *Done 2026-11-24:* `StatementCheckScreen`, `/finance-check`; Choose file… picks an example one (L6), Check goes
+  straight to the review until U10. In the dev build, Hebrew. 564 tests.
 
 **Try it:** switch between upload and paste; paste a Hebrew block — it reads right; the keyboard
 never hides Check statement.
 **Docs:** `frontend.md` (`CardChips`, `StatementSource`).
 **Feedback questions:** Are the instructions on the file card enough to find the file on MAX's site?
-**Feedback:** —
+**Feedback:** 2026-11-24 — the one sentence is enough, "looks good". "+ Another card" opened: drawn as artboard 22.
 
 ## Stage U10: `StatementProgress` and `StatementError` (screen 5)
 

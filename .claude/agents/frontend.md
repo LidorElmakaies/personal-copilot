@@ -161,7 +161,8 @@ feature's `components/` (listed under `composite/` below with its feature):
   the last one first, one row scrolling sideways; `value`, `onChange`, `cards`, `onFocus`, `onBlur`, `autoFocus`), `CardChips` (from `FilterChip`, `CardDigitsField` — screen 4's card row and
   "+ Another card"; `cards` `[{ last4, issuer }]`, `value`, `onChange(last4)`), `StatementSource` (from `SegmentRow`, `GlowCard`, `InputField`, `GradientButton`,
   `Alert` — screen 4's upload or paste, and Check under its scrolling body, above the keyboard; `header`, `card`, `issuer`, `file`,
-  `onChooseFile`, `onCheck`; what's missing from `statement.js`'s `statementProblem`), `CategoryChips` (from `FilterChip` — the sheet's categories, any number selected; past two lines
+  `onChooseFile`, `onCheck`; what's missing from `statement.js`'s `statementProblem`; `StatementCheckScreen` is the root Stack's `app/finance-check.js`,
+  opened from the header's Monthly check pill), `CategoryChips` (from `FilterChip` — the sheet's categories, any number selected; past two lines
   "More…" / "Less", which ones fit measured by `chips.js`'s `chipsThatFit`, the
   selected ones always showing; `categories`, `selectedIds`, `onChange(ids)`,
   `defaultOpen`), `AmountInput` (the

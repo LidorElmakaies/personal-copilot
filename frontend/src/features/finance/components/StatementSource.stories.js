@@ -1,5 +1,9 @@
 import { useState } from 'react';
-import { PASTE_SAMPLE, STATEMENT_CARDS } from '../mocks';
+import {
+  EXAMPLE_STATEMENT_FILE,
+  PASTE_SAMPLE,
+  STATEMENT_CARDS,
+} from '../mocks';
 import CardChips from './CardChips';
 import StatementSource from './StatementSource';
 
@@ -17,7 +21,7 @@ const Source = ({ fileName, withCards, ...args }) => {
         )
       }
       file={file}
-      onChooseFile={() => setFile({ name: 'MAX-October-2026.xlsx' })}
+      onChooseFile={() => setFile(EXAMPLE_STATEMENT_FILE)}
     />
   );
 };

@@ -105,6 +105,7 @@ export default function FinanceScreen({ reachable = true }) {
               ? () => goTo(index + 1)
               : undefined
           }
+          onMonthlyCheck={() => router.push('/finance-check')}
         />
         {statement.toAnswer > 0 && monthIndex(statement.month) === index && (
           <ReviewBanner

@@ -46,6 +46,9 @@ export const STATEMENT_CARDS = CARDS.map((last4) => ({
   issuer: FINANCE_SETTINGS.cards.find((c) => c.cardLast4 === last4)?.issuer,
 }));
 
+// What Choose file… picks until L6.
+export const EXAMPLE_STATEMENT_FILE = { name: 'MAX-October-2026.xlsx' };
+
 const lineOf = new Map(
   STATEMENT_LINES.filter((l) => l.entryId).map((l) => [l.entryId, l]),
 );
