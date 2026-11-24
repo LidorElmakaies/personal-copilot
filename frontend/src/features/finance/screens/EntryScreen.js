@@ -13,6 +13,7 @@ import {
   pickExamplePhotos,
   TODAY,
 } from '../mocks';
+import { editedEntry } from '../utils/entry';
 import { categoriesBySpending, categoryTotals } from '../utils/spending';
 
 const ordered = categoriesBySpending(
@@ -60,7 +61,7 @@ export default function EntryScreen({ id }) {
         entry={entry}
         entryPhotos={photos}
         onSave={(fields, changedPhotos) => {
-          setEntry({ ...entry, ...fields });
+          setEntry(editedEntry(entry, fields));
           setPhotos(changedPhotos);
         }}
       />

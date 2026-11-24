@@ -193,6 +193,8 @@ flowchart TD
   line only matches entries with the statement's `card_last4`.
 - **±3 days** because a charge's date on the statement can lag the day you reported it. Tune after
   the first real months.
+- **Editing a matched entry** (2026-11-24): changing its amount, day, how it was paid, card, or spent / received
+  removes the match, and its line goes back on the list; the description, categories and photos don't.
 - **Installments (תשלומים):** each statement line is one payment. A manual entry of a 12-payment
   purchase matches the line whose installment number is 1 (or the first one seen); later payments
   link to the same purchase automatically. Open question — see `plan.md`.

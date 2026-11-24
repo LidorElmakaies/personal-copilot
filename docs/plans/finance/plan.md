@@ -667,7 +667,8 @@ buttons in the sheet: OK, drawn as artboard 18. Thumbnails uncut, a better galle
 filled in; Delete asks first.
 **Docs:** `frontend.md` (`EntryDetails`, `BackButton`).
 **Feedback questions:** What else should an entry show?
-**Feedback:** 2026-11-24 — the details "look good"; nothing else to show for now.
+**Feedback:** 2026-11-24 — the details "look good"; nothing else to show for now. An edit to
+what an entry was matched by removes the match (`editedEntry`, tested; README §4).
 
 ## Stage U9: the monthly check — `CardChips`, `StatementSource` (screen 4)
 
@@ -793,7 +794,7 @@ back next time.
 ## Stage L3: edit and delete
 
 - [ ] **L3.1** Edit through the filled-in sheet, delete through `ConfirmModal`; list and totals
-  follow.
+  follow; an edit that removes a match (README §4) puts its line back on the review list.
 
 **Try it:** change an entry's category → the bars move; delete one → it's gone everywhere.
 **Docs:** `frontend.md`.
@@ -947,7 +948,7 @@ broken fixture → its own error; Claude stops `finance` mid-read → it resumes
 Needs open question 4.
 
 - [ ] **B7.1** The §4 matching rules (pure, table-driven tests incl. two equal Bit transfers);
-  to-review and confirm routes. Switch the app over.
+  to-review and confirm routes; `PATCH /finance/entries/:id` removes a match as in §4. Switch the app over.
 
 **Try it:** `seed` a month that partly matches the sample → only the unmatched lines are listed;
 the two equal Bit transfers → a question, never a silent match.

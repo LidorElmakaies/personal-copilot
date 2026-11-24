@@ -143,7 +143,7 @@ feature's `components/` (listed under `composite/` below with its feature):
   `finance/utils/entry.js`'s `entryProblem` in an `Alert` over it; money received has no card, `RECEIVED_WITH`)
   so far,
   its body scrolling under the keyboard and past 60% of the screen, empty each time it opens; only a tap on an empty
-  spot or Back closes the keyboard; any number of categories; `visible`, `onClose`, `categories`, `cards`, `today`, `pickPhotos`; `entry`/`entryPhotos` to edit one: filled in through `entry.js`'s `entryDraft`, saved through `entryFields`),
+  spot or Back closes the keyboard; any number of categories; `visible`, `onClose`, `categories`, `cards`, `today`, `pickPhotos`; `entry`/`entryPhotos` to edit one: filled in through `entry.js`'s `entryDraft`, saved through `entryFields`; `editedEntry` removes the match when what it was matched by changes),
   `PhotosField` (from `PhotoStrip`, `PhotoViewer`, `PillButton` — the add tile asks "Camera / Gallery" under the strip;
   `photos`, `onChange(photos)`, `pickPhotos(source)`, `onAsk`; `large`: screen 3's big photos and "+ Add photos"),
   `EntryDetails` (from `BackButton`, `GlowCard`, `PhotosField`, `ConfirmModal` — screen 3; `entry`, `categories` (names), `today`,

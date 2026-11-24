@@ -35,6 +35,25 @@ export function entryFields(draft) {
   };
 }
 
+// What a statement line is matched by (the plan's README §4).
+const MATCHED_BY = [
+  'amountAgorot',
+  'direction',
+  'paidWith',
+  'cardLast4',
+  'occurredOn',
+];
+
+// An entry with its edited fields; changing anything it was matched by removes its statement line.
+export function editedEntry(entry, fields) {
+  const rematch = MATCHED_BY.some((key) => fields[key] !== entry[key]);
+  return {
+    ...entry,
+    ...fields,
+    statementLine: rematch ? null : entry.statementLine,
+  };
+}
+
 // Why the add sheet can't be saved yet — a dictionary key — or null: no amount (or ₪0), a card without
 // its 4 digits. `amount` and `cardDigits` as typed. A future day can't be picked.
 export function entryProblem({ amount, paidWith, cardDigits }) {

@@ -1,4 +1,10 @@
-import { entryDraft, entryFields, entryProblem, RECEIVED_WITH } from './entry';
+import {
+  editedEntry,
+  entryDraft,
+  entryFields,
+  entryProblem,
+  RECEIVED_WITH,
+} from './entry';
 
 const problem = (own) =>
   entryProblem({ amount: '150', paidWith: 'bit', cardDigits: '', ...own });
@@ -34,6 +40,42 @@ describe('entryProblem', () => {
 describe('RECEIVED_WITH', () => {
   it('is every way but a card', () => {
     expect(RECEIVED_WITH).toEqual(['bit', 'paybox', 'cash', 'transfer']);
+  });
+});
+
+describe('editedEntry', () => {
+  const entry = {
+    id: 'entry-01',
+    amountAgorot: 28490,
+    description: 'Weekly groceries',
+    categoryIds: ['a'],
+    direction: 'expense',
+    paidWith: 'card',
+    cardLast4: '4821',
+    occurredOn: '2026-10-27',
+    statementLine: { statementId: 's', lineNo: 42 },
+  };
+  const edited = (fields) =>
+    editedEntry(entry, { ...entryFields(entryDraft(entry)), ...fields });
+
+  it.each([
+    ['the amount', { amountAgorot: 28500 }],
+    ['the day', { occurredOn: '2026-10-26' }],
+    ['the card', { cardLast4: '5520' }],
+    ['how it was paid', { paidWith: 'cash', cardLast4: null }],
+    ['spent or received', { direction: 'income' }],
+  ])('changing %s removes the match', (_, fields) => {
+    expect(edited(fields)).toEqual({
+      ...entry,
+      ...fields,
+      statementLine: null,
+    });
+  });
+
+  it('anything else keeps it', () => {
+    expect(edited({})).toEqual(entry);
+    const fields = { description: 'Food', categoryIds: ['a', 'b'] };
+    expect(edited(fields)).toEqual({ ...entry, ...fields });
   });
 });
 
