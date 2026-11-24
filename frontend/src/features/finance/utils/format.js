@@ -63,7 +63,7 @@ export function dayLabel(translate, date, today) {
 }
 
 // "Card ••4821", "Bit"… · "כרטיס ••4821", "ביט"…; `short`: a card is only "••4821".
-const paidWithLabel = (translate, { paidWith, cardLast4 }, short) =>
+export const paidWithLabel = (translate, { paidWith, cardLast4 }, short) =>
   translate(
     short && paidWith === 'card'
       ? 'paidWith.cardShort'

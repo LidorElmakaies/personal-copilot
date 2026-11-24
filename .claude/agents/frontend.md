@@ -94,7 +94,7 @@ feature's `components/` (listed under `composite/` below with its feature):
   `src/shared/components/`. Not UI-only — a base component may carry its own logic (dispatch,
   navigate); `AuthLinks` (in `features/account/components/`) is a link button between pages. Grouped into subfolders by purpose: `background/` (`Meteors`, `Stars` —
   animated background-effect primitives; `paused` stops them, `AmbientBackground` sets it while
-  its screen isn't focused), `buttons/` (`FloatingButton`, `GradientButton`, `PillButton`), `feedback/`
+  its screen isn't focused), `buttons/` (`BackButton`, `FloatingButton`, `GradientButton`, `PillButton`), `feedback/`
   (`Alert`, `VersionInfo` — status/feedback indicators), `form/` (`InputField`, `PhotoStrip`, `SelectField`, `Stepper`,
   `Switch` — form input controls), `layout/` (`BottomSheet`, `CustomTabBar`, `GlowCard`, `PhotoPager`, `Row`, `SwipePager`, `TabPager` — layout/surface
   primitives). Props worth knowing: `AuthLinks`' `prompt`/`linkLabel`/`href` (login's and
@@ -139,13 +139,16 @@ feature's `components/` (listed under `composite/` below with its feature):
   add" while `reachable` is false, else "N entries waiting for your PC" while `waiting` > 0, else
   nothing), `QuickAddSheet` (from `BottomSheet` with `dragFromHandle` — screen 2, the + opens it; its "New entry"
   title with `DateField` beside it (its `DayPicker` opens on top of the body), `DirectionPicker`, `AmountInput`, "What was it for?" (`InputField`, `typedDescription`), `CategoryChips`,
-  `PaidWithPicker` (Card to start), `CardDigitsField` (only for Card), `PhotosField` and Save (`GradientButton`, under the scrolling body; closes it — L2 adds the entry — or shows
+  `PaidWithPicker` (Card to start), `CardDigitsField` (only for Card), `PhotosField` and Save (`GradientButton`, under the scrolling body; calls `onSave(fields, photos)` and closes — L2 adds the entry — or shows
   `finance/utils/entry.js`'s `entryProblem` in an `Alert` over it; money received has no card, `RECEIVED_WITH`)
   so far,
   its body scrolling under the keyboard and past 60% of the screen, empty each time it opens; only a tap on an empty
-  spot or Back closes the keyboard; any number of categories; `visible`, `onClose`, `categories`, `cards`, `today`, `pickPhotos`),
+  spot or Back closes the keyboard; any number of categories; `visible`, `onClose`, `categories`, `cards`, `today`, `pickPhotos`; `entry`/`entryPhotos` to edit one: filled in through `entry.js`'s `entryDraft`, saved through `entryFields`),
   `PhotosField` (from `PhotoStrip`, `PhotoViewer`, `PillButton` — the add tile asks "Camera / Gallery" under the strip;
-  `photos`, `onChange(photos)`, `pickPhotos(source)`, `onAsk`),
+  `photos`, `onChange(photos)`, `pickPhotos(source)`, `onAsk`; `large`: screen 3's big photos and "+ Add photos"),
+  `EntryDetails` (from `BackButton`, `GlowCard`, `PhotosField`, `ConfirmModal` — screen 3; `entry`, `categories` (names), `today`,
+  `statementMonth`, `photos`, `onChangePhotos`, `pickPhotos`, `onEdit`, `onDelete`, `onBack`; `EntryScreen` is the root Stack's
+  `app/finance-entry.js`, `?id=`, opened from the list),
   `DateField` (from `PillButton` — "Today" / "Yesterday" / "Oct 25"; `value`, `today`, `onPress`),
   `DayPicker` (from `MonthSwitcher` — a month grid to pick a day from, none after `today`; `value`, `today`,
   `onChange(date)`; its weeks from `finance/utils/days.js`'s `monthWeeks`), `MonthSwitcher` (‹ month ›, also

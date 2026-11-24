@@ -153,7 +153,8 @@ existing kit (`frontend.md`'s "Build for reuse").
 | `PhotosField` | The sheet's photos, "Camera / Gallery" | `PhotoStrip`, `PhotoViewer`, `PillButton` | U7 |
 | `PhotoPager` *(shared)* | The gallery's swipe, zoom, drag down | — | U7 |
 | `PhotoViewer` *(shared)* | The gallery: full-screen photos, thumbnails, delete | `PhotoPager`, `ConfirmModal` | U7, U8 |
-| `EntryDetails` | Screen 3 | `GlowCard`, `Row`, `PhotoStrip`, `ConfirmModal` | U8 |
+| `EntryDetails` | Screen 3 | `BackButton`, `GlowCard`, `PhotosField`, `ConfirmModal` | U8 |
+| `BackButton` *(shared)* | A screen's back arrow | — | U8 |
 | `CardChips` | Which card the statement is for | `PillButton` | U9 |
 | `StatementSource` | Upload file / Paste text, the file card, the paste box, the total | `TabPager`-like pills, `InputField`, `GradientButton` | U9 |
 | `StatementProgress` | "Reading your statement…" and its steps | `GlowCard` | U10 |
@@ -650,16 +651,23 @@ buttons in the sheet: OK, drawn as artboard 18. Thumbnails uncut, a better galle
 
 ## Stage U8: `EntryDetails` and the `PhotoViewer` (screen 3)
 
-- [ ] **U8.1 `EntryDetails`** — back, title, Edit; the amount; a panel card with date, category,
+- [x] **U8.1 `EntryDetails`** — back, title, Edit; the amount; a panel card with date, category,
   paid with, statement status; photos; "+ Add photos"; Delete (asks with `ConfirmModal`).
-- [ ] **U8.2 `PhotoViewer`** *(shared)* — in the entry's details (the viewer itself: U7.1b, U7.3).
-- [ ] **U8.3 Edit** opens the `QuickAddSheet` filled in.
+  *Done 2026-11-24:* `EntryScreen` at `/finance-entry?id=`, opened by tapping a row; photos change on the screen only
+  and Delete just goes back (L3). The statement line only for a card or a matched entry. `BackButton` shared with
+  the review screen. Edit is off until U8.3. In the dev build, Hebrew. 540 tests.
+- [x] **U8.2 `PhotoViewer`** *(shared)* — in the entry's details (the viewer itself: U7.1b, U7.3).
+  *Done 2026-11-24:* with U8.1, through `PhotosField`'s `large`.
+- [x] **U8.3 Edit** opens the `QuickAddSheet` filled in.
+  *Done 2026-11-24:* `QuickAddSheet`'s `entry`, `entryPhotos`, `onSave` (`utils/entry.js`'s `entryDraft`,
+  `entryFields`, tested); "Edit entry", the keyboard closed. The change shows on the details screen only (L3 saves
+  it). In the dev build, Hebrew. 544 tests.
 
 **Try it:** open an entry from the list; zoom into a receipt photo; Edit shows the same sheet
 filled in; Delete asks first.
-**Docs:** `frontend.md` (`EntryDetails`, `PhotoViewer`).
+**Docs:** `frontend.md` (`EntryDetails`, `BackButton`).
 **Feedback questions:** What else should an entry show?
-**Feedback:** —
+**Feedback:** 2026-11-24 — the details "look good"; nothing else to show for now.
 
 ## Stage U9: the monthly check — `CardChips`, `StatementSource` (screen 4)
 

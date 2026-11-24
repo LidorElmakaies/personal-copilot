@@ -40,6 +40,9 @@ export const Four = { render: () => <Strip count={4} /> };
 export const Eight = { render: () => <Strip count={8} /> };
 // No handlers: no × and no add tile.
 export const ViewOnly = { args: { photos: EXAMPLE_PHOTOS.slice(0, 3) } };
+export const Large = {
+  args: { photos: EXAMPLE_PHOTOS, large: true, onPressPhoto: () => {} },
+};
 export const WontLoad = {
   args: {
     photos: [{ id: 'gone', source: { uri: 'file:///gone.jpg' } }],

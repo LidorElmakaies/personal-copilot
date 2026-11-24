@@ -24,6 +24,13 @@ export const FINANCE_SETTINGS = {
 // The cards used, the last one first (L2.3 keeps them on the phone).
 export const CARDS = ['4821', '5520', '1177', '9034', '2468', '7715'];
 
+// An entry's photos: its first attachment, the first example…
+export const photosOf = (entry) =>
+  entry.attachmentIds.map((id, i) => ({
+    ...EXAMPLE_PHOTOS[i % EXAMPLE_PHOTOS.length],
+    id,
+  }));
+
 // Stands in for the camera (one photo) and the gallery (two) until L5.
 let picked = 0;
 export const pickExamplePhotos = (source) =>

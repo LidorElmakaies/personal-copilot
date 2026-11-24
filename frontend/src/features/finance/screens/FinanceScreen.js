@@ -127,6 +127,9 @@ export default function FinanceScreen({ reachable = true }) {
               categories={categories}
               today={TODAY}
               sort={sort}
+              onPressEntry={({ id }) =>
+                router.push({ pathname: '/finance-entry', params: { id } })
+              }
               empty={
                 <NoMatch
                   filter={filter}

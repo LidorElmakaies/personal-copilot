@@ -14,7 +14,12 @@ import BottomSheet from '../../../shared/components/base/layout/BottomSheet';
 import InputField from '../../../shared/components/base/form/InputField';
 import { usePlainInHebrew, useTranslate } from '../../../shared/i18n/translate';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
-import { entryProblem, RECEIVED_WITH } from '../utils/entry';
+import {
+  entryDraft,
+  entryFields,
+  entryProblem,
+  RECEIVED_WITH,
+} from '../utils/entry';
 import { typedDescription } from '../utils/format';
 import AmountInput from './AmountInput';
 import CardDigitsField from './CardDigitsField';
@@ -26,8 +31,9 @@ import PaidWithPicker from './PaidWithPicker';
 import PhotosField from './PhotosField';
 
 // Screen 2, the add sheet the + opens: the title and the day (today to start), spent or received, the
-// amount, what it was for, its categories, how it was paid (Card to start, with the card's digits), its photos and Save. Save closes it (L2 adds the entry), or says what's missing
-// (`entryProblem`). Money received has no card. Starts empty each time it opens.
+// amount, what it was for, its categories, how it was paid (Card to start, with the card's digits), its photos and Save. Save says what's missing (`entryProblem`),
+// or calls `onSave(fields, photos)` — an entry's own fields — and closes. Money received has no card. Starts
+// empty each time it opens, or from `entry` and its `entryPhotos` to edit it ("Edit entry", the keyboard closed).
 // `categories` (in the chips' order), any number picked; `cards` (those used, the last one first), `today`
 // (YYYY-MM-DD), `pickPhotos` (PhotosField's); `visible`, `onClose`. Nothing closes the keyboard but a tap on an empty spot (the title,
 // the body, the backdrop) or Back.
@@ -38,6 +44,9 @@ export default function QuickAddSheet({
   cards,
   today,
   pickPhotos,
+  entry,
+  entryPhotos,
+  onSave,
 }) {
   return (
     <BottomSheet visible={visible} onClose={onClose} dragFromHandle>
@@ -47,28 +56,42 @@ export default function QuickAddSheet({
           cards={cards}
           today={today}
           pickPhotos={pickPhotos}
-          onSave={onClose}
+          entry={entry}
+          entryPhotos={entryPhotos}
+          onSave={(fields, photos) => {
+            onSave?.(fields, photos);
+            onClose();
+          }}
         />
       )}
     </BottomSheet>
   );
 }
 
-function QuickAddForm({ categories, cards, today, pickPhotos, onSave }) {
+function QuickAddForm({
+  categories,
+  cards,
+  today,
+  pickPhotos,
+  entry,
+  entryPhotos = [],
+  onSave,
+}) {
   const { colors } = useAppTheme();
   const translate = useTranslate();
   const plain = usePlainInHebrew();
   const { height } = useWindowDimensions();
-  const [amount, setAmount] = useState('');
-  const [description, setDescription] = useState('');
-  const [categoryIds, setCategoryIds] = useState([]);
-  const [direction, setDirection] = useState('expense');
-  const [paidWith, setPaidWith] = useState('card');
-  const [receivedWith, setReceivedWith] = useState(RECEIVED_WITH[0]);
-  const [date, setDate] = useState(today);
+  const [start] = useState(() => entryDraft(entry, today));
+  const [amount, setAmount] = useState(start.amount);
+  const [description, setDescription] = useState(start.description);
+  const [categoryIds, setCategoryIds] = useState(start.categoryIds);
+  const [direction, setDirection] = useState(start.direction);
+  const [paidWith, setPaidWith] = useState(start.paidWith);
+  const [receivedWith, setReceivedWith] = useState(start.receivedWith);
+  const [date, setDate] = useState(start.date);
   const [pickingDay, setPickingDay] = useState(false);
-  const [cardDigits, setCardDigits] = useState('');
-  const [photos, setPhotos] = useState([]);
+  const [cardDigits, setCardDigits] = useState(start.cardDigits);
+  const [photos, setPhotos] = useState(entryPhotos);
   // The message shows once Save was pressed, and follows the fields until nothing's missing.
   const [tried, setTried] = useState(false);
   const received = direction === 'income';
@@ -77,7 +100,23 @@ function QuickAddForm({ categories, cards, today, pickPhotos, onSave }) {
     paidWith: received ? receivedWith : paidWith,
     cardDigits,
   });
-  const save = () => (problem ? setTried(true) : onSave());
+  const save = () => {
+    if (problem) {
+      setTried(true);
+      return;
+    }
+    const draft = {
+      amount,
+      description,
+      categoryIds,
+      direction,
+      paidWith,
+      receivedWith,
+      date,
+      cardDigits,
+    };
+    onSave(entryFields(draft), photos);
+  };
   // The keyboard shrinks the body (BottomSheet): the card field, low in it, is scrolled back into view.
   const scroll = useRef(null);
   const typingCard = useRef(false);
@@ -96,7 +135,7 @@ function QuickAddForm({ categories, cards, today, pickPhotos, onSave }) {
         style={styles.header}
       >
         <Text style={[styles.title, { color: colors.text }]}>
-          {translate('finance.newEntry')}
+          {translate(entry ? 'finance.editEntry' : 'finance.newEntry')}
         </Text>
         <DateField value={date} today={today} onPress={toggleDays} />
       </Pressable>
@@ -133,6 +172,7 @@ function QuickAddForm({ categories, cards, today, pickPhotos, onSave }) {
         <AmountInput
           value={amount}
           onChangeText={setAmount}
+          autoFocus={!entry}
           received={received}
         />
         <InputField

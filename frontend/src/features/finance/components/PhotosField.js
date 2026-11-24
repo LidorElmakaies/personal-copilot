@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import GradientButton from '../../../shared/components/base/buttons/GradientButton';
 import PillButton from '../../../shared/components/base/buttons/PillButton';
 import PhotoStrip from '../../../shared/components/base/form/PhotoStrip';
 import PhotoViewer from '../../../shared/components/composite/PhotoViewer';
@@ -12,11 +13,18 @@ const SOURCES = [
   { source: 'gallery', icon: 'images-outline' },
 ];
 
-// The add sheet's photos (screen 2): the strip, its add tile asking "Camera / Gallery" under it (again
-// closes the question), a tap on a photo opening it full screen. `photos` `[{ id, source }]`,
+// An entry's photos. In the add sheet (screen 2): the strip, its add tile asking "Camera / Gallery" under it (again
+// closes the question), a tap on a photo opening it full screen. `large` (screen 3): big photos, their
+// number, "+ Add photos" under them; removed only in the gallery. `photos` `[{ id, source }]`,
 // `onChange(photos)`, `pickPhotos(source)` (`camera` | `gallery`) → the photos to add, `onAsk` when the
 // question opens.
-export default function PhotosField({ photos, onChange, pickPhotos, onAsk }) {
+export default function PhotosField({
+  photos,
+  onChange,
+  pickPhotos,
+  onAsk,
+  large,
+}) {
   const { colors } = useAppTheme();
   const translate = useTranslate();
   const plain = usePlainInHebrew();
@@ -36,14 +44,27 @@ export default function PhotosField({ photos, onChange, pickPhotos, onAsk }) {
   return (
     <View style={styles.column}>
       <Text style={[styles.label, plain, { color: colors.textMuted }]}>
-        {translate('photos.title')}
+        {large && photos.length > 0
+          ? translate('photos.titleCount', { n: photos.length })
+          : translate('photos.title')}
       </Text>
-      <PhotoStrip
-        photos={photos}
-        onAdd={toggle}
-        onRemove={remove}
-        onPressPhoto={setOpened}
-      />
+      {(!large || photos.length > 0) && (
+        <PhotoStrip
+          photos={photos}
+          onAdd={large ? undefined : toggle}
+          onRemove={large ? undefined : remove}
+          onPressPhoto={setOpened}
+          large={large}
+        />
+      )}
+      {large && (
+        <GradientButton
+          label={translate('photos.addButton')}
+          onPress={toggle}
+          style={styles.add}
+          testID="photos-add"
+        />
+      )}
       {asking && (
         <View style={styles.sources}>
           {SOURCES.map(({ source, icon }) => (
@@ -76,6 +97,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
+  add: { marginTop: 8 },
   sources: { flexDirection: 'row', gap: 8, marginTop: 2 },
   source: { flex: 1, minHeight: 44 },
 });

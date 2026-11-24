@@ -1,4 +1,11 @@
-import { CARDS, CATEGORIES, pickExamplePhotos, TODAY } from '../mocks';
+import {
+  CARDS,
+  CATEGORIES,
+  EXAMPLE_PHOTOS,
+  OCTOBER_ENTRIES,
+  pickExamplePhotos,
+  TODAY,
+} from '../mocks';
 import QuickAddSheet from './QuickAddSheet';
 
 export default {
@@ -11,7 +18,7 @@ export default {
     today: TODAY,
     pickPhotos: pickExamplePhotos,
   },
-  argTypes: { onClose: { action: 'closed' } },
+  argTypes: { onClose: { action: 'closed' }, onSave: { action: 'saved' } },
 };
 
 // The amount (the keyboard opens), what it was for, the categories, paid with, the photos and Save, above the keyboard.
@@ -28,4 +35,25 @@ export const ManyCategories = {
     ],
   },
 };
+// Edit: filled in, the keyboard closed.
+const editing = {
+  entry: OCTOBER_ENTRIES.find((e) => e.description === 'Fuel'),
+  entryPhotos: EXAMPLE_PHOTOS.slice(2, 4),
+};
+export const Editing = { args: editing };
+export const EditingReceived = {
+  args: {
+    entry: {
+      ...editing.entry,
+      description: 'Sold a bookshelf',
+      direction: 'income',
+      paidWith: 'paybox',
+      cardLast4: null,
+    },
+  },
+};
 export const Hebrew = { parameters: { language: 'he' } };
+export const HebrewEditing = {
+  parameters: { language: 'he' },
+  args: editing,
+};

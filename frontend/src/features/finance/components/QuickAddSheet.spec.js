@@ -26,7 +26,7 @@ jest.mock('../../../shared/components/base/buttons/GradientButton', () => {
   return ({ label, onPress }) => <Text onPress={onPress}>{label}</Text>;
 });
 
-async function renderSheet() {
+async function renderSheet(props) {
   const store = configureStore({ reducer: { language: languageReducer } });
   store.dispatch(setLanguage('en'));
   const onClose = jest.fn();
@@ -40,6 +40,7 @@ async function renderSheet() {
           cards={CARDS}
           today={TODAY}
           pickPhotos={pickExamplePhotos}
+          {...props}
         />
       </View>
     </Provider>,
@@ -100,6 +101,54 @@ describe('QuickAddSheet', () => {
     await fireEvent.press(screen.getByTestId('photos-add'));
     await fireEvent.press(screen.getByTestId('photos-add'));
     expect(screen.queryByText('Camera')).toBeNull();
+  });
+
+  const fuel = {
+    amountAgorot: 31000,
+    description: 'Fuel',
+    categoryIds: [CATEGORIES[0].id],
+    direction: 'expense',
+    paidWith: 'card',
+    cardLast4: '5520',
+    occurredOn: '2026-10-25',
+  };
+
+  it('editing starts from the entry, and saves what changed', async () => {
+    const onSave = jest.fn();
+    const photos = [{ id: 'a', source: { uri: 'file:///a.jpg' } }];
+    const onClose = await renderSheet({
+      entry: fuel,
+      entryPhotos: photos,
+      onSave,
+    });
+    expect(screen.getByText('Edit entry')).toBeTruthy();
+    expect(screen.getByTestId('amount-input').props.value).toBe('310');
+    expect(screen.getByText('Oct 25')).toBeTruthy();
+    await save();
+    expect(onSave.mock.calls[0]).toEqual([fuel, photos]);
+    await typeAmount('99.90');
+    await fireEvent.press(screen.getByTestId('paid-with-cash'));
+    await save();
+    expect(onSave.mock.calls[1][0]).toEqual({
+      ...fuel,
+      amountAgorot: 9990,
+      paidWith: 'cash',
+      cardLast4: null,
+    });
+    expect(onClose).toHaveBeenCalledTimes(2);
+  });
+
+  it('editing money received keeps how it was received', async () => {
+    const onSave = jest.fn();
+    const entry = {
+      ...fuel,
+      direction: 'income',
+      paidWith: 'paybox',
+      cardLast4: null,
+    };
+    await renderSheet({ entry, onSave });
+    await save();
+    expect(onSave.mock.calls[0][0]).toEqual(entry);
   });
 
   it('switching back to spent keeps how it was paid', async () => {

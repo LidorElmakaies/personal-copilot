@@ -6,8 +6,15 @@ import { useAppTheme } from '../../../theme/useAppTheme';
 
 // Photos as thumbnails, each whole in its tile, in one row that scrolls sideways: a × on each with `onRemove(id)`, a dashed add
 // tile at the end with `onAdd`, a tap on one calls `onPressPhoto(index)`. A photo just added scrolls the row to its end. `photos`
-// `[{ id, source }]` (`source` as Image's); one still loading, or that won't load, shows an icon.
-export default function PhotoStrip({ photos, onAdd, onRemove, onPressPhoto }) {
+// `[{ id, source }]` (`source` as Image's); one still loading, or that won't load, shows an icon. `large`: screen 3's
+// size.
+export default function PhotoStrip({
+  photos,
+  onAdd,
+  onRemove,
+  onPressPhoto,
+  large,
+}) {
   const { colors } = useAppTheme();
   const translate = useTranslate();
   const rtl = useIsRTL();
@@ -49,7 +56,7 @@ export default function PhotoStrip({ photos, onAdd, onRemove, onPressPhoto }) {
       onContentSizeChange={onContentSizeChange}
     >
       {photos.map(({ id, source }, i) => (
-        <View key={id} style={styles.cell}>
+        <View key={id} style={[styles.cell, large && styles.largeCell]}>
           <Pressable
             onPress={() => onPressPhoto(i)}
             disabled={!onPressPhoto}
@@ -57,6 +64,7 @@ export default function PhotoStrip({ photos, onAdd, onRemove, onPressPhoto }) {
             accessibilityLabel={translate('photos.photo', { n: i + 1 })}
             style={({ pressed }) => [
               styles.thumb,
+              large && styles.large,
               tile,
               pressed && styles.pressed,
             ]}
@@ -130,6 +138,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  largeCell: { width: 150 + OVERHANG, height: 200 + OVERHANG },
+  large: { width: 150, height: 200, borderRadius: 12 },
   add: { borderStyle: 'dashed' },
   placeholder: { position: 'absolute' },
   image: { width: '100%', height: '100%' },
