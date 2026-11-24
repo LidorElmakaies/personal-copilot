@@ -21,11 +21,15 @@ export default {
   'common.edit': 'עריכה',
   'common.openSettings': 'פתיחת ההגדרות',
 
+  'photos.title': 'תמונות',
+  'photos.camera': 'מצלמה',
+  'photos.gallery': 'גלריה',
   'photos.photo': 'תמונה {n}',
   'photos.add': 'הוספת תמונות',
   'photos.remove': 'הסרת תמונה {n}',
-  'photos.counter': '‎{n} / {total}',
-  'photos.swipeHint': 'החליקו ימינה או שמאלה לתמונות הנוספות',
+  'photos.counter': '\u200E{n} / {total}',
+  'photos.zoom': '\u200E{zoom}×',
+  'photos.confirmRemove': 'למחוק את התמונה?',
 
   // Durations — format.js's duration().
   'duration.hour': 'שעה',

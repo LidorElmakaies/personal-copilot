@@ -28,6 +28,7 @@ import {
   STATEMENT,
   STATEMENT_LINES,
   TODAY,
+  pickExamplePhotos,
 } from '../mocks';
 import { addCategory } from '../utils/categories';
 import {
@@ -181,6 +182,7 @@ export default function FinanceScreen({ reachable = true }) {
         categories={ordered}
         cards={CARDS}
         today={TODAY}
+        pickPhotos={pickExamplePhotos}
       />
       <FilterSheet
         visible={filtering}

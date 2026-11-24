@@ -1,4 +1,4 @@
-import { CARDS, CATEGORIES, TODAY } from '../mocks';
+import { CARDS, CATEGORIES, pickExamplePhotos, TODAY } from '../mocks';
 import QuickAddSheet from './QuickAddSheet';
 
 export default {
@@ -9,11 +9,12 @@ export default {
     categories: CATEGORIES,
     cards: CARDS,
     today: TODAY,
+    pickPhotos: pickExamplePhotos,
   },
   argTypes: { onClose: { action: 'closed' } },
 };
 
-// The amount (the keyboard opens), what it was for, the categories, paid with and Save, above the keyboard.
+// The amount (the keyboard opens), what it was for, the categories, paid with, the photos and Save, above the keyboard.
 export const Empty = {};
 // More than fits once "More…" is opened: the body scrolls.
 export const ManyCategories = {

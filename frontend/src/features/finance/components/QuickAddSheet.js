@@ -23,13 +23,13 @@ import DateField from './DateField';
 import DayPicker from './DayPicker';
 import DirectionPicker from './DirectionPicker';
 import PaidWithPicker from './PaidWithPicker';
+import PhotosField from './PhotosField';
 
 // Screen 2, the add sheet the + opens: the title and the day (today to start), spent or received, the
-// amount, what it was for, its categories, how it was paid (Card to start, with the card's digits) and Save — the photos come
-// in U7. Save closes it (L2 adds the entry), or says what's missing
+// amount, what it was for, its categories, how it was paid (Card to start, with the card's digits), its photos and Save. Save closes it (L2 adds the entry), or says what's missing
 // (`entryProblem`). Money received has no card. Starts empty each time it opens.
 // `categories` (in the chips' order), any number picked; `cards` (those used, the last one first), `today`
-// (YYYY-MM-DD); `visible`, `onClose`. Nothing closes the keyboard but a tap on an empty spot (the title,
+// (YYYY-MM-DD), `pickPhotos` (PhotosField's); `visible`, `onClose`. Nothing closes the keyboard but a tap on an empty spot (the title,
 // the body, the backdrop) or Back.
 export default function QuickAddSheet({
   visible,
@@ -37,6 +37,7 @@ export default function QuickAddSheet({
   categories,
   cards,
   today,
+  pickPhotos,
 }) {
   return (
     <BottomSheet visible={visible} onClose={onClose} dragFromHandle>
@@ -45,6 +46,7 @@ export default function QuickAddSheet({
           categories={categories}
           cards={cards}
           today={today}
+          pickPhotos={pickPhotos}
           onSave={onClose}
         />
       )}
@@ -52,7 +54,7 @@ export default function QuickAddSheet({
   );
 }
 
-function QuickAddForm({ categories, cards, today, onSave }) {
+function QuickAddForm({ categories, cards, today, pickPhotos, onSave }) {
   const { colors } = useAppTheme();
   const translate = useTranslate();
   const plain = usePlainInHebrew();
@@ -66,6 +68,7 @@ function QuickAddForm({ categories, cards, today, onSave }) {
   const [date, setDate] = useState(today);
   const [pickingDay, setPickingDay] = useState(false);
   const [cardDigits, setCardDigits] = useState('');
+  const [photos, setPhotos] = useState([]);
   // The message shows once Save was pressed, and follows the fields until nothing's missing.
   const [tried, setTried] = useState(false);
   const received = direction === 'income';
@@ -75,9 +78,12 @@ function QuickAddForm({ categories, cards, today, onSave }) {
     cardDigits,
   });
   const save = () => (problem ? setTried(true) : onSave());
-  // The keyboard shrinks the body (BottomSheet): the card field, at its end, is scrolled back into view.
+  // The keyboard shrinks the body (BottomSheet): the card field, low in it, is scrolled back into view.
   const scroll = useRef(null);
   const typingCard = useRef(false);
+  const cardTop = useRef(0);
+  // "Camera / Gallery" opens at the body's end, perhaps below what shows.
+  const askingPhotos = useRef(false);
   const toggleDays = () => {
     setPickingDay(!pickingDay);
     scroll.current?.scrollTo({ y: 0 });
@@ -98,7 +104,16 @@ function QuickAddForm({ categories, cards, today, onSave }) {
       <ScrollView
         ref={scroll}
         onLayout={() => {
-          if (typingCard.current) scroll.current?.scrollToEnd();
+          if (typingCard.current) {
+            // A frame later, after Android's own scroll to the focused field.
+            requestAnimationFrame(() =>
+              scroll.current?.scrollTo({ y: cardTop.current }),
+            );
+          }
+        }}
+        onContentSizeChange={() => {
+          if (askingPhotos.current) scroll.current?.scrollToEnd();
+          askingPhotos.current = false;
         }}
         style={[styles.body, { maxHeight: height * 0.6 }]}
         contentContainerStyle={styles.bodyContent}
@@ -157,18 +172,32 @@ function QuickAddForm({ categories, cards, today, onSave }) {
           )}
         </View>
         {!received && paidWith === 'card' && (
-          <CardDigitsField
-            value={cardDigits}
-            onChange={setCardDigits}
-            cards={cards}
-            onFocus={() => {
-              typingCard.current = true;
+          <View
+            onLayout={(e) => {
+              cardTop.current = e.nativeEvent.layout.y;
             }}
-            onBlur={() => {
-              typingCard.current = false;
-            }}
-          />
+          >
+            <CardDigitsField
+              value={cardDigits}
+              onChange={setCardDigits}
+              cards={cards}
+              onFocus={() => {
+                typingCard.current = true;
+              }}
+              onBlur={() => {
+                typingCard.current = false;
+              }}
+            />
+          </View>
         )}
+        <PhotosField
+          photos={photos}
+          onChange={setPhotos}
+          pickPhotos={pickPhotos}
+          onAsk={() => {
+            askingPhotos.current = true;
+          }}
+        />
       </ScrollView>
       {tried && problem && (
         <View accessibilityLiveRegion="polite">

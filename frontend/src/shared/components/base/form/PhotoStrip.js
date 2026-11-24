@@ -4,7 +4,7 @@ import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useIsRTL, useTranslate } from '../../../i18n/translate';
 import { useAppTheme } from '../../../theme/useAppTheme';
 
-// Photos as thumbnails in one row that scrolls sideways: a × on each with `onRemove(id)`, a dashed add
+// Photos as thumbnails, each whole in its tile, in one row that scrolls sideways: a × on each with `onRemove(id)`, a dashed add
 // tile at the end with `onAdd`, a tap on one calls `onPressPhoto(index)`. A photo just added scrolls the row to its end. `photos`
 // `[{ id, source }]` (`source` as Image's); one still loading, or that won't load, shows an icon.
 export default function PhotoStrip({ photos, onAdd, onRemove, onPressPhoto }) {
@@ -22,8 +22,11 @@ export default function PhotoStrip({ photos, onAdd, onRemove, onPressPhoto }) {
     const end = Math.max(0, contentWidth - width.current);
     if (photos.length > shown.current) {
       // Right to left, the row's end is x = 0: scrollToEnd goes to its start.
-      if (rtl) scroll.current?.scrollTo({ x: 0 });
-      else scroll.current?.scrollToEnd();
+      // A frame later: Android first moves a right-to-left row to keep its place.
+      requestAnimationFrame(() => {
+        if (rtl) scroll.current?.scrollTo({ x: 0 });
+        else scroll.current?.scrollToEnd();
+      });
     } else if (photos.length < shown.current && offset.current > end) {
       // Android stays scrolled past the end of a row that got shorter.
       scroll.current?.scrollTo({ x: end });
@@ -64,7 +67,7 @@ export default function PhotoStrip({ photos, onAdd, onRemove, onPressPhoto }) {
               color={colors.textFaint}
               style={styles.placeholder}
             />
-            <Image source={source} resizeMode="cover" style={styles.image} />
+            <Image source={source} resizeMode="contain" style={styles.image} />
           </Pressable>
           {onRemove && (
             <Pressable

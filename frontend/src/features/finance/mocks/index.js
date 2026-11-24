@@ -1,3 +1,4 @@
+import { EXAMPLE_PHOTOS } from '../../../../assets/example-photos';
 import { monthOf } from '../utils/days';
 import { ENTRIES, TODAY } from './entries';
 import { STATEMENT, STATEMENT_LINES } from './statement';
@@ -5,6 +6,7 @@ import { STATEMENT, STATEMENT_LINES } from './statement';
 // The example data the Phase U screens read, and the Phase L fake API starts from. October 2026 as
 // on the canvas (docs/plans/finance/plan.md). Each entry also says which statement line matched it
 // (`statementLine: { statementId, lineNo }` or null), the way screen 3 shows it.
+export { EXAMPLE_PHOTOS };
 export { CATEGORIES } from './categories';
 export { TODAY } from './entries';
 export {
@@ -21,6 +23,15 @@ export const FINANCE_SETTINGS = {
 
 // The cards used, the last one first (L2.3 keeps them on the phone).
 export const CARDS = ['4821', '5520', '1177', '9034', '2468', '7715'];
+
+// Stands in for the camera (one photo) and the gallery (two) until L5.
+let picked = 0;
+export const pickExamplePhotos = (source) =>
+  Array.from({ length: source === 'camera' ? 1 : 2 }, () => {
+    const example = EXAMPLE_PHOTOS[picked % EXAMPLE_PHOTOS.length];
+    picked += 1;
+    return { ...example, id: `picked-${picked}` };
+  });
 
 const lineOf = new Map(
   STATEMENT_LINES.filter((l) => l.entryId).map((l) => [l.entryId, l]),

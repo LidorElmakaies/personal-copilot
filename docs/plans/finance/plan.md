@@ -150,7 +150,9 @@ existing kit (`frontend.md`'s "Build for reuse").
 | `DayPicker` | A month's days, none in the future | `MonthSwitcher` | U6 |
 | `MonthSwitcher` | ‹ month › | — | U6 |
 | `PhotoStrip` *(shared)* | Thumbnails + an add tile | — | U7 |
-| `PhotoViewer` *(shared)* | Full-screen photos, swipe, pinch to zoom, delete | — | U8 |
+| `PhotosField` | The sheet's photos, "Camera / Gallery" | `PhotoStrip`, `PhotoViewer`, `PillButton` | U7 |
+| `PhotoPager` *(shared)* | The gallery's swipe, zoom, drag down | — | U7 |
+| `PhotoViewer` *(shared)* | The gallery: full-screen photos, thumbnails, delete | `PhotoPager`, `ConfirmModal` | U7, U8 |
 | `EntryDetails` | Screen 3 | `GlowCard`, `Row`, `PhotoStrip`, `ConfirmModal` | U8 |
 | `CardChips` | Which card the statement is for | `PillButton` | U9 |
 | `StatementSource` | Upload file / Paste text, the file card, the paste box, the total | `TabPager`-like pills, `InputField`, `GradientButton` | U9 |
@@ -626,19 +628,31 @@ used (tried on the phone, "looks good").
   *Done 2026-11-24:* in `base/layout/`, opened by `PhotoStrip`'s new `onPressPhoto`; native paging, whole photo
   on black in both themes, "2 / 8", the × or Back closes; in Hebrew the next photo is on the left. In Storybook
   on the phone, English and Hebrew; the Hebrew app itself comes with U7.2. 523 tests.
-- [ ] **U7.2 In the sheet** — under the other fields; the add tile asks "Camera / Gallery" (the
+- [x] **U7.2 In the sheet** — under the other fields; the add tile asks "Camera / Gallery" (the
   choice only — the real pickers come in L5).
+  *Done 2026-11-24:* `PhotosField`: the two open as pills under the strip; until L5 Camera adds one example
+  photo, Gallery two. In the dev build, Hebrew: photos added, opened, swiped, Back returns to the sheet; found
+  there, a scroll sent in the same layout pass is overridden by Android's own (the strip's end; the card field
+  under the keyboard) — now sent a frame later. 525 tests.
+- [x] **U7.3 A better gallery** *(asked 2026-11-24; takes in U8.2)* — pinch or double tap to zoom, drag to move
+  around, drag down to close, a row of thumbnails, delete; the sheet's thumbnails show the whole photo, uncut
+  (artboards 19–21, signed off 2026-11-24).
+  *Done 2026-11-24:* `PhotoPager` (the gestures; arithmetic in `utils/photoZoom.js`, tested) under `PhotoViewer`,
+  now in `composite/`; `PhotoStrip`'s tiles show the whole photo. On the phone, English and Hebrew: found there, a
+  drag down taken for a swipe (the first update has no movement) and a zoomed photo dragged past its edge (its size
+  lost when several load together); fixed. Pinching can't be done over adb: the user's to try. 537 tests.
 
 **Try it:** 0, 1 and 8 photos in stories; remove one; the sheet still fits on screen.
-**Docs:** `frontend.md` (`PhotoStrip`, `PhotoViewer`).
+**Docs:** `frontend.md` (`PhotoStrip`, `PhotoPager`, `PhotoViewer`, `PhotosField`).
 **Feedback questions:** Thumbnail size — readable enough to tell receipts apart?
-**Feedback:** 2026-11-24 — the strip "looks good"; open a photo and swipe like a gallery (U7.1b).
+**Feedback:** 2026-11-24 — the strip "looks good"; open a photo and swipe like a gallery (U7.1b). Camera / Gallery as
+buttons in the sheet: OK, drawn as artboard 18. Thumbnails uncut, a better gallery (U7.3).
 
 ## Stage U8: `EntryDetails` and the `PhotoViewer` (screen 3)
 
 - [ ] **U8.1 `EntryDetails`** — back, title, Edit; the amount; a panel card with date, category,
   paid with, statement status; photos; "+ Add photos"; Delete (asks with `ConfirmModal`).
-- [ ] **U8.2 `PhotoViewer`** *(shared)* — pinch to zoom, delete (full screen and swipe: U7.1b).
+- [ ] **U8.2 `PhotoViewer`** *(shared)* — in the entry's details (the viewer itself: U7.1b, U7.3).
 - [ ] **U8.3 Edit** opens the `QuickAddSheet` filled in.
 
 **Try it:** open an entry from the list; zoom into a receipt photo; Edit shows the same sheet

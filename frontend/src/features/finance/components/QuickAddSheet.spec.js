@@ -5,7 +5,7 @@ import { Provider } from 'react-redux';
 import languageReducer, {
   setLanguage,
 } from '../../../shared/i18n/languageSlice';
-import { CARDS, CATEGORIES, TODAY } from '../mocks';
+import { CARDS, CATEGORIES, pickExamplePhotos, TODAY } from '../mocks';
 import QuickAddSheet from './QuickAddSheet';
 
 jest.mock('../../../shared/theme/useAppTheme', () => ({
@@ -19,6 +19,8 @@ jest.mock('../../../shared/components/base/layout/BottomSheet', () => {
   const { View: MockView } = jest.requireActual('react-native');
   return ({ children }) => <MockView>{children}</MockView>;
 });
+// Its gestures are native; it has its own spec.
+jest.mock('../../../shared/components/composite/PhotoViewer', () => () => null);
 jest.mock('../../../shared/components/base/buttons/GradientButton', () => {
   const { Text } = jest.requireActual('react-native');
   return ({ label, onPress }) => <Text onPress={onPress}>{label}</Text>;
@@ -37,6 +39,7 @@ async function renderSheet() {
           categories={CATEGORIES}
           cards={CARDS}
           today={TODAY}
+          pickPhotos={pickExamplePhotos}
         />
       </View>
     </Provider>,
@@ -75,6 +78,28 @@ describe('QuickAddSheet', () => {
     await typeAmount('80');
     await save();
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('the add tile asks camera or gallery, then adds what was picked', async () => {
+    await renderSheet();
+    const shown = () => screen.queryAllByRole('imagebutton').length;
+    expect(screen.queryByText('Camera')).toBeNull();
+    await fireEvent.press(screen.getByTestId('photos-add'));
+    await fireEvent.press(screen.getByText('Camera'));
+    expect(shown()).toBe(1);
+    expect(screen.queryByText('Camera')).toBeNull();
+    await fireEvent.press(screen.getByTestId('photos-add'));
+    await fireEvent.press(screen.getByText('Gallery'));
+    expect(shown()).toBe(3);
+    await fireEvent.press(screen.getByLabelText('Remove photo 2'));
+    expect(shown()).toBe(2);
+  });
+
+  it('pressing the add tile again closes the question', async () => {
+    await renderSheet();
+    await fireEvent.press(screen.getByTestId('photos-add'));
+    await fireEvent.press(screen.getByTestId('photos-add'));
+    expect(screen.queryByText('Camera')).toBeNull();
   });
 
   it('switching back to spent keeps how it was paid', async () => {

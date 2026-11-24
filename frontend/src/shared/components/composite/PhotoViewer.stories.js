@@ -1,11 +1,14 @@
-import { EXAMPLE_PHOTOS } from '../../../../../assets/example-photos';
+import { EXAMPLE_PHOTOS } from '../../../../assets/example-photos';
 import PhotoViewer from './PhotoViewer';
 
 export default {
   component: PhotoViewer,
   parameters: { language: 'en' },
   args: { photos: EXAMPLE_PHOTOS, index: 0 },
-  argTypes: { onClose: { action: 'closed' } },
+  argTypes: {
+    onClose: { action: 'closed' },
+    onRemove: { action: 'removed' },
+  },
 };
 
 export const First = {};

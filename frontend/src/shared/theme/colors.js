@@ -36,6 +36,7 @@ export const dark = {
   viewerBg: '#000000',
   viewerText: '#e8ecf0',
   viewerMuted: '#a3abb5',
+  viewerAccent: '#4fe3ff',
   spaceGradient: ['#0a0c0f', '#0d0f1c', '#0a0c0f'],
   // Per-particle palette (Stars.js/Meteors.js) — a single flat white reads duller than real
   // starlight, which varies blue-white to gold.
@@ -90,6 +91,7 @@ export const light = {
   viewerBg: '#000000',
   viewerText: '#e8ecf0',
   viewerMuted: '#a3abb5',
+  viewerAccent: '#4fe3ff',
   spaceGradient: ['#eef1f4', '#eaf0f6', '#eef1f4'],
   // Darker/more saturated than the dark-mode set — needs real contrast against a near-white bg or
   // it vanishes (Stars.js/Meteors.js's higher light-mode opacity is the other half of that fix).

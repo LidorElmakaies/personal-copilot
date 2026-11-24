@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { EXAMPLE_PHOTOS } from '../../../../../assets/example-photos';
-import PhotoViewer from '../layout/PhotoViewer';
+import PhotoViewer from '../../composite/PhotoViewer';
 import PhotoStrip from './PhotoStrip';
 
 export default { component: PhotoStrip, parameters: { language: 'en' } };
@@ -27,6 +27,7 @@ const Strip = ({ count }) => {
         photos={photos}
         index={opened}
         onClose={() => setOpened(null)}
+        onRemove={(id) => setPhotos(photos.filter((p) => p.id !== id))}
       />
     </>
   );

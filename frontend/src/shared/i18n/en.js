@@ -22,11 +22,15 @@ export default {
   'common.edit': 'Edit',
   'common.openSettings': 'Open settings',
 
+  'photos.title': 'Photos',
+  'photos.camera': 'Camera',
+  'photos.gallery': 'Gallery',
   'photos.photo': 'Photo {n}',
   'photos.add': 'Add photos',
   'photos.remove': 'Remove photo {n}',
-  'photos.counter': '‎{n} / {total}',
-  'photos.swipeHint': 'Swipe left or right for the other photos',
+  'photos.counter': '\u200E{n} / {total}',
+  'photos.zoom': '\u200E{zoom}×',
+  'photos.confirmRemove': 'Delete this photo?',
 
   // Durations — format.js's duration().
   'duration.hour': '1h',
