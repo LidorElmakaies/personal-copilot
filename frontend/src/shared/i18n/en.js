@@ -22,6 +22,12 @@ export default {
   'common.edit': 'Edit',
   'common.openSettings': 'Open settings',
 
+  'photos.photo': 'Photo {n}',
+  'photos.add': 'Add photos',
+  'photos.remove': 'Remove photo {n}',
+  'photos.counter': '‎{n} / {total}',
+  'photos.swipeHint': 'Swipe left or right for the other photos',
+
   // Durations — format.js's duration().
   'duration.hour': '1h',
   'duration.twoHours': '2h',

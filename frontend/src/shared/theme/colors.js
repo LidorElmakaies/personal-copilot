@@ -32,6 +32,10 @@ export const dark = {
   errorBorder: 'rgba(255,107,91,0.4)',
   shadow: '#4fe3ff',
   onPrimary: '#04141a',
+  // PhotoViewer: black in both themes.
+  viewerBg: '#000000',
+  viewerText: '#e8ecf0',
+  viewerMuted: '#a3abb5',
   spaceGradient: ['#0a0c0f', '#0d0f1c', '#0a0c0f'],
   // Per-particle palette (Stars.js/Meteors.js) — a single flat white reads duller than real
   // starlight, which varies blue-white to gold.
@@ -83,6 +87,9 @@ export const light = {
   errorBorder: 'rgba(164,39,30,0.35)',
   shadow: '#0e8fa6',
   onPrimary: '#ffffff',
+  viewerBg: '#000000',
+  viewerText: '#e8ecf0',
+  viewerMuted: '#a3abb5',
   spaceGradient: ['#eef1f4', '#eaf0f6', '#eef1f4'],
   // Darker/more saturated than the dark-mode set — needs real contrast against a near-white bg or
   // it vanishes (Stars.js/Meteors.js's higher light-mode opacity is the other half of that fix).

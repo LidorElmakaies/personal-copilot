@@ -582,14 +582,14 @@ check still asks which entry a charge is. An entry can have several categories. 
   *Done 2026-11-23:* screen 2's outlined buttons (44 dp), one row of radios; Card to start, the most
   common. In the sheet under the categories; stories, tested (482 tests). In the dev build, Hebrew: the
   five fit one row, uncut; a tap moves the choice; with the keyboard up it's a scroll below the chips.
-- [ ] **U6.2 `CardDigitsField`** — appears only for Card; 4 digits; the cards used as pills to tap,
+- [x] **U6.2 `CardDigitsField`** — appears only for Card; 4 digits; the cards used as pills to tap,
   the last one first, one row that scrolls sideways.
   *Done 2026-11-23:* under the paid-with row; digits only, 4 at most (`typedCardDigits`, tested); a pill
   fills them in and lights while they match (six example `CARDS`; L2.3 keeps the real ones). The digits
   survive switching to Bit and back. `InputField` gets `onFocus`, so the sheet scrolls back to the
   field when the keyboard opens. In the dev build, Hebrew: all of it, and the cursor (it sat left of the
   digits; the input is now left to right). 490 tests.
-- [ ] **U6.3 `DateField`** — "Today" pill, tap to pick another day (none in the future).
+- [x] **U6.3 `DateField`** — "Today" pill, tap to pick another day (none in the future).
   *Done 2026-11-23:* the pill beside the title opens `DayPicker`, a month grid on top of the sheet's body
   (no native picker: it would need a new dev build); days and months after today are off; picking a day
   closes it. ‹ month › is now `MonthSwitcher`, shared with `FinanceHeader`. In the dev build,
@@ -614,21 +614,31 @@ used (tried on the phone, "looks good").
 
 ## Stage U7: `PhotoStrip` (screen 2)
 
-- [ ] **U7.1 `PhotoStrip`** *(shared)* — thumbnails in a row, an add tile, a small × on each,
+- [x] **U7.1 `PhotoStrip`** *(shared)* — thumbnails in a row, an add tile, a small × on each,
   scrolls sideways past 4. With example images.
+  *Done 2026-11-24:* in `base/form/`, screen 2's 64 dp thumbnails; the × has a 44 dp touch target; a photo
+  added scrolls the row to its end; one that won't load shows an icon. Eight made-up receipts in
+  `frontend/assets/example-photos/` (shared code can't read a feature's mocks). In Storybook on the phone,
+  English and Hebrew: found there, removing at the row's end left a gap (Android keeps the old scroll;
+  fixed). 517 tests.
+- [x] **U7.1b `PhotoViewer`, open and swipe** *(shared; asked 2026-11-24, from U8.2)* — a tap on a
+  thumbnail opens it full screen; swipe left and right between the photos (artboard 17, signed off 2026-11-24).
+  *Done 2026-11-24:* in `base/layout/`, opened by `PhotoStrip`'s new `onPressPhoto`; native paging, whole photo
+  on black in both themes, "2 / 8", the × or Back closes; in Hebrew the next photo is on the left. In Storybook
+  on the phone, English and Hebrew; the Hebrew app itself comes with U7.2. 523 tests.
 - [ ] **U7.2 In the sheet** — under the other fields; the add tile asks "Camera / Gallery" (the
   choice only — the real pickers come in L5).
 
 **Try it:** 0, 1 and 8 photos in stories; remove one; the sheet still fits on screen.
-**Docs:** `frontend.md` (`PhotoStrip`).
+**Docs:** `frontend.md` (`PhotoStrip`, `PhotoViewer`).
 **Feedback questions:** Thumbnail size — readable enough to tell receipts apart?
-**Feedback:** —
+**Feedback:** 2026-11-24 — the strip "looks good"; open a photo and swipe like a gallery (U7.1b).
 
 ## Stage U8: `EntryDetails` and the `PhotoViewer` (screen 3)
 
 - [ ] **U8.1 `EntryDetails`** — back, title, Edit; the amount; a panel card with date, category,
   paid with, statement status; photos; "+ Add photos"; Delete (asks with `ConfirmModal`).
-- [ ] **U8.2 `PhotoViewer`** *(shared)* — full screen, swipe between photos, pinch to zoom, delete.
+- [ ] **U8.2 `PhotoViewer`** *(shared)* — pinch to zoom, delete (full screen and swipe: U7.1b).
 - [ ] **U8.3 Edit** opens the `QuickAddSheet` filled in.
 
 **Try it:** open an entry from the list; zoom into a receipt photo; Edit shows the same sheet

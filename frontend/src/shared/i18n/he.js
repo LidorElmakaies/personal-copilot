@@ -21,6 +21,12 @@ export default {
   'common.edit': 'עריכה',
   'common.openSettings': 'פתיחת ההגדרות',
 
+  'photos.photo': 'תמונה {n}',
+  'photos.add': 'הוספת תמונות',
+  'photos.remove': 'הסרת תמונה {n}',
+  'photos.counter': '‎{n} / {total}',
+  'photos.swipeHint': 'החליקו ימינה או שמאלה לתמונות הנוספות',
+
   // Durations — format.js's duration().
   'duration.hour': 'שעה',
   'duration.twoHours': 'שעתיים',

@@ -95,13 +95,15 @@ feature's `components/` (listed under `composite/` below with its feature):
   navigate); `AuthLinks` (in `features/account/components/`) is a link button between pages. Grouped into subfolders by purpose: `background/` (`Meteors`, `Stars` —
   animated background-effect primitives; `paused` stops them, `AmbientBackground` sets it while
   its screen isn't focused), `buttons/` (`FloatingButton`, `GradientButton`, `PillButton`), `feedback/`
-  (`Alert`, `VersionInfo` — status/feedback indicators), `form/` (`InputField`, `SelectField`, `Stepper`,
-  `Switch` — form input controls), `layout/` (`BottomSheet`, `CustomTabBar`, `GlowCard`, `Row`, `SwipePager`, `TabPager` — layout/surface
+  (`Alert`, `VersionInfo` — status/feedback indicators), `form/` (`InputField`, `PhotoStrip`, `SelectField`, `Stepper`,
+  `Switch` — form input controls), `layout/` (`BottomSheet`, `CustomTabBar`, `GlowCard`, `PhotoViewer`, `Row`, `SwipePager`, `TabPager` — layout/surface
   primitives). Props worth knowing: `AuthLinks`' `prompt`/`linkLabel`/`href` (login's and
   register's link to the other screen, plus "Continue without logging in"); `FloatingButton`'s `icon` (Ionicons name, default `add`) — the
   caller positions it via `style` (`position: 'absolute'` and its corner);
   `testID` on `GradientButton`, `FloatingButton`, `InputField` and `Stepper` (its buttons get `<testID>-fewer`/`-more`), and each `CustomTabBar` tab is `tab-<name>` — what the Maestro flows find;
-  `Alert`'s `variant` (`error` default, `warning`, `success`); `Switch`'s `disabled` and
+  `Alert`'s `variant` (`error` default, `warning`, `success`); `PhotoStrip`'s `photos` `[{ id, source }]`, `onAdd`, `onRemove(id)`, `onPressPhoto(index)` (64 dp thumbnails in one sideways-scrolling row; no × or add tile without their handler; example photos: `assets/example-photos/`);
+  `PhotoViewer`'s `photos`, `index` (null: closed), `onClose` (full screen on black, `colors.viewer*`, native paging; its row is always left to right, the photos reversed in Hebrew);
+  `Switch`'s `disabled` and
   `accessibilityLabel` (rendered with role `switch`); `GlowCard` always draws an opaque panel
   (`colors.panel`) under its tint; `PillButton`'s `tone` (`accent`
   default, `muted`, `pending` — amber, something is set, `selected` — the chosen option in a group)
