@@ -159,7 +159,9 @@ feature's `components/` (listed under `composite/` below with its feature):
   `format.js`'s `paidWithName`; `value`, `onChange`, `options`), `CardDigitsField` (from `InputField`, `PillButton`
   — the card's last 4 digits, kept through `typedCardDigits`, and the cards used as pills that fill them in,
   the last one first, one row scrolling sideways; `value`, `onChange`, `cards`, `onFocus`, `onBlur`, `autoFocus`), `CardChips` (from `FilterChip`, `CardDigitsField` — screen 4's card row and
-  "+ Another card"; `cards` `[{ last4, issuer }]`, `value`, `onChange(last4)`), `CategoryChips` (from `FilterChip` — the sheet's categories, any number selected; past two lines
+  "+ Another card"; `cards` `[{ last4, issuer }]`, `value`, `onChange(last4)`), `StatementSource` (from `SegmentRow`, `GlowCard`, `InputField`, `GradientButton`,
+  `Alert` — screen 4's upload or paste, and Check under its scrolling body, above the keyboard; `header`, `card`, `issuer`, `file`,
+  `onChooseFile`, `onCheck`; what's missing from `statement.js`'s `statementProblem`), `CategoryChips` (from `FilterChip` — the sheet's categories, any number selected; past two lines
   "More…" / "Less", which ones fit measured by `chips.js`'s `chipsThatFit`, the
   selected ones always showing; `categories`, `selectedIds`, `onChange(ids)`,
   `defaultOpen`), `AmountInput` (the
@@ -408,6 +410,8 @@ hit" below).
   keyboard and closes the sheet too, which a person's Back doesn't.
 - **A pan's first `onUpdate` can come with no movement** — pick its direction only past a few dp (`PhotoPager`). And
   `sv.value = { ...sv.value, … }` from JS reads a stale value when several run together: gather in a ref.
+- **`keyboardDidShow` isn't sent for a keyboard already open** as a screen mounts — read `Keyboard.metrics()` too
+  (`StatementSource`).
 - **A `scrollTo` sent from `onLayout`/`onContentSizeChange` can be overridden** by Android's own scroll (to a focused
   field; to keep a right-to-left row in place) — send it in `requestAnimationFrame` (`PhotoStrip`, `QuickAddSheet`).
 - **Padding must never land on only the outer (shadow-casting) box** of a two-box shadow-wrapper/

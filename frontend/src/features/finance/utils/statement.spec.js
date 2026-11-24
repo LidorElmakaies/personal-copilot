@@ -1,5 +1,5 @@
 import { STATEMENT_LINES } from '../mocks';
-import { statementSummary } from './statement';
+import { statementProblem, statementSummary } from './statement';
 
 describe('statementSummary', () => {
   it('gives October as on the canvas: 6 to answer, 36 already reported', () => {
@@ -31,5 +31,29 @@ describe('statementSummary', () => {
       reported: 0,
       month: null,
     });
+  });
+});
+
+describe('statementProblem', () => {
+  const problem = (own) =>
+    statementProblem({
+      card: '4821',
+      source: 'text',
+      file: null,
+      text: '14/10/26 BIT 150.00',
+      total: '150',
+      ...own,
+    });
+
+  it.each([
+    [{}, null],
+    [{ total: '0' }, null],
+    [{ card: null }, 'statement.cardRequired'],
+    [{ text: '  ' }, 'statement.textRequired'],
+    [{ total: '' }, 'statement.totalRequired'],
+    [{ source: 'file' }, 'statement.fileRequired'],
+    [{ source: 'file', file: { name: 'a.xlsx' }, text: '', total: '' }, null],
+  ])('%j → %s', (own, key) => {
+    expect(problem(own)).toBe(key);
   });
 });

@@ -156,7 +156,7 @@ existing kit (`frontend.md`'s "Build for reuse").
 | `EntryDetails` | Screen 3 | `BackButton`, `GlowCard`, `PhotosField`, `ConfirmModal` | U8 |
 | `BackButton` *(shared)* | A screen's back arrow | — | U8 |
 | `CardChips` | Which card the statement is for | `FilterChip`, `CardDigitsField` | U9 |
-| `StatementSource` | Upload file / Paste text, the file card, the paste box, the total | `TabPager`-like pills, `InputField`, `GradientButton` | U9 |
+| `StatementSource` | Upload file / Paste text, the file card, the paste box, the total, Check | `SegmentRow`, `GlowCard`, `InputField`, `GradientButton`, `Alert` | U9 |
 | `StatementProgress` | "Reading your statement…" and its steps | `GlowCard` | U10 |
 | `StatementError` | One error, in plain words, with what to do | `Alert` | U10 |
 | `MatchQuestion` | "Is this yours?" with Yes / The other one / Neither | `GlowCard`, `GradientButton` | U11 |
@@ -675,9 +675,13 @@ what an entry was matched by removes the match (`editedEntry`, tested; README §
 - [x] **U9.1 `CardChips`** — the cards seen in entries, "+ Another card".
   *Done 2026-11-24:* one row, scrolls sideways; "+ Another card" opens the digits field, the 4th digit picks the card
   as a chip and closes it, with the keyboard. In Storybook on the phone, English and Hebrew. 553 tests.
-- [ ] **U9.2 `StatementSource`** — "Upload file" / "Paste text"; the file card ("Download the
+- [x] **U9.2 `StatementSource`** — "Upload file" / "Paste text"; the file card ("Download the
   month's statement from MAX's website as Excel…", Choose file…); the paste box (monospace,
   Hebrew right-to-left lines) and the "Statement total" field; Check statement.
+  *Done 2026-11-24:* Check stays above the keyboard and says what's missing (`statementProblem`, tested); switching
+  keeps both sides; Choose file… is a handler until L6. In Storybook on the phone, English and Hebrew: each pasted
+  line takes its own direction; found there, a keyboard already open as it mounts sends no event (measured too).
+  564 tests.
 - [ ] **U9.3 Screen 4 assembled**, reached from the Monthly check pill.
 
 **Try it:** switch between upload and paste; paste a Hebrew block — it reads right; the keyboard
