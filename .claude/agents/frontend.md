@@ -158,7 +158,8 @@ feature's `components/` (listed under `composite/` below with its feature):
   `onChange`), `PaidWithPicker` (from `SegmentRow` — Card / Bit / PayBox / Cash / Transfer; names from
   `format.js`'s `paidWithName`; `value`, `onChange`, `options`), `CardDigitsField` (from `InputField`, `PillButton`
   — the card's last 4 digits, kept through `typedCardDigits`, and the cards used as pills that fill them in,
-  the last one first, one row scrolling sideways; `value`, `onChange`, `cards`, `onFocus`, `onBlur`), `CategoryChips` (from `FilterChip` — the sheet's categories, any number selected; past two lines
+  the last one first, one row scrolling sideways; `value`, `onChange`, `cards`, `onFocus`, `onBlur`, `autoFocus`), `CardChips` (from `FilterChip`, `CardDigitsField` — screen 4's card row and
+  "+ Another card"; `cards` `[{ last4, issuer }]`, `value`, `onChange(last4)`), `CategoryChips` (from `FilterChip` — the sheet's categories, any number selected; past two lines
   "More…" / "Less", which ones fit measured by `chips.js`'s `chipsThatFit`, the
   selected ones always showing; `categories`, `selectedIds`, `onChange(ids)`,
   `defaultOpen`), `AmountInput` (the

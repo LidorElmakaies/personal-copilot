@@ -155,7 +155,7 @@ existing kit (`frontend.md`'s "Build for reuse").
 | `PhotoViewer` *(shared)* | The gallery: full-screen photos, thumbnails, delete | `PhotoPager`, `ConfirmModal` | U7, U8 |
 | `EntryDetails` | Screen 3 | `BackButton`, `GlowCard`, `PhotosField`, `ConfirmModal` | U8 |
 | `BackButton` *(shared)* | A screen's back arrow | — | U8 |
-| `CardChips` | Which card the statement is for | `PillButton` | U9 |
+| `CardChips` | Which card the statement is for | `FilterChip`, `CardDigitsField` | U9 |
 | `StatementSource` | Upload file / Paste text, the file card, the paste box, the total | `TabPager`-like pills, `InputField`, `GradientButton` | U9 |
 | `StatementProgress` | "Reading your statement…" and its steps | `GlowCard` | U10 |
 | `StatementError` | One error, in plain words, with what to do | `Alert` | U10 |
@@ -672,7 +672,9 @@ what an entry was matched by removes the match (`editedEntry`, tested; README §
 
 ## Stage U9: the monthly check — `CardChips`, `StatementSource` (screen 4)
 
-- [ ] **U9.1 `CardChips`** — the cards seen in entries, "+ Another card".
+- [x] **U9.1 `CardChips`** — the cards seen in entries, "+ Another card".
+  *Done 2026-11-24:* one row, scrolls sideways; "+ Another card" opens the digits field, the 4th digit picks the card
+  as a chip and closes it, with the keyboard. In Storybook on the phone, English and Hebrew. 553 tests.
 - [ ] **U9.2 `StatementSource`** — "Upload file" / "Paste text"; the file card ("Download the
   month's statement from MAX's website as Excel…", Choose file…); the paste box (monospace,
   Hebrew right-to-left lines) and the "Statement total" field; Check statement.

@@ -40,6 +40,12 @@ export const pickExamplePhotos = (source) =>
     return { ...example, id: `picked-${picked}` };
   });
 
+// The same cards for the monthly check, with the issuer where the settings know it.
+export const STATEMENT_CARDS = CARDS.map((last4) => ({
+  last4,
+  issuer: FINANCE_SETTINGS.cards.find((c) => c.cardLast4 === last4)?.issuer,
+}));
+
 const lineOf = new Map(
   STATEMENT_LINES.filter((l) => l.entryId).map((l) => [l.entryId, l]),
 );

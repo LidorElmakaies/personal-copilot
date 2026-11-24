@@ -235,6 +235,8 @@ export default {
   'finance.receivedWithTitle': 'Received with',
   'finance.amountRequired': 'Enter an amount',
   'finance.cardDigitsRequired': "Enter the card's last 4 digits",
+  'finance.anotherCard': '+ Another card',
+  'finance.issuerCard': '{issuer} ••{last4}',
   'finance.cardDigits': "Card's last 4 digits",
   'finance.date': 'Date',
   'finance.category': 'Category',

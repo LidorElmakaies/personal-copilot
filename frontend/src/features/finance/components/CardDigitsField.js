@@ -6,13 +6,14 @@ import { typedCardDigits } from '../utils/format';
 
 // The add sheet's card (screen 2, only when paid with Card): its last 4 digits, and under it the cards
 // used, the last one first, each a pill that fills them in — one row that scrolls sideways. `value`,
-// `onChange(digits)`, `cards` (their digits; no row without any), `onFocus`/`onBlur` of the field.
+// `onChange(digits)`, `cards` (their digits; no row without any), `onFocus`/`onBlur`/`autoFocus` of the field.
 export default function CardDigitsField({
   value,
   onChange,
   cards = [],
   onFocus,
   onBlur,
+  autoFocus,
 }) {
   const translate = useTranslate();
   return (
@@ -25,6 +26,7 @@ export default function CardDigitsField({
         keyboardType="number-pad"
         onFocus={onFocus}
         onBlur={onBlur}
+        autoFocus={autoFocus}
         inputStyle={styles.input}
         testID="card-digits"
       />

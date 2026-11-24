@@ -232,6 +232,8 @@ export default {
   'finance.receivedWithTitle': 'איך קיבלת?',
   'finance.amountRequired': 'צריך להזין סכום',
   'finance.cardDigitsRequired': 'צריך להזין 4 ספרות אחרונות של הכרטיס',
+  'finance.anotherCard': '+ כרטיס אחר',
+  'finance.issuerCard': '⁦{issuer} ••{last4}⁩',
   'finance.cardDigits': '4 ספרות אחרונות של הכרטיס',
   'finance.date': 'תאריך',
   'finance.category': 'קטגוריה',

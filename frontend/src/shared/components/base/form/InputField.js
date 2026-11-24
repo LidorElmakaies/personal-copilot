@@ -33,6 +33,7 @@ export default function InputField({
   inputStyle,
   onFocus,
   onBlur,
+  autoFocus,
   testID,
 }) {
   const { colors } = useAppTheme();
@@ -75,6 +76,7 @@ export default function InputField({
       ) : null}
       <View style={styles.inputRow}>
         <TextInput
+          autoFocus={autoFocus}
           testID={testID}
           value={value}
           onChangeText={onChangeText}
