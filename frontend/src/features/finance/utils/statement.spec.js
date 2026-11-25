@@ -1,6 +1,8 @@
 import { translateIn } from '../../../shared/i18n/translate';
 import { STATEMENT_ERRORS, STATEMENT_LINES } from '../mocks';
 import {
+  answerLine,
+  chargeEntry,
   confirmLine,
   matchText,
   rejectLine,
@@ -128,6 +130,42 @@ describe('confirmLine and rejectLine', () => {
     const [one, two] = rejectLine(lines, '1');
     expect(one).toMatchObject({ matchStatus: 'unmatched', suggestion: null });
     expect(two).toBe(lines[1]);
+  });
+});
+
+describe('answerLine and chargeEntry', () => {
+  it('an answered line is no longer to answer', () => {
+    const lines = STATEMENT_LINES.filter((l) => l.matchStatus === 'unmatched');
+    expect(statementSummary(answerLine(lines, lines[0].id)).toAnswer).toBe(4);
+  });
+
+  const charge = (merchantRaw, amountAgorot = 8000) =>
+    chargeEntry(
+      { merchantRaw, amountAgorot, occurredOn: '2026-10-09' },
+      '4821',
+    );
+
+  it.each([
+    ['BIT', 'bit', null],
+    ['ביט העברה', 'bit', null],
+    ['PAYBOX', 'paybox', null],
+    ['BITTON BAKERY', 'card', '4821'],
+    ['NETFLIX.COM', 'card', '4821'],
+  ])('%s is paid with %s', (shop, paidWith, cardLast4) => {
+    expect(charge(shop)).toEqual({
+      amountAgorot: 8000,
+      direction: 'expense',
+      paidWith,
+      cardLast4,
+      occurredOn: '2026-10-09',
+    });
+  });
+
+  it('a negative line is a refund', () => {
+    expect(charge('KSP', -8000)).toMatchObject({
+      amountAgorot: 8000,
+      direction: 'refund',
+    });
   });
 });
 

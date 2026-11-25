@@ -740,13 +740,16 @@ reach: added (artboard 5, README §2, §3.3, §6; L6.2, B10.1).
 **Try it:** answer each kind of question; every row variant in its story; a list of 30.
 **Docs:** `frontend.md` (`MatchQuestion`, `UnreportedRow`).
 **Feedback questions:** Is it obvious why each charge is on the list?
-**Feedback:** —
+**Feedback:** 2026-11-25 — clear, "the feature looks good".
 
 ## Stage U12: the answer sheet and `MonthClosed` (screens 7, 8)
 
-- [ ] **U12.1 `ChargeSummary`** — the line on top: shop, amount, date, "from the statement".
-- [ ] **U12.2 Answer mode of `QuickAddSheet`** — `ChargeSummary` instead of the amount and paid
+- [x] **U12.1 `ChargeSummary`** — the line on top: shop, amount, date, "from the statement".
+- [x] **U12.2 Answer mode of `QuickAddSheet`** — `ChargeSummary` instead of the amount and paid
   with; "1 of 5"; Skip for now; Save · next moves to the next charge.
+  *Done 2026-11-25 (both):* a row answers from it on and around, a skipped one stays on the list; the last one's button
+  is Save. How it was paid comes from the shop (`chargeEntry`, tested). A category and what for are
+  required (asked the same day; the add sheet's what for stays optional). In the dev build, Hebrew, dark: saved, skipped, the missing category.
 - [ ] **U12.3 `MonthClosed`** — after the last one; Back to Finance.
 
 **Try it:** answer all 5 example charges in a row; skip one and come back; reach "October is

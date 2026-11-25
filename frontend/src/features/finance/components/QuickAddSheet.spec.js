@@ -82,6 +82,51 @@ describe('QuickAddSheet', () => {
     expect(onSave.mock.calls[0][0].categoryId).toBe(CATEGORIES[1].id);
   });
 
+  const line = {
+    id: 'line-1',
+    merchantRaw: 'BIT',
+    occurredOn: '2026-10-09',
+    amountAgorot: 8000,
+  };
+  const charge = { line, cardLast4: '4821', n: 1, total: 2 };
+
+  it('answering a charge asks only what it was for, then goes on without closing', async () => {
+    const onSave = jest.fn();
+    const onClose = await renderSheet({ charge, onSave });
+    expect(screen.getByText('1 of 2')).toBeTruthy();
+    expect(screen.getByText('BIT')).toBeTruthy();
+    expect(screen.getByText('₪80')).toBeTruthy();
+    expect(screen.queryByTestId('amount-input')).toBeNull();
+    expect(screen.queryByTestId('paid-with-card')).toBeNull();
+    await fireEvent.press(screen.getByText('Save · next'));
+    expect(screen.getByText('Say what it was for')).toBeTruthy();
+    await fireEvent.changeText(
+      screen.getByTestId('quick-add-description'),
+      'Gift for Noa',
+    );
+    expect(screen.getByText('Choose a category')).toBeTruthy();
+    await fireEvent.press(screen.getByText(CATEGORIES[0].name));
+    await fireEvent.press(screen.getByText('Save · next'));
+    expect(onSave.mock.calls[0][0]).toEqual({
+      amountAgorot: 8000,
+      description: 'Gift for Noa',
+      categoryId: CATEGORIES[0].id,
+      direction: 'expense',
+      paidWith: 'bit',
+      cardLast4: null,
+      occurredOn: '2026-10-09',
+    });
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('the last charge just saves; Skip skips', async () => {
+    const onSkip = jest.fn();
+    await renderSheet({ charge: { ...charge, n: 2 }, onSkip });
+    expect(screen.getByText('Save')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('charge-skip'));
+    expect(onSkip).toHaveBeenCalledTimes(1);
+  });
+
   it('money received has no card', async () => {
     const onClose = await renderSheet();
     await fireEvent.press(screen.getByTestId('direction-income'));

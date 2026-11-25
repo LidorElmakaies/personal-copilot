@@ -13,26 +13,41 @@ import { count } from '../../../shared/i18n/format';
 import { usePlainInHebrew, useTranslate } from '../../../shared/i18n/translate';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
 import MatchQuestion from '../components/MatchQuestion';
+import QuickAddSheet from '../components/QuickAddSheet';
 import UnreportedRow from '../components/UnreportedRow';
 import {
+  CARDS,
+  CATEGORIES,
   FINANCE_SETTINGS,
   OCTOBER_ENTRIES,
+  pickExamplePhotos,
   STATEMENT,
   STATEMENT_LINES,
+  TODAY,
 } from '../mocks';
-import { confirmLine, rejectLine, statementSummary } from '../utils/statement';
+import { categoriesBySpending, categoryTotals } from '../utils/spending';
+import {
+  answerLine,
+  confirmLine,
+  rejectLine,
+  statementSummary,
+} from '../utils/statement';
 
 const layout = LinearTransition.duration(220);
 const fadeIn = FadeIn.duration(220);
 const fadeOut = FadeOut.duration(150);
+const ordered = categoriesBySpending(
+  CATEGORIES,
+  categoryTotals(OCTOBER_ENTRIES, CATEGORIES),
+);
 const entryOf = new Map(OCTOBER_ENTRIES.map((e) => [e.id, e]));
 const { issuer } = FINANCE_SETTINGS.cards.find(
   (c) => c.cardLast4 === STATEMENT.cardLast4,
 );
 
 // Screen 6, the statement's review — opened from `ReviewBanner`, and by screen 5 when it's read: the
-// charges to confirm, then those not reported (Phase U: example lines, answered here only; a row opens its answer
-// in U12). Yes counts the charge as reported; Neither moves it to the list. `initialLines` for the stories.
+// charges to confirm, then those not reported (Phase U: example lines, answered here only). A row opens its
+// answer (screen 7), then the rest of the list one after another, from it and around; closing stops. Yes counts the charge as reported; Neither moves it to the list. `initialLines` for the stories.
 export default function StatementReviewScreen({
   initialLines = STATEMENT_LINES,
 }) {
@@ -43,6 +58,24 @@ export default function StatementReviewScreen({
   const { month, reported } = statementSummary(lines);
   const questions = lines.filter((l) => l.matchStatus === 'suggested');
   const unreported = lines.filter((l) => l.matchStatus === 'unmatched');
+
+  // The charges being answered (their lines) and which one it's at; null: the sheet is closed.
+  const [answering, setAnswering] = useState(null);
+  const open = (i) =>
+    setAnswering({
+      queue: [...unreported.slice(i), ...unreported.slice(0, i)],
+      at: 0,
+    });
+  const next = () =>
+    setAnswering(({ queue, at }) =>
+      at + 1 < queue.length ? { queue, at: at + 1 } : null,
+    );
+  const charge = answering && {
+    line: answering.queue[answering.at],
+    cardLast4: STATEMENT.cardLast4,
+    n: answering.at + 1,
+    total: answering.queue.length,
+  };
 
   const heading = (key, n) => (
     <Animated.Text
@@ -121,13 +154,27 @@ export default function StatementReviewScreen({
                       ]}
                     />
                   )}
-                  <UnreportedRow line={line} />
+                  <UnreportedRow line={line} onPress={() => open(i)} />
                 </Animated.View>
               ))}
             </GlowCard>
           </Animated.View>
         )}
       </ScrollView>
+      <QuickAddSheet
+        visible={!!charge}
+        onClose={() => setAnswering(null)}
+        charge={charge}
+        categories={ordered}
+        cards={CARDS}
+        today={TODAY}
+        pickPhotos={pickExamplePhotos}
+        onSkip={next}
+        onSave={() => {
+          setLines(answerLine(lines, charge.line.id));
+          next();
+        }}
+      />
     </AmbientBackground>
   );
 }

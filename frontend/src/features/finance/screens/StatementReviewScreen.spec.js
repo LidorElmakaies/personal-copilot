@@ -37,6 +37,21 @@ jest.mock('../../../shared/components/base/layout/GlowCard', () => {
   return ({ children }) => <View>{children}</View>;
 });
 
+// It has its own spec: here, which charge it's on and its two ways on.
+jest.mock('../components/QuickAddSheet', () => {
+  const { Text, View } = jest.requireActual('react-native');
+  return ({ charge, onSave, onSkip }) =>
+    charge ? (
+      <View>
+        <Text testID="answering">
+          {`${charge.n}/${charge.total} ${charge.line.merchantRaw}`}
+        </Text>
+        <Text testID="answer-save" onPress={() => onSave({}, [])} />
+        <Text testID="answer-skip" onPress={onSkip} />
+      </View>
+    ) : null;
+});
+
 async function renderScreen() {
   const store = configureStore({ reducer: { language: languageReducer } });
   store.dispatch(setLanguage('en'));
@@ -65,6 +80,24 @@ describe('StatementReviewScreen', () => {
     expect(screen.getByText(/37 already reported/)).toBeTruthy();
     expect(screen.queryByText(/Is this yours/)).toBeNull();
     expect(rows()).toBe(5);
+  });
+
+  it('a row answers from it on and around; skipped ones stay', async () => {
+    await renderScreen();
+    const at = () => screen.queryByTestId('answering')?.props.children;
+    const press = (id) => fireEvent.press(screen.getByTestId(id));
+    await fireEvent.press(screen.getAllByTestId(/^unreported-/)[3]);
+    expect(at()).toBe('1/5 KSP');
+    await press('answer-save');
+    expect(at()).toBe('2/5 AMAZON');
+    expect(rows()).toBe(4);
+    await press('answer-skip');
+    expect(at()).toBe('3/5 שופרסל דיל');
+    for (let i = 0; i < 3; i += 1) await press('answer-save');
+    expect(at()).toBeUndefined();
+    expect(screen.getByText('Not reported · 1')).toBeTruthy();
+    await fireEvent.press(screen.getAllByTestId(/^unreported-/)[0]);
+    expect(at()).toBe('1/1 AMAZON');
   });
 
   it('Neither moves it to the list', async () => {

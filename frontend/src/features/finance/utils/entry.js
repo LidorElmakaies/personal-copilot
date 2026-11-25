@@ -55,9 +55,19 @@ export function editedEntry(entry, fields) {
 }
 
 // Why the add sheet can't be saved yet — a dictionary key — or null: no amount (or ₪0), no
-// category, a card without its 4 digits. `amount` and `cardDigits` as typed. A future day can't be picked.
-export function entryProblem({ amount, categoryId, paidWith, cardDigits }) {
+// "what for" (only `descriptionRequired`: a statement's charge), no category, a card without its 4 digits. `amount` and `cardDigits` as typed. A future day can't be picked.
+export function entryProblem({
+  amount,
+  description = '',
+  descriptionRequired = false,
+  categoryId,
+  paidWith,
+  cardDigits,
+}) {
   if (!parseShekels(amount)) return 'finance.amountRequired';
+  if (descriptionRequired && !description.trim()) {
+    return 'finance.whatForRequired';
+  }
   if (!categoryId) return 'finance.categoryRequired';
   if (paidWith === 'card' && cardDigits.length !== 4) {
     return 'finance.cardDigitsRequired';

@@ -104,8 +104,8 @@ export function formatForeign(currency, amount) {
   return `\u2066${symbol ? symbol + number : `${number} ${currency}`}\u2069`;
 }
 
-// A statement line's details: "Oct 17 · payment 1 of 12", "Oct 22 · $24.99", "Oct 3 · refund".
-export function chargeDetails(translate, line) {
+// A statement line's details: "Oct 17 · payment 1 of 12", "Oct 22 · $24.99", "Oct 3 · refund"; `last` ends it.
+export function chargeDetails(translate, line, last) {
   const parts = [
     dayMonth(translate, line.occurredOn),
     line.amountAgorot < 0 && translate('charge.refund'),
@@ -116,6 +116,7 @@ export function chargeDetails(translate, line) {
       }),
     line.originalCurrency &&
       formatForeign(line.originalCurrency, line.originalAmount),
+    last,
   ];
   return translate('finance.details', {
     details: parts.filter(Boolean).join(' · '),

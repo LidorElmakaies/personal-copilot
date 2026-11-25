@@ -4,6 +4,7 @@ import {
   EXAMPLE_PHOTOS,
   OCTOBER_ENTRIES,
   pickExamplePhotos,
+  STATEMENT_LINES,
   TODAY,
 } from '../mocks';
 import QuickAddSheet from './QuickAddSheet';
@@ -34,6 +35,23 @@ export const ManyCategories = {
       })),
     ],
   },
+};
+// Screen 7: a statement's charge.
+const answering = {
+  charge: {
+    line: STATEMENT_LINES.find((l) => l.amountAgorot === 8000),
+    cardLast4: '4821',
+    n: 1,
+    total: 5,
+  },
+};
+export const Answer = { args: answering };
+export const AnswerLast = {
+  args: { charge: { ...answering.charge, n: 5 } },
+};
+export const HebrewAnswer = {
+  parameters: { language: 'he' },
+  args: answering,
 };
 // Edit: filled in, the keyboard closed.
 const editing = {

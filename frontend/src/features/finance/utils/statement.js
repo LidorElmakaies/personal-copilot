@@ -47,6 +47,28 @@ export const confirmLine = (lines, id, entryId) =>
 export const rejectLine = (lines, id) =>
   lines.map((l) => (l.id === id ? unreported(l) : l));
 
+// An answered line: an entry was made of it.
+export const answerLine = (lines, id) =>
+  lines.map((l) => (l.id === id ? { ...l, matchStatus: 'answered' } : l));
+
+// The entry a charge becomes, but for what it was for and its category: how it was paid from the shop
+// (README §4), else the statement's card; a refund (a negative line) is one.
+export function chargeEntry(line, cardLast4) {
+  const shop = line.merchantRaw.trim();
+  const paidWith = /^(bit|ביט)(\s|$)/i.test(shop)
+    ? 'bit'
+    : /^paybox(\s|$)/i.test(shop)
+      ? 'paybox'
+      : 'card';
+  return {
+    amountAgorot: Math.abs(line.amountAgorot),
+    direction: line.amountAgorot < 0 ? 'refund' : 'expense',
+    paidWith,
+    cardLast4: paidWith === 'card' ? cardLast4 : null,
+    occurredOn: line.occurredOn,
+  };
+}
+
 const unreported = (line) => ({
   ...line,
   matchStatus: 'unmatched',

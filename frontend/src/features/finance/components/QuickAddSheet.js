@@ -21,9 +21,11 @@ import {
   RECEIVED_WITH,
 } from '../utils/entry';
 import { typedDescription } from '../utils/format';
+import { chargeEntry } from '../utils/statement';
 import AmountInput from './AmountInput';
 import CardDigitsField from './CardDigitsField';
 import CategoryChips from './CategoryChips';
+import ChargeSummary from './ChargeSummary';
 import DateField from './DateField';
 import DayPicker from './DayPicker';
 import DirectionPicker from './DirectionPicker';
@@ -34,6 +36,9 @@ import PhotosField from './PhotosField';
 // amount, what it was for, its category, how it was paid (Card to start, with the card's digits), its photos and Save. Save says what's missing (`entryProblem`),
 // or calls `onSave(fields, photos)` — an entry's own fields — and closes. Money received has no card. Starts
 // empty each time it opens, or from `entry` and its `entryPhotos` to edit it ("Edit entry", the keyboard closed).
+// `charge` `{ line, cardLast4, n, total }` answers a statement's charge instead (screen 7): "1 of 5" and Skip for now
+// (`onSkip`) on top, the charge in place of the amount, the day and how it was paid, and Save · next, which
+// doesn't close: the next `charge` starts empty.
 // `categories` (in the chips' order), one picked, required; `cards` (those used, the last one first), `today`
 // (YYYY-MM-DD), `pickPhotos` (PhotosField's); `visible`, `onClose`. Nothing closes the keyboard but a tap on an empty spot (the title,
 // the body, the backdrop) or Back.
@@ -46,12 +51,17 @@ export default function QuickAddSheet({
   pickPhotos,
   entry,
   entryPhotos,
+  charge,
+  onSkip,
   onSave,
 }) {
   return (
     <BottomSheet visible={visible} onClose={onClose} dragFromHandle>
       {visible && (
         <QuickAddForm
+          key={charge?.line.id}
+          charge={charge}
+          onSkip={onSkip}
           categories={categories}
           cards={cards}
           today={today}
@@ -60,7 +70,7 @@ export default function QuickAddSheet({
           entryPhotos={entryPhotos}
           onSave={(fields, photos) => {
             onSave?.(fields, photos);
-            onClose();
+            if (!charge) onClose();
           }}
         />
       )}
@@ -75,13 +85,20 @@ function QuickAddForm({
   pickPhotos,
   entry,
   entryPhotos = [],
+  charge,
+  onSkip,
   onSave,
 }) {
   const { colors } = useAppTheme();
   const translate = useTranslate();
   const plain = usePlainInHebrew();
   const { height } = useWindowDimensions();
-  const [start] = useState(() => entryDraft(entry, today));
+  const [start] = useState(() =>
+    entryDraft(
+      charge ? chargeEntry(charge.line, charge.cardLast4) : entry,
+      today,
+    ),
+  );
   const [amount, setAmount] = useState(start.amount);
   const [description, setDescription] = useState(start.description);
   const [categoryId, setCategoryId] = useState(start.categoryId);
@@ -97,6 +114,8 @@ function QuickAddForm({
   const received = direction === 'income';
   const problem = entryProblem({
     amount,
+    description,
+    descriptionRequired: !!charge,
     categoryId,
     paidWith: received ? receivedWith : paidWith,
     cardDigits,
@@ -135,10 +154,33 @@ function QuickAddForm({
         accessible={false}
         style={styles.header}
       >
-        <Text style={[styles.title, { color: colors.text }]}>
-          {translate(entry ? 'finance.editEntry' : 'finance.newEntry')}
-        </Text>
-        <DateField value={date} today={today} onPress={toggleDays} />
+        {charge ? (
+          <>
+            <Text style={[styles.label, plain, { color: colors.textMuted }]}>
+              {translate('charge.position', {
+                n: charge.n,
+                total: charge.total,
+              })}
+            </Text>
+            <Pressable
+              onPress={onSkip}
+              accessibilityRole="button"
+              testID="charge-skip"
+              style={({ pressed }) => [styles.skip, pressed && styles.pressed]}
+            >
+              <Text style={[styles.skipText, { color: colors.textMuted }]}>
+                {translate('charge.skip')}
+              </Text>
+            </Pressable>
+          </>
+        ) : (
+          <>
+            <Text style={[styles.title, { color: colors.text }]}>
+              {translate(entry ? 'finance.editEntry' : 'finance.newEntry')}
+            </Text>
+            <DateField value={date} today={today} onPress={toggleDays} />
+          </>
+        )}
       </Pressable>
       {/* Scrolls: under the keyboard (BottomSheet shrinks it) and past 60% of the screen. */}
       <ScrollView
@@ -169,13 +211,19 @@ function QuickAddForm({
             }}
           />
         )}
-        <DirectionPicker value={direction} onChange={setDirection} />
-        <AmountInput
-          value={amount}
-          onChangeText={setAmount}
-          autoFocus={!entry}
-          received={received}
-        />
+        {charge ? (
+          <ChargeSummary line={charge.line} />
+        ) : (
+          <>
+            <DirectionPicker value={direction} onChange={setDirection} />
+            <AmountInput
+              value={amount}
+              onChangeText={setAmount}
+              autoFocus={!entry}
+              received={received}
+            />
+          </>
+        )}
         <InputField
           label={translate('finance.whatFor')}
           value={description}
@@ -196,23 +244,27 @@ function QuickAddForm({
             onChange={setCategoryId}
           />
         </View>
-        <View style={styles.section}>
-          <Text style={[styles.label, plain, { color: colors.textMuted }]}>
-            {translate(
-              received ? 'finance.receivedWithTitle' : 'finance.paidWithTitle',
+        {!charge && (
+          <View style={styles.section}>
+            <Text style={[styles.label, plain, { color: colors.textMuted }]}>
+              {translate(
+                received
+                  ? 'finance.receivedWithTitle'
+                  : 'finance.paidWithTitle',
+              )}
+            </Text>
+            {received ? (
+              <PaidWithPicker
+                value={receivedWith}
+                onChange={setReceivedWith}
+                options={RECEIVED_WITH}
+              />
+            ) : (
+              <PaidWithPicker value={paidWith} onChange={setPaidWith} />
             )}
-          </Text>
-          {received ? (
-            <PaidWithPicker
-              value={receivedWith}
-              onChange={setReceivedWith}
-              options={RECEIVED_WITH}
-            />
-          ) : (
-            <PaidWithPicker value={paidWith} onChange={setPaidWith} />
-          )}
-        </View>
-        {!received && paidWith === 'card' && (
+          </View>
+        )}
+        {!charge && !received && paidWith === 'card' && (
           <View
             onLayout={(e) => {
               cardTop.current = e.nativeEvent.layout.y;
@@ -246,7 +298,9 @@ function QuickAddForm({
         </View>
       )}
       <GradientButton
-        label={translate('common.save')}
+        label={translate(
+          charge && charge.n < charge.total ? 'charge.saveNext' : 'common.save',
+        )}
         onPress={save}
         testID="quick-add-save"
       />
@@ -262,6 +316,9 @@ const styles = StyleSheet.create({
     minHeight: 44,
   },
   title: { fontSize: 18, fontWeight: '600' },
+  skip: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 4 },
+  skipText: { fontSize: 13 },
+  pressed: { opacity: 0.6 },
   body: { flexShrink: 1 },
   bodyContent: { gap: 14 },
   section: { gap: 6 },

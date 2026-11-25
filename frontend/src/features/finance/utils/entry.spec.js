@@ -36,6 +36,17 @@ describe('entryProblem', () => {
     expect(problem({ paidWith: 'cash', cardDigits: '48' })).toBeNull();
   });
 
+  it('needs what it was for only when told, before the category', () => {
+    expect(problem({ description: '' })).toBeNull();
+    const charge = { descriptionRequired: true, categoryId: null };
+    expect(problem({ ...charge, description: '  ' })).toBe(
+      'finance.whatForRequired',
+    );
+    expect(problem({ ...charge, description: 'Gift' })).toBe(
+      'finance.categoryRequired',
+    );
+  });
+
   it('needs a category', () => {
     expect(problem({ categoryId: null })).toBe('finance.categoryRequired');
   });

@@ -18,6 +18,7 @@ const [nodeModules, ...otherIgnores] = expoPreset.transformIgnorePatterns;
 module.exports = {
   preset: 'jest-expo',
   roots: ['<rootDir>/src'], // not app/ (routes)
+  testTimeout: 20000, // a file's first test compiles what it renders: over 5 s with an empty cache
   testRegex: '\\.spec\\.[jt]s$',
   transformIgnorePatterns: [
     nodeModules.replace('(?!(', `(?!(${esmOnly.join('|')}|`),
