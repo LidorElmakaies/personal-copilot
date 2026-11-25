@@ -1,6 +1,7 @@
 import { translateIn } from '../../../shared/i18n/translate';
 import { STATEMENT_ERRORS, STATEMENT_LINES } from '../mocks';
 import {
+  matchText,
   statementErrorText,
   statementProblem,
   statementSteps,
@@ -58,6 +59,47 @@ describe('statementErrorText', () => {
       expect(say(error).title).toBe('Something went wrong');
     },
   );
+});
+
+describe('matchText', () => {
+  const entries = ['Dinner', 'Pizza', 'מתנה'].map((description, i) => ({
+    description,
+    occurredOn: `2026-10-${12 + i}`,
+  }));
+  const say = (n, shown, language = 'en') =>
+    matchText(
+      (k, v) => translateIn(language, k, v),
+      entries.slice(0, n),
+      shown,
+    );
+  const text = (parts) =>
+    parts
+      .map((p) => p.text)
+      .join('')
+      .replace(/[\u2066-\u2069\u200e\u200f]/g, '');
+
+  it('says how many match and the likeliest', () => {
+    expect(text(say(1, 0))).toBe(
+      'One of your entries matches: Dinner (Oct 12).',
+    );
+    expect(text(say(2, 0))).toBe(
+      'Two of your entries match. Most likely: Dinner (Oct 12).',
+    );
+    expect(text(say(3, 0))).toBe(
+      '3 of your entries match. Most likely: Dinner (Oct 12).',
+    );
+  });
+
+  it('then the others', () => {
+    expect(text(say(2, 1))).toBe('Or: Pizza (Oct 13).');
+    expect(text(say(3, 2, 'he'))).toContain('מתנה');
+  });
+
+  it('only the entry is bold', () => {
+    expect(say(2, 0).filter((p) => p.bold)).toEqual([
+      { text: '\u2068Dinner\u2069', bold: true },
+    ]);
+  });
 });
 
 describe('statementSummary', () => {

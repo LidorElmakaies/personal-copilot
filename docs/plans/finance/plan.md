@@ -721,8 +721,12 @@ reach: added (artboard 5, README §2, §3.3, §6; L6.2, B10.1).
 
 ## Stage U11: the review list — `MatchQuestion`, `UnreportedRow` (screen 6)
 
-- [ ] **U11.1 `MatchQuestion`** — the charge, "Two of your entries match. Most likely: …", Yes /
+- [x] **U11.1 `MatchQuestion`** — the charge, "Two of your entries match. Most likely: …", Yes /
   The other one / Neither ("The other one" shows the second entry).
+  *Done 2026-11-25:* "The other one" shows the next entry and Yes is for the one shown; three or more: "Another one" /
+  "None"; one: Yes / No. Words from `matchText` (tested); `BoldText` shared with `StatementError`. In Storybook on the
+  phone, dark, English and Hebrew. 594 tests. *Feedback the same day:* the filled Yes was biased — each answer has its
+  own color at the same strength (green, cyan, red; artboard 6).
 - [ ] **U11.2 `UnreportedRow`** — shop (Hebrew right-to-left), date, installment "payment 1 of 12", foreign amount "$24.99", the amount.
 - [ ] **U11.3 Screen 6** — header "October · MAX ••4821 · 42 lines · 36 already reported ✓", the
   question cards, the "Not reported" list; answering a question removes its card (animated).

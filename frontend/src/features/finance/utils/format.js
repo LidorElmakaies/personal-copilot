@@ -91,7 +91,14 @@ export function entryDetails(translate, entry, category, day) {
   });
 }
 
-const isolate = (text) => `\u2068${text}\u2069`;
+// The user's own text inside a line, laid out by its own first letter.
+export const isolate = (text) => `\u2068${text}\u2069`;
+
+// A value to show bold inside a translated sentence, and the sentence back in pieces: `[{ text, bold }]`.
+const BOLD = '\u0001';
+export const bold = (text) => BOLD + text + BOLD;
+export const boldParts = (sentence) =>
+  sentence.split(BOLD).map((text, i) => ({ text, bold: i % 2 === 1 }));
 
 // Category names: up to two ("Groceries, תחבורה"), else counted ("3 categories").
 const namesLine = (translate, names) =>

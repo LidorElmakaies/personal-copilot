@@ -1,5 +1,11 @@
-import { count } from '../../../shared/i18n/format';
-import { formatShekels, parseShekels } from './format';
+import { count, dayMonth } from '../../../shared/i18n/format';
+import {
+  bold,
+  boldParts,
+  formatShekels,
+  isolate,
+  parseShekels,
+} from './format';
 
 // What `ReviewBanner` says about a statement's lines (README §5's match_status): still to answer
 // (`unmatched`, `suggested`), already reported (an entry matched it: `auto_matched`, `confirmed`),
@@ -48,18 +54,14 @@ export function statementSteps(status) {
 
 // What `StatementError` says: its title, its text in `parts` (the amounts `bold`), its button, and
 // whether reading the kept statement again can help (`retry`). A code it doesn't know reads as unknown.
-const BOLD = '\u0001';
-
 export function statementErrorText(translate, error, source) {
   const say = (name, text, vars, action = 'startOver') => ({
     retry: error?.code === 'llm_unreachable',
     title: translate(`statementError.${name}`),
-    parts: translate(`statementError.${text}`, vars)
-      .split(BOLD)
-      .map((part, i) => ({ text: part, bold: i % 2 === 1 })),
+    parts: boldParts(translate(`statementError.${text}`, vars)),
     action: translate(`statementError.${action}`),
   });
-  const amount = (agorot) => BOLD + formatShekels(agorot) + BOLD;
+  const amount = (agorot) => bold(formatShekels(agorot));
   switch (error?.code) {
     case 'totals_mismatch':
       return say('totals', source === 'text' ? 'totalsText' : 'totalsFile', {
@@ -75,4 +77,18 @@ export function statementErrorText(translate, error, source) {
     default:
       return say('unknown', 'unknownText');
   }
+}
+
+// `MatchQuestion`'s sentence, in parts, the `shown` entry's "what for" bold: "Two of your entries match.
+// Most likely: Dinner with Dana (Oct 12)." — past the first, "Or: …".
+export function matchText(translate, candidates, shown) {
+  const { description, occurredOn } = candidates[shown];
+  const vars = {
+    n: candidates.length,
+    entry: bold(isolate(description)),
+    day: dayMonth(translate, occurredOn),
+  };
+  if (shown > 0) return boldParts(translate('match.or', vars));
+  const many = ['one', 'two'][candidates.length - 1] ?? 'many';
+  return boldParts(translate(`match.${many}`, vars));
 }
