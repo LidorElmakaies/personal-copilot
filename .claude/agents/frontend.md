@@ -165,7 +165,8 @@ feature's `components/` (listed under `composite/` below with its feature):
   opened from the header's Monthly check pill), `StatementProgress` (from `GlowCard` — screen 5's spinner and ticking steps, from
   `statement.js`'s `statementSteps`; `status`, `source`, `lineCount`, `totalAgorot`), `StatementError` (from `Alert`, `GradientButton` — screen 5 when it failed;
   words from `statement.js`'s `statementErrorText`; `error`, `source`, `onStartOver`, `onRetry` (LLM out of reach only); `StatementReadingScreen` is the root Stack's `app/finance-reading.js`,
-  `?source=`, opened by Check — the example timing in `mocks/`, then the review replaces it; `error`, `onDone`), `MatchQuestion` (from `GlowCard`, `BoldText` — screen 6's
+  `?source=`, opened by Check — the example timing in `mocks/`, then the review replaces it; `error`, `onDone`), `ChargeLine` (a statement line: shop, `format.js`'s `chargeDetails`, amount; `line`),
+  `UnreportedRow` (from `ChargeLine` — screen 6's charge not reported; `line`, `onPress`), `MatchQuestion` (from `GlowCard`, `ChargeLine`, `BoldText` — screen 6's
   "Is this yours?": Yes / The other one, which shows the next candidate / Neither; words from `statement.js`'s `matchText`; `line`,
   `candidates`, `onYes(entryId)`, `onNeither`), `BoldText` (a sentence's `parts` from `format.js`'s `boldParts`), `CategoryChips` (from `FilterChip` — the sheet's categories, one selected; past two lines
   "More…" / "Less", which ones fit measured by `chips.js`'s `chipsThatFit`, the
@@ -204,8 +205,9 @@ feature's `components/` (listed under `composite/` below with its feature):
   `ReviewBanner` (only on the month the statement covers, while it has lines to answer), `ConnectionNotice`,
   `SpentCard`, `EntryList`, the + — and the banner opens `StatementReviewScreen` (screen 6, the root
   Stack's `app/finance-review.js`, `router.push` — the imperative `router`, so Storybook renders the
-  screen without a navigator; only a back arrow and title until U11); `finance/utils/statement.js`'s
-  `statementSummary(lines)` gives the banner's to answer / already reported / month; `finance/utils/filter.js`
+  screen without a navigator: its lines in state, questions and not-reported rows animated with Reanimated layout transitions, a
+  row's answer is U12); `finance/utils/statement.js`'s
+  `statementSummary(lines)` gives the banner's to answer / already reported / month, `confirmLine`/`rejectLine` answer a question; `finance/utils/filter.js`
   holds the list's search, filters and sort (U4b): `filterEntries(entries, filter)` (`NO_FILTER`'s
   shape: `query` in "what for" or the shop, either language, `categoryIds`, `minAgorot`/`maxAgorot`,
   `paidWith`), `sortEntries(entries, sort)` (`newest` | `oldest` | `highest` | `lowest`; `NO_SORT`, null, is newest first), `isByAmount`,

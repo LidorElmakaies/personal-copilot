@@ -1,6 +1,8 @@
 import { translateIn } from '../../../shared/i18n/translate';
 import { NO_FILTER } from './filter';
 import {
+  chargeDetails,
+  formatForeign,
   dayLabel,
   entryDetails,
   filterSummary,
@@ -173,6 +175,40 @@ describe('entryDetails', () => {
     // An English category: still a Hebrew line, starting on the right.
     expect(entryDetails(he, entry('cash'), 'Groceries')).toBe(
       '\u200F\u2068Groceries\u2069 · מזומן',
+    );
+  });
+});
+
+describe('formatForeign', () => {
+  it.each([
+    ['USD', 2499, '$24.99'],
+    ['EUR', 120000, '€1,200.00'],
+    ['CHF', 2499, '24.99 CHF'],
+    ['USD', -500, '$5.00'],
+  ])('%s %i → %s', (currency, amount, text) => {
+    expect(formatForeign(currency, amount)).toBe(`\u2066${text}\u2069`);
+  });
+});
+
+describe('chargeDetails', () => {
+  const details = (own, translate = en) =>
+    chargeDetails(translate, {
+      occurredOn: '2026-10-17',
+      amountAgorot: 30000,
+      ...own,
+    }).replace(/[\u200e\u200f\u2066-\u2069]/g, '');
+
+  it('the day, and what else there is', () => {
+    expect(details({})).toBe('Oct 17');
+    expect(details({ installmentNo: 1, installmentsTotal: 12 })).toBe(
+      'Oct 17 · payment 1 of 12',
+    );
+    expect(details({ originalCurrency: 'USD', originalAmount: 2499 })).toBe(
+      'Oct 17 · $24.99',
+    );
+    expect(details({ amountAgorot: -30000 })).toBe('Oct 17 · refund');
+    expect(details({ installmentNo: 1, installmentsTotal: 12 }, he)).toBe(
+      '17 באוק׳ · תשלום 1 מתוך 12',
     );
   });
 });

@@ -1,28 +1,148 @@
 import { router } from 'expo-router';
-import { StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import Animated, {
+  FadeIn,
+  FadeOut,
+  LinearTransition,
+} from 'react-native-reanimated';
 import BackButton from '../../../shared/components/base/buttons/BackButton';
+import GlowCard from '../../../shared/components/base/layout/GlowCard';
 import AmbientBackground from '../../../shared/components/composite/AmbientBackground';
-import { useTranslate } from '../../../shared/i18n/translate';
+import { count } from '../../../shared/i18n/format';
+import { usePlainInHebrew, useTranslate } from '../../../shared/i18n/translate';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
+import MatchQuestion from '../components/MatchQuestion';
+import UnreportedRow from '../components/UnreportedRow';
+import {
+  FINANCE_SETTINGS,
+  OCTOBER_ENTRIES,
+  STATEMENT,
+  STATEMENT_LINES,
+} from '../mocks';
+import { confirmLine, rejectLine, statementSummary } from '../utils/statement';
 
-// Screen 6, the statement's review — opened from `ReviewBanner`. Only its back arrow and title
-// until U11 fills it. Android's back works too (the root Stack).
-export default function StatementReviewScreen() {
+const layout = LinearTransition.duration(220);
+const fadeIn = FadeIn.duration(220);
+const fadeOut = FadeOut.duration(150);
+const entryOf = new Map(OCTOBER_ENTRIES.map((e) => [e.id, e]));
+const { issuer } = FINANCE_SETTINGS.cards.find(
+  (c) => c.cardLast4 === STATEMENT.cardLast4,
+);
+
+// Screen 6, the statement's review — opened from `ReviewBanner`, and by screen 5 when it's read: the
+// charges to confirm, then those not reported (Phase U: example lines, answered here only; a row opens its answer
+// in U12). Yes counts the charge as reported; Neither moves it to the list. `initialLines` for the stories.
+export default function StatementReviewScreen({
+  initialLines = STATEMENT_LINES,
+}) {
   const { colors } = useAppTheme();
   const translate = useTranslate();
+  const plain = usePlainInHebrew();
+  const [lines, setLines] = useState(initialLines);
+  const { month, reported } = statementSummary(lines);
+  const questions = lines.filter((l) => l.matchStatus === 'suggested');
+  const unreported = lines.filter((l) => l.matchStatus === 'unmatched');
+
+  const heading = (key, n) => (
+    <Animated.Text
+      layout={layout}
+      exiting={fadeOut}
+      style={[styles.heading, plain, { color: colors.textMuted }]}
+    >
+      {translate(key, { n })}
+    </Animated.Text>
+  );
+
   return (
     <AmbientBackground>
-      <View style={styles.container}>
-        <BackButton onPress={() => router.back()} />
-        <Text style={[styles.title, { color: colors.text }]}>
-          {translate('finance.reviewTitle')}
-        </Text>
-      </View>
+      <ScrollView contentContainerStyle={styles.container}>
+        <View style={styles.header}>
+          <BackButton onPress={() => router.back()} />
+          <View style={styles.titles}>
+            <Text style={[styles.title, { color: colors.text }]}>
+              {translate('review.title', {
+                month: translate(`month.${month.month}`),
+                card: translate('finance.issuerCard', {
+                  issuer,
+                  last4: STATEMENT.cardLast4,
+                }),
+              })}
+            </Text>
+            <Text
+              accessibilityLiveRegion="polite"
+              style={[styles.summary, { color: colors.textMuted }]}
+            >
+              {translate('review.summary', {
+                lines: count(translate, 'count.lines', lines.length),
+                reported: count(translate, 'count.alreadyReported', reported),
+              })}
+            </Text>
+          </View>
+        </View>
+        {questions.length > 0 && heading('review.questions', questions.length)}
+        {questions.map((line) => {
+          const { candidateEntryIds } = line.suggestion;
+          return (
+            <Animated.View
+              // Starts over from the likeliest if its candidates change.
+              key={`${line.id}-${candidateEntryIds.length}`}
+              layout={layout}
+              exiting={fadeOut}
+            >
+              <MatchQuestion
+                line={line}
+                candidates={candidateEntryIds.map((id) => entryOf.get(id))}
+                onYes={(entryId) =>
+                  setLines(confirmLine(lines, line.id, entryId))
+                }
+                onNeither={() => setLines(rejectLine(lines, line.id))}
+              />
+            </Animated.View>
+          );
+        })}
+        {unreported.length > 0 &&
+          heading('review.unreported', unreported.length)}
+        {unreported.length > 0 && (
+          <Animated.View layout={layout} entering={fadeIn}>
+            <GlowCard>
+              {unreported.map((line, i) => (
+                <Animated.View
+                  key={line.id}
+                  layout={layout}
+                  entering={fadeIn}
+                  exiting={fadeOut}
+                >
+                  {i > 0 && (
+                    <View
+                      style={[
+                        styles.divider,
+                        { backgroundColor: colors.cardBorderSoft },
+                      ]}
+                    />
+                  )}
+                  <UnreportedRow line={line} />
+                </Animated.View>
+              ))}
+            </GlowCard>
+          </Animated.View>
+        )}
+      </ScrollView>
     </AmbientBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, paddingTop: 64, gap: 12 },
-  title: { fontSize: 26, fontWeight: '600' },
+  container: { padding: 20, paddingTop: 64, paddingBottom: 36, gap: 14 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  titles: { flex: 1, gap: 2 },
+  title: { fontSize: 20, fontWeight: '600' },
+  summary: { fontSize: 12 },
+  heading: {
+    fontSize: 11,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    marginTop: 4,
+  },
+  divider: { height: StyleSheet.hairlineWidth },
 });

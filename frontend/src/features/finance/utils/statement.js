@@ -28,6 +28,31 @@ export function statementSummary(lines) {
   };
 }
 
+// "Yes, that's my entry": the line is reported, and the entry is no other line's candidate — one left with
+// none is simply not reported.
+export const confirmLine = (lines, id, entryId) =>
+  lines.map((l) => {
+    if (l.id === id) {
+      return { ...l, matchStatus: 'confirmed', entryId, suggestion: null };
+    }
+    const ids = l.suggestion?.candidateEntryIds;
+    if (!ids?.includes(entryId)) return l;
+    const left = ids.filter((c) => c !== entryId);
+    return left.length
+      ? { ...l, suggestion: { ...l.suggestion, candidateEntryIds: left } }
+      : unreported(l);
+  });
+
+// "Neither": the line isn't reported.
+export const rejectLine = (lines, id) =>
+  lines.map((l) => (l.id === id ? unreported(l) : l));
+
+const unreported = (line) => ({
+  ...line,
+  matchStatus: 'unmatched',
+  suggestion: null,
+});
+
 // Why a statement can't be checked yet — a dictionary key — or null: no card, no file, or no text or
 // total (as typed; ₪0 is one: a month of refunds can come to it).
 export function statementProblem({ card, source, file, text, total }) {

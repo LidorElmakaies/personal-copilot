@@ -727,9 +727,15 @@ reach: added (artboard 5, README §2, §3.3, §6; L6.2, B10.1).
   "None"; one: Yes / No. Words from `matchText` (tested); `BoldText` shared with `StatementError`. In Storybook on the
   phone, dark, English and Hebrew. 594 tests. *Feedback the same day:* the filled Yes was biased — each answer has its
   own color at the same strength (green, cyan, red; artboard 6).
-- [ ] **U11.2 `UnreportedRow`** — shop (Hebrew right-to-left), date, installment "payment 1 of 12", foreign amount "$24.99", the amount.
-- [ ] **U11.3 Screen 6** — header "October · MAX ••4821 · 42 lines · 36 already reported ✓", the
+- [x] **U11.2 `UnreportedRow`** — shop (Hebrew right-to-left), date, installment "payment 1 of 12", foreign amount "$24.99", the amount.
+  *Done 2026-11-25:* from `ChargeLine`, shared with `MatchQuestion`; `chargeDetails` and `formatForeign` tested ("24.99
+  CHF" without a symbol of ours). Added: a refund (negative line) is "+₪49.90" in green. In Storybook on the phone, dark,
+  English and Hebrew. 599 tests.
+- [x] **U11.3 Screen 6** — header "October · MAX ••4821 · 42 lines · 36 already reported ✓", the
   question cards, the "Not reported" list; answering a question removes its card (animated).
+  *Done 2026-11-25:* Yes counts it as reported and takes the entry from other questions, Neither moves it to the list
+  (`confirmLine`, `rejectLine`, tested); a row opens its answer in U12. In the dev build, Hebrew, dark: both tapped; the
+  stories (30 rows, English) not opened on the phone. 604 tests.
 
 **Try it:** answer each kind of question; every row variant in its story; a list of 30.
 **Docs:** `frontend.md` (`MatchQuestion`, `UnreportedRow`).

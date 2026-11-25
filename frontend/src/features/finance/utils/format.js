@@ -94,6 +94,34 @@ export function entryDetails(translate, entry, category, day) {
 // The user's own text inside a line, laid out by its own first letter.
 export const isolate = (text) => `\u2068${text}\u2069`;
 
+// A foreign charge's own amount, from its smallest unit: "$24.99", or "24.99 CHF". Left to right everywhere.
+const SYMBOLS = { USD: '$', EUR: '€', GBP: '£' };
+export function formatForeign(currency, amount) {
+  const number = (Math.abs(amount) / 100).toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+  });
+  const symbol = SYMBOLS[currency];
+  return `\u2066${symbol ? symbol + number : `${number} ${currency}`}\u2069`;
+}
+
+// A statement line's details: "Oct 17 · payment 1 of 12", "Oct 22 · $24.99", "Oct 3 · refund".
+export function chargeDetails(translate, line) {
+  const parts = [
+    dayMonth(translate, line.occurredOn),
+    line.amountAgorot < 0 && translate('charge.refund'),
+    line.installmentNo &&
+      translate('charge.installment', {
+        n: line.installmentNo,
+        total: line.installmentsTotal,
+      }),
+    line.originalCurrency &&
+      formatForeign(line.originalCurrency, line.originalAmount),
+  ];
+  return translate('finance.details', {
+    details: parts.filter(Boolean).join(' · '),
+  });
+}
+
 // A value to show bold inside a translated sentence, and the sentence back in pieces: `[{ text, bold }]`.
 const BOLD = '\u0001';
 export const bold = (text) => BOLD + text + BOLD;

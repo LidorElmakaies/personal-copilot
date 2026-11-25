@@ -1,7 +1,9 @@
 import { translateIn } from '../../../shared/i18n/translate';
 import { STATEMENT_ERRORS, STATEMENT_LINES } from '../mocks';
 import {
+  confirmLine,
   matchText,
+  rejectLine,
   statementErrorText,
   statementProblem,
   statementSteps,
@@ -99,6 +101,33 @@ describe('matchText', () => {
     expect(say(2, 0).filter((p) => p.bold)).toEqual([
       { text: '\u2068Dinner\u2069', bold: true },
     ]);
+  });
+});
+
+describe('confirmLine and rejectLine', () => {
+  const line = (id, ...candidateEntryIds) => ({
+    id,
+    matchStatus: 'suggested',
+    entryId: null,
+    suggestion: { candidateEntryIds },
+  });
+  const lines = [line('1', 'a', 'b'), line('2', 'a', 'b', 'c'), line('3', 'a')];
+
+  it('confirming takes the entry from the other questions', () => {
+    const [one, two, three] = confirmLine(lines, '1', 'a');
+    expect(one).toMatchObject({
+      matchStatus: 'confirmed',
+      entryId: 'a',
+      suggestion: null,
+    });
+    expect(two.suggestion.candidateEntryIds).toEqual(['b', 'c']);
+    expect(three).toMatchObject({ matchStatus: 'unmatched', suggestion: null });
+  });
+
+  it('rejecting makes only that line not reported', () => {
+    const [one, two] = rejectLine(lines, '1');
+    expect(one).toMatchObject({ matchStatus: 'unmatched', suggestion: null });
+    expect(two).toBe(lines[1]);
   });
 });
 
