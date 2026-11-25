@@ -7,7 +7,13 @@ import {
 } from './entry';
 
 const problem = (own) =>
-  entryProblem({ amount: '150', paidWith: 'bit', cardDigits: '', ...own });
+  entryProblem({
+    amount: '150',
+    categoryId: 'a',
+    paidWith: 'bit',
+    cardDigits: '',
+    ...own,
+  });
 
 describe('entryProblem', () => {
   it.each(['', '0', '0.', '0.00', '.'])('no amount: "%s"', (amount) => {
@@ -30,10 +36,14 @@ describe('entryProblem', () => {
     expect(problem({ paidWith: 'cash', cardDigits: '48' })).toBeNull();
   });
 
-  it('asks for the amount first', () => {
-    expect(problem({ amount: '', paidWith: 'card' })).toBe(
-      'finance.amountRequired',
-    );
+  it('needs a category', () => {
+    expect(problem({ categoryId: null })).toBe('finance.categoryRequired');
+  });
+
+  it('asks for the amount, then the category, then the card', () => {
+    const missing = { categoryId: null, paidWith: 'card' };
+    expect(problem({ ...missing, amount: '' })).toBe('finance.amountRequired');
+    expect(problem(missing)).toBe('finance.categoryRequired');
   });
 });
 
@@ -48,7 +58,7 @@ describe('editedEntry', () => {
     id: 'entry-01',
     amountAgorot: 28490,
     description: 'Weekly groceries',
-    categoryIds: ['a'],
+    categoryId: 'a',
     direction: 'expense',
     paidWith: 'card',
     cardLast4: '4821',
@@ -74,7 +84,7 @@ describe('editedEntry', () => {
 
   it('anything else keeps it', () => {
     expect(edited({})).toEqual(entry);
-    const fields = { description: 'Food', categoryIds: ['a', 'b'] };
+    const fields = { description: 'Food', categoryId: 'b' };
     expect(edited(fields)).toEqual({ ...entry, ...fields });
   });
 });
@@ -84,7 +94,7 @@ describe('entryDraft and entryFields', () => {
     expect(entryDraft(undefined, '2026-10-27')).toEqual({
       amount: '',
       description: '',
-      categoryIds: [],
+      categoryId: null,
       direction: 'expense',
       paidWith: 'card',
       receivedWith: 'bit',
@@ -97,7 +107,7 @@ describe('entryDraft and entryFields', () => {
     const entry = {
       amountAgorot: 28490,
       description: 'Weekly groceries',
-      categoryIds: ['a', 'b'],
+      categoryId: 'a',
       direction: 'expense',
       paidWith: 'card',
       cardLast4: '4821',

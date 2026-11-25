@@ -7,7 +7,7 @@ const groceries = today.find((e) => e.description === 'Weekly groceries');
 export default {
   component: EntryRow,
   parameters: { language: 'en' },
-  args: { entry: groceries, categories: ['Groceries'] },
+  args: { entry: groceries, category: 'Groceries' },
   argTypes: { onPress: { action: 'pressed' } },
 };
 
@@ -16,13 +16,13 @@ export const PhotosAndMatched = {};
 export const NotSent = {
   args: {
     entry: today.find((e) => e.notSent),
-    categories: ['Eating out'],
+    category: 'Eating out',
   },
 };
 export const Plain = {
   args: {
     entry: OCTOBER_ENTRIES.find((e) => e.paidWith === 'cash'),
-    categories: ['Eating out'],
+    category: 'Eating out',
   },
 };
 export const LongText = {
@@ -44,38 +44,27 @@ export const Received = {
       attachmentIds: [],
       statementLine: null,
     },
-    categories: [],
+    category: 'Other',
   },
-};
-export const TwoCategories = {
-  args: { categories: ['Groceries', 'מתנות'] },
-};
-// Past two they're counted: "3 categories".
-export const ThreeCategories = {
-  args: { categories: ['Groceries', 'מתנות', 'Shopping'] },
-};
-export const TwoCategoriesHebrew = {
-  parameters: { language: 'he' },
-  args: { categories: ['Groceries', 'מתנות'] },
 };
 // The user's text in either language or both, whatever the app's: each in its own direction.
 export const MixedInEnglish = {
   args: {
     entry: { ...groceries, description: 'Shelves לחדר העבודה' },
-    categories: ['מתנות'],
+    category: 'מתנות',
   },
 };
 export const MixedInHebrew = {
   parameters: { language: 'he' },
   args: {
     entry: { ...groceries, description: 'Coffee וכריך' },
-    categories: ['Eating out'],
+    category: 'Eating out',
   },
 };
 export const Hebrew = {
   parameters: { language: 'he' },
   args: {
     entry: { ...groceries, description: 'קניות שבועיות בשופרסל דיל' },
-    categories: ['סופר'],
+    category: 'סופר',
   },
 };

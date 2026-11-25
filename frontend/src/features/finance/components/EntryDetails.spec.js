@@ -41,7 +41,7 @@ async function renderDetails(props) {
     <Provider store={store}>
       <EntryDetails
         entry={groceries}
-        categories={['Groceries']}
+        category="Groceries"
         today={TODAY}
         statementMonth={10}
         photos={photosOf(groceries)}

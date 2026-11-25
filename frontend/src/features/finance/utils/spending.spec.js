@@ -36,8 +36,8 @@ describe('categoryTotals', () => {
     expect(totals).toHaveLength(7);
   });
 
-  const e = (categories, amountAgorot, direction = 'expense') => ({
-    categoryIds: [categories].flat(),
+  const e = (categoryId, amountAgorot, direction = 'expense') => ({
+    categoryId,
     amountAgorot,
     direction,
   });
@@ -54,9 +54,10 @@ describe('categoryTotals', () => {
     expect(totals.map((t) => t.id)).toEqual(['cat-groceries', 'cat-gifts']);
   });
 
-  it('counts an entry in several in full in each, and once in the total', () => {
+  it('the categories add up to the total, income left out', () => {
     const entries = [
-      e(['cat-eating-out', 'cat-gifts'], 15000),
+      e('cat-eating-out', 15000),
+      e('cat-gifts', 15000),
       e('cat-gifts', 2000),
       e('cat-other', 9999, 'income'),
     ];
@@ -66,7 +67,7 @@ describe('categoryTotals', () => {
       ['cat-gifts', 17000],
       ['cat-eating-out', 15000],
     ]);
-    expect(spentAgorot(entries)).toBe(17000);
+    expect(spentAgorot(entries)).toBe(32000);
   });
 
   it('is empty for a month with no entries', () => {

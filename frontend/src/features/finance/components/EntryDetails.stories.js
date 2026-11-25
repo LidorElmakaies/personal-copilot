@@ -27,7 +27,7 @@ export default {
   render: (args) => <Details {...args} />,
   args: {
     entry: groceries,
-    categories: ['Groceries'],
+    category: 'Groceries',
     today: TODAY,
     statementMonth: 10,
     photoCount: 2,
@@ -49,7 +49,7 @@ export const NotMatched = {
 export const NotSent = {
   args: {
     entry: today.find((e) => e.notSent),
-    categories: ['Eating out'],
+    category: 'Eating out',
     photoCount: 0,
   },
 };
@@ -63,7 +63,7 @@ export const Received = {
       cardLast4: null,
       statementLine: null,
     },
-    categories: [],
+    category: 'Other',
     photoCount: 0,
   },
 };
@@ -73,14 +73,14 @@ export const LongText = {
       ...groceries,
       description: 'Groceries and cleaning stuff for the week',
     },
-    categories: ['Groceries', 'מתנות', 'Shopping'],
+    category: 'Kids, school trips and after-school classes',
   },
 };
 export const Hebrew = {
   parameters: { language: 'he' },
   args: {
     entry: { ...groceries, description: 'קניות שבועיות בשופרסל דיל' },
-    categories: ['סופר', 'Eating out'],
+    category: 'סופר',
   },
 };
 export const HebrewNotMatched = {

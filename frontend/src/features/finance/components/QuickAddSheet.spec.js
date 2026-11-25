@@ -60,12 +60,26 @@ describe('QuickAddSheet', () => {
     expect(screen.getByText('Enter an amount')).toBeTruthy();
     await typeAmount('150');
     expect(screen.queryByText('Enter an amount')).toBeNull();
+    expect(screen.getByText('Choose a category')).toBeTruthy();
+    await fireEvent.press(screen.getByText(CATEGORIES[0].name));
+    expect(screen.queryByText('Choose a category')).toBeNull();
     expect(screen.getByText("Enter the card's last 4 digits")).toBeTruthy();
     await fireEvent.press(screen.getByLabelText('Card ••4821'));
     expect(screen.queryByText("Enter the card's last 4 digits")).toBeNull();
     expect(onClose).not.toHaveBeenCalled();
     await save();
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('picking another category replaces the first', async () => {
+    const onSave = jest.fn();
+    await renderSheet({ onSave });
+    await typeAmount('80');
+    await fireEvent.press(screen.getByTestId('paid-with-cash'));
+    await fireEvent.press(screen.getByText(CATEGORIES[0].name));
+    await fireEvent.press(screen.getByText(CATEGORIES[1].name));
+    await save();
+    expect(onSave.mock.calls[0][0].categoryId).toBe(CATEGORIES[1].id);
   });
 
   it('money received has no card', async () => {
@@ -77,6 +91,9 @@ describe('QuickAddSheet', () => {
       screen.getByTestId('paid-with-bit').props.accessibilityState.checked,
     ).toBe(true);
     await typeAmount('80');
+    await save();
+    expect(screen.getByText('Choose a category')).toBeTruthy();
+    await fireEvent.press(screen.getByText(CATEGORIES[0].name));
     await save();
     expect(onClose).toHaveBeenCalledTimes(1);
   });
@@ -106,7 +123,7 @@ describe('QuickAddSheet', () => {
   const fuel = {
     amountAgorot: 31000,
     description: 'Fuel',
-    categoryIds: [CATEGORIES[0].id],
+    categoryId: CATEGORIES[0].id,
     direction: 'expense',
     paidWith: 'card',
     cardLast4: '5520',

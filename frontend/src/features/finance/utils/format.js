@@ -1,6 +1,5 @@
 import { count, dayMonth } from '../../../shared/i18n/format';
 import { utcDay } from '../../../shared/utils/date';
-import { DEFAULT_SORT } from './filter';
 
 // ₪ from whole agorot: "₪150", "₪284.90", "₪3,200" — agorot shown only when there are any.
 export const formatShekels = (agorot) =>
@@ -77,13 +76,13 @@ export const paidWithName = (translate, paidWith) =>
 
 // An entry's line under what it was for: "Groceries · Card ••4821 · 2 photos"; `day` (a dayLabel, for
 // the list sorted by amount) leads it and shortens a card to its digits, so the line fits beside a badge:
-// "Oct 14 · Groceries · ••4821". Its `categories` (names) as `namesLine`; each, in either language, is
+// "Oct 14 · Groceries · ••4821". `category` (its name), in either language, is
 // a first-strong isolate — see frontend.md's "A line takes its direction…".
-export function entryDetails(translate, entry, categories, day) {
+export function entryDetails(translate, entry, category, day) {
   const photos = entry.attachmentIds.length;
   const parts = [
     day,
-    namesLine(translate, categories),
+    isolate(category),
     paidWithLabel(translate, entry, !!day),
     photos && count(translate, 'count.photos', photos),
   ];
@@ -152,7 +151,7 @@ export function filterSummary(
   ];
   return {
     title: translate('finance.details', { details: parts.join(' · ') }),
-    sort: translate(`finance.sortBy.${sort ?? DEFAULT_SORT}`),
+    sort: sort ? translate(`finance.sortBy.${sort}`) : null,
   };
 }
 

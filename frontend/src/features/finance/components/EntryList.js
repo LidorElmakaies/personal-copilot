@@ -3,12 +3,12 @@ import { StyleSheet, Text, View } from 'react-native';
 import GlowCard from '../../../shared/components/base/layout/GlowCard';
 import { usePlainInHebrew, useTranslate } from '../../../shared/i18n/translate';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
-import { DEFAULT_SORT, isByAmount, sortEntries } from '../utils/filter';
+import { isByAmount, NO_SORT, sortEntries } from '../utils/filter';
 import { dayLabel } from '../utils/format';
 import EntryRow from './EntryRow';
 
-// A month's entries in a panel card (screen 1) in `sort`'s order (filter.js's SORTS, newest first by
-// default). By day, under day headings (TODAY, YESTERDAY, OCT 25 — relative to `today`, YYYY-MM-DD);
+// A month's entries in a panel card (screen 1) in `sort`'s order (filter.js's SORTS; none chosen:
+// newest first). By day, under day headings (TODAY, YESTERDAY, OCT 25 — relative to `today`, YYYY-MM-DD);
 // by amount, one flat list with the day leading each row's second line (screen 12).
 // `onPressEntry(entry)`; `header` sits on top inside the card (the toolbar, chips and summary, U4b),
 // `empty` in place of the rows when there are none (`NoMatch`).
@@ -16,7 +16,7 @@ export default function EntryList({
   entries,
   categories,
   today,
-  sort = DEFAULT_SORT,
+  sort = NO_SORT,
   onPressEntry,
   header,
   empty,
@@ -51,7 +51,7 @@ export default function EntryList({
             )}
             <EntryRow
               entry={entry}
-              categories={entry.categoryIds.map((id) => nameOf[id])}
+              category={nameOf[entry.categoryId]}
               day={
                 flat ? dayLabel(translate, entry.occurredOn, today) : undefined
               }

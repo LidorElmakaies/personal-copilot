@@ -2,7 +2,7 @@ import { CATEGORIES, OCTOBER_ENTRIES } from '../mocks';
 import { filterEntries, NO_FILTER } from '../utils/filter';
 import FilterSummary from './FilterSummary';
 
-const story = (filter, sort = 'newest', language = 'en') => {
+const story = (filter, sort = null, language = 'en') => {
   const full = { ...NO_FILTER, ...filter };
   return {
     parameters: { language },
@@ -55,6 +55,6 @@ export const HebrewEverything = story(
     minAgorot: 5000,
     paidWith: ['card'],
   },
-  'newest',
+  null,
   'he',
 );

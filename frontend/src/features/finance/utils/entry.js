@@ -11,7 +11,7 @@ export function entryDraft(entry, today) {
   return {
     amount: shekelsText(entry?.amountAgorot),
     description: entry?.description ?? '',
-    categoryIds: entry?.categoryIds ?? [],
+    categoryId: entry?.categoryId ?? null,
     direction: entry?.direction ?? 'expense',
     paidWith: entry && !received ? entry.paidWith : 'card',
     receivedWith: received ? entry.paidWith : RECEIVED_WITH[0],
@@ -27,7 +27,7 @@ export function entryFields(draft) {
   return {
     amountAgorot: parseShekels(draft.amount),
     description: draft.description.trim(),
-    categoryIds: draft.categoryIds,
+    categoryId: draft.categoryId,
     direction: draft.direction,
     paidWith,
     cardLast4: paidWith === 'card' ? draft.cardDigits : null,
@@ -54,10 +54,11 @@ export function editedEntry(entry, fields) {
   };
 }
 
-// Why the add sheet can't be saved yet — a dictionary key — or null: no amount (or ₪0), a card without
-// its 4 digits. `amount` and `cardDigits` as typed. A future day can't be picked.
-export function entryProblem({ amount, paidWith, cardDigits }) {
+// Why the add sheet can't be saved yet — a dictionary key — or null: no amount (or ₪0), no
+// category, a card without its 4 digits. `amount` and `cardDigits` as typed. A future day can't be picked.
+export function entryProblem({ amount, categoryId, paidWith, cardDigits }) {
   if (!parseShekels(amount)) return 'finance.amountRequired';
+  if (!categoryId) return 'finance.categoryRequired';
   if (paidWith === 'card' && cardDigits.length !== 4) {
     return 'finance.cardDigitsRequired';
   }

@@ -124,14 +124,14 @@ feature's `components/` (listed under `composite/` below with its feature):
   and the Monthly check pill; `month` `{ year, month }`, `onPrevious`, `onNext` (none dims ›),
   `onMonthlyCheck`), `FinanceEmpty` (from `GlowCard` — a month with no entries), `EntryRow` (one
   entry: what for, "category · paid with · N photos" — led by `day` when set — the "not sent"/"matched"
-  badges, the amount; `entry`, `categories` (names), `day`, `onPress`), `EntryList` (from `GlowCard`, `EntryRow` —
+  badges, the amount; `entry`, `category` (name), `day`, `onPress`), `EntryList` (from `GlowCard`, `EntryRow` —
   in `sort`'s order: by day under day headings, by amount one flat list with the day on each row;
   `entries`, `categories`, `today`, `sort`, `onPressEntry`), `CategoryBar` (one category in
   `SpentCard`: name, amount, a bar scaled to the biggest — at least a dot for any spending;
   `name`, `amountAgorot`, `biggestAgorot`; the share from `finance/utils/spending.js`'s `barShare`),
   `SpentCard` (from `GlowCard`, `CategoryBar` — "Spent this month", the total, the top 3, "+ N more
   categories" / "Show less" animated with Reanimated layout transitions; `spent` from `spending.js`'s
-  `spentAgorot(entries)` — each entry once; an entry in several categories counts in full in each — and `totals` from its
+  `spentAgorot(entries)` and `totals` from its
   `categoryTotals(entries, categories)`, biggest first, only categories with spending), `ReviewBanner`
   (the amber "October statement: 6 to answer" / "MAX ••4821 · 36 already reported" banner, pressable;
   `month`, `toAnswer`, `issuer`, `cardLast4`, `reported`, `onPress`; colors `pending`/`pendingBg`/
@@ -143,10 +143,10 @@ feature's `components/` (listed under `composite/` below with its feature):
   `finance/utils/entry.js`'s `entryProblem` in an `Alert` over it; money received has no card, `RECEIVED_WITH`)
   so far,
   its body scrolling under the keyboard and past 60% of the screen, empty each time it opens; only a tap on an empty
-  spot or Back closes the keyboard; any number of categories; `visible`, `onClose`, `categories`, `cards`, `today`, `pickPhotos`; `entry`/`entryPhotos` to edit one: filled in through `entry.js`'s `entryDraft`, saved through `entryFields`; `editedEntry` removes the match when what it was matched by changes),
+  spot or Back closes the keyboard; one category, required; `visible`, `onClose`, `categories`, `cards`, `today`, `pickPhotos`; `entry`/`entryPhotos` to edit one: filled in through `entry.js`'s `entryDraft`, saved through `entryFields`; `editedEntry` removes the match when what it was matched by changes),
   `PhotosField` (from `PhotoStrip`, `PhotoViewer`, `PillButton` — the add tile asks "Camera / Gallery" under the strip;
   `photos`, `onChange(photos)`, `pickPhotos(source)`, `onAsk`; `large`: screen 3's big photos and "+ Add photos"),
-  `EntryDetails` (from `BackButton`, `GlowCard`, `PhotosField`, `ConfirmModal` — screen 3; `entry`, `categories` (names), `today`,
+  `EntryDetails` (from `BackButton`, `GlowCard`, `PhotosField`, `ConfirmModal` — screen 3; `entry`, `category` (name), `today`,
   `statementMonth`, `photos`, `onChangePhotos`, `pickPhotos`, `onEdit`, `onDelete`, `onBack`; `EntryScreen` is the root Stack's
   `app/finance-entry.js`, `?id=`, opened from the list),
   `DateField` (from `PillButton` — "Today" / "Yesterday" / "Oct 25"; `value`, `today`, `onPress`),
@@ -165,16 +165,15 @@ feature's `components/` (listed under `composite/` below with its feature):
   opened from the header's Monthly check pill), `StatementProgress` (from `GlowCard` — screen 5's spinner and ticking steps, from
   `statement.js`'s `statementSteps`; `status`, `source`, `lineCount`, `totalAgorot`), `StatementError` (from `Alert`, `GradientButton` — screen 5 when it failed;
   words from `statement.js`'s `statementErrorText`; `error`, `source`, `onStartOver`, `onRetry` (LLM out of reach only); `StatementReadingScreen` is the root Stack's `app/finance-reading.js`,
-  `?source=`, opened by Check — the example timing in `mocks/`, then the review replaces it; `error`, `onDone`), `CategoryChips` (from `FilterChip` — the sheet's categories, any number selected; past two lines
+  `?source=`, opened by Check — the example timing in `mocks/`, then the review replaces it; `error`, `onDone`), `CategoryChips` (from `FilterChip` — the sheet's categories, one selected; past two lines
   "More…" / "Less", which ones fit measured by `chips.js`'s `chipsThatFit`, the
-  selected ones always showing; `categories`, `selectedIds`, `onChange(ids)`,
+  selected one always showing; `categories`, `selectedId`, `onChange(id)`,
   `defaultOpen`), `AmountInput` (the
   big centred "₪ 150": its own `TextInput`, decimal pad, focused 250 ms after mounting since a sliding
   Modal drops `autoFocus`; text kept through `typedShekels`; the row is `direction: 'ltr'` so ₪ stays
   left in Hebrew; `value`, `onChangeText`, `autoFocus`), `ListToolbar` (the entries card's search field — its own
-  `TextInput` with a search icon, `start`/`paddingStart` so it mirrors — plus sort and all-filters
-  buttons shown only with `onSort`/`onFilters`; sort lit while `sort` isn't `newest`, with a "₪" by
-  amount, filters lit by `filtersActive`),
+  `TextInput` with a search icon, `start`/`paddingStart` so it mirrors — plus the all-filters
+  button shown only with `onFilters`, lit by `filtersActive`),
   `FilterChip` (the canvas's filter chip — outlined, an accent tint while `on`, not `PillButton`'s
   solid `selected`; `dashed` for "+ New"; `label`, `icon` (Ionicons), `on`, `accessibilityLabel`,
   `onPress`),
@@ -182,7 +181,7 @@ feature's `components/` (listed under `composite/` below with its feature):
   sideways-scrolling row with a ⌄ pinned at its end that wraps every chip onto several rows until its
   ⌃ is pressed (screen 16; picking a chip leaves it open); `categories`, `selectedIds`, `onChange(ids)`,
   `defaultOpen`), `FilterSheet` (from
-  `BottomSheet` with `dragFromHandle`, `FilterChip`, `GradientButton` — screen 13: sort, categories
+  `BottomSheet` with `dragFromHandle`, `FilterChip`, `GradientButton` — screen 13: sort (one or none, tapped again to clear), categories
   (any number, with icons), ₪ from–to, paid with, "Clear all"; edits a draft, "Show N entries" counts
   the month live and applies through `onApply({ filter, sort })`, closing otherwise drops it; the
   toolbar's search is kept and counted; `visible`, `onClose`, `filter`, `sort`, `entries`,
@@ -192,7 +191,7 @@ feature's `components/` (listed under `composite/` below with its feature):
   name) and one of `CATEGORY_ICONS`; Add off while `categoryNameProblem`; its body scrolls so Add stays
   above the keyboard; `visible`, `onClose`, `categories`, `onAdd({ name, icon })`; U13.2 reuses it to
   rename), `FilterSummary` (the tinted line over a
-  filtered or re-sorted list: "Eating out · 8 entries · ₪640", the sort under it, Clear — nothing left:
+  filtered or re-sorted list: "Eating out · 8 entries · ₪640", the sort under it when one is chosen, Clear — nothing left:
   "“challah” · Eating out · nothing", no sort; `filter`,
   `sort`, `entries` (shown), `categories`, `onClear`; text from `format.js`'s `filterSummary`);
   `NoMatch` (screen 15: an icon, "Nothing matches", `format.js`'s `noMatchLine` — "No October entry in
@@ -207,13 +206,12 @@ feature's `components/` (listed under `composite/` below with its feature):
   `statementSummary(lines)` gives the banner's to answer / already reported / month; `finance/utils/filter.js`
   holds the list's search, filters and sort (U4b): `filterEntries(entries, filter)` (`NO_FILTER`'s
   shape: `query` in "what for" or the shop, either language, `categoryIds`, `minAgorot`/`maxAgorot`,
-  `paidWith`), `sortEntries(entries, sort)` (`newest` | `oldest` | `highest` | `lowest`), `isByAmount`,
-  `isFiltering`, `sheetFiltering` (the all-filters button lit: more than one category, an amount, paid
+  `paidWith`), `sortEntries(entries, sort)` (`newest` | `oldest` | `highest` | `lowest`; `NO_SORT`, null, is newest first), `isByAmount`,
+  `isFiltering`, `sheetFiltering` (the all-filters button lit: a sort, more than one category, an amount, paid
   with), `PAID_WITH`; `finance/utils/categories.js` holds a new category's rules — `CATEGORY_NAME_MAX`, `CATEGORY_ICONS`,
   `typedCategoryName`, `categoryNameProblem(name, categories)` (a dictionary key or null),
   `addCategory(categories, { name, icon })` (a local `cat-new-N` id until L2.5); `finance/utils/format.js` holds
-  `formatShekels` (whole agorot → "₪284.90", the same in both languages), `dayLabel(translate, …)`, `entryDetails(translate, entry, categories, day)` (the row's second line — two categories named, more
-  counted; with `day`, a card is only "••4821") and
+  `formatShekels` (whole agorot → "₪284.90", the same in both languages), `dayLabel(translate, …)`, `entryDetails(translate, entry, category, day)` (the row's second line; with `day`, a card is only "••4821") and
   `filterSummary(translate, { filter, sort, entries, categories })` (`FilterSummary`'s `title`, `sort`),
   `noMatchLine(translate, { filter, month, categories })` (`NoMatch`'s line),
   `parseShekels(text)`/`shekelsText(agorot)` (an amount field's text ↔ whole agorot),

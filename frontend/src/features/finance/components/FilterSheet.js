@@ -13,11 +13,17 @@ import BottomSheet from '../../../shared/components/base/layout/BottomSheet';
 import { count } from '../../../shared/i18n/format';
 import { usePlainInHebrew, useTranslate } from '../../../shared/i18n/translate';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
-import { filterEntries, NO_FILTER, PAID_WITH, SORTS } from '../utils/filter';
+import {
+  filterEntries,
+  NO_FILTER,
+  NO_SORT,
+  PAID_WITH,
+  SORTS,
+} from '../utils/filter';
 import { paidWithName, parseShekels, shekelsText } from '../utils/format';
 import FilterChip from './FilterChip';
 
-// The all-filters sheet (screen 13): sort, categories (any number), amount from–to, paid with;
+// The all-filters sheet (screen 13): sort (one or none — tap it again to clear), categories (any number), amount from–to, paid with;
 // "Clear all"; "Show N entries" counts the month's `entries` live and applies — `onApply({ filter,
 // sort })` — while closing it any other way drops the changes. The toolbar's search is kept and
 // counted. `visible`, `onClose`, `filter`, `sort`, `categories` (in the chips' order),
@@ -85,7 +91,7 @@ function FilterForm({
       list.includes(value) ? list.filter((v) => v !== value) : [...list, value],
     );
   const clearAll = () => {
-    setSort(SORTS[0]);
+    setSort(NO_SORT);
     setCategoryIds(NO_FILTER.categoryIds);
     setPaidWith(NO_FILTER.paidWith);
     setMin('');
@@ -161,7 +167,7 @@ function FilterForm({
               return (
                 <Pressable
                   key={s}
-                  onPress={() => setSort(s)}
+                  onPress={() => setSort(on ? NO_SORT : s)}
                   accessibilityRole="button"
                   accessibilityState={{ selected: on }}
                   testID={`filter-sort-${s}`}

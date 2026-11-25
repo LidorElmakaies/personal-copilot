@@ -7,7 +7,7 @@ the design canvas linked at the top of the plan.
 ## Goal
 
 1. **Daily quick add.** The day something happens — a Bit transfer, cash, a grocery run — register
-   it: amount, what it was for, its categories, how it was paid, and **any number of photos** (receipts).
+   it: amount, what it was for, its category, how it was paid, and **any number of photos** (receipts).
 2. **The monthly check.** A reminder on statement day → paste or upload the month's card statement
    → the server matches it against what was already reported → **a list of only the charges not yet
    reported**, each answered with what it was for (+ photos). Empty list = month closed.
@@ -154,7 +154,7 @@ sequenceDiagram
   App->>GW: GET /finance/statements/{id}/to-review
   GW-->>App: only the not-reported lines + likely matches
   loop each line
-    U->>App: what it was for · categories · photos
+    U->>App: what it was for · category · photos
     App->>GW: POST /finance/statement-lines/{id}/answer
   end
   F->>DB: status: closed
@@ -216,8 +216,7 @@ writes only its own schema (CLAUDE.md).
 
 ```mermaid
 erDiagram
-  categories ||--o{ entry_categories : "classifies"
-  entries ||--|{ entry_categories : "is in"
+  categories ||--o{ entries : "classifies"
   statements ||--|{ statement_lines : "contains"
   entries ||--o{ attachments : "photos"
   entries |o--o{ statement_lines : "matched by"
@@ -235,6 +234,7 @@ erDiagram
     uuid id PK
     uuid user_id
     uuid client_id UK "from the phone - safe retries"
+    uuid category_id FK
     date occurred_on
     int amount_agorot
     text direction "expense | income | refund"
@@ -246,10 +246,6 @@ erDiagram
     timestamptz created_at
     timestamptz updated_at
     timestamptz deleted_at
-  }
-  entry_categories {
-    uuid entry_id PK, FK
-    uuid category_id PK, FK
   }
   attachments {
     uuid id PK
@@ -286,8 +282,7 @@ erDiagram
   }
 ```
 
-- **An entry is in one or more categories** (`entry_categories`; the API's `category_ids`). It counts
-  in full in each category's total and once in the month's, so the categories can add up to more.
+- **An entry is in exactly one category** (`category_id`, required), spent or received.
 - **Answering a not-reported line creates an entry** (`source = 'statement'`) and links it, so after
   a month is closed every line points to exactly one entry, and every entry is "what it was for".
 - **`attachments`** holds only which photos belong to which entry. Size, type and checksum come
@@ -322,7 +317,7 @@ erDiagram
 | `GET` | `/finance/statements/:id/to-review` | **The not-reported list** |
 | `POST` | `/finance/statement-lines/:id/answer` | What it was for → creates an entry |
 | `POST` | `/finance/statement-lines/:id/confirm` | "Yes, that's my entry X" |
-| `GET` | `/finance/summary?month=2026-10` | The month's total (each entry once) and per category (in full in each) |
+| `GET` | `/finance/summary?month=2026-10` | The month's total and per category |
 
 ## 7. Receipt storage — the options
 
@@ -393,7 +388,7 @@ data.
 
 - **Finance tab** (login required for this tab only): this month's total by category, a
   "N to review" banner when a statement is waiting, a + button for quick add.
-- **Quick add sheet:** amount, what for, categories (any number), payment method, date
+- **Quick add sheet:** amount, what for, category (one, required), payment method, date
   (default today), photos (camera or gallery, several).
 - **Monthly check:** paste box or file picker → "Reading your statement…" → the not-reported list.
 - **Outbox:** a persisted queue (entries + photo files in the app's own storage) so quick add works

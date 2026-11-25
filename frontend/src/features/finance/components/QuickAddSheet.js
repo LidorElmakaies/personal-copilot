@@ -31,10 +31,10 @@ import PaidWithPicker from './PaidWithPicker';
 import PhotosField from './PhotosField';
 
 // Screen 2, the add sheet the + opens: the title and the day (today to start), spent or received, the
-// amount, what it was for, its categories, how it was paid (Card to start, with the card's digits), its photos and Save. Save says what's missing (`entryProblem`),
+// amount, what it was for, its category, how it was paid (Card to start, with the card's digits), its photos and Save. Save says what's missing (`entryProblem`),
 // or calls `onSave(fields, photos)` — an entry's own fields — and closes. Money received has no card. Starts
 // empty each time it opens, or from `entry` and its `entryPhotos` to edit it ("Edit entry", the keyboard closed).
-// `categories` (in the chips' order), any number picked; `cards` (those used, the last one first), `today`
+// `categories` (in the chips' order), one picked, required; `cards` (those used, the last one first), `today`
 // (YYYY-MM-DD), `pickPhotos` (PhotosField's); `visible`, `onClose`. Nothing closes the keyboard but a tap on an empty spot (the title,
 // the body, the backdrop) or Back.
 export default function QuickAddSheet({
@@ -84,7 +84,7 @@ function QuickAddForm({
   const [start] = useState(() => entryDraft(entry, today));
   const [amount, setAmount] = useState(start.amount);
   const [description, setDescription] = useState(start.description);
-  const [categoryIds, setCategoryIds] = useState(start.categoryIds);
+  const [categoryId, setCategoryId] = useState(start.categoryId);
   const [direction, setDirection] = useState(start.direction);
   const [paidWith, setPaidWith] = useState(start.paidWith);
   const [receivedWith, setReceivedWith] = useState(start.receivedWith);
@@ -97,6 +97,7 @@ function QuickAddForm({
   const received = direction === 'income';
   const problem = entryProblem({
     amount,
+    categoryId,
     paidWith: received ? receivedWith : paidWith,
     cardDigits,
   });
@@ -108,7 +109,7 @@ function QuickAddForm({
     const draft = {
       amount,
       description,
-      categoryIds,
+      categoryId,
       direction,
       paidWith,
       receivedWith,
@@ -187,12 +188,12 @@ function QuickAddForm({
         />
         <View style={styles.section}>
           <Text style={[styles.label, plain, { color: colors.textMuted }]}>
-            {translate('finance.categoriesTitle')}
+            {translate('finance.category')}
           </Text>
           <CategoryChips
             categories={categories}
-            selectedIds={categoryIds}
-            onChange={setCategoryIds}
+            selectedId={categoryId}
+            onChange={setCategoryId}
           />
         </View>
         <View style={styles.section}>

@@ -106,7 +106,7 @@ preview screen inside the app, U0.2, dropped 2026-10-29.)
 - Receipt photos and uploaded statements in a **local S3: Garage**, no published port.
   `attachments` stores only ids — size and type come from S3.
 - The LLM runs on **FreeToken** (an MoE model, not Llama 3), behind an OpenAI-compatible adapter.
-- **6 tables:** `categories`, `entries`, `entry_categories` (2026-11-23: an entry can be in several),
+- **5 tables:** `categories`, `entries` (each in exactly one category, 2026-11-25),
   `attachments`, `statements`, `statement_lines`. Dropped:
   `payment_methods` (→ `paid_with` + `card_last4` fields), `merchant_rules` (no category
   suggestions for now), `llm_calls` (→ logs and traces).
@@ -133,14 +133,14 @@ existing kit (`frontend.md`'s "Build for reuse").
 | `SpentCard` | The "Spent this month" panel card | `GlowCard`, `CategoryBar` | U3 |
 | `ReviewBanner` | "October statement: 6 to answer" | — | U4 |
 | `ConnectionNotice` | "Can't reach your PC" / "2 entries waiting for your PC" | `Alert` | U4 |
-| `ListToolbar` | Search field, sort button, all-filters button over the entries | `InputField` | U4b |
+| `ListToolbar` | Search field, all-filters button over the entries | `InputField` | U4b |
 | `CategoryFilterChips` | All · each category · "+ New", one row, scrolls sideways | `PillButton` | U4b |
 | `FilterSummary` | "Eating out · 8 entries · ₪640", the sort, Clear | — | U4b |
 | `FilterSheet` | Screen 13: sort, categories, amount from–to, paid with, "Show N entries" | `BottomSheet`, `PillButton`, `InputField`, `GradientButton` | U4b |
 | `NewCategorySheet` | Screen 14: name and icon; reused by `CategoryEditor` for rename | `BottomSheet`, `InputField`, `GradientButton` | U4b |
 | `NoMatch` | Screen 15: "Nothing matches", search all categories | — | U4b |
 | `AmountInput` | The big ₪ amount field | — | U5 |
-| `CategoryChips` | The entry's categories, any number | `FilterChip` | U5 |
+| `CategoryChips` | The entry's category, one | `FilterChip` | U5 |
 | `QuickAddSheet` | Screen 2 — the add / edit / answer sheet | `BottomSheet`, the rows below, `GradientButton`, `Alert` | U5–U7 |
 | `SegmentRow` | One row of buttons, one chosen | — | U6 |
 | `DirectionPicker` | I spent / I received | `SegmentRow` | U6 |
@@ -534,7 +534,9 @@ one-line total?
 the card is only "••4821" ("Today · Groceries · ••4821"; the day list keeps "Card ••4821"). 2026-11-15 — a way to see every category at once: drawn on the canvas first
 (artboard 16, a ⌄ on 11 and 12), signed off — the ⌄ at the end of the chips row wraps every chip
 onto several rows, in place, until ⌃ is pressed (picking a chip or Clear leaves it open). Built in
-`CategoryFilterChips`, tested, tried in the dev build (Hebrew: the ⌄ on the left end).
+`CategoryFilterChips`, tested, tried in the dev build (Hebrew: the ⌄ on the left end). 2026-11-25 — the toolbar's sort
+button replaced a sort chosen in the sheet (lowest became highest): the button is gone (artboards 11, 12, 15, 16), and
+the sheet's sort is optional — none chosen at first, tapped again to clear, lighting the filters button while on.
 
 ## Stage U5: `QuickAddSheet` — amount, what for, categories (screen 2)
 
@@ -578,6 +580,8 @@ was considered): the user taps an empty spot. A backdrop tap with the keyboard u
 check still asks which entry a charge is. An entry can have several categories. It counts in full in each
 (the total counts it once), a category's filter finds it, and its row names two, else "3 categories":
 `categoryIds` in the example data, list, filters and totals; §5's `entry_categories`.
+2026-11-25 — changed: one category only, and nothing is saved without one ("Choose a category"), spent or received:
+`categoryId` in the data, §5's `entries.category_id`, no `entry_categories`. Artboards 2, 7 and 18.
 
 ## Stage U6: `QuickAddSheet` — paid with, card digits, date, messages (screen 2)
 

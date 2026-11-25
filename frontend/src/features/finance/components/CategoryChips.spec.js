@@ -29,7 +29,7 @@ async function renderChips(props) {
     <Provider store={store}>
       <CategoryChips
         categories={CATEGORIES}
-        selectedIds={[]}
+        selectedId={null}
         onChange={onChange}
         {...props}
       />
@@ -64,15 +64,15 @@ describe('CategoryChips', () => {
   });
 
   it('a selected one behind "More…" still shows', async () => {
-    await renderChips({ selectedIds: ['g'] });
+    await renderChips({ selectedId: 'g' });
     expect(names()).toEqual(['Name a', 'Name b', 'Name c', 'Name d', 'Name g']);
   });
 
-  it('a tap adds one, another drops it', async () => {
-    const onChange = await renderChips({ selectedIds: ['a'] });
+  it('a tap picks another instead; tapping the selected one clears it', async () => {
+    const onChange = await renderChips({ selectedId: 'a' });
     await fireEvent.press(screen.getByText('Name b'));
-    expect(onChange).toHaveBeenLastCalledWith(['a', 'b']);
+    expect(onChange).toHaveBeenLastCalledWith('b');
     await fireEvent.press(screen.getByText('Name a'));
-    expect(onChange).toHaveBeenLastCalledWith([]);
+    expect(onChange).toHaveBeenLastCalledWith(null);
   });
 });

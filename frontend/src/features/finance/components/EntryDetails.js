@@ -9,13 +9,13 @@ import { dayLabel, formatShekels, paidWithLabel } from '../utils/format';
 import PhotosField from './PhotosField';
 
 // Screen 3, one entry: back, what it was for and Edit (off without `onEdit`); the amount ("+₪150" in
-// green for money received, "not sent" beside it); a card with the day, the categories, how it was paid
-// and its statement line (only a card entry's, or a matched one's); its photos; Delete, which asks first. `entry`, `categories`
-// (its categories' names), `today` (YYYY-MM-DD), `statementMonth` (1–12, the matched line's), `photos`,
+// green for money received, "not sent" beside it); a card with the day, the category, how it was paid
+// and its statement line (only a card entry's, or a matched one's); its photos; Delete, which asks first. `entry`, `category`
+// (its category's name), `today` (YYYY-MM-DD), `statementMonth` (1–12, the matched line's), `photos`,
 // `onChangePhotos`, `pickPhotos` (PhotosField's), `onEdit`, `onDelete`, `onBack`.
 export default function EntryDetails({
   entry,
-  categories,
+  category,
   today,
   statementMonth,
   photos,
@@ -71,17 +71,9 @@ export default function EntryDetails({
           <Line label={translate('finance.date')}>
             <Value>{dayLabel(translate, entry.occurredOn, today)}</Value>
           </Line>
-          {categories.length > 0 && (
-            <Line
-              label={translate(
-                categories.length > 1
-                  ? 'finance.categories'
-                  : 'finance.category',
-              )}
-            >
-              <Value>{categories.join('\n')}</Value>
-            </Line>
-          )}
+          <Line label={translate('finance.category')}>
+            <Value>{category}</Value>
+          </Line>
           <Line
             label={translate(
               received ? 'finance.receivedWith' : 'finance.paidWithTitle',

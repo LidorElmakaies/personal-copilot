@@ -27,8 +27,7 @@ export function filterEntries(entries, filter) {
       (!q ||
         normalize(e.description).includes(q) ||
         normalize(e.merchant).includes(q)) &&
-      (categoryIds.length === 0 ||
-        e.categoryIds.some((id) => categoryIds.includes(id))) &&
+      (categoryIds.length === 0 || categoryIds.includes(e.categoryId)) &&
       (minAgorot == null || e.amountAgorot >= minAgorot) &&
       (maxAgorot == null || e.amountAgorot <= maxAgorot) &&
       (paidWith.length === 0 || paidWith.includes(e.paidWith)),
@@ -39,7 +38,8 @@ export function filterEntries(entries, filter) {
 export const PAID_WITH = ['card', 'bit', 'paybox', 'cash', 'transfer'];
 
 export const SORTS = ['newest', 'oldest', 'highest', 'lowest'];
-export const DEFAULT_SORT = 'newest';
+// No sort chosen: the list as it is, newest day first.
+export const NO_SORT = null;
 
 const byDate = (a, b) => a.occurredOn.localeCompare(b.occurredOn);
 const byAmount = (a, b) => a.amountAgorot - b.amountAgorot;
@@ -52,24 +52,25 @@ const COMPARE = {
 
 // A sorted copy: by day (`newest`, `oldest`) or by amount (`highest`, `lowest`, ties newest first).
 // Same-day entries keep their order.
-export const sortEntries = (entries, sort = DEFAULT_SORT) =>
-  [...entries].sort(COMPARE[sort]);
+export const sortEntries = (entries, sort = NO_SORT) =>
+  [...entries].sort(COMPARE[sort ?? 'newest']);
 
 // Sorted by amount, the list drops its day headings (screen 12).
 export const isByAmount = (sort) => sort === 'highest' || sort === 'lowest';
 
 // Whether anything differs from the default — the summary line and Clear show only then.
-export const isFiltering = (filter, sort = DEFAULT_SORT) =>
-  sort !== DEFAULT_SORT ||
+export const isFiltering = (filter, sort = NO_SORT) =>
+  sort !== NO_SORT ||
   normalize(filter.query) !== '' ||
   filter.categoryIds.length > 0 ||
   filter.minAgorot != null ||
   filter.maxAgorot != null ||
   filter.paidWith.length > 0;
 
-// Whether the filter sheet holds something the toolbar doesn't show — more than one category, an
-// amount, how it was paid: the all-filters button is lit then (one category is the chips').
-export const sheetFiltering = (filter) =>
+// Whether the filter sheet holds something the toolbar doesn't show — a sort, more than one category,
+// an amount, how it was paid: the all-filters button is lit then (one category is the chips').
+export const sheetFiltering = (filter, sort = NO_SORT) =>
+  sort !== NO_SORT ||
   filter.categoryIds.length > 1 ||
   filter.minAgorot != null ||
   filter.maxAgorot != null ||

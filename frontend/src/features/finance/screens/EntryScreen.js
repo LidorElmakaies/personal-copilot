@@ -37,7 +37,7 @@ export default function EntryScreen({ id }) {
         {entry ? (
           <EntryDetails
             entry={entry}
-            categories={entry.categoryIds.map((c) => nameOf[c])}
+            category={nameOf[entry.categoryId]}
             today={TODAY}
             statementMonth={Number(entry.occurredOn.slice(5, 7))}
             photos={photos}

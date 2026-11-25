@@ -72,15 +72,6 @@ describe('filterEntries', () => {
       filter({ query: 'challah', categoryIds: ['cat-eating-out'] }),
     ).toEqual([]);
   });
-
-  it('an entry in several categories matches any of them', () => {
-    const entries = [{ categoryIds: ['a', 'b'] }, { categoryIds: ['c'] }];
-    const inCategories = (...categoryIds) =>
-      filterEntries(entries, { categoryIds });
-    expect(inCategories('b')).toEqual([entries[0]]);
-    expect(inCategories('a', 'b')).toEqual([entries[0]]);
-    expect(inCategories('b', 'c')).toEqual(entries);
-  });
 });
 
 describe('sortEntries', () => {
@@ -111,6 +102,7 @@ describe('sortEntries', () => {
     sortEntries(sample, 'highest');
     expect(sample).toEqual(before);
     expect(sortEntries(sample)).toEqual(sortEntries(sample, 'newest'));
+    expect(sortEntries(sample, null)).toEqual(sortEntries(sample, 'newest'));
   });
 });
 
@@ -120,12 +112,15 @@ describe('isByAmount and isFiltering', () => {
     expect(isByAmount('lowest')).toBe(true);
     expect(isByAmount('newest')).toBe(false);
     expect(isByAmount('oldest')).toBe(false);
+    expect(isByAmount(null)).toBe(false);
   });
 
   it('is filtering once anything differs from the default', () => {
     expect(isFiltering(NO_FILTER)).toBe(false);
     expect(isFiltering({ ...NO_FILTER, query: '  ' })).toBe(false);
+    expect(isFiltering(NO_FILTER, null)).toBe(false);
     expect(isFiltering(NO_FILTER, 'highest')).toBe(true);
+    expect(isFiltering(NO_FILTER, 'newest')).toBe(true);
     expect(isFiltering({ ...NO_FILTER, query: 'fuel' })).toBe(true);
     expect(isFiltering({ ...NO_FILTER, categoryIds: ['cat-other'] })).toBe(
       true,
@@ -138,6 +133,8 @@ describe('isByAmount and isFiltering', () => {
 describe('sheetFiltering', () => {
   it('only what the toolbar does not show lights the filters button', () => {
     expect(sheetFiltering(NO_FILTER)).toBe(false);
+    expect(sheetFiltering(NO_FILTER, null)).toBe(false);
+    expect(sheetFiltering(NO_FILTER, 'lowest')).toBe(true);
     expect(sheetFiltering({ ...NO_FILTER, query: 'fuel' })).toBe(false);
     expect(sheetFiltering({ ...NO_FILTER, categoryIds: ['a'] })).toBe(false);
     expect(sheetFiltering({ ...NO_FILTER, categoryIds: ['a', 'b'] })).toBe(

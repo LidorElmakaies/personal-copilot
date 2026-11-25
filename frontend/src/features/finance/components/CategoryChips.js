@@ -7,12 +7,12 @@ import FilterChip from './FilterChip';
 const GAP = 6;
 const MORE = 'more';
 
-// The add sheet's category pills (screen 2): any number selected — a tap adds one, another drops it.
-// Past two lines the rest wait behind "More…" (selected ones always show) until "Less". Which
-// ones fit is measured: every chip is laid out once, unseen, first. `categories` `[{ id, name }]`, `selectedIds`, `onChange(ids)`; `defaultOpen`.
+// The add sheet's category pills (screen 2): one selected — a tap picks it instead, tapping it again clears it.
+// Past two lines the rest wait behind "More…" (the selected one always shows) until "Less". Which
+// ones fit is measured: every chip is laid out once, unseen, first. `categories` `[{ id, name }]`, `selectedId` (or null), `onChange(id)`; `defaultOpen`.
 export default function CategoryChips({
   categories,
-  selectedIds,
+  selectedId,
   onChange,
   defaultOpen = false,
 }) {
@@ -32,7 +32,7 @@ export default function CategoryChips({
     ? chipsThatFit(ids, (id) => widths[id], {
         moreWidth: widths[MORE],
         room,
-        keepIds: selectedIds,
+        keepIds: selectedId ? [selectedId] : [],
         gap: GAP,
       })
     : ids;
@@ -41,12 +41,6 @@ export default function CategoryChips({
     ? categories
     : categories.filter((c) => fitting.includes(c.id));
   const less = open && measured;
-  const toggle = (id) =>
-    onChange(
-      selectedIds.includes(id)
-        ? selectedIds.filter((s) => s !== id)
-        : [...selectedIds, id],
-    );
 
   return (
     <View
@@ -62,8 +56,8 @@ export default function CategoryChips({
         >
           <FilterChip
             label={c.name}
-            on={selectedIds.includes(c.id)}
-            onPress={() => toggle(c.id)}
+            on={c.id === selectedId}
+            onPress={() => onChange(c.id === selectedId ? null : c.id)}
           />
         </View>
       ))}

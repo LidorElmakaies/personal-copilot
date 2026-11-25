@@ -16,9 +16,8 @@ describe('October 2026 example data', () => {
     expect(sum(OCTOBER_ENTRIES)).toBe(784000);
     const byCategory = {};
     for (const e of OCTOBER_ENTRIES) {
-      for (const name of e.categoryIds.map(nameOf)) {
-        byCategory[name] = (byCategory[name] ?? 0) + e.amountAgorot;
-      }
+      const name = nameOf(e.categoryId);
+      byCategory[name] = (byCategory[name] ?? 0) + e.amountAgorot;
     }
     const ranked = Object.entries(byCategory).sort((a, b) => b[1] - a[1]);
     expect(ranked).toHaveLength(7);
@@ -106,8 +105,7 @@ describe('October 2026 example data', () => {
     for (const e of OCTOBER_ENTRIES) {
       expect(e.occurredOn >= '2026-10-01' && e.occurredOn <= TODAY).toBe(true);
       expect(new Date(`${e.occurredOn}T12:00:00Z`).getUTCDay()).not.toBe(6);
-      expect(e.categoryIds.length).toBeGreaterThan(0);
-      expect(e.categoryIds.every((id) => ids.has(id))).toBe(true);
+      expect(ids.has(e.categoryId)).toBe(true);
     }
   });
 });

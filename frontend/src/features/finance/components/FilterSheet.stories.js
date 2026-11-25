@@ -15,7 +15,7 @@ export default {
   args: {
     visible: true,
     filter: NO_FILTER,
-    sort: 'newest',
+    sort: null,
     entries: OCTOBER_ENTRIES,
     categories: ORDERED,
   },

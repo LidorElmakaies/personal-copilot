@@ -3,10 +3,10 @@ import { useTranslate } from '../../../shared/i18n/translate';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
 import { entryDetails, formatShekels } from '../utils/format';
 
-// One entry (screen 1): what for (one line, cut with …), "categories · paid with · N photos" under
+// One entry (screen 1): what for (one line, cut with …), "category · paid with · N photos" under
 // it — led by `day` when set ("Oct 14 · …", the list sorted by amount) — then its badges — "not
-// sent", "matched" (a statement line) — and the amount, "+₪150" in green for money received. `categories` are its categories' names.
-export default function EntryRow({ entry, categories, day, onPress }) {
+// sent", "matched" (a statement line) — and the amount, "+₪150" in green for money received. `category` is its category's name.
+export default function EntryRow({ entry, category, day, onPress }) {
   const { colors } = useAppTheme();
   const translate = useTranslate();
   const received = entry.direction === 'income';
@@ -28,7 +28,7 @@ export default function EntryRow({ entry, categories, day, onPress }) {
           numberOfLines={1}
           style={[styles.details, { color: colors.textMuted }]}
         >
-          {entryDetails(translate, entry, categories, day)}
+          {entryDetails(translate, entry, category, day)}
         </Text>
       </View>
       {entry.notSent &&

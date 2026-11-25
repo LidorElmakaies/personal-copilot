@@ -3,15 +3,12 @@ export const barShare = (agorot, biggestAgorot) =>
   biggestAgorot > 0 ? Math.min(Math.max(agorot / biggestAgorot, 0), 1) : 0;
 
 // A month's spending by category, biggest first (ties by the categories' order), only those with
-// any: `[{ id, name, amountAgorot }]`. An entry in several counts in full in each, so together they can
-// be more than `spentAgorot`. Income entries don't count.
+// any: `[{ id, name, amountAgorot }]`. Income entries don't count.
 export function categoryTotals(entries, categories) {
   const sums = new Map();
   for (const e of entries) {
     if (e.direction !== 'expense') continue;
-    for (const id of e.categoryIds) {
-      sums.set(id, (sums.get(id) ?? 0) + e.amountAgorot);
-    }
+    sums.set(e.categoryId, (sums.get(e.categoryId) ?? 0) + e.amountAgorot);
   }
   return categories
     .filter((c) => sums.get(c.id) > 0)
@@ -19,7 +16,7 @@ export function categoryTotals(entries, categories) {
     .sort((a, b) => b.amountAgorot - a.amountAgorot);
 }
 
-// The month's spending: each expense once, however many categories it's in.
+// The month's spending: its expenses.
 export const spentAgorot = (entries) =>
   entries
     .filter((e) => e.direction === 'expense')

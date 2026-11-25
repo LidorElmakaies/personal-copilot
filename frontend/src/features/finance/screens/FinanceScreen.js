@@ -32,11 +32,10 @@ import {
 } from '../mocks';
 import { addCategory } from '../utils/categories';
 import {
-  DEFAULT_SORT,
   filterEntries,
-  isByAmount,
   isFiltering,
   NO_FILTER,
+  NO_SORT,
   sheetFiltering,
 } from '../utils/filter';
 import {
@@ -57,7 +56,7 @@ const waiting = OCTOBER_ENTRIES.filter((e) => e.notSent).length;
 // the +. Not behind `requiresAuth`: logged out, the tab will show its own notice (B1). No months
 // after the current one. `reachable` stands in for the PC link until the outbox (L4). The list's
 // search, filters and sort (U4b) are for the month on screen: they clear on another month or leaving
-// the tab. The sort button flips between by day and by amount; the filter sheet has every option.
+// the tab. The sort (none until one is chosen) is in the filter sheet, with every other option.
 // A new category (U4b.6) joins the list in memory (L2.5 saves it) and is chosen in the filter it was
 // added from: the chips' "+ New" filters to it, the sheet's "+ New category" picks it in the sheet.
 export default function FinanceScreen({ reachable = true }) {
@@ -76,10 +75,10 @@ export default function FinanceScreen({ reachable = true }) {
     setNaming(true);
   };
   const [filter, setFilter] = useState(NO_FILTER);
-  const [sort, setSort] = useState(DEFAULT_SORT);
+  const [sort, setSort] = useState(NO_SORT);
   const clear = () => {
     setFilter(NO_FILTER);
-    setSort(DEFAULT_SORT);
+    setSort(NO_SORT);
   };
   const focused = useIsFocused();
   useEffect(() => {
@@ -144,12 +143,8 @@ export default function FinanceScreen({ reachable = true }) {
                   <ListToolbar
                     query={filter.query}
                     onChangeQuery={(query) => set({ query })}
-                    sort={sort}
-                    onSort={() =>
-                      setSort(isByAmount(sort) ? DEFAULT_SORT : 'highest')
-                    }
                     onFilters={() => setFiltering(true)}
-                    filtersActive={sheetFiltering(filter)}
+                    filtersActive={sheetFiltering(filter, sort)}
                   />
                   <CategoryFilterChips
                     categories={ordered}
