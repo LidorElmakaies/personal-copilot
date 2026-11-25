@@ -75,6 +75,16 @@ const unreported = (line) => ({
   suggestion: null,
 });
 
+// What `MonthClosed` says of a statement with nothing left to answer: its charges and their total (refunds
+// taken off), how many were reported during the month, and how many answered here (a Yes or an answer).
+const ANSWERED = new Set(['confirmed', 'answered']);
+export const closedSummary = (lines) => ({
+  charges: lines.length,
+  totalAgorot: lines.reduce((sum, l) => sum + l.amountAgorot, 0),
+  reported: lines.filter((l) => l.matchStatus === 'auto_matched').length,
+  answered: lines.filter((l) => ANSWERED.has(l.matchStatus)).length,
+});
+
 // Why a statement can't be checked yet — a dictionary key — or null: no card, no file, or no text or
 // total (as typed; ₪0 is one: a month of refunds can come to it).
 export function statementProblem({ card, source, file, text, total }) {

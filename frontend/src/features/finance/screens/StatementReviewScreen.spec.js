@@ -4,9 +4,12 @@ import { Provider } from 'react-redux';
 import languageReducer, {
   setLanguage,
 } from '../../../shared/i18n/languageSlice';
+import { router } from 'expo-router';
 import StatementReviewScreen from './StatementReviewScreen';
 
-jest.mock('expo-router', () => ({ router: { back: jest.fn() } }));
+jest.mock('expo-router', () => ({
+  router: { back: jest.fn(), dismissTo: jest.fn() },
+}));
 // Only what's on screen is tested here, not the motion.
 jest.mock('react-native-reanimated', () => {
   const { Text, View } = jest.requireActual('react-native');
@@ -35,6 +38,11 @@ jest.mock('../../../shared/components/composite/AmbientBackground', () => {
 jest.mock('../../../shared/components/base/layout/GlowCard', () => {
   const { View } = jest.requireActual('react-native');
   return ({ children }) => <View>{children}</View>;
+});
+
+jest.mock('../../../shared/components/base/buttons/GradientButton', () => {
+  const { Text } = jest.requireActual('react-native');
+  return ({ label, onPress }) => <Text onPress={onPress}>{label}</Text>;
 });
 
 // It has its own spec: here, which charge it's on and its two ways on.
@@ -98,6 +106,22 @@ describe('StatementReviewScreen', () => {
     expect(screen.getByText('Not reported · 1')).toBeTruthy();
     await fireEvent.press(screen.getAllByTestId(/^unreported-/)[0]);
     expect(at()).toBe('1/1 AMAZON');
+  });
+
+  it('closes the month once everything is answered, and goes back to Finance', async () => {
+    await renderScreen();
+    await fireEvent.press(screen.getByTestId('match-yes'));
+    await fireEvent.press(screen.getAllByTestId(/^unreported-/)[0]);
+    for (let i = 0; i < 5; i += 1) {
+      expect(screen.queryByText('October is closed')).toBeNull();
+      await fireEvent.press(screen.getByTestId('answer-save'));
+    }
+    expect(screen.getByText('October is closed')).toBeTruthy();
+    expect(screen.getByText(/42 charges · ₪7,840/)).toBeTruthy();
+    expect(screen.getByText('36 you reported during the month')).toBeTruthy();
+    expect(screen.getByText('6 answered now')).toBeTruthy();
+    await fireEvent.press(screen.getByText('Back to Finance'));
+    expect(router.dismissTo).toHaveBeenCalledWith('/finance');
   });
 
   it('Neither moves it to the list', async () => {

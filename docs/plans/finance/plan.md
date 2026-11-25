@@ -750,7 +750,9 @@ reach: added (artboard 5, README §2, §3.3, §6; L6.2, B10.1).
   *Done 2026-11-25 (both):* a row answers from it on and around, a skipped one stays on the list; the last one's button
   is Save. How it was paid comes from the shop (`chargeEntry`, tested). A category and what for are
   required (asked the same day; the add sheet's what for stays optional). In the dev build, Hebrew, dark: saved, skipped, the missing category.
-- [ ] **U12.3 `MonthClosed`** — after the last one; Back to Finance.
+- [x] **U12.3 `MonthClosed`** — after the last one; Back to Finance.
+  *Done 2026-11-25:* takes the review's place once nothing is left to answer (`closedSummary`, tested); its button goes to
+  the Finance tab. A count of none isn't shown. In the dev build, Hebrew, dark: all 5 answered in a row, closed. 617 tests.
 
 **Try it:** answer all 5 example charges in a row; skip one and come back; reach "October is
 closed".

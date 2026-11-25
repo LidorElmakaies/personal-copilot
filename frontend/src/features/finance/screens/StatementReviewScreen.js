@@ -13,6 +13,7 @@ import { count } from '../../../shared/i18n/format';
 import { usePlainInHebrew, useTranslate } from '../../../shared/i18n/translate';
 import { useAppTheme } from '../../../shared/theme/useAppTheme';
 import MatchQuestion from '../components/MatchQuestion';
+import MonthClosed from '../components/MonthClosed';
 import QuickAddSheet from '../components/QuickAddSheet';
 import UnreportedRow from '../components/UnreportedRow';
 import {
@@ -28,6 +29,7 @@ import {
 import { categoriesBySpending, categoryTotals } from '../utils/spending';
 import {
   answerLine,
+  closedSummary,
   confirmLine,
   rejectLine,
   statementSummary,
@@ -47,7 +49,8 @@ const { issuer } = FINANCE_SETTINGS.cards.find(
 
 // Screen 6, the statement's review — opened from `ReviewBanner`, and by screen 5 when it's read: the
 // charges to confirm, then those not reported (Phase U: example lines, answered here only). A row opens its
-// answer (screen 7), then the rest of the list one after another, from it and around; closing stops. Yes counts the charge as reported; Neither moves it to the list. `initialLines` for the stories.
+// answer (screen 7), then the rest of the list one after another, from it and around; closing stops. Yes counts the charge as reported; Neither moves it to the list. Nothing left: the month is
+// closed (screen 8), and its button goes back to the Finance tab. `initialLines` for the stories.
 export default function StatementReviewScreen({
   initialLines = STATEMENT_LINES,
 }) {
@@ -55,7 +58,7 @@ export default function StatementReviewScreen({
   const translate = useTranslate();
   const plain = usePlainInHebrew();
   const [lines, setLines] = useState(initialLines);
-  const { month, reported } = statementSummary(lines);
+  const { month, reported, toAnswer } = statementSummary(lines);
   const questions = lines.filter((l) => l.matchStatus === 'suggested');
   const unreported = lines.filter((l) => l.matchStatus === 'unmatched');
 
@@ -76,6 +79,20 @@ export default function StatementReviewScreen({
     n: answering.at + 1,
     total: answering.queue.length,
   };
+
+  if (toAnswer === 0) {
+    return (
+      <AmbientBackground>
+        <Animated.View entering={fadeIn} style={styles.closed}>
+          <MonthClosed
+            month={month}
+            {...closedSummary(lines)}
+            onBack={() => router.dismissTo('/finance')}
+          />
+        </Animated.View>
+      </AmbientBackground>
+    );
+  }
 
   const heading = (key, n) => (
     <Animated.Text
@@ -181,6 +198,7 @@ export default function StatementReviewScreen({
 
 const styles = StyleSheet.create({
   container: { padding: 20, paddingTop: 64, paddingBottom: 36, gap: 14 },
+  closed: { flex: 1, padding: 24 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   titles: { flex: 1, gap: 2 },
   title: { fontSize: 20, fontWeight: '600' },

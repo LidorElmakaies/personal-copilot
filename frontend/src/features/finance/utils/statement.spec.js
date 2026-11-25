@@ -3,6 +3,7 @@ import { STATEMENT_ERRORS, STATEMENT_LINES } from '../mocks';
 import {
   answerLine,
   chargeEntry,
+  closedSummary,
   confirmLine,
   matchText,
   rejectLine,
@@ -165,6 +166,23 @@ describe('answerLine and chargeEntry', () => {
     expect(charge('KSP', -8000)).toMatchObject({
       amountAgorot: 8000,
       direction: 'refund',
+    });
+  });
+});
+
+describe('closedSummary', () => {
+  it('gives October as on the canvas: 42 charges, ₪7,840, 36 reported, 6 answered', () => {
+    const closed = STATEMENT_LINES.map((l) => ({
+      ...l,
+      matchStatus:
+        { suggested: 'confirmed', unmatched: 'answered' }[l.matchStatus] ??
+        l.matchStatus,
+    }));
+    expect(closedSummary(closed)).toEqual({
+      charges: 42,
+      totalAgorot: 784000,
+      reported: 36,
+      answered: 6,
     });
   });
 });

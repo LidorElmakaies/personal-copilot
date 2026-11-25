@@ -166,7 +166,7 @@ feature's `components/` (listed under `composite/` below with its feature):
   `statement.js`'s `statementSteps`; `status`, `source`, `lineCount`, `totalAgorot`), `StatementError` (from `Alert`, `GradientButton` — screen 5 when it failed;
   words from `statement.js`'s `statementErrorText`; `error`, `source`, `onStartOver`, `onRetry` (LLM out of reach only); `StatementReadingScreen` is the root Stack's `app/finance-reading.js`,
   `?source=`, opened by Check — the example timing in `mocks/`, then the review replaces it; `error`, `onDone`), `ChargeLine` (a statement line: shop, `format.js`'s `chargeDetails`, amount; `line`),
-  `ChargeSummary` (screen 7's charge on top of its sheet; `line`),
+  `ChargeSummary` (screen 7's charge on top of its sheet; `line`), `MonthClosed` (from `GradientButton` — screen 8; `month`, `statement.js`'s `closedSummary`, `onBack`),
   `UnreportedRow` (from `ChargeLine` — screen 6's charge not reported; `line`, `onPress`), `MatchQuestion` (from `GlowCard`, `ChargeLine`, `BoldText` — screen 6's
   "Is this yours?": Yes / The other one, which shows the next candidate / Neither; words from `statement.js`'s `matchText`; `line`,
   `candidates`, `onYes(entryId)`, `onNeither`), `BoldText` (a sentence's `parts` from `format.js`'s `boldParts`), `CategoryChips` (from `FilterChip` — the sheet's categories, one selected; past two lines
@@ -207,7 +207,7 @@ feature's `components/` (listed under `composite/` below with its feature):
   `SpentCard`, `EntryList`, the + — and the banner opens `StatementReviewScreen` (screen 6, the root
   Stack's `app/finance-review.js`, `router.push` — the imperative `router`, so Storybook renders the
   screen without a navigator: its lines in state, questions and not-reported rows animated with Reanimated layout transitions, a
-  row opens the answer sheet and goes on through the list); `finance/utils/statement.js`'s
+  row opens the answer sheet and goes on through the list; nothing left, `MonthClosed`); `finance/utils/statement.js`'s
   `statementSummary(lines)` gives the banner's to answer / already reported / month, `confirmLine`/`rejectLine` answer a question, `answerLine` a charge; `finance/utils/filter.js`
   holds the list's search, filters and sort (U4b): `filterEntries(entries, filter)` (`NO_FILTER`'s
   shape: `query` in "what for" or the shop, either language, `categoryIds`, `minAgorot`/`maxAgorot`,

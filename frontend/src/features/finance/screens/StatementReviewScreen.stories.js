@@ -26,8 +26,8 @@ export const ThirtyUnreported = {
     ],
   },
 };
-// Nothing left to answer (U12's "month closed" takes over).
-export const NothingLeft = {
+// Nothing left to answer: the month is closed.
+export const Closed = {
   args: { initialLines: without('suggested', 'unmatched') },
 };
 export const Hebrew = { parameters: { language: 'he' } };
