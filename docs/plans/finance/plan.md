@@ -163,7 +163,7 @@ existing kit (`frontend.md`'s "Build for reuse").
 | `UnreportedRow` | A charge not reported yet | `Row` | U11 |
 | `ChargeSummary` | The statement line on top of the answer sheet | `GlowCard` | U12 |
 | `MonthClosed` | Screen 8 | `GradientButton` | U12 |
-| `FinanceSettings` | Screen 10's settings: billing days, evening reminder, categories | `GlowCard`, `Row`, `Stepper`, `Switch` | U13 |
+| `FinanceSettings` | Screen 10's settings: billing days, reminders, categories | `GlowCard`, `Row`, `Stepper`, `Switch` | U13 |
 | `CategoryEditor` | Rename / add / archive categories | `BottomSheet`, `InputField` | U13 |
 
 Screens (`src/features/finance/screens/`): `FinanceScreen` (tab), `EntryScreen`,
@@ -758,20 +758,28 @@ reach: added (artboard 5, README §2, §3.3, §6; L6.2, B10.1).
 closed".
 **Docs:** `frontend.md` (`ChargeSummary`, `MonthClosed`, the answer mode).
 **Feedback questions:** Is answering 5–10 charges in a row comfortable?
-**Feedback:** —
+**Feedback:** 2026-11-25 — answering in a row is comfortable. What for is required here, the test limit 20 s.
 
 ## Stage U13: `FinanceSettings` and `CategoryEditor` (screen 10)
 
-- [ ] **U13.1 `FinanceSettings`** — per card: billing day (`Stepper` 1–31); the evening reminder
+- [x] **U13.1 `FinanceSettings`** — per card: billing day (`Stepper` 1–31); the evening reminder
   (`Switch` + a time); Categories ›.
-- [ ] **U13.2 `CategoryEditor`** — the list, rename, add, archive (with a note that old entries
+  *Done 2026-11-25 (with U13.3, to be seen in the app):* a pill opens its steppers under its row, one at a time; "+ Another
+  card" adds one by its 4th digit, billed on the 10th (`utils/settings.js`, tested); removing one asks first. Categories
+  waits for U13.2. `ordinal` moved from reminders to `shared/i18n/format.js`. In the dev build, Hebrew, dark. 625 tests.
+- [x] **U13.2 `CategoryEditor`** — the list, rename, add, archive (with a note that old entries
   keep their category).
-- [ ] **U13.3 Reached from** a settings icon on `FinanceHeader`.
+  *Done 2026-11-25:* artboards 23 and 24, signed off the same day; also the icon, and Restore. The last active one can't be
+  archived (an entry needs a category); Restore refuses a name an active one has. `CategoriesScreen`, `/finance-categories`. In the dev build, Hebrew, dark.
+  632 tests.
+- [x] **U13.3 Reached from** a settings icon on `FinanceHeader`.
+  *Done 2026-11-25:* `FinanceSettingsScreen`, `/finance-settings`.
 
 **Try it:** change every setting; rename and add a category; archive one.
 **Docs:** `frontend.md` (`FinanceSettings`, `CategoryEditor`).
 **Feedback questions:** Anything else you'd want to set?
-**Feedback:** —
+**Feedback:** 2026-11-25 — no time button: one switch and one time for all the reminders, billing days and evenings, the time
+showing while it's on; a card can be removed (artboard 10).
 
 ## Stage U14: the whole flow, polished — UI sign-off
 
@@ -874,7 +882,7 @@ reads the file); offline → they wait.
 
 ## Stage L7: the real reminders and settings
 
-- [ ] **L7.1 Settings kept on the phone** — billing day per card, evening reminder on/off and time.
+- [ ] **L7.1 Settings kept on the phone** — billing day per card, reminders on/off and their one time.
 - [ ] **L7.2 Statement-day reminder** — a new reminder kind in `ReminderScheduleManager` (the
   30-day window), one per card; tapping opens screen 4 with that card.
 - [ ] **L7.3 Evening reminder** — daily at the set time; tapping opens the quick-add sheet.

@@ -2,6 +2,8 @@ import { HDate } from '@hebcal/hdate';
 import {
   hebrewDate,
   hebrewLetters,
+  ordinal,
+  ordinalSuffix,
   shortDate,
 } from '../../../shared/i18n/format';
 import { israelClock, monthAt } from '../../../shared/utils/date';
@@ -22,13 +24,6 @@ const localDate = (date) => {
 };
 const hebrewOf = (date) => new HDate(localDate(date));
 
-// "th" for 19 — English's; the dictionary decides whether a language uses it (`ordinal`).
-function suffixOf(n) {
-  const suffix = ['th', 'st', 'nd', 'rd'];
-  const v = n % 100;
-  return suffix[(v - 20) % 10] || suffix[v] || suffix[0];
-}
-
 // The day a monthly or yearly reminder repeats on, in its own calendar, as each language writes
 // it: `nth` ("19th" / "8th" · "19" / "ח׳"), `day` and `month` ("19 October" / "8 Cheshvan" ·
 // "19 באוקטובר" / "ח׳ בחשון").
@@ -36,7 +31,7 @@ function repeatDay(translate, { calendar, start }) {
   const [, m, d] = parts(start);
   if (calendar !== 'hebrew')
     return {
-      nth: translate('ordinal', { n: d, suffix: suffixOf(d) }),
+      nth: ordinal(translate, d),
       day: d,
       month: translate(`month.${m}`),
     };
@@ -46,7 +41,7 @@ function repeatDay(translate, { calendar, start }) {
   return {
     nth: translate('hebrewCalendar.nth', {
       n,
-      suffix: suffixOf(n),
+      suffix: ordinalSuffix(n),
       letters: dayHe,
     }),
     day: translate('hebrewCalendar.day', { n, letters: dayHe }),

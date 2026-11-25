@@ -105,6 +105,7 @@ export default function FinanceScreen({ reachable = true }) {
               : undefined
           }
           onMonthlyCheck={() => router.push('/finance-check')}
+          onSettings={() => router.push('/finance-settings')}
         />
         {statement.toAnswer > 0 && monthIndex(statement.month) === index && (
           <ReviewBanner
@@ -201,7 +202,7 @@ export default function FinanceScreen({ reachable = true }) {
         visible={naming}
         onClose={() => setNaming(false)}
         categories={categories}
-        onAdd={(fields) => {
+        onSave={(fields) => {
           const added = addCategory(categories, fields);
           setCategories(added.categories);
           selectNew.current?.(added.category.id);

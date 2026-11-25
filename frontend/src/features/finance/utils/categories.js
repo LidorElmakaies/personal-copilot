@@ -38,6 +38,22 @@ export function categoryNameProblem(name, categories) {
   return taken ? 'finance.categoryNameTaken' : null;
 }
 
+// One category's name and icon changed; archived (`at`, ISO), so it isn't offered for new entries; restored.
+const change = (categories, id, part) =>
+  categories.map((c) => (c.id === id ? { ...c, ...part } : c));
+export const editCategory = (categories, id, { name, icon }) =>
+  change(categories, id, { name: name.trim(), icon });
+export const archiveCategory = (categories, id, at) =>
+  change(categories, id, { archivedAt: at });
+export const restoreCategory = (categories, id) =>
+  change(categories, id, { archivedAt: null });
+
+// The icons to pick from for a category: its own first when it isn't one of them.
+export const iconsFor = (category) =>
+  category && !CATEGORY_ICONS.includes(category.icon)
+    ? [category.icon, ...CATEGORY_ICONS]
+    : CATEGORY_ICONS;
+
 // `categories` with a new expense category at the end: `{ categories, category }`. Its id is
 // local ("cat-new-1", …) until the API gives one (L2.5).
 export function addCategory(categories, { name, icon }) {

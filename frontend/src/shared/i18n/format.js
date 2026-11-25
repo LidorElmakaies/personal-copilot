@@ -87,6 +87,17 @@ export function duration(translate, minutes) {
   return hours || mins || '';
 }
 
+// "th" for 19 — English's; the dictionary decides whether a language uses it (`ordinal`).
+export function ordinalSuffix(n) {
+  const suffix = ['th', 'st', 'nd', 'rd'];
+  const v = n % 100;
+  return suffix[(v - 20) % 10] || suffix[v] || suffix[0];
+}
+
+// "19th" · "19"
+export const ordinal = (translate, n) =>
+  translate('ordinal', { n, suffix: ordinalSuffix(n) });
+
 // "1 reminder", "3 reminders" · "תזכורת אחת", "3 תזכורות": `key`.one for 1, `key`.other otherwise.
 export const count = (translate, key, n) =>
   translate(`${key}.${n === 1 ? 'one' : 'other'}`, { n });

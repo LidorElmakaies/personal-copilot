@@ -9,33 +9,46 @@ import { useAppTheme } from '../../../shared/theme/useAppTheme';
 import {
   CATEGORY_ICONS,
   categoryNameProblem,
+  iconsFor,
   typedCategoryName,
 } from '../utils/categories';
 
 // Screen 14: a new category — its name (English or Hebrew letters, not an active category's) and an
-// icon from a grid; "Add category" gives `onAdd({ name, icon })`. Opened from the chips' "+ New" and
-// the filter sheet's "+ New category"; `CategoryEditor` (U13.2) will reuse it to rename.
-// `visible`, `onClose`, `categories` (the ones its name mustn't repeat).
+// icon from a grid; "Add category" gives `onSave({ name, icon })`. Opened from the chips' "+ New" and
+// the filter sheet's and `CategoryEditor`'s "+ New category". With `category` it edits that one (screen 24):
+// filled in, Save, and Archive while `onArchive` is set. `visible`, `onClose`, `categories` (the ones its name mustn't repeat).
 export default function NewCategorySheet({
   visible,
   onClose,
   categories,
-  onAdd,
+  category,
+  onSave,
+  onArchive,
 }) {
   return (
     <BottomSheet visible={visible} onClose={onClose}>
-      {visible && <NewCategoryForm categories={categories} onAdd={onAdd} />}
+      {visible && (
+        <CategoryForm
+          categories={categories}
+          category={category}
+          onSave={onSave}
+          onArchive={onArchive}
+        />
+      )}
     </BottomSheet>
   );
 }
 
-function NewCategoryForm({ categories, onAdd }) {
+function CategoryForm({ categories, category, onSave, onArchive }) {
   const { colors } = useAppTheme();
   const translate = useTranslate();
   const plain = usePlainInHebrew();
-  const [name, setName] = useState('');
-  const [icon, setIcon] = useState(CATEGORY_ICONS[0]);
-  const problem = categoryNameProblem(name, categories);
+  const [name, setName] = useState(category?.name ?? '');
+  const [icon, setIcon] = useState(category?.icon ?? CATEGORY_ICONS[0]);
+  const problem = categoryNameProblem(
+    name,
+    categories.filter((c) => c.id !== category?.id),
+  );
   // A blank name only keeps the button off; a taken one says so.
   const error =
     problem === 'finance.categoryNameTaken'
@@ -45,7 +58,7 @@ function NewCategoryForm({ categories, onAdd }) {
   return (
     <>
       <Text style={[styles.title, { color: colors.text }]}>
-        {translate('finance.newCategoryTitle')}
+        {translate(category ? 'categories.edit' : 'finance.newCategoryTitle')}
       </Text>
       {/* Shrinks under the keyboard (BottomSheet), so Add stays in reach. */}
       <ScrollView
@@ -67,7 +80,7 @@ function NewCategoryForm({ categories, onAdd }) {
             {translate('finance.categoryIcon')}
           </Text>
           <View style={styles.grid}>
-            {CATEGORY_ICONS.map((ic) => {
+            {iconsFor(category).map((ic) => {
               const on = ic === icon;
               return (
                 <Pressable
@@ -98,19 +111,41 @@ function NewCategoryForm({ categories, onAdd }) {
             })}
           </View>
         </View>
-        <View style={[styles.note, { backgroundColor: colors.inputBg }]}>
-          <Ionicons name="cloud-outline" size={16} color={colors.textMuted} />
-          <Text style={[styles.noteText, { color: colors.textMuted }]}>
-            {translate('finance.categorySavedNote')}
-          </Text>
-        </View>
+        {!category && (
+          <View style={[styles.note, { backgroundColor: colors.inputBg }]}>
+            <Ionicons name="cloud-outline" size={16} color={colors.textMuted} />
+            <Text style={[styles.noteText, { color: colors.textMuted }]}>
+              {translate('finance.categorySavedNote')}
+            </Text>
+          </View>
+        )}
       </ScrollView>
       <GradientButton
-        label={translate('finance.addCategory')}
-        onPress={() => onAdd({ name: name.trim(), icon })}
+        label={translate(category ? 'common.save' : 'finance.addCategory')}
+        onPress={() => onSave({ name: name.trim(), icon })}
         disabled={!!problem}
         testID="new-category-add"
       />
+      {onArchive && (
+        <View style={styles.archive}>
+          <Pressable
+            onPress={onArchive}
+            accessibilityRole="button"
+            testID="category-archive"
+            style={({ pressed }) => [
+              styles.archiveButton,
+              pressed && styles.pressed,
+            ]}
+          >
+            <Text style={[styles.archiveText, { color: colors.pending }]}>
+              {translate('categories.archive')}
+            </Text>
+          </Pressable>
+          <Text style={[styles.archiveNote, { color: colors.textMuted }]}>
+            {translate('categories.archiveNote')}
+          </Text>
+        </View>
+      )}
     </>
   );
 }
@@ -125,6 +160,7 @@ const styles = StyleSheet.create({
   // Six to a row, as drawn.
   icon: {
     width: '14.5%',
+    maxWidth: '14.8%', // a 13th icon (iconsFor) doesn't fill its row
     flexGrow: 1,
     height: 48,
     borderRadius: 12,
@@ -142,4 +178,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   noteText: { flex: 1, fontSize: 12 },
+  archive: { alignItems: 'center' },
+  archiveButton: { minHeight: 44, justifyContent: 'center' },
+  archiveText: { fontSize: 14 },
+  archiveNote: { fontSize: 12, textAlign: 'center' },
 });

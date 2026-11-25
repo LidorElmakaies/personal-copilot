@@ -70,6 +70,12 @@ export const paidWithLabel = (translate, { paidWith, cardLast4 }, short) =>
     { last4: cardLast4 },
   );
 
+// "MAX ••4821", or "••4821" when its issuer isn't known.
+export const cardName = (translate, { issuer, cardLast4 }) =>
+  issuer
+    ? translate('finance.issuerCard', { issuer, last4: cardLast4 })
+    : translate('paidWith.cardShort', { last4: cardLast4 });
+
 // A way to pay by its name alone: "Card", "Bit".
 export const paidWithName = (translate, paidWith) =>
   translate(paidWith === 'card' ? 'finance.card' : `paidWith.${paidWith}`);

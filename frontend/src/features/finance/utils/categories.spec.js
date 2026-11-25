@@ -1,8 +1,12 @@
 import {
   addCategory,
+  archiveCategory,
   CATEGORY_ICONS,
   CATEGORY_NAME_MAX,
   categoryNameProblem,
+  editCategory,
+  iconsFor,
+  restoreCategory,
   typedCategoryName,
 } from './categories';
 
@@ -78,5 +82,31 @@ describe('addCategory', () => {
     expect(addCategory([], { name: 'A', icon: 'x' }).category.sortOrder).toBe(
       1,
     );
+  });
+});
+
+describe('editCategory, archiveCategory and restoreCategory', () => {
+  const two = [cat('a', 'Food', 1), cat('b', 'Gifts', 2)];
+
+  it('change only that one', () => {
+    const edited = editCategory(two, 'b', { name: ' Presents ', icon: 'x' });
+    expect(edited).toEqual([
+      two[0],
+      { ...two[1], name: 'Presents', icon: 'x' },
+    ]);
+    const archived = archiveCategory(two, 'a', '2026-11-25');
+    expect(archived.map((c) => c.archivedAt)).toEqual(['2026-11-25', null]);
+    expect(restoreCategory(archived, 'a')).toEqual(two);
+  });
+});
+
+describe('iconsFor', () => {
+  it('has a category’s own icon first when it is not in the grid', () => {
+    const grid = iconsFor(undefined);
+    expect(iconsFor({ icon: grid[3] })).toEqual(grid);
+    expect(iconsFor({ icon: 'receipt-outline' })).toEqual([
+      'receipt-outline',
+      ...grid,
+    ]);
   });
 });

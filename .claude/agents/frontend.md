@@ -166,7 +166,9 @@ feature's `components/` (listed under `composite/` below with its feature):
   `statement.js`'s `statementSteps`; `status`, `source`, `lineCount`, `totalAgorot`), `StatementError` (from `Alert`, `GradientButton` — screen 5 when it failed;
   words from `statement.js`'s `statementErrorText`; `error`, `source`, `onStartOver`, `onRetry` (LLM out of reach only); `StatementReadingScreen` is the root Stack's `app/finance-reading.js`,
   `?source=`, opened by Check — the example timing in `mocks/`, then the review replaces it; `error`, `onDone`), `ChargeLine` (a statement line: shop, `format.js`'s `chargeDetails`, amount; `line`),
-  `ChargeSummary` (screen 7's charge on top of its sheet; `line`), `MonthClosed` (from `GradientButton` — screen 8; `month`, `statement.js`'s `closedSummary`, `onBack`),
+  `ChargeSummary` (screen 7's charge on top of its sheet; `line`), `FinanceSettings` (from `GlowCard`, `PillButton`, `Stepper`, `Switch`, `CardDigitsField` —
+  screen 10; `settings`, `onChange`, `usedCards`, `onCategories`; rules in `finance/utils/settings.js`; `FinanceSettingsScreen` is the root Stack's
+  `app/finance-settings.js`, opened by `FinanceHeader`'s icon, `onSettings`), `MonthClosed` (from `GradientButton` — screen 8; `month`, `statement.js`'s `closedSummary`, `onBack`),
   `UnreportedRow` (from `ChargeLine` — screen 6's charge not reported; `line`, `onPress`), `MatchQuestion` (from `GlowCard`, `ChargeLine`, `BoldText` — screen 6's
   "Is this yours?": Yes / The other one, which shows the next candidate / Neither; words from `statement.js`'s `matchText`; `line`,
   `candidates`, `onYes(entryId)`, `onNeither`), `BoldText` (a sentence's `parts` from `format.js`'s `boldParts`), `CategoryChips` (from `FilterChip` — the sheet's categories, one selected; past two lines
@@ -193,8 +195,9 @@ feature's `components/` (listed under `composite/` below with its feature):
   `NewCategorySheet` (from `BottomSheet`, `InputField`, `GradientButton` — screen 14: a name
   (`categories.js`'s `typedCategoryName`: English and Hebrew letters, ≤ 30; not an active category's
   name) and one of `CATEGORY_ICONS`; Add off while `categoryNameProblem`; its body scrolls so Add stays
-  above the keyboard; `visible`, `onClose`, `categories`, `onAdd({ name, icon })`; U13.2 reuses it to
-  rename), `FilterSummary` (the tinted line over a
+  above the keyboard; `visible`, `onClose`, `categories`, `onSave({ name, icon })`; with `category`,
+  and `onArchive`, it edits one, screen 24), `CategoryEditor` (from `GlowCard`, `NewCategorySheet`, `Alert` — screen 23: edit, add, archive, Restore;
+  `categories`, `onChange`; `CategoriesScreen` is the root Stack's `app/finance-categories.js`, opened from the settings), `FilterSummary` (the tinted line over a
   filtered or re-sorted list: "Eating out · 8 entries · ₪640", the sort under it when one is chosen, Clear — nothing left:
   "“challah” · Eating out · nothing", no sort; `filter`,
   `sort`, `entries` (shown), `categories`, `onClear`; text from `format.js`'s `filterSummary`);
@@ -215,7 +218,7 @@ feature's `components/` (listed under `composite/` below with its feature):
   `isFiltering`, `sheetFiltering` (the all-filters button lit: a sort, more than one category, an amount, paid
   with), `PAID_WITH`; `finance/utils/categories.js` holds a new category's rules — `CATEGORY_NAME_MAX`, `CATEGORY_ICONS`,
   `typedCategoryName`, `categoryNameProblem(name, categories)` (a dictionary key or null),
-  `addCategory(categories, { name, icon })` (a local `cat-new-N` id until L2.5); `finance/utils/format.js` holds
+  `editCategory`, `archiveCategory`, `restoreCategory`, `iconsFor`, `addCategory(categories, { name, icon })` (a local `cat-new-N` id until L2.5); `finance/utils/format.js` holds
   `formatShekels` (whole agorot → "₪284.90", the same in both languages), `dayLabel(translate, …)`, `entryDetails(translate, entry, category, day)` (the row's second line; with `day`, a card is only "••4821") and
   `filterSummary(translate, { filter, sort, entries, categories })` (`FilterSummary`'s `title`, `sort`),
   `noMatchLine(translate, { filter, month, categories })` (`NoMatch`'s line),
@@ -324,7 +327,7 @@ when a component genuinely needs something no thunk/selector combination can giv
   come from hebcal in both (`name[useLanguage()]`). A tab's `label` in `TABS` is a key too.
 - **Dates through `src/shared/i18n/format.js`**, never `toLocaleDateString`: `longDate`,
   `shortDate`, `dayMonth`, `weekdayMonth`, `monthTitle`, `hebrewDate` — each `(translate, date)` —
-  and `duration(translate, minutes)` ("1h 30m" · "שעה ו־30 דק׳"), `count(translate, key, n)`
+  and `duration(translate, minutes)` ("1h 30m" · "שעה ו־30 דק׳"), `ordinal(translate, n)` ("10th" · "10"), `count(translate, key, n)`
   (`key.one`/`key.other` — "תזכורת אחת"), `hebrewLetters(date)` (a date's Hebrew date in letters,
   for `hebrewDate`); the names from the dictionaries
   (`month.N`, `weekday.N`, `weekdayLetter.N`…), so the phone and Jest agree. Times ("18:12"), numbers and ₪ read the same in both languages.

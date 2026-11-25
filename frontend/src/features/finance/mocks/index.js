@@ -19,7 +19,7 @@ export {
 
 export const FINANCE_SETTINGS = {
   cards: [{ cardLast4: '4821', issuer: 'MAX', billingDay: 10 }],
-  eveningReminder: { enabled: true, hour: 21, minute: 0 },
+  reminders: { enabled: true, hour: 21, minute: 0 },
 };
 
 // The cards used, the last one first (L2.3 keeps them on the phone).

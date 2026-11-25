@@ -7,7 +7,7 @@ export default {
   args: { visible: true, categories: CATEGORIES },
   argTypes: {
     onClose: { action: 'closed' },
-    onAdd: { action: 'added' },
+    onSave: { action: 'saved' },
   },
 };
 
@@ -15,3 +15,8 @@ export default {
 // only its letters.
 export const Default = {};
 export const Hebrew = { parameters: { language: 'he' } };
+// Screen 24.
+const editing = { category: CATEGORIES[2], onArchive: () => {} };
+export const Edit = { args: editing };
+export const EditTheLast = { args: { category: CATEGORIES[2] } };
+export const HebrewEdit = { parameters: { language: 'he' }, args: editing };

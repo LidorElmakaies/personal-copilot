@@ -7,6 +7,7 @@ export default {
   argTypes: {
     onPrevious: { action: 'previous' },
     onMonthlyCheck: { action: 'monthly check' },
+    onSettings: { action: 'settings' },
   },
 };
 
