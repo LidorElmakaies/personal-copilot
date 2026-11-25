@@ -81,7 +81,8 @@ line) is tried again automatically — **3 attempts**, waiting longer each time 
 `retryLimit` / `retryDelay` / `retryBackoff`). Only when all attempts fail does the statement go to
 `failed`, and the app shows **the error** ("Couldn't reach the LLM", "The rows add up to ₪7,612 but
 the statement says ₪7,840"). A check that fails on the content itself — totals don't add up,
-unreadable file — fails at once: retrying the same text gives the same answer.
+unreadable file — fails at once: retrying the same text gives the same answer. When it was the LLM
+that couldn't be reached, the app offers **Try again**: the kept original is queued again.
 
 ## 3. Main flows
 
@@ -167,7 +168,7 @@ stateDiagram-v2
   received --> parsing
   parsing --> parsing: error → retry (up to 3 attempts)
   parsing --> failed: all attempts failed / totals don't add up (error shown in the app)
-  failed --> received: re-paste / re-upload
+  failed --> received: re-paste / re-upload / Try again (LLM out of reach, the kept original)
   parsing --> matching
   matching --> needs_review: some lines not reported
   matching --> closed: everything already reported
@@ -317,6 +318,7 @@ erDiagram
 | `GET` / `POST` / `PATCH` | `/finance/categories[/:id]` | Categories |
 | `POST` | `/finance/statements` | Paste (JSON) or upload (.xlsx) → `202 {id}` |
 | `GET` | `/finance/statements/:id` | Status + counts (the app polls while parsing) |
+| `POST` | `/finance/statements/:id/retry` | Read the kept original again — only when it failed on the LLM → `202` |
 | `GET` | `/finance/statements/:id/to-review` | **The not-reported list** |
 | `POST` | `/finance/statement-lines/:id/answer` | What it was for → creates an entry |
 | `POST` | `/finance/statement-lines/:id/confirm` | "Yes, that's my entry X" |

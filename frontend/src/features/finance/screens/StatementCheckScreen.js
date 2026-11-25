@@ -10,8 +10,8 @@ import StatementSource from '../components/StatementSource';
 import { EXAMPLE_STATEMENT_FILE, STATEMENT_CARDS } from '../mocks';
 
 // Screen 4, the monthly check — opened from the header's pill: which card, then its statement (Phase U:
-// Choose file… picks an example one, the real picker is L6; Check goes straight to the review, until
-// U10's reading). Android's back works too (the root Stack).
+// Choose file… picks an example one, the real picker is L6; Check opens
+// screen 5's reading). Android's back works too (the root Stack).
 export default function StatementCheckScreen() {
   const { colors } = useAppTheme();
   const translate = useTranslate();
@@ -41,7 +41,9 @@ export default function StatementCheckScreen() {
           issuer={issuer}
           file={file}
           onChooseFile={() => setFile(EXAMPLE_STATEMENT_FILE)}
-          onCheck={() => router.push('/finance-review')}
+          onCheck={({ source }) =>
+            router.push({ pathname: '/finance-reading', params: { source } })
+          }
         />
       </View>
     </AmbientBackground>

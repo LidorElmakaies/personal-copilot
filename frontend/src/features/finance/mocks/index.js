@@ -11,6 +11,7 @@ export { CATEGORIES } from './categories';
 export { TODAY } from './entries';
 export {
   PASTE_SAMPLE,
+  READING_STEPS,
   STATEMENT,
   STATEMENT_ERRORS,
   STATEMENT_LINES,

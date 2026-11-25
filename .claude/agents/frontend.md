@@ -101,7 +101,7 @@ feature's `components/` (listed under `composite/` below with its feature):
   register's link to the other screen, plus "Continue without logging in"); `FloatingButton`'s `icon` (Ionicons name, default `add`) — the
   caller positions it via `style` (`position: 'absolute'` and its corner);
   `testID` on `GradientButton`, `FloatingButton`, `InputField` and `Stepper` (its buttons get `<testID>-fewer`/`-more`), and each `CustomTabBar` tab is `tab-<name>` — what the Maestro flows find;
-  `Alert`'s `variant` (`error` default, `warning`, `success`); `PhotoStrip`'s `photos` `[{ id, source }]`, `onAdd`, `onRemove(id)`, `onPressPhoto(index)` (64 dp thumbnails, each photo whole, in one sideways-scrolling row; no × or add tile without their handler; example photos: `assets/example-photos/`);
+  `Alert`'s `variant` (`error` default, `warning`, `success`) and `title` (optional); `PhotoStrip`'s `photos` `[{ id, source }]`, `onAdd`, `onRemove(id)`, `onPressPhoto(index)` (64 dp thumbnails, each photo whole, in one sideways-scrolling row; no × or add tile without their handler; example photos: `assets/example-photos/`);
   `PhotoPager`'s `photos`, `shown`/`onShow(i)`, `onZoom(scale)`, `onClose`, `drag` (the gallery's photos: swipe, pinch or double tap to zoom, drag around, drag down to close; one gesture made once over all of them, arithmetic in `shared/utils/photoZoom.js`; its row is always left to right, the photos reversed in Hebrew);
   `Switch`'s `disabled` and
   `accessibilityLabel` (rendered with role `switch`); `GlowCard` always draws an opaque panel
@@ -162,7 +162,10 @@ feature's `components/` (listed under `composite/` below with its feature):
   "+ Another card"; `cards` `[{ last4, issuer }]`, `value`, `onChange(last4)`), `StatementSource` (from `SegmentRow`, `GlowCard`, `InputField`, `GradientButton`,
   `Alert` — screen 4's upload or paste, and Check under its scrolling body, above the keyboard; `header`, `card`, `issuer`, `file`,
   `onChooseFile`, `onCheck`; what's missing from `statement.js`'s `statementProblem`; `StatementCheckScreen` is the root Stack's `app/finance-check.js`,
-  opened from the header's Monthly check pill), `CategoryChips` (from `FilterChip` — the sheet's categories, any number selected; past two lines
+  opened from the header's Monthly check pill), `StatementProgress` (from `GlowCard` — screen 5's spinner and ticking steps, from
+  `statement.js`'s `statementSteps`; `status`, `source`, `lineCount`, `totalAgorot`), `StatementError` (from `Alert`, `GradientButton` — screen 5 when it failed;
+  words from `statement.js`'s `statementErrorText`; `error`, `source`, `onStartOver`, `onRetry` (LLM out of reach only); `StatementReadingScreen` is the root Stack's `app/finance-reading.js`,
+  `?source=`, opened by Check — the example timing in `mocks/`, then the review replaces it; `error`, `onDone`), `CategoryChips` (from `FilterChip` — the sheet's categories, any number selected; past two lines
   "More…" / "Less", which ones fit measured by `chips.js`'s `chipsThatFit`, the
   selected ones always showing; `categories`, `selectedIds`, `onChange(ids)`,
   `defaultOpen`), `AmountInput` (the

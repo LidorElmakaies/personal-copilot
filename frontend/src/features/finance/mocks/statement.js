@@ -80,6 +80,13 @@ export const STATEMENT_ERRORS = {
   unknown: { code: 'unknown' },
 };
 
+// Screen 5's example timing: how long the statement stays in each status, until L6.
+export const READING_STEPS = [
+  { status: 'parsing', ms: 2000 },
+  { status: 'matching', ms: 2000 },
+  { status: 'needs_review', ms: 800 },
+];
+
 // Screen 4's paste box, as the canvas shows it.
 export const PASTE_SAMPLE = [
   '13/10/26  שופרסל דיל      284.90',

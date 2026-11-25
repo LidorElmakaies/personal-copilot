@@ -1,4 +1,5 @@
-import { parseShekels } from './format';
+import { count } from '../../../shared/i18n/format';
+import { formatShekels, parseShekels } from './format';
 
 // What `ReviewBanner` says about a statement's lines (README §5's match_status): still to answer
 // (`unmatched`, `suggested`), already reported (an entry matched it: `auto_matched`, `confirmed`),
@@ -28,4 +29,50 @@ export function statementProblem({ card, source, file, text, total }) {
   if (source === 'file') return file ? null : 'statement.fileRequired';
   if (!text.trim()) return 'statement.textRequired';
   return parseShekels(total) === null ? 'statement.totalRequired' : null;
+}
+
+// Screen 5's steps, each `done`, `active` or `waiting`, from the statement's status (README §5's).
+// A statement with a status has been received, so the first is always done.
+const STEPS = ['received', 'parsing', 'matching'];
+const ALL_DONE = new Set(['needs_review', 'closed']);
+
+export function statementSteps(status) {
+  const at = ALL_DONE.has(status)
+    ? STEPS.length
+    : Math.max(1, STEPS.indexOf(status));
+  return STEPS.map((step, i) => ({
+    step,
+    state: i < at ? 'done' : i === at ? 'active' : 'waiting',
+  }));
+}
+
+// What `StatementError` says: its title, its text in `parts` (the amounts `bold`), its button, and
+// whether reading the kept statement again can help (`retry`). A code it doesn't know reads as unknown.
+const BOLD = '\u0001';
+
+export function statementErrorText(translate, error, source) {
+  const say = (name, text, vars, action = 'startOver') => ({
+    retry: error?.code === 'llm_unreachable',
+    title: translate(`statementError.${name}`),
+    parts: translate(`statementError.${text}`, vars)
+      .split(BOLD)
+      .map((part, i) => ({ text: part, bold: i % 2 === 1 })),
+    action: translate(`statementError.${action}`),
+  });
+  const amount = (agorot) => BOLD + formatShekels(agorot) + BOLD;
+  switch (error?.code) {
+    case 'totals_mismatch':
+      return say('totals', source === 'text' ? 'totalsText' : 'totalsFile', {
+        rows: amount(error.rowsTotalAgorot),
+        declared: amount(error.declaredTotalAgorot),
+      });
+    case 'not_max_file':
+      return say('notMax', 'notMaxText', {}, 'chooseAnother');
+    case 'llm_unreachable':
+      return say('llm', 'llmText', {
+        tried: count(translate, 'count.tried', error.attempts),
+      });
+    default:
+      return say('unknown', 'unknownText');
+  }
 }

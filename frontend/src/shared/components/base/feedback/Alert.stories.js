@@ -17,3 +17,9 @@ export const Hebrew = {
   parameters: { language: 'he' },
   args: { children: 'לא ניתן להתחבר למחשב — אפשר עדיין להוסיף' },
 };
+export const WithTitle = {
+  args: {
+    title: 'Something went wrong',
+    children: 'The statement couldn’t be read.',
+  },
+};

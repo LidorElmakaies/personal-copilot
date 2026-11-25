@@ -252,6 +252,32 @@ export default {
   'statement.fileRequired': 'Choose the statement file',
   'statement.textRequired': 'Paste the statement',
   'statement.totalRequired': 'Enter the statement total',
+  'statement.reading': 'Reading your statement…',
+  'statement.fileReceived': 'File received',
+  'statement.textReceived': 'Text received',
+  'statement.readingLines': 'Reading the lines',
+  'statement.linesRead': '{lines} · total {total} ✓',
+  'statement.matching': 'Matching with your entries',
+  'statement.stepDone': '{step}, done',
+  'statement.canLeave':
+    'You can leave — the Finance tab shows it when it’s ready.',
+  'statementError.totals': "The totals don't match",
+  'statementError.totalsText':
+    'The rows add up to {rows} but the statement says {declared}. Part of the text may be missing — copy the whole month and paste again.',
+  'statementError.totalsFile':
+    'The rows add up to {rows} but the statement says {declared}. Part of the file may be missing — download the month again.',
+  'statementError.notMax': "This isn't a MAX statement",
+  'statementError.notMaxText':
+    'Download the month’s statement from MAX’s website as Excel and choose that file, or paste its text.',
+  'statementError.llm': "Couldn't reach the LLM",
+  'statementError.llmText':
+    '{tried} Is FreeToken running on the PC? Your statement is kept.',
+  'statementError.unknown': 'Something went wrong',
+  'statementError.unknownText':
+    'The statement couldn’t be read. Nothing in your entries changed — try again.',
+  'statementError.retry': 'Try again',
+  'statementError.startOver': 'Upload or paste again',
+  'statementError.chooseAnother': 'Choose another file',
   'finance.cardDigits': "Card's last 4 digits",
   'finance.date': 'Date',
   'finance.category': 'Category',
@@ -335,6 +361,10 @@ export default {
   'count.waitingForPC.other': '{n} entries waiting for your PC',
   'count.alreadyReported.one': '1 already reported',
   'count.alreadyReported.other': '{n} already reported',
+  'count.linesRead.one': '1 line read',
+  'count.linesRead.other': '{n} lines read',
+  'count.tried.one': 'Tried once.',
+  'count.tried.other': 'Tried {n} times.',
   'count.moreCategories.one': '+ 1 more category',
   'count.moreCategories.other': '+ {n} more categories',
   // A left-to-right mark first: the line stays an English one when a category is typed in Hebrew.

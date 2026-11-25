@@ -694,17 +694,26 @@ never hides Check statement.
 
 ## Stage U10: `StatementProgress` and `StatementError` (screen 5)
 
-- [ ] **U10.1 `StatementProgress`** — a spinner, "Reading your statement…", steps that tick (file
+- [x] **U10.1 `StatementProgress`** — a spinner, "Reading your statement…", steps that tick (file
   received → lines read · total ✓ → matching), "You can leave".
-- [ ] **U10.2 `StatementError`** — one card per error, each with its own words and action: totals
+  *Done 2026-11-25:* steps from the statement's status (`statementSteps`, tested); a pasted statement says "Text
+  received". In Storybook on the phone, dark, English and Hebrew; light theme and TalkBack not checked. 572 tests.
+- [x] **U10.2 `StatementError`** — one card per error, each with its own words and action: totals
   don't match (both amounts), not a MAX file, couldn't reach the LLM (tried 3 times), unknown.
-- [ ] **U10.3 Screen 5** — the progress animates through its steps with example timing, then goes
+  *Done 2026-11-25:* words from `statementErrorText` (tested); totals differ for a file and pasted text; every button
+  goes back to screen 4; the LLM one also has Try again (asked 2026-11-25, on artboard 5). `Alert` gains `title`.
+  In Storybook on the phone, dark, English and Hebrew.
+- [x] **U10.3 Screen 5** — the progress animates through its steps with example timing, then goes
   to screen 6; a story per error.
+  *Done 2026-11-25:* `StatementReadingScreen`, `/finance-reading`; the review replaces it, so Back from the review goes
+  to screen 4; leaving stops it. In the dev build, Hebrew, dark; its error stories too. 586 tests.
 
 **Try it:** watch the steps tick; every error in its story; "Upload or paste again" goes back.
 **Docs:** `frontend.md` (`StatementProgress`, `StatementError`).
-**Feedback questions:** Is each error clear enough to act on without asking anyone?
-**Feedback:** —
+**Feedback questions:** Is each error clear enough to act on without asking anyone? Should a failed LLM read have a
+"Try again"? Are the words not on the canvas OK?
+**Feedback:** 2026-11-25 — the errors are clear, "looks good", the words too. Asked for a Try again when the LLM is out of
+reach: added (artboard 5, README §2, §3.3, §6; L6.2, B10.1).
 
 ## Stage U11: the review list — `MatchQuestion`, `UnreportedRow` (screen 6)
 
@@ -836,7 +845,7 @@ reads the file); offline → they wait.
 
 - [ ] **L6.1 Picking the file** — the real document picker (`.xlsx`); the paste text and total.
 - [ ] **L6.2 Status** — polling the statement's status; the progress steps from it; each error
-  from the fake's error switches.
+  from the fake's error switches; Try again after an unreachable LLM.
 - [ ] **L6.3 Review and answer** — the to-review list, confirm, answer (with photos), close; the
   `ReviewBanner` from the slice.
 
@@ -992,7 +1001,8 @@ loopback / the Docker network.
 ## Stage B10: pasted statements
 
 - [ ] **B10.1** Paste + total on the server; the LLM extracts rows; the §4 checks (amounts appear
-  in the text, rows add up). Tests with a fake `ILlmClient`. Switch paste to the real API.
+  in the text, rows add up). Tests with a fake `ILlmClient`. `POST …/retry` (the kept
+  text queued again). Switch paste to the real API.
 
 **Try it:** paste a real month → same result as its file; cut a few lines → the totals error;
 stop FreeToken → after 3 tries, "Couldn't reach the LLM".
